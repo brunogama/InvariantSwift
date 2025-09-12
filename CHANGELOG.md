@@ -21,7 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Swift Package Manager plugin integration
 
 ### Changed
-- N/A (initial release)
+- Remove swift-docs-generation pre-commit hook
+- Clean up duplicate Swift format configuration files
+- Add Claude Code development workflow configuration
 
 ### Deprecated
 - N/A (initial release)

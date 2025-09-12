@@ -37,14 +37,6 @@ repos:
     always_run: true
     files: \.swift$
 
-  - id: swift-docs-generation
-    name: 📚 Generating comprehensive API documentation...
-    entry: ./scripts/pre-commit-docs.sh
-    language: system
-    pass_filenames: false
-    always_run: true
-    files: \.swift$
-
   - id: branch-guardian
     name: 🚫 Checking branch protection...
     entry: bash -c 'BRANCH=$(git rev-parse --abbrev-ref HEAD); if [ "$BRANCH" = "main" ] || [ "$BRANCH" = "dev" ]; then echo "🛑 Direct commits to $BRANCH branch are not allowed! Use feature branches and PRs instead 🚀"; exit 1; fi'
