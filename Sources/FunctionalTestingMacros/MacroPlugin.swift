@@ -5,7 +5,7 @@ import SwiftSyntaxMacros
 struct FunctionalTestingPlugin: CompilerPlugin {
   let providingMacros: [Macro.Type] = [
     PropertyTestMacro.self,
-    DeriveGenMacro.self,
-    LawCheckedMacro.self,
+    // DeriveGenMacro.self,  // Temporarily disabled
+    // LawCheckedMacro.self, // Temporarily disabled
   ]
 }

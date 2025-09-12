@@ -39,7 +39,7 @@ struct FuncTestPlugin: CommandPlugin {
 
     // Parse command arguments
     var allArguments = [String]()
-    var argumentExtractor = ArgumentExtractor(arguments)
+    let argumentExtractor = ArgumentExtractor(arguments)
 
     // Extract plugin-specific options
     let verbose = argumentExtractor.extractFlag(named: "verbose") != nil

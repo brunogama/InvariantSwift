@@ -37,7 +37,7 @@ let package = Package(
     .target(
       name: "FunctionalTesting",
       dependencies: [
-        "FunctionalTestingMacros"
+        // "FunctionalTestingMacros"  // Temporarily disabled due to SwiftSyntax version issues
       ],
       swiftSettings: [
         // Enable coverage collection for library code

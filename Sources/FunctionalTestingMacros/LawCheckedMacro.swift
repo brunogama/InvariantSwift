@@ -73,7 +73,7 @@ public struct LawCheckedMacro: MemberMacro {
 // MARK: - Configuration and Types
 
 /// **Configuration for law checking**
-struct LawCheckedConfig {
+struct LawCheckedConfig: Sendable {
   /// Built-in mathematical laws to check
   let laws: Set<MathematicalLaw>
 
@@ -103,7 +103,7 @@ struct LawCheckedConfig {
 }
 
 /// **Built-in mathematical laws**
-public enum MathematicalLaw: String, CaseIterable {
+public enum MathematicalLaw: String, CaseIterable, Sendable {
   // Category Theory
   case functor = "functor"
   case applicative = "applicative"
@@ -1072,6 +1072,7 @@ private func generateCustomLawTest(
 ///     // Implementation...
 /// }
 /// ```
+/*
 @attached(member, names: arbitrary)
 public macro LawChecked(
   laws: [MathematicalLaw] = [],
@@ -1081,3 +1082,4 @@ public macro LawChecked(
   enableShrinking: Bool = true,
   timeout: Double = 30.0
 ) = #externalMacro(module: "FunctionalTestingMacros", type: "LawCheckedMacro")
+*/

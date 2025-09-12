@@ -208,16 +208,18 @@ private func parseCustomFields(
 
   var customFields: [String: String] = [:]
 
-  for element in dictExpr.content.elements {
+  if case .elements(let elements) = dictExpr.content {
+    for element in elements {
     guard let keyExpr = element.key.as(StringLiteralExprSyntax.self),
       let valueExpr = element.value.as(StringLiteralExprSyntax.self)
     else {
       throw DeriveGenError.invalidConfiguration("customFields must be [String: String]")
     }
 
-    let key = keyExpr.representedLiteralValue ?? ""
-    let value = valueExpr.representedLiteralValue ?? ""
-    customFields[key] = value
+      let key = keyExpr.representedLiteralValue ?? ""
+      let value = valueExpr.representedLiteralValue ?? ""
+      customFields[key] = value
+    }
   }
 
   return DeriveGenConfig(
@@ -633,16 +635,19 @@ private func generateTypeGenerator(_ type: TypeSyntax, config: DeriveGenConfig) 
 ///     let age: Int
 /// }
 /// ```
-@attached(member, names: named(gen))
-@attached(extension, conformances: Generatable)
+// @attached(member, names: named(gen))
+// @attached(extension, conformances: Generatable)
+/*
 public macro DeriveGen(
   customFields: [String: String] = [:],
   maxDepth: Int = 5,
   sizeScaling: Double = 1.0,
   enableShrinking: Bool = true
 ) = #externalMacro(module: "FunctionalTestingMacros", type: "DeriveGenMacro")
+*/
 
 /// **Protocol for types that can generate instances**
 public protocol Generatable {
-  static var gen: Gen<Self> { get }
+  associatedtype Generator
+  static var gen: Generator { get }
 }
