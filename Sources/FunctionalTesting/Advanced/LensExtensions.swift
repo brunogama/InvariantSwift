@@ -133,7 +133,7 @@ extension Size {
 
   /// **Lens for size value**
   /// Focus on the integer value within Size
-  public static let value: Lens<Size, Int> = Lens<Size, Int>(
+  public static let value = Lens<Size, Int>(
     get: { $0.value },
     set: { newValue, _ in Size(value: newValue) }
   )
@@ -173,7 +173,7 @@ extension Seed {
 
   /// **Lens for seedValue property**
   /// Focus on the UInt64 value within Seed
-  public static let seedValue: Lens<Seed, UInt64> = Lens<Seed, UInt64>(
+  public static let seedValue = Lens<Seed, UInt64>(
     get: { $0.value },
     set: { newValue, _ in Seed(value: newValue) }
   )
@@ -222,14 +222,14 @@ public struct ConfigBuilder<T> {
   /// - Parameter base: Initial configuration
   /// - Returns: Configuration builder
   public static func from(_ base: T) -> ConfigBuilder<T> {
-    ConfigBuilder(base: base)
+    Self(base: base)
   }
 
   /// **Apply a transformation**
   /// - Parameter transform: Function to apply
   /// - Returns: Builder with transformation added
   public func with(_ transform: @escaping (T) -> T) -> ConfigBuilder<T> {
-    ConfigBuilder(base: base, transforms: transforms + [transform])
+    Self(base: base, transforms: transforms + [transform])
   }
 
   /// **Build the final configuration**

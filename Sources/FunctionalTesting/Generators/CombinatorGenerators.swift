@@ -111,7 +111,7 @@ extension Gen {
   public static func sequence(elementGen: Gen<T>, count: Int) -> Gen<[T]> {
     Gen<[T]>(
       generate: { rng, size in
-        guard count > 0 else { return [] }
+        guard !isEmpty else { return [] }
 
         let elementSize = Size(value: max(1, size.value / count))
         var result: [T] = []
@@ -246,7 +246,7 @@ extension Gen {
           // Create recursive generator with reduced size
           let recursiveSize = Size(value: max(1, size.value * 2 / 3))
           let selfGen = Gen<T> { rng, size in
-            return Gen<T>.recursive(
+            Gen<T>.recursive(
               recursiveCase: recursiveCase,
               baseCase: baseCase,
               probability: probability * 0.9  // Reduce probability in recursion
@@ -456,8 +456,9 @@ extension BinaryTree {
       },
       shrink: Shrink<BinaryTree<T>>({ tree in
         switch tree {
-        case .leaf(_):
+        case .leaf:
           return []
+
         case .node(_, let left, let right):
           // Shrink to subtrees
           return [left, right]

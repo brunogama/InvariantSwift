@@ -221,7 +221,7 @@ public struct RelationCatalog {
   /// Relations for sorting functions
   public static func sortingRelations<T: Sendable & Comparable>() -> [MetamorphicRelation<[T], [T]>]
   {
-    return [
+    [
       // Idempotence: sorting twice should be same as sorting once
       MetamorphicRelation(
         name: "sorting_idempotence",
@@ -252,11 +252,11 @@ public struct RelationCatalog {
 
   /// Relations for mathematical functions
   public static func arithmeticRelations() -> [MetamorphicRelation<(Double, Double), Double>] {
-    return [
+    [
       // Commutativity: f(a,b) == f(b,a)
       MetamorphicRelation(
         name: "addition_commutativity",
-        inputTransform: { (a, b) in (b, a) },
+        inputTransform: { a, b in (b, a) },
         outputRelation: { original, transformed in
           abs(original - transformed) < 0.0001
         },
@@ -267,8 +267,8 @@ public struct RelationCatalog {
       // Identity: f(a, 0) == a
       MetamorphicRelation(
         name: "addition_identity",
-        inputTransform: { (a, _) in (a, 0) },
-        outputRelation: { _, transformed in
+        inputTransform: { a, _ in (a, 0) },
+        outputRelation: { _, _ in
           // For identity, we need different checking logic
           true  // Simplified for example
         },
@@ -282,7 +282,7 @@ public struct RelationCatalog {
   public static func collectionRelations<T: Sendable & Hashable>() -> [MetamorphicRelation<
     [T], Int
   >] {
-    return [
+    [
       // Size after duplicate removal
       MetamorphicRelation(
         name: "unique_size_monotonic",
@@ -303,7 +303,7 @@ public struct RelationCatalog {
 
   /// Relations for string operations
   public static func stringRelations() -> [MetamorphicRelation<String, Int>] {
-    return [
+    [
       // Length after concatenation
       MetamorphicRelation(
         name: "concat_length_additive",
@@ -326,11 +326,11 @@ public struct RelationCatalog {
   public static func searchRelations<T: Sendable & Equatable>() -> [MetamorphicRelation<
     ([T], T), Bool
   >] {
-    return [
+    [
       // Adding element should make it findable
       MetamorphicRelation(
         name: "search_addition_positive",
-        inputTransform: { (array, target) in (array + [target], target) },
+        inputTransform: { array, target in (array + [target], target) },
         outputRelation: { _, transformed in transformed == true },
         description: "Adding element to collection should make it findable"
       ),
@@ -338,7 +338,7 @@ public struct RelationCatalog {
       // Removing all instances should make it not findable
       MetamorphicRelation(
         name: "search_removal_negative",
-        inputTransform: { (array, target) in (array.filter { $0 != target }, target) },
+        inputTransform: { array, target in (array.filter { $0 != target }, target) },
         outputRelation: { _, transformed in transformed == false },
         description: "Removing all instances should make element not findable"
       ),
@@ -383,7 +383,7 @@ public struct MetamorphicTestRunner {
     _ properties: [MetamorphicProperty<I, O>],
     iterations: Int = 100
   ) async -> [MetamorphicTestResult] {
-    return await withTaskGroup(of: MetamorphicTestResult.self) { group in
+    await withTaskGroup(of: MetamorphicTestResult.self) { group in
       for property in properties {
         group.addTask {
           await self.run(property, iterations: iterations)
@@ -602,7 +602,7 @@ public struct MetamorphicDiscoveryEngine {
     // This is a simplified heuristic - would need more sophisticated analysis
     // for different input/output types
 
-    return MetamorphicRelation(
+    MetamorphicRelation(
       name: "discovered_size_preservation",
       inputTransform: { $0 },
       outputRelation: { original, transformed in original == transformed },

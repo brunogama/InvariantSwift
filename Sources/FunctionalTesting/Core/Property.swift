@@ -47,7 +47,7 @@ public struct PropertyConfig: Sendable {
     self.seed = seed
   }
 
-  public static let `default` = PropertyConfig()
+  public static let `default` = Self()
 }
 
 /// Thread-safe random number generator wrapper
@@ -351,6 +351,7 @@ extension PropertyResult {
     switch self {
     case .failure:
       return true
+
     case .success, .gaveUp:
       return false
     }
@@ -361,6 +362,7 @@ extension PropertyResult {
     switch self {
     case .success:
       return true
+
     case .failure, .gaveUp:
       return false
     }

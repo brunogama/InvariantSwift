@@ -507,11 +507,11 @@ private extension Array where Element: Equatable {
 // Fallback for non-Equatable types - just limit size instead of removing duplicates
 private extension Array {
   func limitingSize(to maxSize: Int = 20) -> [Element] {
-    return Array(self.prefix(maxSize))
+    Array(self.prefix(maxSize))
   }
 
   // For types that don't conform to Equatable, just limit size
   func removingDuplicatesGeneric() -> [Element] {
-    return self.limitingSize()
+    self.limitingSize()
   }
 }

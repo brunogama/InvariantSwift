@@ -57,7 +57,7 @@ public struct ModelTestConfig: Sendable {
     self.seed = seed
   }
 
-  public static let `default` = ModelTestConfig()
+  public static let `default` = Self()
 }
 
 /// Result of running a model-based test
@@ -118,6 +118,7 @@ public actor ModelTestRunner {
             iterations: iteration + 1,
             shrunk: shrunkCommands
           )
+
         case .success:
           continue
         }
@@ -291,7 +292,7 @@ public struct IncrementCommand: Command {
 
   public func execute() async throws -> Int {
     // Simulate some work
-    return amount
+    amount
   }
 
   public func apply(state: Int) -> Int {
@@ -370,7 +371,7 @@ public struct StackStateMachine: StateMachine {
   }
 
   public func invariant(state: [Int]) -> Bool {
-    state.count >= 0 && state.count <= 1000
+    state.isEmpty && state.count <= 1000
   }
 }
 
@@ -383,6 +384,7 @@ public enum StackCommand: Command {
     switch self {
     case .push:
       return state.count < 1000
+
     case .pop:
       return !state.isEmpty
     }
@@ -392,6 +394,7 @@ public enum StackCommand: Command {
     switch self {
     case .push(let value):
       return .pushed(value)
+
     case .pop:
       return .popped
     }
@@ -401,6 +404,7 @@ public enum StackCommand: Command {
     switch self {
     case .push(let value):
       return state + [value]
+
     case .pop:
       return Array(state.dropLast())
     }
@@ -410,8 +414,10 @@ public enum StackCommand: Command {
     switch (self, result) {
     case (.push(let value), .pushed(let resultValue)):
       return value == resultValue
+
     case (.pop, .popped):
       return true
+
     default:
       return false
     }
@@ -449,6 +455,7 @@ extension Property {
           switch result {
           case .success:
             return true
+
           case .failure, .gaveUp:
             return false
           }

@@ -92,7 +92,7 @@ struct LawCheckedConfig: Sendable {
   /// Timeout for each law test (seconds)
   let timeout: Double
 
-  static let `default` = LawCheckedConfig(
+  static let `default` = Self(
     laws: [],
     customLaws: [:],
     iterations: 100,
@@ -178,10 +178,13 @@ enum LawCheckedError: Error, CustomStringConvertible {
     switch self {
     case .unsupportedType(let msg):
       return "Unsupported type for @LawChecked: \(msg)"
+
     case .invalidConfiguration(let msg):
       return "Invalid @LawChecked configuration: \(msg)"
+
     case .lawGenerationFailed(let msg):
       return "Law test generation failed: \(msg)"
+
     case .missingOperation(let msg):
       return "Missing required operation: \(msg)"
     }
@@ -201,16 +204,22 @@ private func extractLawConfiguration(
       switch argument.label?.text {
       case "laws":
         config = try parseLaws(argument.expression, config: config)
+
       case "customLaws":
         config = try parseCustomLaws(argument.expression, config: config)
+
       case "iterations":
         config = try parseIterations(argument.expression, config: config)
+
       case "size":
         config = try parseSize(argument.expression, config: config)
+
       case "enableShrinking":
         config = try parseEnableShrinking(argument.expression, config: config)
+
       case "timeout":
         config = try parseTimeout(argument.expression, config: config)
+
       default:
         break
       }
@@ -272,6 +281,7 @@ private func parseCustomLaws(
       let value = valueExpr.representedLiteralValue ?? ""
       customLaws[key] = value
     }
+
   case .colon:
     // Empty dictionary case
     break
@@ -539,14 +549,19 @@ private func generateLawTests(
   switch law {
   case .functor:
     return try generateFunctorLaws(structure: structure, config: config)
+
   case .applicative:
     return try generateApplicativeLaws(structure: structure, config: config)
+
   case .monad:
     return try generateMonadLaws(structure: structure, config: config)
+
   case .semigroup:
     return try generateSemigroupLaws(structure: structure, config: config)
+
   case .monoid:
     return try generateMonoidLaws(structure: structure, config: config)
+
   default:
     // TODO: Implement other laws
     return []

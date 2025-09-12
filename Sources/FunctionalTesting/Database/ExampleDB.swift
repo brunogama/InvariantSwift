@@ -26,12 +26,12 @@ public struct ExampleKey: Sendable, Hashable, Codable, CustomStringConvertible {
   }
 
   /// Create key from property and generator information
-  public static func from<T>(property: String, generator: Gen<T>, inputType: T.Type) -> ExampleKey {
+  public static func from<T>(property: String, generator: Gen<T>, inputType: T.Type) -> Self {
     let propertyHash = property.hashValue.description
     let generatorHash = "\(type(of: generator))".hashValue.description
     let typeSignature = "\(inputType)"
 
-    return ExampleKey(
+    return Self(
       propertyHash: propertyHash,
       generatorFingerprint: generatorHash,
       inputTypeSignature: typeSignature
@@ -127,18 +127,18 @@ public struct CorpusQuery: Sendable {
     case executionTime = "execution_time"
   }
 
-  public static let highPriority = CorpusQuery(
+  public static let highPriority = Self(
     limit: 50,
     minPriority: 5.0,
     orderBy: .priority
   )
 
-  public static let recent = CorpusQuery(
+  public static let recent = Self(
     limit: 20,
     orderBy: .discovered
   )
 
-  public static let counterexamples = CorpusQuery(
+  public static let counterexamples = Self(
     limit: 100,
     classification: .counterexample,
     orderBy: .priority
@@ -374,10 +374,13 @@ public actor ExampleDatabase {
       switch param {
       case let stringValue as String:
         sqlite3_bind_text(statement, Int32(index + 1), stringValue, -1, nil)
+
       case let intValue as Int:
         sqlite3_bind_int(statement, Int32(index + 1), Int32(intValue))
+
       case let doubleValue as Double:
         sqlite3_bind_double(statement, Int32(index + 1), doubleValue)
+
       default:
         throw DatabaseError.invalidParameter
       }
@@ -411,7 +414,7 @@ public actor ExampleDatabase {
         continue
       }
 
-      var original: A? = nil
+      var original: A?
       if let originalJSON = sqlite3_column_text(statement, 3).map({ String(cString: $0) }),
         let originalData = originalJSON.data(using: .utf8)
       {

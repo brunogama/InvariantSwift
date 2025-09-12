@@ -141,7 +141,7 @@ public struct SchedulerConfig: Sendable {
     self.preemptionStrategy = preemptionStrategy
   }
 
-  public static let testDefault = SchedulerConfig(
+  public static let testDefault = Self(
     maxSteps: 2000,
     depth: 15,
     fairness: .preemptive,
@@ -149,7 +149,7 @@ public struct SchedulerConfig: Sendable {
     preemptionStrategy: .yieldPoints
   )
 
-  public static let deepExploration = SchedulerConfig(
+  public static let deepExploration = Self(
     maxSteps: 10000,
     depth: 25,
     fairness: .bounded(100),
@@ -174,12 +174,13 @@ public enum PreemptionStrategy: Sendable {
   case custom((TaskContext) -> Bool)  // User-defined strategy
 
   /// Check if two strategies are equal (custom strategies never equal)
-  public static func == (lhs: PreemptionStrategy, rhs: PreemptionStrategy) -> Bool {
+  public static func == (lhs: Self, rhs: Self) -> Bool {
     switch (lhs, rhs) {
     case (.yieldPoints, .yieldPoints),
       (.awaitPoints, .awaitPoints),
       (.aggressive, .aggressive):
       return true
+
     case (.custom, .custom):
       return false  // Cannot compare closures
     default:
@@ -319,13 +320,13 @@ public struct HappensBefore: Sendable {
   public func validLinearizations() -> [Linearization] {
     // This is a simplified version - full implementation would use topological sorting
     // with backtracking to find all valid orderings
-    return [Linearization(steps: [])]
+    [Linearization(steps: [])]
   }
 
   /// Compute transitive reduction of the happens-before relation
   private static func computeTransitiveReduction(from edges: Set<CausalEdge>) -> Set<CausalEdge> {
     // Simplified implementation - full version would use graph algorithms
-    return edges
+    edges
   }
 }
 
@@ -428,7 +429,7 @@ public struct SeededRNG: Sendable {
 
   public mutating func nextInt(in range: Range<Int>) -> Int {
     let count = range.count
-    guard count > 0 else { return range.lowerBound }
+    guard !isEmpty else { return range.lowerBound }
     return range.lowerBound + Int(next() % UInt64(count))
   }
 }
@@ -479,15 +480,15 @@ public struct InterleavingTrace: Sendable {
   }
 
   /// Import trace from external source
-  public static func deserialize(_ data: Data) -> InterleavingTrace? {
+  public static func deserialize(_ data: Data) -> Self? {
     // Simplified deserialization - full implementation would be more robust
-    return nil
+    nil
   }
 
   /// Extract minimal trace that reproduces outcome
-  public func minimizeTrace() -> InterleavingTrace {
+  public func minimizeTrace() -> Self {
     // Delta debugging on step sequence - simplified implementation
-    return self
+    self
   }
 
   /// Visualize trace as sequence diagram
@@ -529,9 +530,9 @@ public actor DeterministicScheduler {
   private var config: SchedulerConfig = .testDefault
   private var currentTrace: [Step] = []
   private var logicalClock: LogicalTime = 0
-  private var rng: SeededRNG = SeededRNG(seed: 42)
-  private var taskRegistry: TaskRegistry = TaskRegistry()
-  private var executionStats: ExecutionStatistics = ExecutionStatistics()
+  private var rng = SeededRNG(seed: 42)
+  private var taskRegistry = TaskRegistry()
+  private var executionStats = ExecutionStatistics()
 
   private init() {}
 
@@ -662,7 +663,7 @@ public actor DeterministicScheduler {
     originalTrace: InterleavingTrace
   ) async -> Bool {
     // Simplified check - in reality, this would re-execute with the candidate schedule
-    return candidate.steps.count < originalTrace.steps.count
+    candidate.steps.count < originalTrace.steps.count
   }
 }
 

@@ -35,7 +35,7 @@ public struct PropertyEffect<A>: Sendable where A: Sendable {
     effect: @escaping @Sendable (A) async throws -> Bool,
     config: EffectConfig = .default
   ) -> PropertyEffect<A> {
-    PropertyEffect(
+    Self(
       generator: generator,
       effect: effect,
       actorIsolation: .customActor(String(describing: actorType)),
@@ -49,7 +49,7 @@ public struct PropertyEffect<A>: Sendable where A: Sendable {
     effect: @escaping @Sendable (A) async throws -> Bool,
     config: EffectConfig = .default
   ) -> PropertyEffect<A> {
-    PropertyEffect(
+    Self(
       generator: generator,
       effect: effect,
       actorIsolation: .mainActor,
@@ -64,7 +64,7 @@ public struct PropertyEffect<A>: Sendable where A: Sendable {
     effect: @escaping @Sendable (A) async throws -> Bool,
     config: EffectConfig = .default
   ) -> PropertyEffect<A> {
-    PropertyEffect(
+    Self(
       generator: generator,
       effect: effect,
       actorIsolation: .globalActor(String(describing: globalActor)),
@@ -121,8 +121,8 @@ public struct EffectConfig: Sendable {
     self.tracing = tracing
   }
 
-  public static let `default` = EffectConfig()
-  public static let strict = EffectConfig(
+  public static let `default` = Self()
+  public static let strict = Self(
     iterations: 1000,
     timeout: .seconds(60),
     isolationValidation: .strict,
@@ -142,8 +142,10 @@ public enum RetryStrategy: Sendable {
     switch self {
     case .noRetry:
       return nil
+
     case .fixedDelay(let delay, let maxAttempts):
       return attempt < maxAttempts ? delay : nil
+
     case .exponentialBackoff(let base, let maxAttempts, let maxDelay):
       guard attempt < maxAttempts else { return nil }
       let multiplier = Int64(pow(2.0, Double(attempt)))
@@ -152,6 +154,7 @@ public enum RetryStrategy: Sendable {
           / 1_000_000_000 * multiplier
       )
       return min(exponentialDelay, maxDelay)
+
     case .customStrategy(let strategy):
       return await strategy(attempt)
     }
@@ -171,6 +174,7 @@ extension IsolationValidation: Equatable {
     switch (lhs, rhs) {
     case (.disabled, .disabled), (.basic, .basic), (.strict, .strict):
       return true
+
     case (.custom, .custom):
       return false  // Custom functions can't be compared for equality
     default:
@@ -235,8 +239,8 @@ public struct PropertyEffectResult: Sendable {
     iterations: Int,
     metrics: ExecutionMetrics,
     isolationReport: IsolationReport
-  ) -> PropertyEffectResult {
-    PropertyEffectResult(
+  ) -> Self {
+    Self(
       success: true,
       iterations: iterations,
       failures: [],
@@ -251,8 +255,8 @@ public struct PropertyEffectResult: Sendable {
     failures: [PropertyEffectFailure],
     metrics: ExecutionMetrics,
     isolationReport: IsolationReport
-  ) -> PropertyEffectResult {
-    PropertyEffectResult(
+  ) -> Self {
+    Self(
       success: false,
       iterations: iterations,
       failures: failures,
@@ -394,7 +398,7 @@ extension PropertyEffect {
   public func and<B>(_ other: PropertyEffect<B>) -> PropertyEffect<(A, B)> where B: Sendable {
     PropertyEffect<(A, B)>(
       generator: Gen.zip(generator, other.generator),
-      effect: { (a, b) in
+      effect: { a, b in
         try await self.effect(a) && other.effect(b)
       },
       actorIsolation: actorIsolation,  // Use primary effect's isolation

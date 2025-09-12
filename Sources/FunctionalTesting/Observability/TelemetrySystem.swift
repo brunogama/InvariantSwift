@@ -29,7 +29,7 @@ import os
 /// - [Performance Monitoring Best Practices](https://sre.google/sre-book/monitoring-distributed-systems/)
 
 @available(macOS 13.0, iOS 16.0, tvOS 16.0, watchOS 9.0, *)
-public actor TelemetrySystem: Sendable {
+public actor TelemetrySystem {
 
   // MARK: - Types and Configuration
 
@@ -250,7 +250,7 @@ public actor TelemetrySystem: Sendable {
 
   private let config: Config
   private var eventBuffer: [TelemetryEvent] = []
-  private var lastFlush: Date = Date()
+  private var lastFlush = Date()
   private let logger = Logger(subsystem: "FunctionalTesting", category: "Telemetry")
   private var activeTraces: [String: TraceContext] = [:]
   private var resourceMonitorTask: Task<Void, Never>?

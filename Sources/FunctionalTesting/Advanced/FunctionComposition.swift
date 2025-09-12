@@ -297,6 +297,7 @@ public func rescue<A, B>(
     switch f(a) {
     case .success(let value):
       return value
+
     case .failure(let error):
       return rescue(error)
     }

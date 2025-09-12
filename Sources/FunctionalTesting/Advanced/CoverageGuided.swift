@@ -61,7 +61,7 @@ public struct CoverageBudget: Sendable {
   }
 
   /// Empty budget for initialization
-  public static let empty = CoverageBudget(
+  public static let empty = Self(
     uncoveredSymbols: [],
     coverageMap: [:],
     totalFunctions: 0,
@@ -85,7 +85,7 @@ public struct CoverageConfig: Sendable {
     self.maxCandidates = max(1, maxCandidates)
   }
 
-  public static let `default` = CoverageConfig()
+  public static let `default` = Self()
 }
 
 /// Records execution information for coverage analysis
@@ -194,10 +194,13 @@ extension Gen {
         switch strategy {
         case .random:
           return self.generate(&rng, size)
+
         case .frequency:
           return self.biasedByFrequency(budget, config, &rng, size)
+
         case .boundary:
           return self.biasedByBoundary(budget, config, &rng, size)
+
         case .adaptive:
           return self.adaptiveBiasing(budget, config, &rng, size)
         }
@@ -283,7 +286,7 @@ extension Gen {
     _ size: Size
   ) -> T {
     // This is a simplified boundary generation - would need type-specific implementations
-    return self.generate(&rng, size)
+    self.generate(&rng, size)
   }
 
   private func scoreCoverageImpact(_ value: T, _ budget: CoverageBudget) -> Double {
@@ -374,13 +377,13 @@ public struct CoverageReport: Sendable {
 
   /// Human-readable summary of the coverage report
   public func summary() -> String {
-    return """
-      Coverage Report:
-      - Initial Coverage: \(String(format: "%.2f", initialCoverage))%
-      - Final Coverage: \(String(format: "%.2f", finalCoverage))%
-      - Improvement: \(String(format: "+%.2f", improvement))%
-      - Executions: \(executionCount)
-      - Remaining Gaps: \(uncoveredSymbols.count) symbols
-      """
+    """
+    Coverage Report:
+    - Initial Coverage: \(String(format: "%.2f", initialCoverage))%
+    - Final Coverage: \(String(format: "%.2f", finalCoverage))%
+    - Improvement: \(String(format: "+%.2f", improvement))%
+    - Executions: \(executionCount)
+    - Remaining Gaps: \(uncoveredSymbols.count) symbols
+    """
   }
 }

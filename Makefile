@@ -59,10 +59,7 @@ test-watchos:
 
 # Format code using swift-format
 format:
-	swift-format format \
-		--ignore-unparsable-files \
-		--in-place \
-		--recursive \
+	swift-format -i --configuration .swift-format --recursive \
 		./Package.swift ./Sources ./Tests
 
 # Build the package

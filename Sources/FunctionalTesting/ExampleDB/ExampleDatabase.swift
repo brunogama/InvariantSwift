@@ -27,7 +27,7 @@ import Dispatch
 /// - [LibFuzzer Corpus](https://llvm.org/docs/LibFuzzer.html#corpus)
 /// - [Property-Based Testing Patterns](https://hypothesis.readthedocs.io/en/latest/database.html)
 @available(macOS 13.0, iOS 16.0, tvOS 16.0, watchOS 9.0, *)
-public actor ExampleDatabase: Sendable {
+public actor ExampleDatabase {
 
   // MARK: - Types
 

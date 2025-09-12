@@ -60,15 +60,15 @@ public struct Node<A>: Sendable where A: Sendable {
 
   /// Create a leaf node with no shrinks
   public static func leaf(_ value: A) -> Node<A> {
-    Node(value: value, shrinks: { [] })
+    Self(value: value, shrinks: { [] })
   }
 
   /// Create a node with immediate shrink values
   public static func node(_ value: A, shrinking to: [A]) -> Node<A> {
-    Node(
+    Self(
       value: value,
       shrinks: {
-        to.map(Node.leaf)
+        to.map(Self.leaf)
       }
     )
   }
@@ -106,7 +106,7 @@ public struct Node<A>: Sendable where A: Sendable {
 
   /// Filter shrinks based on a predicate while preserving structure
   public func filter(_ predicate: @escaping @Sendable (A) -> Bool) -> Node<A> {
-    Node(
+    Self(
       value: value,
       shrinks: shrinks.map { nodes in
         nodes.compactMap { node in
@@ -118,7 +118,7 @@ public struct Node<A>: Sendable where A: Sendable {
 
   /// Take only the first n shrinks for performance
   public func take(_ n: Int) -> Node<A> {
-    Node(
+    Self(
       value: value,
       shrinks: shrinks.map { nodes in
         Array(nodes.prefix(n))
@@ -154,7 +154,7 @@ public struct TreeGen<A>: Sendable where A: Sendable {
 
   /// Create generator from a single value
   public static func pure(_ value: A) -> TreeGen<A> {
-    TreeGen { _, _ in Node.leaf(value) }
+    Self { _, _ in Node.leaf(value) }
   }
 
   /// Create generator that chooses from array with shrinking toward earlier elements
@@ -163,7 +163,7 @@ public struct TreeGen<A>: Sendable where A: Sendable {
       fatalError("Cannot generate element from empty array")
     }
 
-    return TreeGen { rng, _ in
+    return Self { rng, _ in
       let index = Int.random(in: 0..<array.count, using: &rng)
       let value = array[index]
 
@@ -178,7 +178,7 @@ public struct TreeGen<A>: Sendable where A: Sendable {
 
   /// Generate integers with shrinking toward zero
   public static func int(in range: ClosedRange<Int>) -> TreeGen<Int> where A == Int {
-    TreeGen { rng, _ in
+    Self { rng, _ in
       let value = Int.random(in: range, using: &rng)
 
       return Node(
@@ -220,7 +220,7 @@ public struct TreeGen<A>: Sendable where A: Sendable {
 
   /// Generate strings with shrinking toward empty string
   public static func string(maxLength: Int = 100) -> TreeGen<String> where A == String {
-    TreeGen { rng, size in
+    Self { rng, size in
       let length = Int.random(in: 0...min(maxLength, size.value), using: &rng)
       let characters = (0..<length).map { _ in
         Character(UnicodeScalar(Int.random(in: 97...122, using: &rng))!)
@@ -265,7 +265,7 @@ public struct TreeGen<A>: Sendable where A: Sendable {
     of elementGen: TreeGen<Element>,
     maxCount: Int = 20
   ) -> TreeGen<[Element]> where A == [Element] {
-    TreeGen { rng, size in
+    Self { rng, size in
       let count = Int.random(in: 0...min(maxCount, size.value), using: &rng)
       var elements: [Node<Element>] = []
 

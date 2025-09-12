@@ -30,8 +30,8 @@ public struct AsyncPropertyConfig: Sendable {
     self.failureReporting = failureReporting
   }
 
-  public static let `default` = AsyncPropertyConfig()
-  public static let concurrent = AsyncPropertyConfig(
+  public static let `default` = Self()
+  public static let concurrent = Self(
     maxConcurrentIterations: 10,
     executorMode: .cooperativeExecutor
   )
@@ -575,6 +575,7 @@ public actor AsyncPropertyRunner {
     switch result {
     case .success:
       completedIterations += 1
+
     case .failure(let failure):
       failures.append(failure)
       completedIterations += 1
@@ -585,8 +586,10 @@ public actor AsyncPropertyRunner {
     switch reporting {
     case .firstFailure:
       return failureCount > 0
+
     case .collectAll:
       return false
+
     case .collectUpTo(let max):
       return failureCount >= max
     }
@@ -618,7 +621,7 @@ private actor IsolatedPropertyExecutor {
   ) async -> TaskResult {
     // Implementation similar to AsyncPropertyRunner.executeIteration
     // but executed within this isolated actor
-    return .success(iteration)
+    .success(iteration)
   }
 }
 

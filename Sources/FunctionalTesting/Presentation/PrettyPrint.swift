@@ -29,17 +29,17 @@ public indirect enum Doc: Sendable {
   case empty
   case text(String)
   case line
-  case concat(Doc, Doc)
-  case nest(Int, Doc)
-  case union(Doc, Doc)  // Choice between layouts
-  case group(Doc)  // Attempt to fit on one line
-  case align(Doc)  // Align subsequent lines
-  case hang(Int, Doc)  // Hanging indent
-  case indent(Int, Doc)  // Block indent
+  case concat(Self, Self)
+  case nest(Int, Self)
+  case union(Self, Self)  // Choice between layouts
+  case group(Self)  // Attempt to fit on one line
+  case align(Self)  // Align subsequent lines
+  case hang(Int, Self)  // Hanging indent
+  case indent(Int, Self)  // Block indent
 
   // Color and styling
-  case colored(ConsoleColor, Doc)
-  case styled(ConsoleStyle, Doc)
+  case colored(ConsoleColor, Self)
+  case styled(ConsoleStyle, Self)
 
   // Smart constructors
   public static let space = text(" ")
@@ -119,7 +119,7 @@ public struct PrettyConfig: Sendable {
   }
 
   /// Configuration optimized for test output
-  public static let testOutput = PrettyConfig(
+  public static let testOutput = Self(
     pageWidth: 100,
     ribbonWidth: 80,
     enableColors: ProcessInfo.processInfo.environment["NO_COLOR"] == nil,
@@ -129,7 +129,7 @@ public struct PrettyConfig: Sendable {
   )
 
   /// Configuration for compact output
-  public static let compact = PrettyConfig(
+  public static let compact = Self(
     pageWidth: 120,
     ribbonWidth: 100,
     enableColors: false,
@@ -187,7 +187,7 @@ extension Array: PrettyPrintable where Element: PrettyPrintable {
       return .colored(.gray, .text("[...]"))
     }
 
-    guard count > 0 else {
+    guard !isEmpty else {
       return .text("[]")
     }
 
@@ -217,11 +217,11 @@ extension Dictionary: PrettyPrintable where Key: PrettyPrintable, Value: PrettyP
       return .colored(.gray, .text("{...}"))
     }
 
-    guard count > 0 else {
+    guard !isEmpty else {
       return .text("{}")
     }
 
-    let pairs = prefix(config.maxLength).map { (key, value) in
+    let pairs = prefix(config.maxLength).map { key, value in
       Doc.concat(
         key.prettyDoc(config: config, depth: depth + 1),
         .concat(.text(": "), value.prettyDoc(config: config, depth: depth + 1))
@@ -249,6 +249,7 @@ extension Optional: PrettyPrintable where Wrapped: PrettyPrintable {
     switch self {
     case .none:
       return .colored(.gray, .text("nil"))
+
     case .some(let value):
       return value.prettyDoc(config: config, depth: depth)
     }
@@ -314,8 +315,8 @@ public indirect enum StructuredDiff: Sendable {
   case changed(old: String, new: String)
   case added(String)
   case removed(String)
-  case nested(key: String, diff: StructuredDiff)
-  case collection([StructuredDiff])
+  case nested(key: String, diff: Self)
+  case collection([Self])
 }
 
 /// **Protocol for types that can be diffed**
@@ -397,8 +398,8 @@ public struct PrettyPrinter: Sendable {
 
   private enum SimpleDoc {
     case empty
-    case text(String, SimpleDoc)
-    case line(Int, SimpleDoc)  // Indentation level
+    case text(String, Self)
+    case line(Int, Self)  // Indentation level
   }
 
   private func best(width: Int, _ doc: Doc) -> SimpleDoc {
@@ -460,8 +461,10 @@ public struct PrettyPrinter: Sendable {
     switch doc {
     case .empty:
       return true
+
     case .text(let s, let x):
       return fits(width - s.count, x)
+
     case .line:
       return true
     }
@@ -471,24 +474,34 @@ public struct PrettyPrinter: Sendable {
     switch doc {
     case .concat(let x, let y):
       return .concat(flatten(x), flatten(y))
+
     case .nest(_, let x):
       return flatten(x)
+
     case .line:
       return .space
+
     case .union(let x, _):
       return flatten(x)
+
     case .group(let x):
       return flatten(x)
+
     case .align(let x):
       return flatten(x)
+
     case .hang(_, let x):
       return flatten(x)
+
     case .indent(_, let x):
       return flatten(x)
+
     case .colored(let color, let x):
       return .colored(color, flatten(x))
+
     case .styled(let style, let x):
       return .styled(style, flatten(x))
+
     default:
       return doc
     }
@@ -498,8 +511,10 @@ public struct PrettyPrinter: Sendable {
     switch doc {
     case .empty:
       return ""
+
     case .text(let s, let x):
       return applyFormatting(s) + layout(x)
+
     case .line(let indent, let x):
       return "\n" + String(repeating: " ", count: indent) + layout(x)
     }

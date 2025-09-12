@@ -9,13 +9,13 @@ public struct Size: Sendable {
   }
 
   /// Scale size by a factor
-  public func scaled(by factor: Double) -> Size {
-    Size(value: max(0, Int(Double(value) * factor)))
+  public func scaled(by factor: Double) -> Self {
+    Self(value: max(0, Int(Double(value) * factor)))
   }
 
-  public static let small = Size(value: 10)
-  public static let medium = Size(value: 50)
-  public static let large = Size(value: 100)
+  public static let small = Self(value: 10)
+  public static let medium = Self(value: 50)
+  public static let large = Self(value: 100)
 }
 
 /// Shrink represents a coalgebraic structure for generating shrinking sequences
@@ -28,7 +28,7 @@ public struct Shrink<T>: @unchecked Sendable {
 
   /// Empty shrinking - produces no shrunk values
   public static var empty: Shrink<T> {
-    Shrink { _ in [] }
+    Self { _ in [] }
   }
 
   /// Contramap for shrinking - enables transformation of shrinking context
@@ -49,7 +49,7 @@ public struct Shrink<T>: @unchecked Sendable {
 
   /// Monadic bind for dependent shrinking
   public func flatMap<U>(_ f: @escaping (T) -> Shrink<U>) -> Shrink<U> {
-    Shrink<U> { u in
+    Shrink<U> { _ in
       // This is a simplified implementation - full implementation would
       // need to handle the coalgebraic unfolding properly
       []
@@ -90,7 +90,7 @@ extension Gen {
   public func map<U>(_ f: @escaping (T) -> U) -> Gen<U> {
     Gen<U>(
       generate: { rng, size in f(self.generate(&rng, size)) },
-      shrink: Shrink<U> { u in [] }  // Simplified - proper shrinking would require inverse transformation
+      shrink: Shrink<U> { _ in [] }  // Simplified - proper shrinking would require inverse transformation
     )
   }
 

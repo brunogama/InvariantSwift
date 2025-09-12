@@ -12,27 +12,33 @@ import Foundation
 public indirect enum SMTExpression: Sendable, CustomStringConvertible {
   case variable(String)
   case constant(SMTValue)
-  case function(String, [SMTExpression])
-  case binary(SMTBinaryOp, SMTExpression, SMTExpression)
-  case unary(SMTUnaryOp, SMTExpression)
-  case quantified(SMTQuantifier, [(String, SMTSort)], SMTExpression)
-  case let_([(String, SMTExpression)], SMTExpression)
+  case function(String, [Self])
+  case binary(SMTBinaryOp, Self, Self)
+  case unary(SMTUnaryOp, Self)
+  case quantified(SMTQuantifier, [(String, SMTSort)], Self)
+  case let_([(String, Self)], Self)
 
   public var description: String {
     switch self {
     case .variable(let name):
       return name
+
     case .constant(let value):
       return value.description
+
     case .function(let name, let args):
       return "(\(name) \(args.map(\.description).joined(separator: " ")))"
+
     case .binary(let op, let lhs, let rhs):
       return "(\(op.rawValue) \(lhs.description) \(rhs.description))"
+
     case .unary(let op, let expr):
       return "(\(op.rawValue) \(expr.description))"
+
     case .quantified(let quant, let vars, let body):
       let varDecls = vars.map { "(\($0.0) \($0.1.description))" }.joined(separator: " ")
       return "(\(quant.rawValue) (\(varDecls)) \(body.description))"
+
     case .let_(let bindings, let body):
       let bindingStrs = bindings.map { "(\($0.0) \($0.1.description))" }.joined(separator: " ")
       return "(let (\(bindingStrs)) \(body.description))"
@@ -47,20 +53,25 @@ public enum SMTValue: Sendable, CustomStringConvertible {
   case real(Double)
   case string(String)
   case bitVector(UInt64, width: Int)
-  case array([SMTValue])
+  case array([Self])
 
   public var description: String {
     switch self {
     case .bool(let b):
       return b ? "true" : "false"
+
     case .int(let i):
       return String(i)
+
     case .real(let r):
       return String(r)
+
     case .string(let s):
       return "\"\(s)\""
+
     case .bitVector(let value, let width):
       return "#b\(String(value, radix: 2).padded(toLength: width, withPad: "0", startingAt: 0))"
+
     case .array(let elements):
       return "(\(elements.map(\.description).joined(separator: " ")))"
     }
@@ -74,26 +85,33 @@ public indirect enum SMTSort: Sendable, CustomStringConvertible {
   case real
   case string
   case bitVector(Int)
-  case array(SMTSort, SMTSort)
+  case array(Self, Self)
   case uninterpreted(String)
-  case custom(String, [SMTSort])
+  case custom(String, [Self])
 
   public var description: String {
     switch self {
     case .bool:
       return "Bool"
+
     case .int:
       return "Int"
+
     case .real:
       return "Real"
+
     case .string:
       return "String"
+
     case .bitVector(let width):
       return "(_ BitVec \(width))"
+
     case .array(let index, let element):
       return "(Array \(index.description) \(element.description))"
+
     case .uninterpreted(let name):
       return name
+
     case .custom(let name, let params):
       return "(\(name) \(params.map(\.description).joined(separator: " ")))"
     }
@@ -219,8 +237,8 @@ public struct SMTSolverConfig: Sendable {
     self.randomSeed = randomSeed
   }
 
-  public static let z3 = SMTSolverConfig(solverPath: "z3")
-  public static let cvc4 = SMTSolverConfig(solverPath: "cvc4")
+  public static let z3 = Self(solverPath: "z3")
+  public static let cvc4 = Self(solverPath: "cvc4")
 }
 
 /// Actor for managing SMT solver interactions
@@ -252,6 +270,7 @@ public actor SMTSolver {
     switch result {
     case .satisfiable:
       return true
+
     default:
       return false
     }
@@ -279,11 +298,11 @@ public actor SMTSolver {
           variables: currentConstraint.variables,
           assertions: currentConstraint.assertions
         )
+
       case .unsatisfiable:
         break  // No more solutions
       default:
         solutions.append(result)
-        break
       }
     }
 
@@ -346,10 +365,13 @@ public actor SMTSolver {
     switch firstLine {
     case "sat":
       return parseModel(lines: Array(lines.dropFirst()))
+
     case "unsat":
       return .unsatisfiable
+
     case "unknown":
       return .unknown
+
     default:
       return .error("Unexpected output: \(firstLine)")
     }
@@ -396,7 +418,7 @@ public actor SMTSolver {
   }
 
   private func createBlockingClause(model: [String: SMTValue]) -> SMTExpression {
-    let negatedEqualities = model.map { (name, value) in
+    let negatedEqualities = model.map { name, value in
       SMTExpression.unary(.not, .binary(.equals, .variable(name), .constant(value)))
     }
 
@@ -513,6 +535,7 @@ public struct SMTGenerator<T: Sendable> {
     switch result {
     case .satisfiable(let model):
       return valueExtractor(model)
+
     default:
       return nil
     }
@@ -529,6 +552,7 @@ public struct SMTGenerator<T: Sendable> {
       switch result {
       case .satisfiable(let model):
         return valueExtractor(model)
+
       default:
         return nil
       }
@@ -566,6 +590,7 @@ extension SMTGenerator {
         switch value {
         case .int(let i):
           return i
+
         default:
           return nil
         }
@@ -585,7 +610,7 @@ extension SMTGenerator {
       },
       valueExtractor: { _ in
         // Simplified implementation
-        return []
+        []
       }
     )
   }
@@ -638,6 +663,7 @@ public struct PathCondition: Sendable {
       switch result {
       case .satisfiable(let model):
         return model
+
       default:
         return nil
       }
@@ -649,7 +675,7 @@ public struct PathCondition: Sendable {
 
 extension Array {
   fileprivate func safe(at index: Int) -> Element? {
-    return indices.contains(index) ? self[index] : nil
+    indices.contains(index) ? self[index] : nil
   }
 }
 
@@ -721,6 +747,7 @@ public enum SMTExamples {
         switch (aVal, bVal, cVal) {
         case (.int(let a), .int(let b), .int(let c)):
           return (a, b, c)
+
         default:
           return nil
         }
