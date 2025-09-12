@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive test suite with performance benchmarks
 - CLI tool (`functest`) for property-based testing
 - Swift Package Manager plugin integration
+- CodeRabbit automated code review configuration with Swift-specific optimizations
 
 ### Changed
 - Remove swift-docs-generation pre-commit hook
