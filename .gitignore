@@ -115,3 +115,12 @@ Icon
 Network Trash Folder
 Temporary Items
 .apdisk
+
+# Git
+.git/
+
+# Build artifacts
+.build/
+!.build/checkouts/
+!.build/repositories/
+!.build/workspace-state.json
