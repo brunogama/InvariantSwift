@@ -203,7 +203,7 @@ extension Array: PrettyPrintable where Element: PrettyPrintable {
       .concat(
         .lbracket,
         .concat(
-          .nest(config.indentSize, separatedBy(.comma + .space, docs)),
+          .nest(config.indentSize, separatedBy(.concat(.comma, .space), docs)),
           .rbracket
         )
       )
@@ -236,7 +236,7 @@ extension Dictionary: PrettyPrintable where Key: PrettyPrintable, Value: PrettyP
       .concat(
         .lbrace,
         .concat(
-          .nest(config.indentSize, separatedBy(.comma + .space, docs)),
+          .nest(config.indentSize, separatedBy(.concat(.comma, .space), docs)),
           .rbrace
         )
       )
@@ -396,7 +396,7 @@ public struct PrettyPrinter: Sendable {
 
   // MARK: - Layout Algorithm
 
-  private enum SimpleDoc {
+  private indirect enum SimpleDoc {
     case empty
     case text(String, Self)
     case line(Int, Self)  // Indentation level
@@ -558,9 +558,9 @@ extension PropertyResult {
   /// **Pretty-print the property result**
   /// - Parameter config: Pretty-printing configuration
   /// - Returns: Formatted result description
-  public func prettyDescription<T: PrettyPrintable>(
+  public func prettyDescription(
     config: PrettyConfig = .testOutput
-  ) -> String where T: PrettyPrintable {
+  ) -> String {
     let printer = PrettyPrinter(config: config)
 
     switch self {
@@ -574,8 +574,10 @@ extension PropertyResult {
 
     case .failure(let counterexample, let iterations, let shrunk):
       let counterDoc =
-        (counterexample as? T)?.prettyDoc(config: config, depth: 0) ?? .text("\(counterexample)")
-      let shrunkDoc = (shrunk as? T)?.prettyDoc(config: config, depth: 0) ?? .text("\(shrunk)")
+        (counterexample as? PrettyPrintable)?.prettyDoc(config: config, depth: 0)
+        ?? .text("\(counterexample)")
+      let shrunkDoc =
+        (shrunk as? PrettyPrintable)?.prettyDoc(config: config, depth: 0) ?? .text("\(shrunk)")
 
       return printer.render(
         Doc.concat([

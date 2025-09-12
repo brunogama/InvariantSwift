@@ -174,7 +174,7 @@ extension Seed {
   /// **Lens for seedValue property**
   /// Focus on the UInt64 value within Seed
   public static let seedValue = Lens<Seed, UInt64>(
-    get: { $0.value },
+    get: { $0.rawValue },
     set: { newValue, _ in Seed(value: newValue) }
   )
 }
@@ -354,7 +354,7 @@ public func arrayElementLens<Element>(
 
 /// **Lens for dictionary value access**
 /// Safe dictionary value focusing
-public func dictionaryValueLens<Key: Hashable, Value>(
+public func dictionaryValueLens<Key: Hashable & Sendable, Value>(
   for key: Key
 ) -> Lens<[Key: Value], Value?> {
   Lens<[Key: Value], Value?>(

@@ -134,7 +134,7 @@ public struct ExecutionEnvironment: Codable, Sendable {
     self.osVersion = ProcessInfo.processInfo.operatingSystemVersionString
     self.swiftVersion = "Swift 6.0"  // This would be detected dynamically
     self.architecture = ProcessInfo.processInfo.machineString
-    self.availableMemory = ProcessInfo.processInfo.physicalMemory
+    self.availableMemory = Int64(ProcessInfo.processInfo.physicalMemory)
     self.loadAverage = 0.0  // This would be read from system
     self.workingDirectory = FileManager.default.currentDirectoryPath
     self.environmentHash = Self.hashEnvironmentVariables()
@@ -155,7 +155,7 @@ public struct ExecutionEnvironment: Codable, Sendable {
 }
 
 /// **Flake detection statistics**
-public struct FlakeStatistics: Sendable {
+public struct FlakeStatistics: Codable, Sendable {
   /// Total number of executions
   public let totalExecutions: Int
 
@@ -194,6 +194,33 @@ public struct FlakeStatistics: Sendable {
 
     // Analyze patterns in the execution history
     self.patterns = FlakePatterns(executions: executions)
+  }
+
+  // MARK: - Codable Protocol Witness
+  public init(from decoder: Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    self.totalExecutions = try container.decode(Int.self, forKey: .totalExecutions)
+    self.failures = try container.decode(Int.self, forKey: .failures)
+    self.failureRate = try container.decode(Double.self, forKey: .failureRate)
+    self.confidence = try container.decode(Double.self, forKey: .confidence)
+    self.isFlaky = try container.decode(Bool.self, forKey: .isFlaky)
+    self.flakinessScore = try container.decode(Double.self, forKey: .flakinessScore)
+    self.patterns = try container.decode(FlakePatterns.self, forKey: .patterns)
+  }
+
+  public func encode(to encoder: Encoder) throws {
+    var container = encoder.container(keyedBy: CodingKeys.self)
+    try container.encode(totalExecutions, forKey: .totalExecutions)
+    try container.encode(failures, forKey: .failures)
+    try container.encode(failureRate, forKey: .failureRate)
+    try container.encode(confidence, forKey: .confidence)
+    try container.encode(isFlaky, forKey: .isFlaky)
+    try container.encode(flakinessScore, forKey: .flakinessScore)
+    try container.encode(patterns, forKey: .patterns)
+  }
+
+  private enum CodingKeys: String, CodingKey {
+    case totalExecutions, failures, failureRate, confidence, isFlaky, flakinessScore, patterns
   }
 
   private static func calculateFlakeConfidence(
@@ -279,7 +306,7 @@ public struct FlakeStatistics: Sendable {
 }
 
 /// **Pattern analysis in flaky test behavior**
-public struct FlakePatterns: Sendable {
+public struct FlakePatterns: Codable, Sendable {
   /// Tendency to fail in CI vs local environments
   public let ciFailureRate: Double
   public let localFailureRate: Double
@@ -311,6 +338,32 @@ public struct FlakePatterns: Sendable {
     self.resourceCorrelation = ResourceCorrelation(executions: executions)
   }
 
+  // MARK: - Codable Protocol Witness
+  public init(from decoder: Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    self.ciFailureRate = try container.decode(Double.self, forKey: .ciFailureRate)
+    self.localFailureRate = try container.decode(Double.self, forKey: .localFailureRate)
+    self.timePatterns = try container.decode(TimePatterns.self, forKey: .timePatterns)
+    self.environmentCorrelation = try container.decode(Double.self, forKey: .environmentCorrelation)
+    self.resourceCorrelation = try container.decode(
+      ResourceCorrelation.self,
+      forKey: .resourceCorrelation
+    )
+  }
+
+  public func encode(to encoder: Encoder) throws {
+    var container = encoder.container(keyedBy: CodingKeys.self)
+    try container.encode(ciFailureRate, forKey: .ciFailureRate)
+    try container.encode(localFailureRate, forKey: .localFailureRate)
+    try container.encode(timePatterns, forKey: .timePatterns)
+    try container.encode(environmentCorrelation, forKey: .environmentCorrelation)
+    try container.encode(resourceCorrelation, forKey: .resourceCorrelation)
+  }
+
+  private enum CodingKeys: String, CodingKey {
+    case ciFailureRate, localFailureRate, timePatterns, environmentCorrelation, resourceCorrelation
+  }
+
   private static func calculateFailureRate(_ executions: [TestExecution]) -> Double {
     guard !executions.isEmpty else { return 0.0 }
     let failures = executions.filter { $0.result.isFailure }.count
@@ -331,7 +384,7 @@ public struct FlakePatterns: Sendable {
 }
 
 /// **Time-based pattern analysis**
-public struct TimePatterns: Sendable {
+public struct TimePatterns: Codable, Sendable {
   /// Failure rate by hour of day
   public let hourlyPattern: [Int: Double]
 
@@ -345,6 +398,25 @@ public struct TimePatterns: Sendable {
     self.hourlyPattern = Self.calculateHourlyPattern(executions)
     self.dailyPattern = Self.calculateDailyPattern(executions)
     self.trend = Self.calculateTrend(executions)
+  }
+
+  // MARK: - Codable Protocol Witness
+  public init(from decoder: Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    self.hourlyPattern = try container.decode([Int: Double].self, forKey: .hourlyPattern)
+    self.dailyPattern = try container.decode([Int: Double].self, forKey: .dailyPattern)
+    self.trend = try container.decode(Trend.self, forKey: .trend)
+  }
+
+  public func encode(to encoder: Encoder) throws {
+    var container = encoder.container(keyedBy: CodingKeys.self)
+    try container.encode(hourlyPattern, forKey: .hourlyPattern)
+    try container.encode(dailyPattern, forKey: .dailyPattern)
+    try container.encode(trend, forKey: .trend)
+  }
+
+  private enum CodingKeys: String, CodingKey {
+    case hourlyPattern, dailyPattern, trend
   }
 
   private static func calculateHourlyPattern(_ executions: [TestExecution]) -> [Int: Double] {
@@ -396,14 +468,14 @@ public struct TimePatterns: Sendable {
 }
 
 /// **Trend direction**
-public enum Trend: String, Sendable {
+public enum Trend: String, Codable, Sendable {
   case improving = "improving"
   case stable = "stable"
   case worsening = "worsening"
 }
 
 /// **Resource usage correlation analysis**
-public struct ResourceCorrelation: Sendable {
+public struct ResourceCorrelation: Codable, Sendable {
   /// Correlation between memory usage and failures
   public let memoryCorrelation: Double
 
@@ -431,6 +503,25 @@ public struct ResourceCorrelation: Sendable {
       metric: { $0.environment.loadAverage },
       failures: { $0.result.isFailure }
     )
+  }
+
+  // MARK: - Codable Protocol Witness
+  public init(from decoder: Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    self.memoryCorrelation = try container.decode(Double.self, forKey: .memoryCorrelation)
+    self.cpuCorrelation = try container.decode(Double.self, forKey: .cpuCorrelation)
+    self.loadCorrelation = try container.decode(Double.self, forKey: .loadCorrelation)
+  }
+
+  public func encode(to encoder: Encoder) throws {
+    var container = encoder.container(keyedBy: CodingKeys.self)
+    try container.encode(memoryCorrelation, forKey: .memoryCorrelation)
+    try container.encode(cpuCorrelation, forKey: .cpuCorrelation)
+    try container.encode(loadCorrelation, forKey: .loadCorrelation)
+  }
+
+  private enum CodingKeys: String, CodingKey {
+    case memoryCorrelation, cpuCorrelation, loadCorrelation
   }
 
   private static func calculateCorrelation<T: Numeric>(
@@ -927,7 +1018,7 @@ extension PropertyRunner {
     }
 
     let startTime = CFAbsoluteTimeGetCurrent()
-    let result = await runProperty(property, config: config)
+    let result = runProperty(property, config: config)
     let duration = CFAbsoluteTimeGetCurrent() - startTime
 
     // Record execution
@@ -936,9 +1027,9 @@ extension PropertyRunner {
       result: result.toTestResult(),
       duration: duration,
       environment: ExecutionEnvironment(),
-      seed: config.seed?.value,
+      seed: config.seed?.rawValue,
       iterations: config.iterations,
-      memoryUsage: ProcessInfo.processInfo.physicalMemory,
+      memoryUsage: Int64(ProcessInfo.processInfo.physicalMemory),
       cpuUsage: 0.0  // This would be measured dynamically
     )
 
@@ -971,7 +1062,8 @@ extension ProcessInfo {
     sysctlbyname("hw.machine", nil, &size, nil, 0)
     var machine = [CChar](repeating: 0, count: size)
     sysctlbyname("hw.machine", &machine, &size, nil, 0)
-    return String(cString: machine)
+    let truncated = machine.prefix { $0 != 0 }
+    return String(decoding: truncated.map { UInt8(bitPattern: $0) }, as: UTF8.self)
   }
 }
 

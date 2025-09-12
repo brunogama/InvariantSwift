@@ -48,6 +48,7 @@ public struct LawCheckedMacro: MemberMacro {
   public static func expansion(
     of node: AttributeSyntax,
     providingMembersOf declaration: some DeclGroupSyntax,
+    conformingTo protocols: [TypeSyntax],
     in context: some MacroExpansionContext
   ) throws -> [DeclSyntax] {
 
@@ -491,7 +492,7 @@ private func extractFunctionSignature(_ funcDecl: FunctionDeclSyntax) -> Functio
   }
 
   let returnType = funcDecl.signature.returnClause?.type ?? TypeSyntax(stringLiteral: "Void")
-  let isThrows = funcDecl.signature.effectSpecifiers?.throwsSpecifier != nil
+  let isThrows = funcDecl.signature.effectSpecifiers?.throwsClause?.throwsSpecifier != nil
 
   return FunctionSignature(
     parameters: parameters,

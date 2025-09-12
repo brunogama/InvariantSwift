@@ -276,7 +276,7 @@ extension Gen where T == DirectedGraph {
 // MARK: - JSON Schema Generators
 
 /// **JSON Schema type definitions**
-public enum JSONSchemaType: String, CaseIterable, Codable, Sendable {
+public enum JSONSchemaType: String, CaseIterable, Codable, Sendable, Hashable {
   case object = "object"
   case array = "array"
   case string = "string"
@@ -286,11 +286,11 @@ public enum JSONSchemaType: String, CaseIterable, Codable, Sendable {
   case null = "null"
 }
 
-/// **JSON Schema structure for validation testing**
-public struct JSONSchema: Codable, Sendable, Equatable {
+/// **JSON Schema data structure**
+public struct JSONSchemaData: Codable, Sendable, Equatable, Hashable {
   public let type: JSONSchemaType?
-  public let properties: [String: Self]?
-  public let items: Box<Self>?
+  public let properties: [String: JSONSchema]?
+  public let items: JSONSchema?
   public let required: [String]?
   public let minimum: Double?
   public let maximum: Double?
@@ -300,6 +300,59 @@ public struct JSONSchema: Codable, Sendable, Equatable {
   public let `enum`: [String]?
   public let description: String?
   public let title: String?
+
+  public init(
+    type: JSONSchemaType? = nil,
+    properties: [String: JSONSchema]? = nil,
+    items: JSONSchema? = nil,
+    required: [String]? = nil,
+    minimum: Double? = nil,
+    maximum: Double? = nil,
+    minLength: Int? = nil,
+    maxLength: Int? = nil,
+    pattern: String? = nil,
+    enum: [String]? = nil,
+    description: String? = nil,
+    title: String? = nil
+  ) {
+    self.type = type
+    self.properties = properties
+    self.items = items
+    self.required = required
+    self.minimum = minimum
+    self.maximum = maximum
+    self.minLength = minLength
+    self.maxLength = maxLength
+    self.pattern = pattern
+    self.enum = `enum`
+    self.description = description
+    self.title = title
+  }
+}
+
+/// **JSON Schema structure for validation testing**
+public indirect enum JSONSchema: Codable, Sendable, Equatable, Hashable {
+  case schema(JSONSchemaData)
+
+  public var data: JSONSchemaData {
+    switch self {
+    case .schema(let data):
+      return data
+    }
+  }
+
+  public var type: JSONSchemaType? { data.type }
+  public var properties: [String: Self]? { data.properties }
+  public var items: Self? { data.items }
+  public var required: [String]? { data.required }
+  public var minimum: Double? { data.minimum }
+  public var maximum: Double? { data.maximum }
+  public var minLength: Int? { data.minLength }
+  public var maxLength: Int? { data.maxLength }
+  public var pattern: String? { data.pattern }
+  public var `enum`: [String]? { data.enum }
+  public var description: String? { data.description }
+  public var title: String? { data.title }
 
   public init(
     type: JSONSchemaType? = nil,
@@ -315,18 +368,30 @@ public struct JSONSchema: Codable, Sendable, Equatable {
     description: String? = nil,
     title: String? = nil
   ) {
-    self.type = type
-    self.properties = properties
-    self.items = items.map(Box.init)
-    self.required = required
-    self.minimum = minimum
-    self.maximum = maximum
-    self.minLength = minLength
-    self.maxLength = maxLength
-    self.pattern = pattern
-    self.enum = `enum`
-    self.description = description
-    self.title = title
+    self = .schema(
+      JSONSchemaData(
+        type: type,
+        properties: properties,
+        items: items,
+        required: required,
+        minimum: minimum,
+        maximum: maximum,
+        minLength: minLength,
+        maxLength: maxLength,
+        pattern: pattern,
+        enum: `enum`,
+        description: description,
+        title: title
+      )
+    )
+  }
+
+  // MARK: - Hashable Protocol Witness
+  public func hash(into hasher: inout Hasher) {
+    switch self {
+    case .schema(let data):
+      hasher.combine(data)
+    }
   }
 }
 
@@ -419,7 +484,7 @@ extension Gen where T == JSONSchema {
               let propName = "prop\(i)"
               properties[propName] = schemaGenerator(depth: depth + 1).generate(
                 &rng,
-                Size(size.value / 2)
+                Size(value: size.value / 2)
               )
 
               if Bool.random(using: &rng) {
@@ -431,17 +496,20 @@ extension Gen where T == JSONSchema {
               type: .object,
               properties: properties,
               required: required.isEmpty ? nil : required,
-              title: Bool.random(using: &rng) ? "ObjectSchema\(depth)" : nil,
-              description: Bool.random(using: &rng) ? "Object schema at depth \(depth)" : nil
+              description: Bool.random(using: &rng) ? "Object schema at depth \(depth)" : nil,
+              title: Bool.random(using: &rng) ? "ObjectSchema\(depth)" : nil
             )
 
           case .array:
-            let itemSchema = schemaGenerator(depth: depth + 1).generate(&rng, Size(size.value / 2))
+            let itemSchema = schemaGenerator(depth: depth + 1).generate(
+              &rng,
+              Size(value: size.value / 2)
+            )
             return JSONSchema(
               type: .array,
               items: itemSchema,
-              title: Bool.random(using: &rng) ? "ArraySchema\(depth)" : nil,
-              description: Bool.random(using: &rng) ? "Array schema at depth \(depth)" : nil
+              description: Bool.random(using: &rng) ? "Array schema at depth \(depth)" : nil,
+              title: Bool.random(using: &rng) ? "ArraySchema\(depth)" : nil
             )
 
           case .string:
@@ -482,7 +550,7 @@ extension Gen where T == JSONSchema {
 
           // Remove optional properties
           if let properties = schema.properties, !properties.isEmpty {
-            let reducedProperties = Dictionary(properties.dropLast())
+            let reducedProperties = Dictionary(uniqueKeysWithValues: properties.dropLast())
             shrunk.append(
               JSONSchema(
                 type: schema.type,
@@ -526,7 +594,7 @@ extension Gen where T == JSONSchema {
 // MARK: - Structured Data Generators
 
 /// **Database-like record structure**
-public struct DatabaseRecord: Codable, Sendable, Equatable {
+public struct DatabaseRecord: Codable, Sendable, Equatable, Hashable {
   public let id: String
   public let fields: [String: DatabaseValue]
   public let timestamp: Date
@@ -543,10 +611,24 @@ public struct DatabaseRecord: Codable, Sendable, Equatable {
     self.timestamp = timestamp
     self.metadata = metadata
   }
+
+  // MARK: - Hashable Protocol Witness
+  public func hash(into hasher: inout Hasher) {
+    hasher.combine(id)
+    hasher.combine(timestamp)
+    for (key, value) in fields.sorted(by: { $0.key < $1.key }) {
+      hasher.combine(key)
+      hasher.combine(value)
+    }
+    for (key, value) in metadata.sorted(by: { $0.key < $1.key }) {
+      hasher.combine(key)
+      hasher.combine(value)
+    }
+  }
 }
 
 /// **Typed values for database records**
-public enum DatabaseValue: Codable, Sendable, Equatable {
+public enum DatabaseValue: Codable, Sendable, Equatable, Hashable {
   case string(String)
   case integer(Int64)
   case double(Double)
@@ -711,7 +793,7 @@ extension Gen where T == DatabaseRecord {
 // MARK: - Network/API Data Generators
 
 /// **HTTP-like request structure for API testing**
-public struct HTTPRequest: Codable, Sendable, Equatable {
+public struct HTTPRequest: Codable, Sendable, Equatable, Hashable {
   public let method: HTTPMethod
   public let path: String
   public let headers: [String: String]
@@ -731,10 +813,25 @@ public struct HTTPRequest: Codable, Sendable, Equatable {
     self.body = body
     self.queryParameters = queryParameters
   }
+
+  // MARK: - Hashable Protocol Witness
+  public func hash(into hasher: inout Hasher) {
+    hasher.combine(method)
+    hasher.combine(path)
+    hasher.combine(body)
+    for (key, value) in headers.sorted(by: { $0.key < $1.key }) {
+      hasher.combine(key)
+      hasher.combine(value)
+    }
+    for (key, value) in queryParameters.sorted(by: { $0.key < $1.key }) {
+      hasher.combine(key)
+      hasher.combine(value)
+    }
+  }
 }
 
 /// **HTTP methods for request generation**
-public enum HTTPMethod: String, CaseIterable, Codable, Sendable {
+public enum HTTPMethod: String, CaseIterable, Codable, Sendable, Hashable {
   case GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS
 }
 

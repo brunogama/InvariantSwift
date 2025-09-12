@@ -228,6 +228,17 @@ public actor ClassificationCoverageSystem {
     }
   }
 
+  /// **Confidence interval for statistical analysis**
+  public struct ConfidenceInterval: Codable, Sendable, Equatable {
+    public let lower: Double
+    public let upper: Double
+
+    public init(lower: Double, upper: Double) {
+      self.lower = lower
+      self.upper = upper
+    }
+  }
+
   /// **Coverage statistics for a single classification**
   public struct ClassificationCoverage: Codable, Sendable {
     /// Classification being analyzed
@@ -247,7 +258,7 @@ public actor ClassificationCoverageSystem {
 
     /// Statistical measures
     public let standardDeviation: Double?
-    public let confidenceInterval: (lower: Double, upper: Double)?
+    public let confidenceInterval: ConfidenceInterval?
 
     public init(
       classification: Classification,
@@ -256,7 +267,7 @@ public actor ClassificationCoverageSystem {
       successRate: Double,
       averageComplexity: Double? = nil,
       standardDeviation: Double? = nil,
-      confidenceInterval: (lower: Double, upper: Double)? = nil
+      confidenceInterval: ConfidenceInterval? = nil
     ) {
       self.classification = classification
       self.sampleCount = sampleCount
@@ -468,7 +479,7 @@ public actor ClassificationCoverageSystem {
   // MARK: - Built-in Classifiers
 
   /// **Create a boundary value classifier for numeric types**
-  public static func boundaryClassifier<T: Numeric & Comparable>(
+  public static func boundaryClassifier<T: Numeric & Comparable & Sendable>(
     name: String = "boundary",
     bounds: (min: T, max: T)
   ) -> InputClassifier<T> {
@@ -499,7 +510,7 @@ public actor ClassificationCoverageSystem {
         // Calculate position within range
         let range = bounds.max - bounds.min
         let position = value - bounds.min
-        let relativePosition = Double(exactly: position) ?? 0.0 / Double(exactly: range) ?? 1.0
+        let relativePosition = (Double("\(position)") ?? 0.0) / (Double("\(range)") ?? 1.0)
 
         if relativePosition < 0.1 {
           classifications.append(
@@ -539,7 +550,7 @@ public actor ClassificationCoverageSystem {
   }
 
   /// **Create a size-based classifier for collections**
-  public static func collectionSizeClassifier<T: Collection>(
+  public static func collectionSizeClassifier<T: Collection & Sendable>(
     name: String = "collection_size"
   ) -> InputClassifier<T> {
     InputClassifier<T>(name: name) { collection in
@@ -954,7 +965,7 @@ extension PropertyRunner {
   where T: Sendable {
 
     // Run the property test
-    let result = await runProperty(property, config: config)
+    let result = runProperty(property, config: config)
 
     // Record coverage observation based on result
     let testResult: ClassificationCoverageSystem.CoverageObservation.TestResult =
@@ -967,8 +978,8 @@ extension PropertyRunner {
     // For this integration, we'll observe the first generated value
     // In practice, you'd integrate this more deeply into the test execution
     let generator = property.generator
-    var rng = SystemRandomNumberGenerator()
-    let sampleInput = generator.generate(&rng, Size(config.size ?? 50))
+    var rng: any RandomNumberGenerator = SystemRandomNumberGenerator()
+    let sampleInput = generator.generate(&rng, Size(value: 50))
 
     await coverageSystem.observeExecution(
       input: sampleInput,

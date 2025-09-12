@@ -29,6 +29,14 @@ repos:
     always_run: true
     files: \.swift$
 
+  - id: swift-coverage-guard
+    name: 📊 Enforcing 99% code coverage...
+    entry: scripts/check-coverage.sh
+    language: system
+    pass_filenames: false
+    always_run: true
+    files: \.swift$
+
   - id: swift-warning-guard
     name: ⚠️ Checking for Swift warnings...
     entry: bash -c 'if [ -f "Package.swift" ] && git diff --cached --name-only | grep -q "\.swift$"; then echo "🔍 Compiling Swift code with warnings as errors..."; swift build -Xswiftc -warnings-as-errors; else echo "ℹ️ No Swift package or Swift files changed, skipping warning check"; fi'

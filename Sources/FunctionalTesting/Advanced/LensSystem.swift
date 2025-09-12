@@ -198,7 +198,7 @@ extension Lens {
   /// - Parameter key: The dictionary key to focus on
   /// - Returns: Lens focused on the dictionary value for key
   public static func key<Key, DictValue>(_ key: Key) -> Lens<[Key: DictValue], DictValue?>
-  where Root == [Key: DictValue], Value == DictValue? {
+  where Root == [Key: DictValue], Value == DictValue?, Key: Sendable {
     Lens<[Key: DictValue], DictValue?>(
       get: { dict in dict[key] },
       set: { newValue, dict in
@@ -314,7 +314,7 @@ extension Prism {
 /// **External References:**
 /// - [Traversable Functors](https://en.wikipedia.org/wiki/Traversable_functor)
 /// - [Traversals in Optics](https://hackage.haskell.org/package/lens/docs/Control-Lens-Traversal.html)
-public struct Traversal<Root, Value>: Sendable {
+public struct Traversal<Root, Value>: Sendable where Value: Sendable {
   /// Transform all focused values in the structure
   public let over: @Sendable (@escaping @Sendable (Value) -> Value) -> @Sendable (Root) -> Root
 
@@ -357,7 +357,8 @@ extension Traversal {
   }
 
   /// Traversal for dictionary values
-  public static func values<Key, DictValue>() -> Traversal<[Key: DictValue], DictValue> {
+  public static func values<Key, DictValue>() -> Traversal<[Key: DictValue], DictValue>
+  where Key: Sendable, DictValue: Sendable {
     Traversal<[Key: DictValue], DictValue>(
       over: { transform in
         { dict in
@@ -388,29 +389,4 @@ public func copy<T>(_ value: T, _ updates: ((T) -> T)...) -> T {
   }
 }
 
-/// Pipe operator for functional composition
-/// - Parameters:
-///   - value: Input value
-///   - transform: Transformation function
-/// - Returns: Transformed value
-public func |> <T, U>(value: T, transform: (T) -> U) -> U {
-  transform(value)
-}
-
-/// Compose two functions
-/// - Parameters:
-///   - f: Second function to apply
-///   - g: First function to apply
-/// - Returns: Composed function
-public func • <A, B, C>(f: @escaping (B) -> C, g: @escaping (A) -> B) -> (A) -> C {
-  { a in f(g(a)) }
-}
-
-/// Compose functions in pipeline order (left to right)
-/// - Parameters:
-///   - f: First function to apply
-///   - g: Second function to apply
-/// - Returns: Composed function
-public func >>> <A, B, C>(f: @escaping (A) -> B, g: @escaping (B) -> C) -> (A) -> C {
-  { a in g(f(a)) }
-}
+// Operator definitions available in FunctionComposition.swift

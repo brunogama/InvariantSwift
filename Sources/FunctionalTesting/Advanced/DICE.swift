@@ -52,8 +52,8 @@ public struct StepID: Sendable, Hashable, CustomStringConvertible {
   }
 }
 
-/// Execution context information
-public struct ExecutionContext: Sendable, Hashable {
+/// DICE execution context information
+public struct DICEExecutionContext: Sendable, Hashable {
   public let isolatedActor: ActorID?
   public let sourceLocation: SourceLocation?
   public let stackDepth: Int
@@ -112,7 +112,7 @@ public enum TaskResult: Sendable, Hashable {
 
 /// Outcome of entire execution
 public enum ExecutionOutcome: Sendable {
-  case success(Any?)
+  case success(any Sendable)
   case failure(Error)
   case cancelled
 }
@@ -171,7 +171,7 @@ public enum PreemptionStrategy: Sendable {
   case yieldPoints  // Only at explicit Task.yield()
   case awaitPoints  // At all await expressions
   case aggressive  // At await + periodic interrupts
-  case custom((TaskContext) -> Bool)  // User-defined strategy
+  case custom(@Sendable (TaskContext) -> Bool)  // User-defined strategy
 
   /// Check if two strategies are equal (custom strategies never equal)
   public static func == (lhs: Self, rhs: Self) -> Bool {
@@ -224,6 +224,72 @@ public enum DICEOperation: Sendable, Hashable {
   case awaitExpression(location: SourceLocation?)
   case yieldExplicit
   case detachedTaskCreate
+
+  public func hash(into hasher: inout Hasher) {
+    switch self {
+    case .taskStart(let priority):
+      hasher.combine(0)
+      hasher.combine(priority?.rawValue ?? UInt8.max)
+
+    case .taskSuspend(let reason):
+      hasher.combine(1)
+      hasher.combine(reason)
+
+    case .taskResume:
+      hasher.combine(2)
+
+    case .taskComplete(let result):
+      hasher.combine(3)
+      hasher.combine(result)
+
+    case .actorCall(let method, let isolated):
+      hasher.combine(4)
+      hasher.combine(method)
+      hasher.combine(isolated)
+
+    case .awaitExpression(let location):
+      hasher.combine(5)
+      hasher.combine(location?.line ?? -1)
+      hasher.combine(location?.column ?? -1)
+
+    case .yieldExplicit:
+      hasher.combine(6)
+
+    case .detachedTaskCreate:
+      hasher.combine(7)
+    }
+  }
+
+  public static func == (lhs: Self, rhs: Self) -> Bool {
+    switch (lhs, rhs) {
+    case (.taskStart(let lPriority), .taskStart(let rPriority)):
+      return lPriority?.rawValue == rPriority?.rawValue
+
+    case (.taskSuspend(let lReason), .taskSuspend(let rReason)):
+      return lReason == rReason
+
+    case (.taskResume, .taskResume):
+      return true
+
+    case (.taskComplete(let lResult), .taskComplete(let rResult)):
+      return lResult == rResult
+
+    case (.actorCall(let lMethod, let lIsolated), .actorCall(let rMethod, let rIsolated)):
+      return lMethod == rMethod && lIsolated == rIsolated
+
+    case (.awaitExpression(let lLocation), .awaitExpression(let rLocation)):
+      return lLocation?.line == rLocation?.line && lLocation?.column == rLocation?.column
+
+    case (.yieldExplicit, .yieldExplicit):
+      return true
+
+    case (.detachedTaskCreate, .detachedTaskCreate):
+      return true
+
+    default:
+      return false
+    }
+  }
 }
 
 /// Individual execution step with complete context
@@ -232,7 +298,7 @@ public struct Step: Sendable, Hashable {
   public let operation: DICEOperation
   public let timestamp: LogicalTime
   public let actorId: ActorID?
-  public let executionContext: ExecutionContext
+  public let executionContext: DICEExecutionContext
   public let preemptionCause: PreemptionCause?
 
   public init(
@@ -240,7 +306,7 @@ public struct Step: Sendable, Hashable {
     operation: DICEOperation,
     timestamp: LogicalTime,
     actorId: ActorID? = nil,
-    executionContext: ExecutionContext = ExecutionContext(),
+    executionContext: DICEExecutionContext = DICEExecutionContext(),
     preemptionCause: PreemptionCause? = nil
   ) {
     self.taskId = taskId
@@ -539,7 +605,6 @@ public actor DeterministicScheduler {
   /// Execute with complete deterministic control
   public func withDeterministicScheduler<T: Sendable>(
     _ config: SchedulerConfig,
-    isolation: isolated (any Actor)? = #isolation,
     operation: @Sendable @escaping () async throws -> T
   ) async rethrows -> (result: T, trace: InterleavingTrace) {
 
@@ -723,14 +788,15 @@ extension DeterministicScheduler {
 /// Property test failure with DICE trace information
 public struct PropertyTestFailure: Error, Sendable {
   public let message: String
-  public let counterexample: Any
-  public let shrunk: Any
+  public let counterexample: String
+  public let shrunk: String
   public let iterations: Int
 
-  public init(message: String, counterexample: Any, shrunk: Any, iterations: Int) {
+  public init(message: String, counterexample: any Sendable, shrunk: any Sendable, iterations: Int)
+  {
     self.message = message
-    self.counterexample = counterexample
-    self.shrunk = shrunk
+    self.counterexample = String(describing: counterexample)
+    self.shrunk = String(describing: shrunk)
     self.iterations = iterations
   }
 }

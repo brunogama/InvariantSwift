@@ -50,6 +50,7 @@ public struct DeriveGenMacro: MemberMacro, ExtensionMacro {
   public static func expansion(
     of node: AttributeSyntax,
     providingMembersOf declaration: some DeclGroupSyntax,
+    conformingTo protocols: [TypeSyntax],
     in context: some MacroExpansionContext
   ) throws -> [DeclSyntax] {
 
@@ -441,9 +442,9 @@ private func analyzeCollection(_ type: TypeSyntax) -> (isCollection: Bool, eleme
     let typeName = identifierType.name.text
 
     if ["Array", "Set"].contains(typeName) && genericClause.arguments.count == 1 {
-      return (true, genericClause.arguments.first?.argument)
+      return (true, genericClause.arguments.first?.argument.as(TypeSyntax.self))
     } else if typeName == "Dictionary" && genericClause.arguments.count == 2 {
-      return (true, genericClause.arguments.last?.argument)
+      return (true, genericClause.arguments.last?.argument.as(TypeSyntax.self))
     }
   }
 

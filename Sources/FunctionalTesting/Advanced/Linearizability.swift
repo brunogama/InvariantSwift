@@ -482,7 +482,7 @@ where Model: Sendable, Input: Sendable, Output: Sendable & Equatable {
 
     // Main Wing-Gong algorithm with timeout
     return await withTimeout(timeout) {
-      await wingGongSearch(hbGraph, startTime: startTime)
+      await self.wingGongSearch(hbGraph, startTime: startTime)
     }
       ?? .timeout(
         partialResults: PartialAnalysis(

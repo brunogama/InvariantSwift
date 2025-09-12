@@ -386,7 +386,25 @@ public struct MetamorphicTestRunner {
     await withTaskGroup(of: MetamorphicTestResult.self) { group in
       for property in properties {
         group.addTask {
-          await self.run(property, iterations: iterations)
+          // Inline the run method logic to avoid self capture
+          let startTime = ContinuousClock().now
+          let results = await property.test(iterations: iterations)
+          let endTime = ContinuousClock().now
+
+          let validResults = results.filter { $0.isValid }
+          let invalidResults = results.filter { !$0.isValid }
+
+          let overallSuccess = invalidResults.isEmpty
+
+          return MetamorphicTestResult(
+            totalRelations: results.count,
+            validRelations: validResults.count,
+            invalidRelations: invalidResults.count,
+            results: results,
+            isSuccess: overallSuccess,
+            executionTime: endTime - startTime,
+            iterations: iterations
+          )
         }
       }
 

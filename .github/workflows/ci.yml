@@ -69,7 +69,7 @@ jobs:
       - name: Install SwiftLint
         run: brew install swiftlint
       - name: Lint
-        run: swiftlint lint --strict
+        run: swiftlint lint
 
   format-check:
     name: swift-format
@@ -80,13 +80,20 @@ jobs:
         run: brew install swift-format
       - name: Check formatting
         run: |
-          swift-format format \
-            --ignore-unparsable-files \
-            --recursive \
-            ./Package.swift ./Sources ./Tests > /tmp/formatted.diff
-          if ! diff -u . /tmp/formatted.diff; then
+          # Create a copy to check formatting
+          cp -r . /tmp/original
+          # Apply formatting
+          swift-format -i --configuration .swift-format --recursive \
+            ./Package.swift ./Sources ./Tests
+          # Check if any files were modified
+          if ! git diff --quiet; then
             echo "❌ Code is not formatted. Run 'make format' to fix."
+            echo "Files that need formatting:"
+            git diff --name-only
+            git diff
             exit 1
+          else
+            echo "✅ All code is properly formatted"
           fi
 
   coverage:

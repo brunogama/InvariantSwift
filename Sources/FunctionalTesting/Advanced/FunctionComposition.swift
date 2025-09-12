@@ -183,10 +183,12 @@ public func Y<A>(_ f: @escaping ((A) -> A) -> (A) -> A) -> (A) -> A {
 /// - Parameter f: Function to find fixed point for
 /// - Returns: Fixed point of f
 public func lazyY<A>(_ f: @escaping (@escaping (A) -> A) -> (A) -> A) -> (A) -> A {
-  let rec: (@escaping (@escaping (A) -> A) -> (A) -> A) -> (A) -> A = { g in
-    { a in f({ b in g(g)(b) })(a) }
+  // Simplified implementation to avoid Swift's type system complexity
+  var result: ((A) -> A)!
+  result = { a in
+    f(result)(a)
   }
-  return rec(rec)
+  return result
 }
 
 // MARK: - Function Transformation Utilities

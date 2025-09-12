@@ -83,7 +83,7 @@ public actor TelemetrySystem {
   }
 
   /// **Telemetry event types**
-  public enum EventType: String, CaseIterable, Sendable {
+  public enum EventType: String, CaseIterable, Codable, Sendable {
     case testStart = "test.start"
     case testComplete = "test.complete"
     case testFailure = "test.failure"
@@ -249,6 +249,9 @@ public actor TelemetrySystem {
   // MARK: - Properties
 
   private let config: Config
+
+  /// Check if resource monitoring is enabled
+  public var isResourceMonitoringEnabled: Bool { config.enableResourceMonitoring }
   private var eventBuffer: [TelemetryEvent] = []
   private var lastFlush = Date()
   private let logger = Logger(subsystem: "FunctionalTesting", category: "Telemetry")
@@ -288,7 +291,9 @@ public actor TelemetrySystem {
     decoder.dateDecodingStrategy = .iso8601
 
     if config.enabled {
-      startBackgroundTasks()
+      Task { [weak self] in
+        await self?.startBackgroundTasks()
+      }
     }
   }
 
@@ -645,7 +650,7 @@ public actor TelemetrySystem {
     logger.info("📊 Event Summary: \(summary)")
   }
 
-  private func captureResourceSnapshot() -> ResourceSnapshot {
+  public func captureResourceSnapshot() -> ResourceSnapshot {
     let processInfo = ProcessInfo.processInfo
 
     // This is a simplified implementation
@@ -734,7 +739,6 @@ extension PropertyRunner {
       tags: [
         "property_type": String(describing: T.self),
         "iterations": "\(config.iterations)",
-        "timeout": "\(config.timeout)",
       ].merging(tags) { _, new in new }
     )
 
@@ -742,12 +746,12 @@ extension PropertyRunner {
     var resourceStart: TelemetrySystem.ResourceSnapshot?
 
     // Capture initial resource state
-    if await telemetry.config.enableResourceMonitoring {
+    if await telemetry.isResourceMonitoringEnabled {
       resourceStart = await telemetry.captureResourceSnapshot()
     }
 
     // Run the property test
-    let result = await runProperty(property, config: config)
+    let result = runProperty(property, config: config)
 
     let endTime = Date()
     let duration = endTime.timeIntervalSince(startTime)
@@ -796,13 +800,13 @@ extension PropertyRunner {
         tags: tags
       )
 
-    case .gaveUp(let iterations):
+    case .gaveUp(let discarded, let iterations):
       await telemetry.recordEvent(
         TelemetrySystem.TelemetryEvent(
           type: .testComplete,
           duration: duration,
           tags: ["result": "gave_up"].merging(tags) { _, new in new },
-          metrics: ["iterations_completed": Double(iterations)],
+          metrics: ["iterations_completed": Double(iterations), "discarded": Double(discarded)],
           traceId: traceId
         )
       )
@@ -815,12 +819,3 @@ extension PropertyRunner {
 }
 
 // MARK: - Utility Extensions
-
-private extension PropertyResult {
-  var isSuccess: Bool {
-    switch self {
-    case .success: return true
-    case .failure, .gaveUp: return false
-    }
-  }
-}

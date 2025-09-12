@@ -397,9 +397,11 @@ extension PropertyEffect {
   /// Combine with another PropertyEffect using logical AND
   public func and<B>(_ other: PropertyEffect<B>) -> PropertyEffect<(A, B)> where B: Sendable {
     PropertyEffect<(A, B)>(
-      generator: Gen.zip(generator, other.generator),
+      generator: Gen<(A, B)>.zip(generator, other.generator),
       effect: { a, b in
-        try await self.effect(a) && other.effect(b)
+        let selfResult = try await self.effect(a)
+        let otherResult = try await other.effect(b)
+        return selfResult && otherResult
       },
       actorIsolation: actorIsolation,  // Use primary effect's isolation
       config: config
@@ -409,7 +411,7 @@ extension PropertyEffect {
 
 // MARK: - Gen Extension for PropertyEffect
 
-extension Gen {
+extension Gen where T: Sendable {
   /// Create a PropertyEffect from this generator
   public func propertyEffect(
     _ effect: @escaping @Sendable (T) async throws -> Bool,

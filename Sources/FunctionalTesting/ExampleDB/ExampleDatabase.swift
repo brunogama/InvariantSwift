@@ -230,7 +230,7 @@ public actor ExampleDatabase {
     }
 
     return
-      try entries
+      entries
       .sorted { $0.metadata.priority > $1.metadata.priority }
       .compactMap { entry in
         try? decoder.decode(CorpusEntry<T>.self, from: entry.data)
@@ -322,7 +322,7 @@ public actor ExampleDatabase {
 
   // MARK: - Private Methods
 
-  private static func defaultDatabasePath() -> URL {
+  internal static func defaultDatabasePath() -> URL {
     let appSupport = FileManager.default.urls(
       for: .applicationSupportDirectory,
       in: .userDomainMask
@@ -363,7 +363,7 @@ public actor ExampleDatabase {
   }
 
   private func pruneIfNeeded(for key: ExampleKey) async {
-    guard var entries = corpus[key],
+    guard let entries = corpus[key],
       entries.count > maxEntriesPerKey
     else { return }
 
@@ -415,14 +415,14 @@ extension PropertyRunner {
     }
 
     // Run normal property test
-    let result = await runProperty(property, config: config)
+    let result = runProperty(property, config: config)
 
     // Store interesting results
     switch result {
     case .failure(let counterexample, _, let shrunk):
       let entry = ExampleDatabase.CorpusEntry(
         value: counterexample,
-        seed: config.seed?.value ?? 0,
+        seed: config.seed?.rawValue ?? 0,
         minimal: shrunk,
         discovered: Date(),
         shrinkSteps: 0,  // TODO: Track actual shrink steps

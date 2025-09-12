@@ -5,11 +5,11 @@ import CompilerPluginSupport
 let package = Package(
   name: "FunctionalTesting",
   platforms: [
-    .iOS(.v16),  // Updated for Duration and modern async APIs
-    .macOS(.v13),  // Updated for Duration and modern async APIs
-    .tvOS(.v16),
-    .watchOS(.v9),
-    .macCatalyst(.v16),
+    .iOS(.v18),  // Required for latest TaskExecutor and Sendable APIs
+    .macOS(.v15),  // Required for latest TaskExecutor and Sendable APIs
+    .tvOS(.v18),
+    .watchOS(.v11),
+    .macCatalyst(.v18),
   ],
   products: [
     .library(
@@ -37,7 +37,7 @@ let package = Package(
     .target(
       name: "FunctionalTesting",
       dependencies: [
-        // "FunctionalTestingMacros"  // Temporarily disabled due to SwiftSyntax version issues
+        "FunctionalTestingMacros"
       ],
       swiftSettings: [
         // Enable coverage collection for library code

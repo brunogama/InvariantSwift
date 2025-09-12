@@ -699,11 +699,14 @@ extension String {
 public enum SMTExamples {
   /// Generate integers that satisfy mathematical properties
   public static func primeNumberConstraints() -> SMTGenerator<Int> {
-    SMTGenerator.integerInRange(2...1000) { x in
-      // Add constraint that x should not be divisible by any number from 2 to sqrt(x)
-      // This is simplified - real implementation would need more sophisticated constraints
-      .binary(.greaterThan, x, .constant(.int(1)))
-    }
+    SMTGenerator<Int>.integerInRange(
+      2...1000,
+      additionalConstraints: { x in
+        // Add constraint that x should not be divisible by any number from 2 to sqrt(x)
+        // This is simplified - real implementation would need more sophisticated constraints
+        .binary(.greaterThan, x, .constant(.int(1)))
+      }
+    )
   }
 
   /// Generate pairs of integers with specific relationships
@@ -730,8 +733,8 @@ public enum SMTExamples {
         let positiveC = SMTExpression.binary(.greaterThan, .variable("c"), .constant(.int(0)))
 
         let allConstraints = [pythagorean, positiveA, positiveB, positiveC]
-          .reduce(.constant(.bool(true))) { acc, constraint in
-            .binary(.and, acc, constraint)
+          .reduce(SMTExpression.constant(SMTValue.bool(true))) { acc, constraint in
+            SMTExpression.binary(.and, acc, constraint)
           }
 
         return SMTConstraint(
