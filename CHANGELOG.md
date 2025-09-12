@@ -33,7 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - N/A (initial release)
 
 ### Fixed
-- N/A (initial release)
+- Clean up duplicate content in CodeRabbit configuration file
 
 ### Security
 - N/A (initial release)
