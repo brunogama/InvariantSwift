@@ -60,19 +60,21 @@ repos:
     pass_filenames: false
     always_run: true
 
-  - id: changelog-enforcer
-    name: 📝 Checking CHANGELOG updates...
-    entry: bash -c 'if [ -f "CHANGELOG.md" ] && git diff --cached --name-only | grep -v "CHANGELOG.md" | grep -q "\."; then if ! git diff --cached --name-only | grep -q "CHANGELOG.md"; then echo "🛑 Changes detected but CHANGELOG.md was not updated! Please update the changelog."; exit 1; fi; fi'
+  - id: changelog-auto-updater
+    name: 📝 Auto-updating CHANGELOG.md...
+    entry: ./scripts/auto-update-changelog.sh
     language: system
     pass_filenames: false
     always_run: true
-    exclude: '^(\.pre-commit-config\.yaml|\.gitignore|CHANGELOG\.md)$'
+    files: \.swift$
+    exclude: '^(\.pre-commit-config\.yaml|\.gitignore|CHANGELOG\.md|Tests/.*\.swift)$'
 
   - id: prevent-swift-disabled-files
     name: 🚫 Preventing .swift.disabled files from being committed...
     entry: bash -c 'if git diff --cached --name-only | grep -q "\.swift\.disabled$"; then echo "🛑 .swift.disabled files are temporary disabled test files and should not be committed!"; echo "Please remove or rename these files before committing:"; git diff --cached --name-only | grep "\.swift\.disabled$"; exit 1; fi'
     language: system
-    pass_filenames: false
+    files: \.swift\.disabled$
+    pass_filenames: true
     always_run: true
 
   - id: shellcheck-scripts

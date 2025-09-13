@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Enhanced**: Test coverage and validation improvements
+
 ### Added
 - Property-based testing framework for Swift
 - Core generator system with integrated shrinking

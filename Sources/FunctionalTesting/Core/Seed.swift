@@ -130,3 +130,4 @@ extension Seed {
   /// Maximum seed value
   public static let max = Seed(value: UInt64.max)
 }
+// Test comment for changelog

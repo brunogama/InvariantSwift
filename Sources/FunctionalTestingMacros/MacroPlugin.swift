@@ -11,6 +11,8 @@ struct FunctionalTestingPlugin: CompilerPlugin {
     CustomLawsMacro.self,
     DeriveLawMacro.self,
     AlgebraicLawsMacro.self,
+    // Phase 1 Core Business Macros
+    BusinessRuleMacro.self,
     // DeriveGenMacro.self,  // Temporarily disabled
     // LawCheckedMacro.self, // Temporarily disabled
   ]

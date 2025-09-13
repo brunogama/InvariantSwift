@@ -3,28 +3,69 @@ import Dispatch
 
 // MARK: - Flake Hunter and Quarantine System
 
-/// **Flake Hunter Infrastructure**
+/// **Advanced Flaky Test Detection and Quarantine System**
 ///
-/// Advanced system for detecting, analyzing, and quarantining flaky tests.
-/// Flaky tests are those that produce inconsistent results - sometimes passing,
-/// sometimes failing - without code changes. This system provides:
-/// - Statistical detection of flaky behavior patterns
-/// - Automatic quarantine of problematic tests
-/// - Root cause analysis and reporting
-/// - Gradual rehabilitation of quarantined tests
-/// - Performance impact monitoring
+/// Sophisticated statistical system for detecting, analyzing, and quarantining flaky tests
+/// using rigorous mathematical models from reliability engineering and statistical hypothesis
+/// testing. Flaky tests exhibit non-deterministic behavior, failing intermittently without
+/// code changes, which undermines test suite reliability and developer confidence.
 ///
 /// **Mathematical Foundation:**
-/// Based on statistical hypothesis testing and reliability theory:
-/// - Binomial distribution analysis for pass/fail patterns
-/// - Chi-squared tests for independence
-/// - Bayesian updating for confidence intervals
-/// - Time series analysis for trend detection
+/// Built on statistical reliability theory and hypothesis testing:
+///
+/// **1. Flakiness Detection Model:**
+/// - **Binomial Test**: P(X ≥ k | n, p) for failure rate analysis
+/// - **Confidence Intervals**: Wilson score interval for proportion estimation
+/// - **Hypothesis Testing**: H₀: test is deterministic vs H₁: test is flaky
+/// - **Sequential Analysis**: SPRT (Sequential Probability Ratio Test) for early detection
+///
+/// **2. Statistical Metrics:**
+/// - **Flakiness Score**: F = Σwᵢ·fᵢ where wᵢ are weights and fᵢ are factor scores
+/// - **Confidence Level**: Using Clopper-Pearson interval for exact binomial confidence
+/// - **Variance Analysis**: σ² = Σ(xᵢ - μ)²/n for execution time stability
+/// - **Entropy Measure**: H(X) = -Σpᵢlog₂pᵢ for failure pattern randomness
+///
+/// **3. Time Series Analysis:**
+/// - **Trend Detection**: Mann-Kendall test for monotonic trends
+/// - **Change Point Detection**: CUSUM algorithm for regime changes
+/// - **Autocorrelation**: Detecting temporal dependencies in failure patterns
+/// - **Periodicity Analysis**: FFT for identifying cyclical failure patterns
+///
+/// **4. Environmental Correlation:**
+/// - **Correlation Coefficient**: r = Σ(xᵢ-x̄)(yᵢ-ȳ)/√Σ(xᵢ-x̄)²Σ(yᵢ-ȳ)²
+/// - **Mutual Information**: I(X;Y) for non-linear environment dependencies
+/// - **Chi-Square Test**: Testing independence between environment and failures
+///
+/// **5. Quarantine Strategy:**
+/// - **Risk Assessment**: R = P(failure) × Impact(failure)
+/// - **Rehabilitation Model**: Exponential backoff with success rate weighting
+/// - **Bayesian Update**: Prior belief updating with new evidence
+///
+/// **Features:**
+/// - **Real-time Detection**: Streaming analysis with O(1) per-execution overhead
+/// - **Multi-dimensional Analysis**: Environment, timing, resource correlation
+/// - **Adaptive Thresholds**: Self-tuning based on test suite characteristics
+/// - **Quarantine Management**: Graduated quarantine with rehabilitation protocols
+/// - **Comprehensive Reporting**: Statistical significance testing and confidence metrics
+/// - **Pattern Recognition**: ML-based pattern detection for complex flake causes
+///
+/// **Performance Characteristics:**
+/// - **Detection Latency**: O(log n) for confidence interval computation
+/// - **Memory Usage**: O(k) where k = number of recent executions kept
+/// - **Analysis Time**: O(n log n) for comprehensive statistical analysis
+/// - **Storage**: Compressed execution history with configurable retention
+///
+/// **Algorithm Complexity:**
+/// - **Flakiness Scoring**: O(n) where n = number of executions
+/// - **Trend Analysis**: O(n log n) for time series decomposition
+/// - **Pattern Detection**: O(n²) for correlation analysis (optimized with sampling)
 ///
 /// **External References:**
 /// - [Google's Flaky Test Detection](https://testing.googleblog.com/2016/05/flaky-tests-at-google-and-how-we.html)
 /// - [Microsoft's Flaky Test Research](https://www.microsoft.com/en-us/research/publication/empirically-revisiting-evaluating-flaky-test-detection-techniques/)
+/// - [Sequential Probability Ratio Test](https://en.wikipedia.org/wiki/Sequential_probability_ratio_test)
 /// - [Statistical Methods for Software Testing](https://link.springer.com/book/10.1007/978-1-4757-3028-5)
+/// - [Wilson Score Interval](https://en.wikipedia.org/wiki/Binomial_proportion_confidence_interval#Wilson_score_interval)
 
 // MARK: - Core Types
 

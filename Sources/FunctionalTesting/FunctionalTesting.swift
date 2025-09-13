@@ -1,9 +1,52 @@
-/// FunctionalTesting - A modern Swift 6 property-based testing library
-/// Built on category theory principles with protocol-witness pattern architecture
+/// **FunctionalTesting - Advanced Swift 6 Property-Based Testing Framework**
+///
+/// A comprehensive property-based testing library built on rigorous category theory foundations
+/// with protocol-witness pattern architecture. This framework implements mathematical laws and
+/// algebraic structures to ensure correctness and composability of test generation.
+///
+/// **Mathematical Foundation:**
+/// Based on category theory, specifically:
+/// - **Functors** for structure-preserving transformations: `fmap: (A -> B) -> F<A> -> F<B>`
+/// - **Applicative Functors** for context-aware function application
+/// - **Monads** for compositional test generation with binding: `(>>=): M<A> -> (A -> M<B>) -> M<B>`
+/// - **Coalgebras** for shrinking structures that preserve termination properties
+/// - **Lenses** for focused immutable updates following van Laarhoven representation
 ///
 /// Version 2.1.0 introduces **Coverage-Guided Generation** - the first of 30 planned
 /// Swift-exclusive capabilities that establish FunctionalTesting as the world's most
 /// advanced property-based testing framework.
+///
+/// **Core Principles:**
+/// 1. **Law Verification**: All algebraic structures satisfy their mathematical laws
+/// 2. **Composability**: Small, focused generators combine to build complex test cases
+/// 3. **Reproducibility**: Deterministic generation via seed-based random number generation
+/// 4. **Coverage Guidance**: Intelligent test generation biased toward uncovered code paths
+/// 5. **Swift 6 Concurrency**: Actor-isolated property testing with strict concurrency compliance
+///
+/// **External References:**
+/// - [QuickCheck Original Paper](https://www.cs.tufts.edu/~nr/cs257/archive/john-hughes/quick.pdf)
+/// - [Category Theory for Programmers](https://bartoszmilewski.com/2014/10/28/category-theory-for-programmers-the-preface/)
+/// - [Lens Laws and Applications](https://en.wikipedia.org/wiki/Lens_(computer_science))
+/// - [Coalgebra in Computer Science](https://en.wikipedia.org/wiki/Coalgebra)
+///
+/// **Usage Example:**
+/// ```swift
+/// import FunctionalTesting
+/// import Testing
+///
+/// @PropertyTest
+/// func testArrayReverse(_ array: [Int]) {
+///   #expect(array.reversed().reversed() == array)
+/// }
+///
+/// // Coverage-guided testing
+/// let runner = PropertyRunner()
+/// let property = Property(generator: Gen.int, predicate: { $0 >= 0 })
+/// let (result, coverage) = await runner.runPropertyWithCoverageTracking(
+///   property,
+///   knownSymbols: ["validation", "bounds_check"]
+/// )
+/// ```
 
 // MARK: - Public API Exports
 

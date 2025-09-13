@@ -1,7 +1,54 @@
-/// DICE - Deterministic Concurrency Interleaving Explorer
+/// **DICE - Deterministic Interleaving Concurrency Explorer**
 ///
-/// Complete DICE implementation with deterministic async/await exploration
-/// Provides deterministic scheduling, trace collection, and shrinking for concurrent properties
+/// Complete implementation of deterministic concurrency testing for Swift's async/await model.
+/// DICE provides deterministic scheduling, comprehensive trace collection, and intelligent
+/// shrinking for concurrent property-based tests. This system enables reproducible testing
+/// of race conditions, deadlocks, and concurrent invariant violations.
+///
+/// **Mathematical Foundation:**
+/// - **Happens-Before Relation**: Partial order relation (≺) defining causal dependencies
+/// - **Linearizability**: Sequential consistency for concurrent operations
+/// - **Logical Clocks**: Lamport timestamps for ordering concurrent events
+/// - **Graph Theory**: DAG analysis for detecting cycles and deadlocks
+///
+/// **External References:**
+/// - ["Time, Clocks, and the Ordering of Events"](https://lamport.azurewebsites.net/pubs/time-clocks.pdf) by Leslie Lamport
+/// - ["Linearizability: A Correctness Condition"](https://cs.brown.edu/~mph/HerlihyW90/p463-herlihy.pdf)
+/// - ["Dynamic partial-order reduction"](https://doi.org/10.1145/1062455.1062467)
+/// - ["Systematic Testing of Actor Programs"](https://www.cs.rice.edu/~vs3/home/pub/pldi2016.pdf)
+/// - [CHESS: Microsoft's Concurrency Testing Framework](https://www.microsoft.com/en-us/research/publication/chess-find-and-reproduce-heisenbugs-in-concurrent-programs/)
+///
+/// **Algorithm Complexity:**
+/// - **State Space**: O(k^n) where k = scheduling choices, n = execution steps
+/// - **Partial Order Reduction**: Reduces to O(2^m) where m << n for independent operations
+/// - **Trace Shrinking**: O(log n) binary search with execution validation
+/// - **Memory**: O(n) for step storage, O(n²) for happens-before graph
+///
+/// **Concurrency Model:**
+/// - **Tasks**: Swift async tasks with priority and isolation
+/// - **Actors**: Isolated execution contexts with message queues
+/// - **Preemption Points**: await expressions and explicit yield points
+/// - **Fairness**: Bounded progress guarantees for all tasks
+///
+/// **Usage Example:**
+/// ```swift
+/// let config = SchedulerConfig(maxSteps: 1000, fairness: .preemptive)
+///
+/// let traces = try await DeterministicScheduler.deterministicProperty(
+///     config: config,
+///     iterations: 100
+/// ) {
+///     // Concurrent code to test
+///     async let result1 = riskyOperation1()
+///     async let result2 = riskyOperation2()
+///     return await (result1, result2)
+/// }
+///
+/// // Analyze traces for race conditions, deadlocks, etc.
+/// for trace in traces {
+///     analyzeForRaceConditions(trace)
+/// }
+/// ```
 
 import _Concurrency
 import Foundation
@@ -90,7 +137,30 @@ public enum ExecutionOutcome: Sendable {
 
 // MARK: - Configuration
 
-/// Configuration for deterministic scheduling exploration
+/// **Deterministic Scheduler Configuration**
+///
+/// Complete configuration for controlling deterministic execution exploration.
+/// Defines bounds, fairness policies, and exploration strategies for systematic
+/// concurrency testing.
+///
+/// **Configuration Parameters:**
+/// - **maxSteps**: Upper bound on execution steps (prevents infinite loops)
+/// - **depth**: Maximum recursion/task nesting depth
+/// - **fairness**: Scheduling fairness policy (cooperative vs preemptive)
+/// - **seed**: Deterministic seed for reproducible exploration
+/// - **preemptionStrategy**: When and how to preempt running tasks
+///
+/// **Fairness Models:**
+/// - **Cooperative**: Preempt only at explicit Task.yield() calls
+/// - **Preemptive**: Preempt at all await expressions
+/// - **Bounded**: Maximum steps per task before forced preemption
+/// - **Weighted**: Priority-based scheduling with configurable weights
+///
+/// **Exploration Strategies:**
+/// - **Systematic**: Enumerate all possible interleavings (exponential)
+/// - **Random**: Monte Carlo sampling of interleavings
+/// - **Heuristic**: Guide exploration toward likely bug locations
+/// - **Partial Order Reduction**: Skip equivalent interleavings
 public struct SchedulerConfig: Sendable {
   public let maxSteps: Int
   public let depth: Int
@@ -185,7 +255,27 @@ public struct TaskContext: Sendable {
 
 // MARK: - Operations and Steps
 
-/// Types of operations that can be scheduled
+/// **DICE Operation Types**
+///
+/// Complete taxonomy of schedulable operations in Swift's concurrency model.
+/// Each operation type has different scheduling implications and causal relationships.
+///
+/// **Operation Categories:**
+/// 1. **Task Lifecycle**: start, suspend, resume, complete
+/// 2. **Actor Interactions**: isolated calls, non-isolated calls
+/// 3. **Synchronization**: await expressions, explicit yields
+/// 4. **Concurrency Creation**: detached tasks, task groups
+///
+/// **Scheduling Implications:**
+/// - **Blocking Operations**: await, actor calls may cause task suspension
+/// - **Non-blocking Operations**: pure computation, local state access
+/// - **Preemption Points**: Locations where scheduler can switch tasks
+/// - **Happens-Before Edges**: Operations that create causal dependencies
+///
+/// **Causal Relationships:**
+/// - Task operations within same task are sequentially ordered
+/// - Actor calls create happens-before relationships
+/// - Await operations synchronize with completion of awaited tasks
 public enum DICEOperation: Sendable {
   case taskStart(priority: TaskPriority?)
   case taskSuspend(reason: SuspensionReason)
@@ -233,7 +323,28 @@ extension DICEOperation: Hashable {
   }
 }
 
-/// Individual execution step with complete context
+/// **Execution Step with Complete Context**
+///
+/// Atomic unit of execution in the DICE model. Each step represents a single
+/// schedulable operation with full context for causal analysis and replay.
+///
+/// **Context Information:**
+/// - **Logical Timestamp**: Lamport clock value for global ordering
+/// - **Task Identity**: Which task performed this operation
+/// - **Actor Context**: Actor isolation and identity information
+/// - **Source Location**: File/line information for debugging
+/// - **Preemption Cause**: Why this step was chosen for execution
+///
+/// **Causal Analysis:**
+/// - Steps within same task are causally ordered
+/// - Actor method calls create cross-task happens-before edges
+/// - Await operations synchronize with completion events
+/// - Logical timestamps enable partial order reconstruction
+///
+/// **Deterministic Replay:**
+/// - Complete step sequence enables exact execution reproduction
+/// - Context information supports debugging and analysis
+/// - Unique step IDs enable trace manipulation and shrinking
 public struct Step: Sendable, Hashable {
   public let taskId: TaskID
   public let operation: DICEOperation
@@ -530,7 +641,43 @@ public final class DeterministicTaskExecutor: TaskExecutor, @unchecked Sendable 
 
 // MARK: - Deterministic Scheduler
 
-/// Deterministic scheduler with complete control
+/// **Deterministic Concurrency Scheduler**
+///
+/// Global actor that provides complete deterministic control over Swift's concurrency
+/// runtime. Implements systematic exploration of concurrent execution interleavings
+/// for property-based testing of concurrent code.
+///
+/// **Architecture:**
+/// ```
+/// User Code → Custom TaskExecutor → DeterministicScheduler → Execution Control
+///     ↓              ↓                      ↓                      ↓
+/// Property     Job Queue           Task Registry         Step Recording
+///    Test   →  Management    →   Preemption Control  →  Trace Generation
+/// ```
+///
+/// **Global Actor Isolation:**
+/// - All scheduling decisions are serialized through this actor
+/// - Thread-safe access to execution state and trace collection
+/// - Atomic updates to logical clock and task registry
+/// - Deterministic ordering of concurrent operations
+///
+/// **Key Capabilities:**
+/// 1. **Deterministic Scheduling**: Complete control over task interleaving
+/// 2. **Trace Collection**: Comprehensive execution history with causal relationships
+/// 3. **Replay Support**: Exact reproduction of discovered bugs
+/// 4. **Shrinking**: Minimal counterexample generation for failed properties
+/// 5. **Fairness Enforcement**: Configurable progress guarantees
+///
+/// **Performance Characteristics:**
+/// - **Memory**: O(n) for n execution steps
+/// - **Time**: O(1) amortized per scheduling decision
+/// - **State Space**: Exponential in task count and synchronization points
+/// - **Reduction**: Partial order reduction for equivalent interleavings
+///
+/// **Integration:**
+/// - Uses TaskExecutor for iOS 17+/macOS 14+ deterministic control
+/// - Fallback to best-effort scheduling on older platforms
+/// - Compatible with all Swift concurrency primitives
 @globalActor
 public actor DeterministicScheduler {
   public static let shared = DeterministicScheduler()
