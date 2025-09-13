@@ -50,6 +50,7 @@ public struct DeriveGenMacro: MemberMacro, ExtensionMacro {
   public static func expansion(
     of node: AttributeSyntax,
     providingMembersOf declaration: some DeclGroupSyntax,
+    conformingTo protocols: [TypeSyntax],
     in context: some MacroExpansionContext
   ) throws -> [DeclSyntax] {
 
@@ -109,7 +110,7 @@ struct DeriveGenConfig {
   /// Custom constraints
   let constraints: [String: String]
 
-  static let `default` = DeriveGenConfig(
+  static let `default` = Self(
     customFields: [:],
     maxDepth: 5,
     sizeScaling: 1.0,
@@ -160,8 +161,10 @@ enum DeriveGenError: Error, CustomStringConvertible {
     switch self {
     case .unsupportedType(let msg):
       return "Unsupported type for @DeriveGen: \(msg)"
+
     case .invalidConfiguration(let msg):
       return "Invalid @DeriveGen configuration: \(msg)"
+
     case .generationFailed(let msg):
       return "Generator derivation failed: \(msg)"
     }
@@ -182,12 +185,16 @@ private func extractConfiguration(
       switch argument.label?.text {
       case "customFields":
         config = try parseCustomFields(argument.expression, config: config)
+
       case "maxDepth":
         config = try parseMaxDepth(argument.expression, config: config)
+
       case "sizeScaling":
         config = try parseSizeScaling(argument.expression, config: config)
+
       case "enableShrinking":
         config = try parseEnableShrinking(argument.expression, config: config)
+
       default:
         break
       }
@@ -210,11 +217,11 @@ private func parseCustomFields(
 
   if case .elements(let elements) = dictExpr.content {
     for element in elements {
-    guard let keyExpr = element.key.as(StringLiteralExprSyntax.self),
-      let valueExpr = element.value.as(StringLiteralExprSyntax.self)
-    else {
-      throw DeriveGenError.invalidConfiguration("customFields must be [String: String]")
-    }
+      guard let keyExpr = element.key.as(StringLiteralExprSyntax.self),
+        let valueExpr = element.value.as(StringLiteralExprSyntax.self)
+      else {
+        throw DeriveGenError.invalidConfiguration("customFields must be [String: String]")
+      }
 
       let key = keyExpr.representedLiteralValue ?? ""
       let value = valueExpr.representedLiteralValue ?? ""
@@ -435,9 +442,9 @@ private func analyzeCollection(_ type: TypeSyntax) -> (isCollection: Bool, eleme
     let typeName = identifierType.name.text
 
     if ["Array", "Set"].contains(typeName) && genericClause.arguments.count == 1 {
-      return (true, genericClause.arguments.first?.argument)
+      return (true, genericClause.arguments.first?.argument.as(TypeSyntax.self))
     } else if typeName == "Dictionary" && genericClause.arguments.count == 2 {
-      return (true, genericClause.arguments.last?.argument)
+      return (true, genericClause.arguments.last?.argument.as(TypeSyntax.self))
     }
   }
 
@@ -455,8 +462,10 @@ private func generateGeneratorMember(
   switch analyzedType {
   case .struct(let name, let fields):
     return try generateStructGenerator(name: name, fields: fields, config: config)
+
   case .enum(let name, let cases):
     return try generateEnumGenerator(name: name, cases: cases, config: config)
+
   case .class(let name, let properties):
     return try generateClassGenerator(name: name, properties: properties, config: config)
   }
@@ -495,13 +504,13 @@ private func generateEnumGenerator(
   config: DeriveGenConfig
 ) throws -> DeclSyntax {
 
-  let caseGenerators = cases.enumerated().map { (index, enumCase) in
+  let caseGenerators = cases.enumerated().map { _, enumCase in
     if let associatedValues = enumCase.associatedValues, !associatedValues.isEmpty {
       let valueGenerators = associatedValues.map { value in
         generateTypeGenerator(value.type, config: config)
       }.joined(separator: ", ")
 
-      let valueNames = associatedValues.enumerated().map { (i, _) in "value\(i)" }.joined(
+      let valueNames = associatedValues.enumerated().map { i, _ in "value\(i)" }.joined(
         separator: ", "
       )
 
@@ -595,16 +604,22 @@ private func generateTypeGenerator(_ type: TypeSyntax, config: DeriveGenConfig) 
   switch typeName {
   case "Int":
     return "Gen.int"
+
   case "String":
     return "Gen.string"
+
   case "Bool":
     return "Gen.bool"
+
   case "Double":
     return "Gen.double"
+
   case "Float":
     return "Gen.float"
+
   case "UUID":
     return "Gen.uuid"
+
   default:
     // Assume the type has its own generator
     return "\(typeName).gen"
