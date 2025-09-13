@@ -23,11 +23,9 @@ struct MacroEdgeCaseTests {
     }
 
     let highSuccessResult: PropertyResult<Int> = .success(iterations: 999999)
-    switch highSuccessResult {
-    case .success(let iterations):
+    if case .success(let iterations) = highSuccessResult {
       #expect(iterations == 999999, "Success should handle large iteration counts")
-
-    default:
+    } else {
       Issue.record("Expected high success result")
     }
 

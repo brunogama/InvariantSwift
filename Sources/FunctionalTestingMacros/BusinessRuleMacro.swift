@@ -306,7 +306,11 @@ private extension BusinessRuleMacro {
         }
       } ? 1.5 : 1.0
 
-    let totalComplexity = Int(Double(paramComplexity + 1) * businessRisk)
+    let scaledComplexity = Double(paramComplexity + 1) * businessRisk
+    let totalComplexity =
+      scaledComplexity.isFinite && !scaledComplexity.isNaN
+      ? Int(max(1, min(scaledComplexity, Double(Int.max))))
+      : paramComplexity + 1
 
     let complexity = FunctionAnalysis.ComplexityScore(
       parameterComplexity: paramComplexity,

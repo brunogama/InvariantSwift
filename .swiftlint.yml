@@ -242,5 +242,12 @@ custom_rules:
     - "Sources/PropertyTestDemo/*"
     - "Sources/SimplePropertyTestDemo/*"
 
+  # Prohibit fatalError usage - use proper error handling instead
+  no_fatal_error:
+    name: "No Fatal Error"
+    regex: "\\bfatalError\\("
+    message: "Use proper error handling instead of fatalError. Consider throwing errors, returning optionals, or using precondition with recovery logic."
+    severity: error
+
 # Reporter type
 reporter: "xcode"

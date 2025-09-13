@@ -285,7 +285,9 @@ public struct ComplexityAnalyzer: Sendable {
     /// The final complexity score used for iteration calculation,
     /// combining all factors with business risk amplification.
     public var totalComplexity: Int {
-      Int(Double(parameterComplexity + bodyComplexity) * riskFactor)
+      let scaled = Double(parameterComplexity + bodyComplexity) * riskFactor
+      guard scaled.isFinite, !scaled.isNaN else { return parameterComplexity + bodyComplexity }
+      return Int(max(1, min(scaled, Double(Int.max))))
     }
   }
 

@@ -127,10 +127,10 @@ struct ErrorPathCoverageTests {
       #expect(discarded >= 20, "Should discard at least maxDiscarded attempts")
 
     case .success:
-      Issue.record("Impossible suchThat should not succeed")
+      #expect(Bool(false), "Impossible suchThat should not succeed")
 
     case .failure:
-      Issue.record("Impossible suchThat should give up, not fail")
+      #expect(Bool(false), "Impossible suchThat should give up, not fail")
     }
   }
 
@@ -158,7 +158,7 @@ struct ErrorPathCoverageTests {
       #expect(discarded > 0, "Should discard many attempts for rare condition")
 
     case .failure:
-      Issue.record("Rare condition should either succeed or give up")
+      #expect(Bool(false), "Rare condition should either succeed or give up")
     }
   }
 

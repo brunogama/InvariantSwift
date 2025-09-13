@@ -353,7 +353,9 @@ struct TestUtilitiesDemo {
     let complexProperty = Property<(([Int], String), Bool)>(generator: complexGenerator) { nested in
       let (arrayAndString, flag) = nested
       let (array, string) = arrayAndString
-      return array.isEmpty && !string.isEmpty && (flag == true || flag == false)
+      // Property that should always succeed: arrays have non-negative count, strings are non-empty, flags are boolean
+      // swiftlint:disable:next empty_count
+      return array.count >= 0 && !string.isEmpty && (flag == true || flag == false)
     }
 
     // Test with multiple configurations

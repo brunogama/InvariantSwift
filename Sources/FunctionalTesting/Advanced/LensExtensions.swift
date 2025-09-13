@@ -83,7 +83,11 @@ extension PropertyConfig {
   /// - Parameter factor: Multiplication factor for iterations
   /// - Returns: Function that scales iterations
   public static func scaleIterations(by factor: Double) -> (PropertyConfig) -> PropertyConfig {
-    iterations.over { Int(Double($0) * factor) }
+    iterations.over {
+      let scaled = Double($0) * factor
+      guard scaled.isFinite, !scaled.isNaN else { return $0 }
+      return Int(max(1, min(scaled, Double(Int.max))))
+    }
   }
 
   /// **Enable deterministic testing with seed**
@@ -146,7 +150,11 @@ extension Size {
   /// - Parameter factor: Multiplication factor
   /// - Returns: Function that scales the size
   public static func scale(by factor: Double) -> (Size) -> Size {
-    value.over { Int(Double($0) * factor) }
+    value.over {
+      let scaled = Double($0) * factor
+      guard scaled.isFinite, !scaled.isNaN else { return $0 }
+      return Int(max(0, min(scaled, Double(Int.max))))
+    }
   }
 
   /// **Clamp size to a range**
