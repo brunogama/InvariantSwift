@@ -370,7 +370,7 @@ public struct StackStateMachine: StateMachine {
   }
 
   public func invariant(state: [Int]) -> Bool {
-    state.isEmpty && state.count <= 1000
+    state.count <= 1000  // Stack can be empty or have up to 1000 elements
   }
 }
 

@@ -76,7 +76,7 @@ public actor LLVMCoverageRunner {
     public let minRegionCoverage: Double
 
     public init(
-      buildPath: String = ".build/debug",
+      buildPath: String = Self.defaultBuildPath(),
       sourceFilter: [String] = ["Sources/FunctionalTesting"],
       minLineCoverage: Double = 99.0,
       minRegionCoverage: Double = 95.0
@@ -88,6 +88,24 @@ public actor LLVMCoverageRunner {
     }
 
     public static let `default` = Configuration()
+
+    /// Determine the appropriate build path for the current platform
+    public static func defaultBuildPath() -> String {
+      // Check common SPM build paths in order of preference
+      let possiblePaths = [
+        ".build/arm64-apple-macosx/debug",
+        ".build/x86_64-apple-macosx/debug",
+        ".build/arm64-apple-ios-simulator/debug",
+        ".build/x86_64-apple-ios-simulator/debug",
+        ".build/debug",  // fallback
+      ]
+
+      for path in possiblePaths where FileManager.default.fileExists(atPath: path) {
+        return path
+      }
+
+      return ".build/debug"  // ultimate fallback
+    }
   }
 
   private let configuration: Configuration
