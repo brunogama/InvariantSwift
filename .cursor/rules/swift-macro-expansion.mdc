@@ -1,0 +1,8 @@
+---
+description: macro expansion should be writen in swift-sytanx ast
+globs: **/*.swift
+alwaysApply: true
+---
+
+
+macro expansion should be writen in swift-sytanx ast
