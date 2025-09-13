@@ -26,7 +26,7 @@ struct AsyncPropertyTests {
       #expect(iter1 == iter2, "Same seed should produce consistent iteration counts")
 
     default:
-      #expect(true, "Async execution with seed completed")
+      Issue.record("Async execution with different seed should produce success for simple property")
     }
   }
 
@@ -48,10 +48,10 @@ struct AsyncPropertyTests {
     // All executions should complete (though results may vary)
     switch (result1, result2, result3) {
     case (.success, .success, .success):
-      #expect(true, "All async executions with different seeds succeeded")
+      #expect(Bool(true), "All async executions with different seeds succeeded")
 
     default:
-      #expect(true, "Async executions with different seeds completed")
+      Issue.record("Some async executions with different seeds did not succeed as expected")
     }
   }
 
@@ -108,10 +108,10 @@ struct AsyncPropertyTests {
     // All should succeed
     switch (r1, r2, r3) {
     case (.success, .success, .success):
-      #expect(true, "Concurrent execution succeeded")
+      #expect(Bool(true), "Concurrent execution succeeded")
 
     default:
-      #expect(true, "Concurrent execution completed")
+      Issue.record("Some concurrent executions did not succeed as expected")
     }
   }
 
@@ -207,8 +207,9 @@ struct AsyncPropertyTests {
     case .success:
       Issue.record("Expected failure but got success")
 
-    case .gaveUp:
-      #expect(true, "Property gave up, which is acceptable")
+    case .gaveUp(let discarded, let iterations):
+      #expect(discarded >= 0, "Should track discarded attempts: \(discarded)")
+      #expect(iterations >= 0, "Should track iterations: \(iterations)")
     }
   }
 
@@ -244,7 +245,8 @@ struct AsyncPropertyTests {
       }
     }.count
 
-    #expect(failureCount >= 0, "Async failure handling completed for \(failureCount) failures")
+    #expect(failureCount <= 3, "Should handle concurrent failures: \(failureCount) out of 3")
+    #expect(failureCount > 0, "Should have at least some failures for non-empty string property")
   }
 
   @Test("Async property shrinking effectiveness")
@@ -270,19 +272,19 @@ struct AsyncPropertyTests {
 
       // Ideally, shrunk array should be minimal (close to [42])
       if shrunk.count <= 3 {
-        #expect(true, "Excellent shrinking: shrunk to \(shrunk)")
+        #expect(shrunk.count >= 1, "Excellent shrinking: shrunk to \(shrunk) elements")
       } else {
         #expect(
-          true,
-          "Shrinking completed: shrunk from \(counterexample.count) to \(shrunk.count) elements"
+          shrunk.count < counterexample.count,
+          "Shrinking should reduce size: from \(counterexample.count) to \(shrunk.count) elements"
         )
       }
 
-    case .success:
-      #expect(true, "Property passed (didn't generate arrays containing 42)")
+    case .success(let iterations):
+      #expect(iterations > 0, "Property passed (didn't generate arrays containing 42)")
 
-    case .gaveUp:
-      #expect(true, "Property gave up")
+    case .gaveUp(let discarded, let iterations):
+      #expect(discarded > 0 || iterations > 0, "Property gave up with valid metrics")
     }
   }
 
@@ -309,8 +311,14 @@ struct AsyncPropertyTests {
     // Task should complete despite cancellation (our property runner doesn't check for cancellation)
     // This tests that the framework is robust to external cancellation
     switch result {
-    case .success, .failure, .gaveUp:
-      #expect(true, "Async property handling with task cancellation completed")
+    case .success(let iterations):
+      #expect(iterations > 0, "Task completed despite cancellation")
+
+    case .failure(_, let iterations, _):
+      #expect(iterations > 0, "Task failed with valid iteration count")
+
+    case .gaveUp(_, let iterations):
+      #expect(iterations >= 0, "Task gave up with valid iteration count")
     }
   }
 
@@ -346,14 +354,14 @@ struct AsyncPropertyTests {
     }
 
     switch result {
-    case .success:
-      #expect(true, "Property completed before timeout")
+    case .success(let iterations):
+      #expect(iterations > 0, "Property completed before timeout with \(iterations) iterations")
 
-    case .failure:
-      #expect(true, "Property failed before timeout")
+    case .failure(_, let iterations, _):
+      #expect(iterations > 0, "Property failed before timeout after \(iterations) iterations")
 
-    case .gaveUp:
-      #expect(true, "Property gave up or timed out")
+    case .gaveUp(_, let iterations):
+      #expect(iterations >= 0, "Property gave up or timed out after \(iterations) iterations")
     }
   }
 
@@ -391,8 +399,11 @@ struct AsyncPropertyTests {
       let finalCount = await counter.getValue()
       #expect(finalCount >= 0, "Actor interaction completed")
 
-    case .failure, .gaveUp:
-      #expect(Bool(true), "Actor-isolated property test completed")
+    case .failure(_, let iterations, _):
+      #expect(iterations > 0, "Actor-isolated property failed with valid iteration count")
+
+    case .gaveUp(_, let iterations):
+      #expect(iterations >= 0, "Actor-isolated property gave up with valid iteration count")
     }
   }
 
@@ -441,7 +452,7 @@ struct AsyncPropertyTests {
       #expect(count1 >= 0 && count2 >= 0, "Actor state maintained during concurrent access")
 
     default:
-      #expect(Bool(true), "Concurrent actor access during property testing completed")
+      Issue.record("Concurrent actor access during property testing did not complete as expected")
     }
   }
 
@@ -456,7 +467,7 @@ struct AsyncPropertyTests {
     // Test the integration function directly
     try await checkPropertyAsync(property, config: PropertyConfig(iterations: 50))
 
-    #expect(true, "checkPropertyAsync integration completed successfully")
+    #expect(Bool(true), "checkPropertyAsync integration completed successfully")
   }
 
   @Test("Swift Testing async integration - multiple checkPropertyAsync calls")
@@ -470,7 +481,7 @@ struct AsyncPropertyTests {
     try await checkPropertyAsync(property2, config: PropertyConfig(iterations: 20))
     try await checkPropertyAsync(property3, config: PropertyConfig(iterations: 20))
 
-    #expect(true, "Multiple checkPropertyAsync calls completed successfully")
+    #expect(Bool(true), "Multiple checkPropertyAsync calls completed successfully")
   }
 
   @Test("Swift Testing async integration - failure scenario")
@@ -482,10 +493,10 @@ struct AsyncPropertyTests {
 
     do {
       try await checkPropertyAsync(failingProperty, config: PropertyConfig(iterations: 100))
-      #expect(true, "Property unexpectedly passed")
+      Issue.record("Property with value == 42 unexpectedly passed all iterations")
     } catch {
       // Expected to record an Issue, not throw
-      #expect(true, "checkPropertyAsync handled failure appropriately")
+      #expect(Bool(true), "checkPropertyAsync handled failure appropriately")
     }
   }
 
@@ -533,11 +544,14 @@ struct AsyncPropertyTests {
     )
 
     switch result {
-    case .success:
-      #expect(true, "Complex async property generation succeeded")
+    case .success(let iterations):
+      #expect(iterations == 50, "Complex async property generation succeeded with all iterations")
 
-    case .failure, .gaveUp:
-      #expect(true, "Complex async property generation completed")
+    case .failure(_, let iterations, _):
+      #expect(iterations > 0, "Complex async property failed after some iterations")
+
+    case .gaveUp(_, let iterations):
+      #expect(iterations >= 0, "Complex async property gave up after some attempts")
     }
   }
 
