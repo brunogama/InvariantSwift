@@ -1,6 +1,15 @@
 # Phase 2: Advanced Workflow Testing - Enhanced Specification
 
+> Normalized on 2025-09-13T22:29:32Z using spec.template.md
+
+## Title
+
+Phase 2: Advanced Workflow Testing - Enhanced Specification
+
 ## Executive Summary
+
+<!-- chunk 1 -->
+### Executive Summary
 
 This enhanced specification addresses critical gaps in the original Phase 2 document, providing comprehensive implementation guidance for advanced workflow testing capabilities. The specification builds upon the established Phase 1 foundation while ensuring production-readiness for complex business applications.
 
@@ -12,16 +21,172 @@ This enhanced specification addresses critical gaps in the original Phase 2 docu
 - Mathematical foundations documentation
 - Migration and deployment strategies
 
-## Current Architecture Assessment
+## Problem Statement
 
+_TBD_
+
+## Goals and Objectives
+
+_TBD_
+
+## Non-Goals
+
+_TBD_
+
+## Scope
+
+_TBD_
+
+## User Personas and Use Cases
+
+_TBD_
+
+## Functional Requirements
+
+<!-- chunk 1 -->
+### Functional Requirements
+
+- [ ] **Complete Invariant Testing**: Auto-generate comprehensive invariant validation
+- [ ] **Workflow State Validation**: Complete state machine correctness testing
+- [ ] **Business Error Reporting**: Clear, actionable error messages for stakeholders
+- [ ] **Seamless Integration**: Works with existing Property/Gen/PropertyRunner infrastructure
+
+## Non-Functional Requirements
+
+_TBD_
+
+## Architecture Overview
+
+_TBD_
+
+## System Components
+
+_TBD_
+
+## Data Model
+
+_TBD_
+
+## APIs and Contracts
+
+_TBD_
+
+## Workflows and Sequence Diagrams
+
+_TBD_
+
+## State Management and Concurrency
+
+<!-- chunk 1 -->
+### State Machine Theory
+
+- **Formal Automata**: 5-tuple definition with business process mapping
+- **Reachability Analysis**: Path validation using graph algorithms
+- **Bisimulation**: Equivalence checking for workflow correctness
+
+## Security and Compliance
+
+_TBD_
+
+## Performance and Capacity
+
+<!-- chunk 1 -->
+### Performance and Scaling Considerations
+
+<!-- Empty section Performance and Scaling Considerations -->
+
+<!-- chunk 2 -->
+### Performance Targets
+
+- **Compilation Impact**: <20% increase in compilation time
+- **Runtime Performance**: Linear scaling with number of invariants/states
+- **Memory Usage**: Bounded growth for large state spaces
+- **Test Execution**: Parallel execution where safe
+
+## Observability and Telemetry
+
+_TBD_
+
+## Error Handling and Resilience
+
+_TBD_
+
+## Testing Strategy
+
+<!-- chunk 1 -->
+### Testing and Validation Strategy
+
+<!-- Empty section Testing and Validation Strategy -->
+
+<!-- chunk 2 -->
+### Property-Based Testing Mathematics
+
+- **Universal Quantification**: ∀x ∈ Domain: P(x) holds
+- **Counterexample Minimization**: Shrinking based on partial ordering
+- **Coverage Metrics**: Branch and path coverage using formal definitions
+
+## Release Plan and Migration
+
+<!-- chunk 1 -->
+### Migration and Deployment
+
+<!-- Empty section Migration and Deployment -->
+
+<!-- chunk 2 -->
+### Migration Path
+
+1. **Phase 1**: Deploy alongside existing testing (no disruption)
+2. **Phase 2**: Migrate high-value use cases to new macros
+3. **Phase 3**: Comprehensive migration with training
+4. **Phase 4**: Deprecate manual invariant testing patterns
+
+## Risks and Mitigations
+
+_TBD_
+
+## Assumptions and Constraints
+
+_TBD_
+
+## Open Questions
+
+_TBD_
+
+## Milestones and Timeline
+
+_TBD_
+
+## Acceptance Criteria / DoD
+
+_TBD_
+
+## Operational Runbook
+
+_TBD_
+
+## Glossary
+
+_TBD_
+
+## References
+
+<!-- chunk 1 -->
+### Current Architecture Assessment
+
+<!-- Empty section Current Architecture Assessment -->
+
+<!-- chunk 2 -->
 ### Existing Infrastructure Strengths
+
 - **Robust Core**: Property<T>, Gen<T>, and PropertyRunner provide solid foundation
 - **Coverage System**: Advanced coverage-guided testing with LLVM integration
 - **Model-Based Testing**: Complete state machine testing framework available
 - **Concurrency**: Full Swift 6 actor isolation compliance
 - **Extensibility**: Well-designed protocol-witness patterns support expansion
 
+<!-- chunk 3 -->
 ### Identified Gaps in Original Specification
+
 1. **Missing Integration Patterns**: How new macros leverage existing systems
 2. **Incomplete Error Handling**: Business-friendly error reporting needs specification
 3. **Performance Considerations**: No guidance on scaling and optimization
@@ -29,17 +194,26 @@ This enhanced specification addresses critical gaps in the original Phase 2 docu
 5. **Migration Path**: No clear upgrade path for existing implementations
 6. **Documentation Standards**: Mathematical concepts need better explanation
 
-## Enhanced Macro Specifications
+<!-- chunk 4 -->
+### Enhanced Macro Specifications
 
+<!-- Empty section Enhanced Macro Specifications -->
+
+<!-- chunk 5 -->
 ### ✅ CRITICAL PRIORITY
 
-#### 1. `@ValidateInvariants` Macro - Enhanced Implementation
+<!-- Empty section ✅ CRITICAL PRIORITY -->
+
+<!-- chunk 6 -->
+### 1. `@ValidateInvariants` Macro - Enhanced Implementation
 
 **Mathematical Foundation**: Based on invariant theory and algebraic data type properties
 **Integration Pattern**: Protocol-witness pattern with existing Property system
 **Performance Target**: O(n) where n = number of operations, linear scaling
 
-##### Complete API Design
+<!-- chunk 7 -->
+### Complete API Design
+
 ```swift
 // MARK: - Core Invariant System
 
@@ -214,7 +388,9 @@ public enum InvariantPriority: Int, Sendable, CaseIterable {
 }
 ```
 
-##### Enhanced Error Reporting System
+<!-- chunk 8 -->
+### Enhanced Error Reporting System
+
 ```swift
 // MARK: - Business-Friendly Error Reporting
 
@@ -335,7 +511,9 @@ public struct InvariantDefinition: Sendable {
 }
 ```
 
-##### Complete Generated Code Pattern
+<!-- chunk 9 -->
+### Complete Generated Code Pattern
+
 ```swift
 // MARK: - Example Generated Implementation
 
@@ -564,13 +742,16 @@ enum InvariantValidationError: Error {
 }
 ```
 
-#### 2. `@TestWorkflow` Macro - Enhanced Implementation
+<!-- chunk 10 -->
+### 2. `@TestWorkflow` Macro - Enhanced Implementation
 
 **Mathematical Foundation**: State machine theory and formal verification principles
 **Integration Pattern**: Leverages existing enum generators and property testing
 **Performance Target**: O(n²) where n = number of states, quadratic validation
 
-##### Complete API Design
+<!-- chunk 11 -->
+### Complete API Design
+
 ```swift
 // MARK: - Workflow Testing System
 
@@ -789,7 +970,9 @@ public protocol WorkflowValidatable {
 }
 ```
 
-##### Complete Generated Code Example
+<!-- chunk 12 -->
+### Complete Generated Code Example
+
 ```swift
 // Input:
 @TestWorkflow(strategy: .comprehensive)
@@ -1005,9 +1188,14 @@ struct OrderWorkflowPathGenerator {
 }
 ```
 
-## Implementation Strategy
+<!-- chunk 13 -->
+### Implementation Strategy
 
+<!-- Empty section Implementation Strategy -->
+
+<!-- chunk 14 -->
 ### Sprint 1: Foundation and Integration (Week 1-2)
+
 - [ ] **Core Infrastructure Setup**
   - Implement `InvariantTestable` and `WorkflowTestable` protocols
   - Create error reporting system with `InvariantViolation` and `WorkflowViolation`
@@ -1026,7 +1214,9 @@ struct OrderWorkflowPathGenerator {
   - Test error reporting mechanisms
   - Verify integration with existing Property testing system
 
+<!-- chunk 15 -->
 ### Sprint 2: Advanced Features (Week 3-4)
+
 - [ ] **Workflow Testing Implementation**
   - Implement `@TestWorkflow` macro with state machine analysis
   - Create transition validation system
@@ -1045,7 +1235,9 @@ struct OrderWorkflowPathGenerator {
   - Create stakeholder-friendly error reports
   - Integrate with existing telemetry system
 
-### Sprint 3: Integration and Polish (Week 5-6) 
+<!-- chunk 16 -->
+### Sprint 3: Integration and Polish (Week 5-6)
+
 - [ ] **Production Integration**
   - Complete SwiftTesting integration
   - Add CLI support through FuncTestCLI
@@ -1064,9 +1256,14 @@ struct OrderWorkflowPathGenerator {
   - Add migration guide from manual testing
   - Performance and scaling guidelines
 
-## Integration with Existing Codebase
+<!-- chunk 17 -->
+### Integration with Existing Codebase
 
+<!-- Empty section Integration with Existing Codebase -->
+
+<!-- chunk 18 -->
 ### Leveraged Infrastructure
+
 - **Property<T>**: Core property testing from existing implementation
 - **Gen<T>**: Generator system with functor/monad support
 - **PropertyRunner**: Async test execution with coverage integration
@@ -1074,88 +1271,76 @@ struct OrderWorkflowPathGenerator {
 - **ModelTesting**: State machine testing patterns for workflow validation
 - **TelemetrySystem**: Error reporting and monitoring integration
 
+<!-- chunk 19 -->
 ### New Components Added
+
 - **InvariantTestable/WorkflowTestable**: Protocol-witness pattern for macro integration
 - **Enhanced Error Reporting**: Business-friendly error types with context
 - **Configuration System**: Comprehensive configuration for different testing strategies
 - **Code Generation**: SwiftSyntax-based macro implementations with AST analysis
 
-## Performance and Scaling Considerations
-
-### Performance Targets
-- **Compilation Impact**: <20% increase in compilation time
-- **Runtime Performance**: Linear scaling with number of invariants/states
-- **Memory Usage**: Bounded growth for large state spaces
-- **Test Execution**: Parallel execution where safe
-
+<!-- chunk 20 -->
 ### Scaling Guidelines
+
 - **Small Workflows**: (<10 states) - Use comprehensive testing
 - **Medium Workflows**: (10-50 states) - Use coverage-guided or sampling strategies
 - **Large Workflows**: (>50 states) - Use boundary or critical path strategies
 - **Performance Monitoring**: Integrate with existing telemetry system
 
-## Testing and Validation Strategy
-
+<!-- chunk 21 -->
 ### Comprehensive Testing Approach
+
 1. **Unit Tests**: Individual macro components and generated code
 2. **Integration Tests**: End-to-end macro expansion and execution
 3. **Performance Tests**: Scaling behavior and resource usage
 4. **Business Scenario Tests**: Real-world business logic validation
 5. **Error Path Tests**: Error handling and recovery mechanisms
 
+<!-- chunk 22 -->
 ### Validation Criteria
+
 - [ ] All generated code compiles without warnings
 - [ ] Generated tests execute successfully in parallel
 - [ ] Error messages are business-friendly and actionable
 - [ ] Performance meets scaling requirements
 - [ ] Integration with existing systems is seamless
 
-## Migration and Deployment
-
-### Migration Path
-1. **Phase 1**: Deploy alongside existing testing (no disruption)
-2. **Phase 2**: Migrate high-value use cases to new macros
-3. **Phase 3**: Comprehensive migration with training
-4. **Phase 4**: Deprecate manual invariant testing patterns
-
+<!-- chunk 23 -->
 ### Deployment Requirements
+
 - **Swift 6.0+**: Required for strict concurrency compliance
 - **SwiftSyntax**: 509.0.0 - 602.0.0 compatibility maintained
 - **Platform Support**: iOS 16+, macOS 13+, consistent with existing package
 - **CI/CD Integration**: Compatible with existing build and test pipelines
 
-## Mathematical Foundations (Implementation Reference)
+<!-- chunk 24 -->
+### Mathematical Foundations (Implementation Reference)
 
+<!-- Empty section Mathematical Foundations (Implementation Reference) -->
+
+<!-- chunk 25 -->
 ### Invariant Theory Application
+
 - **Algebraic Invariants**: Properties preserved under group actions (state transformations)
 - **Type System Integration**: Swift's type system enforces invariant safety at compile time
 - **Category Theory**: Functor and monad laws applied to generator composition
 
-### State Machine Theory
-- **Formal Automata**: 5-tuple definition with business process mapping
-- **Reachability Analysis**: Path validation using graph algorithms
-- **Bisimulation**: Equivalence checking for workflow correctness
+<!-- chunk 26 -->
+### Success Criteria and Validation
 
-### Property-Based Testing Mathematics
-- **Universal Quantification**: ∀x ∈ Domain: P(x) holds
-- **Counterexample Minimization**: Shrinking based on partial ordering
-- **Coverage Metrics**: Branch and path coverage using formal definitions
+<!-- Empty section Success Criteria and Validation -->
 
-## Success Criteria and Validation
-
-### Functional Requirements
-- [ ] **Complete Invariant Testing**: Auto-generate comprehensive invariant validation
-- [ ] **Workflow State Validation**: Complete state machine correctness testing
-- [ ] **Business Error Reporting**: Clear, actionable error messages for stakeholders
-- [ ] **Seamless Integration**: Works with existing Property/Gen/PropertyRunner infrastructure
-
+<!-- chunk 27 -->
 ### Technical Requirements
+
 - [ ] **Performance**: <20% compilation overhead, linear runtime scaling  
 - [ ] **Reliability**: 99%+ code coverage, comprehensive error handling
 - [ ] **Maintainability**: Clear separation of concerns, documented mathematical foundations
 - [ ] **Extensibility**: Support for custom strategies and configurations
 
+<!-- chunk 28 -->
 ### Business Requirements
+
 - [ ] **User Experience**: No mathematical knowledge required for usage
 - [ ] **Actionable Results**: Business stakeholders can understand test failures
 - [ ] **Development Velocity**: Reduces manual test writing by >80%

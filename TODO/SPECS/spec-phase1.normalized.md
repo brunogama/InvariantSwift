@@ -1,6 +1,15 @@
 # Phase 1: Core Business Macros - Enhanced Specification
 
-## Overview
+> Normalized on 2025-09-13T22:29:32Z using spec.template.md
+
+## Title
+
+Phase 1: Core Business Macros - Enhanced Specification
+
+## Executive Summary
+
+<!-- chunk 1 -->
+### Overview
 
 Phase 1 establishes the foundation for user-friendly property-based testing by implementing core business macros that eliminate mathematical complexity. This enhanced specification focuses on the most valuable and implementable macros that leverage the existing FunctionalTesting infrastructure.
 
@@ -10,6 +19,121 @@ Phase 1 establishes the foundation for user-friendly property-based testing by i
 **Swift Version**: Swift 6.0+ with strict concurrency  
 **Architecture**: SwiftSyntax-based macros with category theory foundations
 
+## Problem Statement
+
+_TBD_
+
+## Goals and Objectives
+
+_TBD_
+
+## Non-Goals
+
+_TBD_
+
+## Scope
+
+_TBD_
+
+## User Personas and Use Cases
+
+_TBD_
+
+## Functional Requirements
+
+<!-- chunk 1 -->
+### Functional Requirements
+
+- [ ] Zero mathematical knowledge required for @BusinessRule usage
+- [ ] 80% reduction in boilerplate code for test data generation
+- [ ] Automatic boundary testing for 90% of common Swift types
+- [ ] Business-friendly error messages with actionable suggestions
+
+## Non-Functional Requirements
+
+_TBD_
+
+## Architecture Overview
+
+_TBD_
+
+## System Components
+
+_TBD_
+
+## Data Model
+
+_TBD_
+
+## APIs and Contracts
+
+<!-- chunk 1 -->
+### API Documentation (100% coverage requirement)
+
+1. **Complete Macro Reference**
+   - All macro parameters with examples
+   - Generated code patterns
+   - Error conditions and handling
+   - Performance implications
+
+2. **Generator Library for Business Domains**
+   - Pre-built generators for common types
+   - Composition patterns
+   - Custom constraint examples
+   - Integration with existing generators
+
+3. **Error Handling and Troubleshooting Guide**
+   - BusinessRuleViolation interpretation
+   - Common failure patterns
+   - Debugging shrinking results
+   - Performance optimization
+
+## Workflows and Sequence Diagrams
+
+_TBD_
+
+## State Management and Concurrency
+
+_TBD_
+
+## Security and Compliance
+
+_TBD_
+
+## Performance and Capacity
+
+_TBD_
+
+## Observability and Telemetry
+
+_TBD_
+
+## Error Handling and Resilience
+
+_TBD_
+
+## Testing Strategy
+
+<!-- chunk 1 -->
+### Testing Requirements
+
+- [ ] 99% code coverage for all macro-generated code
+- [ ] Integration tests with real business scenarios
+- [ ] Performance regression tests
+- [ ] Cross-platform compatibility validation
+- [ ] Error condition coverage
+
+## Release Plan and Migration
+
+_TBD_
+
+## Risks and Mitigations
+
+_TBD_
+
+## Assumptions and Constraints
+
+<!-- chunk 1 -->
 ### Dependencies and Constraints
 
 - **SwiftSyntax**: 509.0.0 - 602.0.0 (current package dependency)
@@ -18,19 +142,48 @@ Phase 1 establishes the foundation for user-friendly property-based testing by i
 - **Performance Target**: <20% compilation time impact, >99% test coverage
 - **Documentation**: Complete DocC coverage with mathematical foundations
 
-## Enhanced Macro Selection
+## Open Questions
+
+_TBD_
+
+## Milestones and Timeline
+
+_TBD_
+
+## Acceptance Criteria / DoD
+
+_TBD_
+
+## Operational Runbook
+
+_TBD_
+
+## Glossary
+
+_TBD_
+
+## References
+
+<!-- chunk 1 -->
+### Enhanced Macro Selection
 
 Based on functional programming analysis and business value assessment, the following macros have been retained and enhanced:
 
+<!-- chunk 2 -->
 ### ✅ CRITICAL PRIORITY
 
-#### 1. `@BusinessRule` Macro ⭐ **IMPLEMENT FIRST**
+<!-- Empty section ✅ CRITICAL PRIORITY -->
+
+<!-- chunk 3 -->
+### 1. `@BusinessRule` Macro ⭐ **IMPLEMENT FIRST**
 
 **Business Value**: Transforms mathematical property testing into business-friendly validation  
 **Implementation Complexity**: Medium (leverages existing Property infrastructure)  
 **Integration Points**: Property<T>, PropertyRunner, PropertyConfig
 
-##### Enhanced Design
+<!-- chunk 4 -->
+### Enhanced Design
+
 ```swift
 @attached(peer, names: suffixed(_PropertyTest))
 public macro BusinessRule(
@@ -66,13 +219,17 @@ public enum BusinessRuleIterations: Sendable {
 }
 ```
 
-##### Key Enhancements from Original:
+<!-- chunk 5 -->
+### Key Enhancements from Original:
+
 - **Simplified API**: Removed complex configuration options that add no business value
 - **Smart Defaults**: Automatic iteration calculation based on existing ComplexityAnalyzer patterns
 - **Direct Integration**: Uses existing Property<T> and PropertyRunner infrastructure
 - **Business Error Reporting**: Clear, actionable error messages for business stakeholders
 
-##### Generated Code Pattern
+<!-- chunk 6 -->
+### Generated Code Pattern
+
 ```swift
 // Input:
 @BusinessRule("Discount should never exceed product price")
@@ -111,13 +268,16 @@ func validateDiscount_PropertyTest() async throws {
 }
 ```
 
-#### 2. `@SmartGenerator` Macro ⭐ **HIGH PRIORITY**
+<!-- chunk 7 -->
+### 2. `@SmartGenerator` Macro ⭐ **HIGH PRIORITY**
 
 **Business Value**: Eliminates 80%+ of boilerplate test data generation code  
 **Implementation Complexity**: Medium (extends existing Gen system)  
 **Integration Points**: Gen<T>, existing generator combinators
 
-##### Enhanced Design
+<!-- chunk 8 -->
+### Enhanced Design
+
 ```swift
 @attached(member, names: named(smartGen))
 @attached(extension, conformances: SmartGeneratable)
@@ -126,13 +286,17 @@ public macro SmartGenerator(
 ) = #externalMacro(module: "FunctionalTestingMacros", type: "SmartGeneratorMacro")
 ```
 
-##### Key Enhancements from Original:
+<!-- chunk 9 -->
+### Key Enhancements from Original:
+
 - **Simplified Configuration**: Removed over-engineered customization options
 - **Leverage Existing Generators**: Builds on current Gen combinators and primitives
 - **Name-Based Inference**: Smart inference from property names (email, price, etc.)
 - **Business-Realistic Defaults**: Generates business-appropriate test data
 
-##### Integration with Existing Codebase
+<!-- chunk 10 -->
+### Integration with Existing Codebase
+
 ```swift
 // Leverages existing generators from current codebase:
 extension Gen {
@@ -154,15 +318,21 @@ extension User: SmartGeneratable {
 }
 ```
 
+<!-- chunk 11 -->
 ### ✅ HIGH PRIORITY
 
-#### 3. `@TestAllCases` Macro
+<!-- Empty section ✅ HIGH PRIORITY -->
+
+<!-- chunk 12 -->
+### 3. `@TestAllCases` Macro
 
 **Business Value**: Systematic boundary testing without test design expertise  
 **Implementation Complexity**: Medium-High  
 **Integration Points**: Extends existing Generator system
 
-##### Enhanced Design (Simplified)
+<!-- chunk 13 -->
+### Enhanced Design (Simplified)
+
 ```swift
 @attached(member, names: arbitrary)
 @attached(extension, conformances: AutoTestable)
@@ -171,43 +341,64 @@ public macro TestAllCases(
 ) = #externalMacro(module: "FunctionalTestingMacros", type: "TestAllCasesMacro")
 ```
 
-##### Key Enhancements from Original:
+<!-- chunk 14 -->
+### Key Enhancements from Original:
+
 - **Removed Complexity**: Eliminated over-engineered configuration options
 - **Focus on Value**: Concentrates on boundary testing and edge cases
 - **Existing Infrastructure**: Uses current Generator composition patterns
 
-## Implementation Strategy
+<!-- chunk 15 -->
+### Implementation Strategy
 
+<!-- Empty section Implementation Strategy -->
+
+<!-- chunk 16 -->
 ### Sprint 1: Foundation (Week 1-2)
+
 - [ ] Implement `@BusinessRule` macro core functionality
 - [ ] Create BusinessRuleViolation error reporting system
 - [ ] Integrate with existing Property/PropertyRunner infrastructure
 - [ ] Add Swift Testing @Test generation
 
+<!-- chunk 17 -->
 ### Sprint 2: Smart Generation (Week 3-4)
+
 - [ ] Implement `@SmartGenerator` macro
 - [ ] Create name-based inference system using existing patterns
 - [ ] Extend current Gen system with business domain generators
 - [ ] Add SmartGeneratable protocol
 
+<!-- chunk 18 -->
 ### Sprint 3: Comprehensive Testing (Week 5-6)
+
 - [ ] Implement `@TestAllCases` macro
 - [ ] Create AutoTestSuite infrastructure
 - [ ] Add boundary value testing using existing generators
 - [ ] Polish and integration testing
 
-## Integration Points with Existing Codebase
+<!-- chunk 19 -->
+### Integration Points with Existing Codebase
 
+<!-- Empty section Integration Points with Existing Codebase -->
+
+<!-- chunk 20 -->
 ### Leveraged Infrastructure
+
 - **Property<T>**: Core property testing infrastructure
 - **Gen<T>**: Generator system and combinators
 - **PropertyRunner**: Test execution engine
 - **PropertyConfig**: Configuration system
 - **Shrink<T>**: Input minimization for debugging
 
+<!-- chunk 21 -->
 ### Enhanced Components
 
-#### BusinessRuleViolation - Business-Friendly Error Reporting
+<!-- Empty section Enhanced Components -->
+
+<!-- chunk 22 -->
+### BusinessRuleViolation - Business-Friendly Error Reporting
+
 ```swift
 /// Business-friendly error reporting for property test failures
 /// 
@@ -271,7 +462,9 @@ public enum BusinessImpactSeverity: String, Sendable, CaseIterable {
 }
 ```
 
-#### SmartGeneratable - Protocol for Automatic Generator Derivation
+<!-- chunk 23 -->
+### SmartGeneratable - Protocol for Automatic Generator Derivation
+
 ```swift
 /// Protocol for automatic generator derivation based on type structure and naming
 /// 
@@ -330,7 +523,9 @@ public struct GeneratorConstraints: Sendable {
 }
 ```
 
-#### AutoTestable - Protocol for Comprehensive Testing
+<!-- chunk 24 -->
+### AutoTestable - Protocol for Comprehensive Testing
+
 ```swift
 /// Protocol for automatic comprehensive test case generation
 /// 
@@ -356,7 +551,9 @@ public protocol AutoTestable {
 }
 ```
 
-#### ComplexityAnalyzer - Smart Iteration Calculation
+<!-- chunk 25 -->
+### ComplexityAnalyzer - Smart Iteration Calculation
+
 ```swift
 /// Analyzes function complexity to determine appropriate test iteration counts
 /// 
@@ -423,26 +620,28 @@ public struct ComplexityAnalyzer: Sendable {
 }
 ```
 
-## Success Criteria
+<!-- chunk 26 -->
+### Success Criteria
 
-### Functional Requirements
-- [ ] Zero mathematical knowledge required for @BusinessRule usage
-- [ ] 80% reduction in boilerplate code for test data generation
-- [ ] Automatic boundary testing for 90% of common Swift types
-- [ ] Business-friendly error messages with actionable suggestions
+<!-- Empty section Success Criteria -->
 
+<!-- chunk 27 -->
 ### Technical Requirements
+
 - [ ] Seamless integration with existing FunctionalTesting infrastructure
 - [ ] Generated tests use @Test attribute for Swift Testing compatibility
 - [ ] Performance comparable to hand-written property tests
 - [ ] Compilation time impact < 20% for typical projects
 
+<!-- chunk 28 -->
 ### Business Requirements
+
 - [ ] New developers productive with business rules within 30 minutes
 - [ ] Clear error messages that non-experts can understand
 - [ ] Real-world business scenarios validate correctly
 
-## Mathematical Foundations (Hidden from Users)
+<!-- chunk 29 -->
+### Mathematical Foundations (Hidden from Users)
 
 While users don't need to understand these concepts, the implementation leverages:
 
@@ -453,13 +652,19 @@ While users don't need to understand these concepts, the implementation leverage
 
 These mathematical foundations ensure correctness while being completely hidden behind business-friendly APIs.
 
-## Documentation Standards and Requirements
+<!-- chunk 30 -->
+### Documentation Standards and Requirements
 
+<!-- Empty section Documentation Standards and Requirements -->
+
+<!-- chunk 31 -->
 ### DocC Documentation Requirements
 
 All public APIs must include comprehensive DocC documentation following these patterns:
 
-#### Example: Business Rule Documentation Template
+<!-- chunk 32 -->
+### Example: Business Rule Documentation Template
+
 ```swift
 /// **Business Rule Validation for E-commerce Systems**
 /// 
@@ -498,9 +703,14 @@ All public APIs must include comprehensive DocC documentation following these pa
 /// - [Counterexample-Guided Abstraction Refinement](https://en.wikipedia.org/wiki/Counterexample-guided_abstraction_refinement)
 ```
 
+<!-- chunk 33 -->
 ### Documentation Deliverables
 
-#### User Guides (30-minute onboarding target)
+<!-- Empty section Documentation Deliverables -->
+
+<!-- chunk 34 -->
+### User Guides (30-minute onboarding target)
+
 1. **Getting Started with Business Rules**
    - Zero-to-productive in 30 minutes
    - Real-world e-commerce examples
@@ -519,26 +729,8 @@ All public APIs must include comprehensive DocC documentation following these pa
    - Measuring property test effectiveness
    - Gradual adoption strategies
 
-#### API Documentation (100% coverage requirement)
-1. **Complete Macro Reference**
-   - All macro parameters with examples
-   - Generated code patterns
-   - Error conditions and handling
-   - Performance implications
-
-2. **Generator Library for Business Domains**
-   - Pre-built generators for common types
-   - Composition patterns
-   - Custom constraint examples
-   - Integration with existing generators
-
-3. **Error Handling and Troubleshooting Guide**
-   - BusinessRuleViolation interpretation
-   - Common failure patterns
-   - Debugging shrinking results
-   - Performance optimization
-
-#### Real-World Business Examples
+<!-- chunk 35 -->
+### Real-World Business Examples
 
 1. **E-commerce Validation Scenarios**
 ```swift
@@ -612,9 +804,14 @@ func validateInventoryAfterOrder(item: InventoryItem, orderQuantity: Int) -> Boo
 }
 ```
 
-## Implementation Quality Gates
+<!-- chunk 36 -->
+### Implementation Quality Gates
 
+<!-- Empty section Implementation Quality Gates -->
+
+<!-- chunk 37 -->
 ### Code Review Checklist
+
 - [ ] All public APIs have DocC documentation with mathematical foundations
 - [ ] Business examples included for all macros
 - [ ] External references provided for complex concepts
@@ -622,14 +819,9 @@ func validateInventoryAfterOrder(item: InventoryItem, orderQuantity: Int) -> Boo
 - [ ] Error messages are business-friendly and actionable
 - [ ] Performance impact is documented and measured
 
-### Testing Requirements
-- [ ] 99% code coverage for all macro-generated code
-- [ ] Integration tests with real business scenarios
-- [ ] Performance regression tests
-- [ ] Cross-platform compatibility validation
-- [ ] Error condition coverage
-
+<!-- chunk 38 -->
 ### Documentation Quality Standards
+
 - [ ] 30-minute onboarding achievable for new developers
 - [ ] Mathematical concepts explained with Wikipedia references
 - [ ] Business impact clearly articulated

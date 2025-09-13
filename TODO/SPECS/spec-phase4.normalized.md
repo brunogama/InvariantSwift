@@ -1,6 +1,15 @@
 # Phase 4: Business-Domain Testing - Enhanced Specification
 
-## Overview
+> Normalized on 2025-09-13T22:29:32Z using spec.template.md
+
+## Title
+
+Phase 4: Business-Domain Testing - Enhanced Specification
+
+## Executive Summary
+
+<!-- chunk 1 -->
+### Overview
 
 Phase 4 introduces business-domain specific testing that focuses on real-world business scenarios, data integrity, user journeys, and business constraints. This enhanced specification eliminates theoretical complexity while providing comprehensive testing for business-critical applications.
 
@@ -10,6 +19,108 @@ Phase 4 introduces business-domain specific testing that focuses on real-world b
 **Swift Version**: Swift 6.0+ with strict concurrency  
 **Architecture**: Invariant theory with business process modeling
 
+## Problem Statement
+
+_TBD_
+
+## Goals and Objectives
+
+_TBD_
+
+## Non-Goals
+
+_TBD_
+
+## Scope
+
+_TBD_
+
+## User Personas and Use Cases
+
+_TBD_
+
+## Functional Requirements
+
+<!-- chunk 1 -->
+### Functional Requirements
+
+- [ ] Complete data integrity testing without algebraic knowledge
+- [ ] User journey validation using business process descriptions
+- [ ] Business constraint testing without formal logic knowledge
+- [ ] Concurrent user testing without concurrency theory
+
+## Non-Functional Requirements
+
+_TBD_
+
+## Architecture Overview
+
+_TBD_
+
+## System Components
+
+_TBD_
+
+## Data Model
+
+_TBD_
+
+## APIs and Contracts
+
+_TBD_
+
+## Workflows and Sequence Diagrams
+
+_TBD_
+
+## State Management and Concurrency
+
+_TBD_
+
+## Security and Compliance
+
+_TBD_
+
+## Performance and Capacity
+
+<!-- chunk 1 -->
+### Performance and Scalability Specifications
+
+<!-- Empty section Performance and Scalability Specifications -->
+
+## Observability and Telemetry
+
+_TBD_
+
+## Error Handling and Resilience
+
+_TBD_
+
+## Testing Strategy
+
+<!-- chunk 1 -->
+### Testing Requirements
+
+- [ ] 99% code coverage for all macro-generated business testing code
+- [ ] Integration tests with real business data scenarios
+- [ ] Performance validation under realistic business loads
+- [ ] Business rule validation across all constraint combinations
+- [ ] End-to-end testing with complete business workflows
+
+## Release Plan and Migration
+
+<!-- chunk 1 -->
+### Migration Strategy from Existing Business Testing
+
+<!-- Empty section Migration Strategy from Existing Business Testing -->
+
+## Risks and Mitigations
+
+_TBD_
+
+## Assumptions and Constraints
+
+<!-- chunk 1 -->
 ### Dependencies and Constraints
 
 - **Phase 1-3 Foundation**: Requires BusinessRuleViolation, Property<T>, PropertyRunner, and InvariantTester
@@ -18,19 +129,47 @@ Phase 4 introduces business-domain specific testing that focuses on real-world b
 - **Scalability**: Support for 100+ concurrent user simulations
 - **Integration**: Seamless integration with existing business rule validation from previous phases
 
-## Enhanced Macro Selection
+## Open Questions
+
+_TBD_
+
+## Milestones and Timeline
+
+_TBD_
+
+## Acceptance Criteria / DoD
+
+_TBD_
+
+## Operational Runbook
+
+_TBD_
+
+## Glossary
+
+_TBD_
+
+## References
+
+<!-- chunk 1 -->
+### Enhanced Macro Selection
 
 Based on functional programming analysis and business value assessment:
 
+<!-- chunk 2 -->
 ### ✅ CRITICAL PRIORITY
 
-#### 1. `@TestDataIntegrity` Macro ⭐ **IMPLEMENT FIRST**
+<!-- Empty section ✅ CRITICAL PRIORITY -->
+
+<!-- chunk 3 -->
+### 1. `@TestDataIntegrity` Macro ⭐ **IMPLEMENT FIRST**
 
 **Business Value**: Data consistency validation without algebraic invariant theory  
 **Implementation Complexity**: Medium (builds on Phase 2 invariant infrastructure)  
 **Integration Points**: InvariantTester from Phase 2, Property/Generator system
 
-##### Enhanced Design
+<!-- chunk 4 -->
+### Enhanced Design
 
 ```swift
 @attached(member, names: arbitrary)
@@ -47,14 +186,16 @@ public macro IntegrityRule(
 ) = #externalMacro(module: "FunctionalTestingMacros", type: "IntegrityRuleMacro")
 ```
 
-##### Key Enhancements from Original
+<!-- chunk 5 -->
+### Key Enhancements from Original
 
 - **Simplified Configuration**: Removed complex tolerance and real-time options
 - **Business Focus**: Data integrity described in business terms (no data loss, consistency)
 - **Leverages Phase 2**: Builds on existing InvariantTester infrastructure
 - **Batch Processing**: Optimized for real-world data volumes
 
-##### Generated Code Pattern
+<!-- chunk 6 -->
+### Generated Code Pattern
 
 ```swift
 // Input:
@@ -110,15 +251,20 @@ extension OrderProcessor: DataIntegrityTestable {
 }
 ```
 
+<!-- chunk 7 -->
 ### ✅ HIGH PRIORITY
 
-#### 2. `@TestUserJourney` Macro
+<!-- Empty section ✅ HIGH PRIORITY -->
+
+<!-- chunk 8 -->
+### 2. `@TestUserJourney` Macro
 
 **Business Value**: Complete user workflow validation without state machine theory  
 **Implementation Complexity**: Medium-High  
 **Integration Points**: Phase 2 workflow testing, existing generator system
 
-##### Enhanced Design
+<!-- chunk 9 -->
+### Enhanced Design
 
 ```swift
 @attached(member, names: arbitrary)
@@ -135,20 +281,23 @@ public macro Journey(
 ) = #externalMacro(module: "FunctionalTestingMacros", type: "JourneyMacro")
 ```
 
-##### Key Enhancements from Original
+<!-- chunk 10 -->
+### Key Enhancements from Original
 
 - **Simplified Syntax**: Removed complex arrow syntax in favor of convention-based journeys
 - **Business Focus**: Journeys described as business processes, not state transitions
 - **Analytics Integration**: Track business metrics during journey execution
 - **Realistic Scenarios**: Focus on common user behavior patterns
 
-#### 3. `@TestBusinessConstraints` Macro
+<!-- chunk 11 -->
+### 3. `@TestBusinessConstraints` Macro
 
 **Business Value**: Business rule validation without formal logic knowledge  
 **Implementation Complexity**: Medium (extends existing constraint patterns)  
 **Integration Points**: Phase 1 BusinessRule infrastructure, Property system
 
-##### Enhanced Design
+<!-- chunk 12 -->
+### Enhanced Design
 
 ```swift
 @attached(member, names: arbitrary)
@@ -165,22 +314,28 @@ public macro Constraint(
 ) = #externalMacro(module: "FunctionalTestingMacros", type: "ConstraintMacro")
 ```
 
-##### Key Enhancements from Original
+<!-- chunk 13 -->
+### Key Enhancements from Original
 
 - **Simplified Configuration**: Removed complex enforcement and category options
 - **Business Focus**: Constraints described as business rules, not formal logic
 - **Conflict Detection**: Automatically detect conflicting business rules
 - **Priority System**: Business-meaningful priority levels
 
+<!-- chunk 14 -->
 ### ✅ MEDIUM PRIORITY
 
-#### 4. `@TestConcurrency` Macro
+<!-- Empty section ✅ MEDIUM PRIORITY -->
+
+<!-- chunk 15 -->
+### 4. `@TestConcurrency` Macro
 
 **Business Value**: Thread safety testing without concurrency theory  
 **Implementation Complexity**: Medium-High  
 **Integration Points**: Swift 6.0 concurrency, existing Property system
 
-##### Enhanced Design (Simplified)
+<!-- chunk 16 -->
+### Enhanced Design (Simplified)
 
 ```swift
 @attached(peer, names: suffixed(_ConcurrencyTest))
@@ -190,24 +345,34 @@ public macro TestConcurrency(
 ) = #externalMacro(module: "FunctionalTestingMacros", type: "TestConcurrencyMacro")
 ```
 
-##### Key Enhancements from Original
+<!-- chunk 17 -->
+### Key Enhancements from Original
 
 - **Business Terms**: "Concurrent users" instead of "threads" or "actors"
 - **Simplified Configuration**: Focus on user load testing, not theoretical concurrency
 - **Swift 6.0 Integration**: Leverage existing actor isolation and concurrency patterns
 
+<!-- chunk 18 -->
 ### ❌ DISCARDED MACROS
 
-#### `@TestErrorHandling` Macro
+<!-- Empty section ❌ DISCARDED MACROS -->
+
+<!-- chunk 19 -->
+### `@TestErrorHandling` Macro
 
 **Rationale**: Error handling is better tested through existing business rule validation and API contract testing. Dedicated error handling macro adds complexity without sufficient business value.
 
-#### `@TestScalability` Macro
+<!-- chunk 20 -->
+### `@TestScalability` Macro
 
 **Rationale**: Scalability testing is covered by @TestPerformance in Phase 3 and @TestConcurrency here. Separate scalability macro is redundant.
 
-## Implementation Strategy
+<!-- chunk 21 -->
+### Implementation Strategy
 
+<!-- Empty section Implementation Strategy -->
+
+<!-- chunk 22 -->
 ### Sprint 1: Data Integrity Foundation (Week 1-3)
 
 - [ ] Implement `@TestDataIntegrity` macro leveraging Phase 2 InvariantTester
@@ -215,6 +380,7 @@ public macro TestConcurrency(
 - [ ] Add batch processing integrity validation
 - [ ] Integrate with existing Property/Generator infrastructure
 
+<!-- chunk 23 -->
 ### Sprint 2: User Journey Testing (Week 4-6)
 
 - [ ] Implement `@TestUserJourney` macro
@@ -222,6 +388,7 @@ public macro TestConcurrency(
 - [ ] Add business metrics tracking during journey execution
 - [ ] Build on Phase 2 workflow testing patterns
 
+<!-- chunk 24 -->
 ### Sprint 3: Business Constraints and Polish (Week 7-8)
 
 - [ ] Implement `@TestBusinessConstraints` macro
@@ -229,8 +396,12 @@ public macro TestConcurrency(
 - [ ] Implement `@TestConcurrency` for user load testing
 - [ ] Polish and integration testing across all macros
 
-## Integration Points with Existing Codebase
+<!-- chunk 25 -->
+### Integration Points with Existing Codebase
 
+<!-- Empty section Integration Points with Existing Codebase -->
+
+<!-- chunk 26 -->
 ### Leveraged Infrastructure
 
 - **Property<T>**: Core property testing from all previous phases
@@ -239,9 +410,13 @@ public macro TestConcurrency(
 - **WorkflowTestable**: From Phase 2 for journey state management
 - **SmartGeneratable**: Automatic test data generation for business domains
 
+<!-- chunk 27 -->
 ### Enhanced Components
 
-#### DataIntegrityViolation - Business-Focused Data Consistency Error Reporting
+<!-- Empty section Enhanced Components -->
+
+<!-- chunk 28 -->
+### DataIntegrityViolation - Business-Focused Data Consistency Error Reporting
 
 ```swift
 /// Business-friendly error reporting for data integrity violations
@@ -354,7 +529,8 @@ public enum ExperienceImpact: String, Sendable {
 }
 ```
 
-#### JourneyViolation - User Experience Failure Reporting
+<!-- chunk 29 -->
+### JourneyViolation - User Experience Failure Reporting
 
 ```swift
 /// Business-friendly error reporting for user journey failures
@@ -463,7 +639,8 @@ public struct JourneyMetrics: Sendable {
 }
 ```
 
-#### DataIntegrityTestable - Protocol for Data Consistency Testing
+<!-- chunk 30 -->
+### DataIntegrityTestable - Protocol for Data Consistency Testing
 
 ```swift
 /// Protocol for automatic data integrity testing across business operations
@@ -534,7 +711,8 @@ public enum IntegrityPriority: Int, Sendable, CaseIterable {
 }
 ```
 
-#### BatchProcessingManager - Efficient Large-Scale Data Testing
+<!-- chunk 31 -->
+### BatchProcessingManager - Efficient Large-Scale Data Testing
 
 ```swift
 /// Actor-based manager for processing large batches of data integrity tests
@@ -603,7 +781,8 @@ public struct BatchProcessingResult<Input: Sendable, Output: Sendable>: Sendable
 }
 ```
 
-## Mathematical Foundations (Hidden from Users)
+<!-- chunk 32 -->
+### Mathematical Foundations (Hidden from Users)
 
 The implementation leverages these concepts without exposing them:
 
@@ -614,15 +793,12 @@ The implementation leverages these concepts without exposing them:
 
 Users see business concepts like "order processing integrity" and "customer checkout workflows."
 
-## Success Criteria
+<!-- chunk 33 -->
+### Success Criteria
 
-### Functional Requirements
+<!-- Empty section Success Criteria -->
 
-- [ ] Complete data integrity testing without algebraic knowledge
-- [ ] User journey validation using business process descriptions
-- [ ] Business constraint testing without formal logic knowledge
-- [ ] Concurrent user testing without concurrency theory
-
+<!-- chunk 34 -->
 ### Technical Requirements
 
 - [ ] Data integrity tests handle batches up to 10,000 items efficiently
@@ -630,6 +806,7 @@ Users see business concepts like "order processing integrity" and "customer chec
 - [ ] Business constraint tests validate up to 50 rules simultaneously
 - [ ] Concurrent testing simulates up to 100 concurrent users
 
+<!-- chunk 35 -->
 ### Business Requirements
 
 - [ ] Data loss issues explain customer and financial impact
@@ -637,13 +814,18 @@ Users see business concepts like "order processing integrity" and "customer chec
 - [ ] Constraint violations show business rule conflicts
 - [ ] Concurrency issues explain performance degradation impact
 
-## Documentation Standards and Requirements
+<!-- chunk 36 -->
+### Documentation Standards and Requirements
 
+<!-- Empty section Documentation Standards and Requirements -->
+
+<!-- chunk 37 -->
 ### DocC Documentation Requirements
 
 All public APIs must include comprehensive DocC documentation following these patterns:
 
-#### Example: Business Domain Testing Documentation Template
+<!-- chunk 38 -->
+### Example: Business Domain Testing Documentation Template
 
 ```swift
 /// **Business Data Integrity Testing for Critical Operations**
@@ -683,9 +865,13 @@ All public APIs must include comprehensive DocC documentation following these pa
 /// - [Business Process Management](https://en.wikipedia.org/wiki/Business_process_management)
 ```
 
+<!-- chunk 39 -->
 ### Real-World Business Examples
 
-#### 1. **E-commerce Order Processing with Data Integrity**
+<!-- Empty section Real-World Business Examples -->
+
+<!-- chunk 40 -->
+### 1. **E-commerce Order Processing with Data Integrity**
 
 ```swift
 @TestDataIntegrity(checks: [.noDataLoss, .consistency, .ordering])
@@ -755,7 +941,8 @@ class EcommerceOrderProcessor: DataIntegrityTestable {
 // - Processing handles edge cases correctly
 ```
 
-#### 2. **Financial Services User Journey Testing**
+<!-- chunk 41 -->
+### 2. **Financial Services User Journey Testing**
 
 ```swift
 @TestUserJourney(scenarios: .comprehensive, analytics: true)
@@ -820,7 +1007,8 @@ enum InvestmentAccountJourney: UserJourneyTestable {
 // - Error recovery and user guidance effectiveness
 ```
 
-#### 3. **Healthcare Patient Data with Business Constraints**
+<!-- chunk 42 -->
+### 3. **Healthcare Patient Data with Business Constraints**
 
 ```swift
 @TestBusinessConstraints(strategy: .comprehensive, conflicts: true)
@@ -885,7 +1073,8 @@ class PatientRecordSystem: BusinessConstraintTestable {
 // - Emergency scenarios handled correctly
 ```
 
-#### 4. **Concurrent Trading System Testing**
+<!-- chunk 43 -->
+### 4. **Concurrent Trading System Testing**
 
 ```swift
 @TestConcurrency(users: 100, operations: 1000)
@@ -929,8 +1118,7 @@ class TradingPlatform {
 // - Error handling works correctly under stress
 ```
 
-## Performance and Scalability Specifications
-
+<!-- chunk 44 -->
 ### Concrete Performance Requirements
 
 ```swift
@@ -972,8 +1160,12 @@ public struct Phase4PerformanceRequirements {
 }
 ```
 
-## Implementation Quality Gates
+<!-- chunk 45 -->
+### Implementation Quality Gates
 
+<!-- Empty section Implementation Quality Gates -->
+
+<!-- chunk 46 -->
 ### Code Review Checklist
 
 - [ ] All business domain operations have clear integrity rules
@@ -983,14 +1175,7 @@ public struct Phase4PerformanceRequirements {
 - [ ] Error messages provide actionable business guidance
 - [ ] Performance meets scalability requirements for business needs
 
-### Testing Requirements
-
-- [ ] 99% code coverage for all macro-generated business testing code
-- [ ] Integration tests with real business data scenarios
-- [ ] Performance validation under realistic business loads
-- [ ] Business rule validation across all constraint combinations
-- [ ] End-to-end testing with complete business workflows
-
+<!-- chunk 47 -->
 ### Documentation Quality Standards
 
 - [ ] Mathematical foundations explained with formal method references
@@ -999,8 +1184,7 @@ public struct Phase4PerformanceRequirements {
 - [ ] Troubleshooting guidance for common business testing issues
 - [ ] Migration path from manual business validation documented
 
-## Migration Strategy from Existing Business Testing
-
+<!-- chunk 48 -->
 ### From Manual Business Rule Validation
 
 1. **Assessment Phase**:
@@ -1018,6 +1202,7 @@ public struct Phase4PerformanceRequirements {
    - Establish performance baselines for business operations
    - Train teams on business-friendly error interpretation
 
+<!-- chunk 49 -->
 ### From Unit Tests to Business Domain Testing
 
 ```swift
@@ -1044,4 +1229,4 @@ class OrderProcessor: DataIntegrityTestable {
 }
 ```
 
-This enhanced specification provides comprehensive, production-ready guidance for implementing business domain testing while maintaining the business-friendly approach and mathematical rigor expected from the FunctionalTesting framework.
+---
