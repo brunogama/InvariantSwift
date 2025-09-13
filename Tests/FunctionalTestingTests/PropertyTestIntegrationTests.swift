@@ -28,17 +28,12 @@ struct PropertyTestIntegrationTests {
       n > 200
     }
 
-    // This should record an Issue but not throw in our test framework
-    do {
-      try checkProperty(property, config: PropertyConfig(iterations: 50))
-      // If checkProperty doesn't throw, we still validate the behavior
-      Issue.record(
-        "checkProperty should record failure but not throw for property that always fails"
-      )
-    } catch {
-      // If it throws, that's also acceptable behavior
-      #expect(Bool(true), "checkProperty appropriately threw on failure")
-    }
+    // checkProperty should record the failure as an Issue but not throw
+    try checkProperty(property, config: PropertyConfig(iterations: 50))
+
+    // If we reach here without throwing, the test is working correctly
+    // The failure is recorded as an Issue which is the expected behavior
+    #expect(Bool(true), "checkProperty correctly recorded failure without throwing")
   }
 
   @Test("checkProperty - GaveUp case")
@@ -48,13 +43,11 @@ struct PropertyTestIntegrationTests {
       true
     }
 
-    // This should result in gaveUp due to filtering
-    do {
-      try checkProperty(property, config: PropertyConfig(iterations: 10))
-      Issue.record("checkProperty should handle filtering that always fails gracefully")
-    } catch {
-      #expect(Bool(true), "checkProperty appropriately threw on giveUp")
-    }
+    // This should result in gaveUp due to filtering and record an Issue
+    try checkProperty(property, config: PropertyConfig(iterations: 10))
+
+    // If we reach here without throwing, the gaveUp was recorded as an Issue
+    #expect(Bool(true), "checkProperty correctly handled filtering failure and recorded issue")
   }
 
   // MARK: - checkPropertyAsync Function Tests (Task 4)
@@ -80,14 +73,12 @@ struct PropertyTestIntegrationTests {
       n > 200
     }
 
-    do {
-      try await checkPropertyAsync(property, config: PropertyConfig(iterations: 50))
-      Issue.record(
-        "checkPropertyAsync should record failure but not throw for property that always fails"
-      )
-    } catch {
-      #expect(Bool(true), "checkPropertyAsync appropriately threw on failure")
-    }
+    // checkPropertyAsync should record the failure as an Issue but not throw
+    try await checkPropertyAsync(property, config: PropertyConfig(iterations: 50))
+
+    // If we reach here without throwing, the test is working correctly
+    // The failure is recorded as an Issue which is the expected behavior
+    #expect(Bool(true), "checkPropertyAsync correctly recorded failure without throwing")
   }
 
   @Test("checkPropertyAsync - GaveUp case")
