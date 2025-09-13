@@ -142,7 +142,7 @@ public macro BusinessRule(
   timeout: TimeInterval = 30.0
 ) = #externalMacro(module: "FunctionalTestingMacros", type: "BusinessRuleMacro")
 
-// MARK: - @SmartGenerator Macro (Future Implementation)
+// MARK: - @SmartGenerator Macro
 
 /// **Automatic test data generation from type structure**
 ///
@@ -150,10 +150,12 @@ public macro BusinessRule(
 /// appropriate generators based on property names, types, and business domain conventions.
 /// This eliminates the need for manual generator implementation in most cases.
 ///
-/// **Note:** This macro is part of Phase 1 planning but not yet implemented.
-/// The declaration is provided for future compatibility.
+/// **Mathematical Foundation:**
+/// Based on dependent type theory and semantic analysis, where generator selection
+/// depends on both static type information and semantic context from naming patterns.
+/// Uses type-directed generation with functor composition laws.
 ///
-/// **Planned Usage:**
+/// **Usage Examples:**
 /// ```swift
 /// @SmartGenerator
 /// struct User {
@@ -171,14 +173,19 @@ public macro BusinessRule(
 ///             .map(User.init)
 ///     }
 /// }
+///
+/// @SmartGenerator(constraints: .comprehensive)
+/// struct Product {
+///     let price: Decimal      // → Gen.currency with full range testing
+///     let quantity: Int       // → Gen.int with edge cases
+/// }
 /// ```
-@attached(member, names: named(smartGen))
-// @attached(extension, conformances: SmartGeneratable)  // TODO: Define SmartGeneratable protocol
-public macro
-  SmartGenerator(  // constraints: GeneratorConstraints = .realistic  // TODO: Define GeneratorConstraints
-  ) = #externalMacro(module: "FunctionalTestingMacros", type: "SmartGeneratorMacro")
+@attached(extension, conformances: SmartGeneratable, names: named(smartGen))
+public macro SmartGenerator(
+  constraints: GeneratorConstraints = .realistic
+) = #externalMacro(module: "FunctionalTestingMacros", type: "SmartGeneratorMacro")
 
-// MARK: - @TestAllCases Macro (Future Implementation)
+// MARK: - @TestAllCases Macro
 
 /// **Systematic boundary and edge case testing**
 ///
@@ -186,20 +193,49 @@ public macro
 /// explore boundary conditions, edge cases, and equivalence partitions without
 /// requiring deep testing expertise from developers.
 ///
-/// **Note:** This macro is part of Phase 1 planning but not yet implemented.
-/// The declaration is provided for future compatibility.
+/// **Mathematical Foundation:**
+/// Based on boundary value analysis and equivalence partitioning theory,
+/// applying formal testing methodologies through automated test case generation.
+/// Uses category-partition methods for systematic input domain coverage.
 ///
-/// **Planned Usage:**
+/// **Usage Examples:**
 /// ```swift
 /// @TestAllCases(focus: .comprehensive)
 /// enum OrderStatus {
 ///     case pending, confirmed, processing, shipped, delivered, cancelled
 /// }
 ///
-/// // Automatically generates boundary and transition tests
+/// // Automatically generates:
+/// extension OrderStatus: AutoTestable {
+///     static var comprehensiveTests: [Gen<OrderStatus>] {
+///         [Gen.element(of: [.pending, .confirmed, .processing, .shipped, .delivered, .cancelled])]
+///     }
+///
+///     static var boundaryTests: [Gen<OrderStatus>] {
+///         [Gen.constant(.pending), Gen.constant(.cancelled)]
+///     }
+/// }
+///
+/// @TestAllCases(focus: .boundary)
+/// struct PriceRange {
+///     let min: Decimal
+///     let max: Decimal
+/// }
+///
+/// // Generates boundary tests for numeric ranges
 /// ```
-@attached(member, names: arbitrary)
-// @attached(extension, conformances: AutoTestable)  // TODO: Define AutoTestable protocol
+///
+/// **Test Focus Strategies:**
+/// - **Comprehensive**: Maximum coverage (boundary + edge + typical cases)
+/// - **Boundary**: Focus on boundary value analysis
+/// - **Edges**: Minimal testing of known problematic values
+@attached(
+  extension,
+  conformances: AutoTestable,
+  names: named(comprehensiveTests),
+  named(boundaryTests),
+  named(edgeCaseTests)
+)
 public macro TestAllCases(
   focus: TestFocus = .comprehensive
 ) = #externalMacro(module: "FunctionalTestingMacros", type: "TestAllCasesMacro")

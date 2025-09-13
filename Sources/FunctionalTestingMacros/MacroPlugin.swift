@@ -13,6 +13,8 @@ struct FunctionalTestingPlugin: CompilerPlugin {
     AlgebraicLawsMacro.self,
     // Phase 1 Core Business Macros
     BusinessRuleMacro.self,
+    SmartGeneratorMacro.self,
+    TestAllCasesMacro.self,
     // DeriveGenMacro.self,  // Temporarily disabled
     // LawCheckedMacro.self, // Temporarily disabled
   ]

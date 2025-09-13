@@ -72,8 +72,8 @@ public struct BusinessRuleMacro: PeerMacro {
     in context: some MacroExpansionContext
   ) throws -> [DeclSyntax] {
 
-    // Extract function declaration
-    guard let funcDecl = declaration as? FunctionDeclSyntax else {
+    // Extract function declaration - use proper SwiftSyntax casting
+    guard let funcDecl = declaration.as(FunctionDeclSyntax.self) else {
       throw BusinessRuleMacroError.onlyApplicableToFunction
     }
 
@@ -134,7 +134,7 @@ private struct FunctionAnalysis {
       } else if lowerName.contains("email") {
         return "Gen.email"
       } else if lowerName.contains("age") {
-        return "Gen.age"
+        return "Gen.int(in: 13...120)"
       } else if lowerName.contains("name") && type == "String" {
         return "Gen.personName"
       }
@@ -349,7 +349,17 @@ private extension BusinessRuleMacro {
     let generatorCode = try generateGeneratorCode(for: analysis.parameters)
 
     // Generate function parameter list for calling original function
-    let parameterList = analysis.parameters.map { "tuple.\($0.name)" }.joined(separator: ", ")
+    let parameterList: String
+    if analysis.parameters.count == 1 {
+      // For single parameter, tuple is not used - direct value
+      parameterList = "\(analysis.parameters[0].name): tuple"
+    } else {
+      // For multiple parameters, use tuple destructuring
+      let tupleAccess = analysis.parameters.enumerated().map { index, param in
+        "\(param.name): tuple.\(index)"
+      }.joined(separator: ", ")
+      parameterList = tupleAccess
+    }
 
     // Generate business impact and remediation
     let businessImpact = generateBusinessImpact(
@@ -361,9 +371,8 @@ private extension BusinessRuleMacro {
       parameters: analysis.parameters
     )
 
-    // Create the complete function code
+    // Create the complete function code without @Test macro
     let functionCode = """
-      @Test("\(arguments.description)")
       func \(propertyTestName)() async throws {
           let property = Property<\(generateTupleType(for: analysis.parameters))>(
               generator: \(generatorCode),
@@ -392,7 +401,7 @@ private extension BusinessRuleMacro {
                   severity: \(generateSeverity(for: analysis.parameters))
               )
               
-          case .gaveUp(let discarded, let iterations):
+          case .gaveUp(_, let iterations):
               throw BusinessRuleViolation(
                   rule: "\(arguments.description)",
                   counterexample: BusinessRuleCounterexample("Unable to generate valid test data"),

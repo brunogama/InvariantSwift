@@ -808,3 +808,145 @@ extension BusinessRuleCounterexample: CustomDebugStringConvertible {
     "BusinessRuleCounterexample(\(String(reflecting: _value)))"
   }
 }
+
+// MARK: - Comprehensive Testing Infrastructure
+
+/// **Protocol for automatic comprehensive test case generation**
+///
+/// Enables systematic boundary testing and edge case coverage without requiring
+/// deep testing expertise from developers. The protocol provides standardized
+/// test case generation strategies for common Swift types and custom domain objects.
+///
+/// **Mathematical Foundation:**
+/// Based on boundary value analysis and equivalence partitioning theory,
+/// systematically covering input domains and boundary conditions. Implements
+/// formal testing methodologies through type-safe generator composition.
+///
+/// **Testing Strategies:**
+/// - **Comprehensive Tests**: Full coverage including typical, boundary, and edge cases
+/// - **Boundary Tests**: Focus on limit conditions and transition points
+/// - **Edge Case Tests**: Concentrate on problematic values and error conditions
+///
+/// **Boundary Value Analysis (BVA):**
+/// For any input domain with boundaries [min, max], test:
+/// - min - 1 (invalid below boundary)
+/// - min (minimum valid value)
+/// - min + 1 (just above minimum)
+/// - typical values (middle range)
+/// - max - 1 (just below maximum)
+/// - max (maximum valid value)
+/// - max + 1 (invalid above boundary)
+///
+/// **Equivalence Partitioning:**
+/// Divides input domain into equivalence classes where all values in a class
+/// should behave identically. Tests one representative from each class.
+///
+/// **Usage Examples:**
+/// ```swift
+/// @TestAllCases
+/// struct PriceRange {
+///     let min: Decimal  // Tests: 0, 0.01, negative values
+///     let max: Decimal  // Tests: max > min invariant
+/// }
+///
+/// // Automatically generates:
+/// extension PriceRange: AutoTestable {
+///     static var comprehensiveTests: [Gen<PriceRange>] {
+///         [
+///             // Boundary tests
+///             Gen.constant(PriceRange(min: 0, max: 0)),
+///             Gen.constant(PriceRange(min: 0, max: Decimal.greatestFiniteMagnitude)),
+///             // Edge cases
+///             Gen.constant(PriceRange(min: -1, max: 0)),  // Invalid negative
+///             // Random valid ranges
+///             Gen.decimal(in: 0...1000000).flatMap { min in
+///                 Gen.decimal(in: min...1000000).map { max in
+///                     PriceRange(min: min, max: max)
+///                 }
+///             }
+///         ]
+///     }
+/// }
+/// ```
+///
+/// **Integration with @TestAllCases:**
+/// The AutoTestable protocol is the runtime foundation for the @TestAllCases macro,
+/// which automatically synthesizes conformance based on type analysis.
+///
+/// **External References:**
+/// - [Boundary Value Analysis](https://en.wikipedia.org/wiki/Boundary_value_analysis)
+/// - [Equivalence Partitioning](https://en.wikipedia.org/wiki/Equivalence_partitioning)
+/// - [Category-Partition Method](https://en.wikipedia.org/wiki/Category_partition_method)
+/// - [Combinatorial Testing](https://en.wikipedia.org/wiki/All-pairs_testing)
+public protocol AutoTestable {
+  /// **Generate comprehensive test cases for this type**
+  ///
+  /// Provides a complete set of generators covering typical values,
+  /// boundary conditions, and edge cases. This is the most thorough
+  /// testing strategy, suitable for critical business logic.
+  ///
+  /// **Coverage Goals:**
+  /// - All equivalence partitions represented
+  /// - All boundary values tested
+  /// - Common edge cases included
+  /// - Typical business scenarios covered
+  ///
+  /// **Generator Composition:**
+  /// Combines multiple testing strategies to ensure comprehensive coverage:
+  /// ```swift
+  /// static var comprehensiveTests: [Gen<Type>] {
+  ///     boundaryTests + edgeCaseTests + typicalValueTests
+  /// }
+  /// ```
+  static var comprehensiveTests: [Gen<Self>] { get }
+
+  /// **Generate boundary value test cases**
+  ///
+  /// Focuses on testing at and around boundary conditions where
+  /// errors are statistically most likely to occur. Essential for
+  /// numeric types and types with defined valid ranges.
+  ///
+  /// **Boundary Patterns:**
+  /// - Numeric boundaries: min, max, zero, overflow points
+  /// - String boundaries: empty, single char, max length
+  /// - Collection boundaries: empty, single element, max size
+  /// - Date boundaries: epoch, current, far future
+  ///
+  /// **Statistical Basis:**
+  /// Research shows that most bugs occur at boundary conditions,
+  /// making this an efficient testing strategy for bug detection.
+  static var boundaryTests: [Gen<Self>] { get }
+
+  /// **Generate edge case test scenarios**
+  ///
+  /// Produces known problematic values that often cause failures
+  /// in business logic. These are values that are technically valid
+  /// but require special handling.
+  ///
+  /// **Common Edge Cases:**
+  /// - Null/nil values for Optional types
+  /// - Empty strings and whitespace-only strings
+  /// - Negative numbers where positive expected
+  /// - Unicode and special characters in strings
+  /// - Timezone boundaries for dates
+  /// - Floating point special values (NaN, Infinity)
+  ///
+  /// **Risk Mitigation:**
+  /// Edge case testing helps identify and handle exceptional
+  /// conditions before they cause production failures.
+  static var edgeCaseTests: [Gen<Self>] { get }
+}
+
+/// **Default implementations for common Swift types**
+///
+/// Provides sensible default test case generation for built-in types,
+/// which can be composed to test more complex custom types.
+public extension AutoTestable {
+  /// Default comprehensive test implementation
+  ///
+  /// Combines all testing strategies for maximum coverage.
+  /// Can be overridden for types requiring specialized testing.
+  static var comprehensiveTests: [Gen<Self>] {
+    boundaryTests + edgeCaseTests
+  }
+}

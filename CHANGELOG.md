@@ -7,9 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- **Enhanced**: Test coverage and validation improvements
-
 ### Added
+- **Phase 1 Business Macros**: Complete implementation of business-friendly property testing macros
+  - `@BusinessRule`: Transform business rules into comprehensive property-based tests with smart iteration calculation and business-friendly error reporting
+  - `@SmartGenerator`: Automatic test data generation from type structure with semantic inference from property names
+  - `@TestAllCases`: Systematic boundary and edge case testing for enums and structured types
+- **Business Domain Generators**: New generators for common business types (currency, email, personName, age, percentage)
+- **Enhanced Error Reporting**: BusinessRuleViolation with actionable business insights and remediation suggestions  
+- **Complexity-Aware Testing**: Automatic iteration calculation based on function complexity and business risk factors
 - Property-based testing framework for Swift
 - Core generator system with integrated shrinking
 - Mathematical law verification system
