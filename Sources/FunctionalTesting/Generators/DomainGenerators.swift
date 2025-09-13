@@ -286,11 +286,16 @@ public enum JSONSchemaType: String, CaseIterable, Codable, Sendable {
   case null = "null"
 }
 
+/// **Indirect reference for recursive JSON Schema structures**
+public indirect enum JSONSchemaRef: Codable, Sendable, Equatable {
+  case schema(JSONSchema)
+}
+
 /// **JSON Schema structure for validation testing**
 public struct JSONSchema: Codable, Sendable, Equatable {
   public let type: JSONSchemaType?
   public let properties: [String: Self]?
-  public let items: Box<Self>?
+  public let items: JSONSchemaRef?
   public let required: [String]?
   public let minimum: Double?
   public let maximum: Double?
@@ -304,7 +309,7 @@ public struct JSONSchema: Codable, Sendable, Equatable {
   public init(
     type: JSONSchemaType? = nil,
     properties: [String: Self]? = nil,
-    items: Self? = nil,
+    items: JSONSchemaRef? = nil,
     required: [String]? = nil,
     minimum: Double? = nil,
     maximum: Double? = nil,
@@ -317,7 +322,7 @@ public struct JSONSchema: Codable, Sendable, Equatable {
   ) {
     self.type = type
     self.properties = properties
-    self.items = items.map(Box.init)
+    self.items = items
     self.required = required
     self.minimum = minimum
     self.maximum = maximum
@@ -431,8 +436,8 @@ extension Gen where T == JSONSchema {
               type: .object,
               properties: properties,
               required: required.isEmpty ? nil : required,
-              title: Bool.random(using: &rng) ? "ObjectSchema\(depth)" : nil,
-              description: Bool.random(using: &rng) ? "Object schema at depth \(depth)" : nil
+              description: Bool.random(using: &rng) ? "Object schema at depth \(depth)" : nil,
+              title: Bool.random(using: &rng) ? "ObjectSchema\(depth)" : nil
             )
 
           case .array:
@@ -442,9 +447,9 @@ extension Gen where T == JSONSchema {
             )
             return JSONSchema(
               type: .array,
-              items: itemSchema,
-              title: Bool.random(using: &rng) ? "ArraySchema\(depth)" : nil,
-              description: Bool.random(using: &rng) ? "Array schema at depth \(depth)" : nil
+              items: .schema(itemSchema),
+              description: Bool.random(using: &rng) ? "Array schema at depth \(depth)" : nil,
+              title: Bool.random(using: &rng) ? "ArraySchema\(depth)" : nil
             )
 
           case .string:
@@ -505,7 +510,18 @@ extension Gen where T == JSONSchema {
             )
           }
 
-          return Array(Set(shrunk))
+          // Remove duplicates manually since JSONSchema doesn't conform to Hashable
+          var seen: [String] = []
+          var unique: [JSONSchema] = []
+          for schema in shrunk {
+            let key =
+              "\(schema.type?.rawValue ?? "nil")_\(schema.description ?? "")_\(schema.title ?? "")"
+            if !seen.contains(key) {
+              seen.append(key)
+              unique.append(schema)
+            }
+          }
+          return unique
         }
       )
     }

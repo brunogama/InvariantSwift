@@ -24,7 +24,7 @@ struct CoverageCompletionTests {
       generator: Gen.array(Gen.int),
       predicate: { array in
         // This should fail for arrays with specific patterns
-        return array.count < 5 || !array.contains { $0 > 100 }
+        array.count < 5 || !array.contains { $0 > 100 }
       }
     )
 
@@ -56,7 +56,7 @@ struct CoverageCompletionTests {
     let result = largeArrayGen.generate(&rng, extremeSize)
 
     // Should either generate successfully or handle the extreme case gracefully
-    #expect(result.count >= 0, "Generator should handle extreme sizes gracefully")
+    #expect(result.isEmpty, "Generator should handle extreme sizes gracefully")
   }
 
   @Test("Coverage-guided error recovery paths")
@@ -103,8 +103,8 @@ struct CoverageCompletionTests {
       var rng = SeedBasedRandomNumberGenerator(seed: seed)
 
       // Exercise the RNG with various operations
-      let _ = rng.next()
-      let _ = rng.next()
+      _ = rng.next()
+      _ = rng.next()
 
       // Test deterministic behavior
       var rng2 = SeedBasedRandomNumberGenerator(seed: seed)
@@ -133,11 +133,11 @@ struct CoverageCompletionTests {
     let size = Size(value: 10)
 
     // Generate values to exercise platform-specific paths
-    let _ = intGen.sample(size: size, seed: seed)
-    let _ = int8Gen.sample(size: size, seed: seed)
-    let _ = int16Gen.sample(size: size, seed: seed)
-    let _ = int32Gen.sample(size: size, seed: seed)
-    let _ = int64Gen.sample(size: size, seed: seed)
+    _ = intGen.sample(size: size, seed: seed)
+    _ = int8Gen.sample(size: size, seed: seed)
+    _ = int16Gen.sample(size: size, seed: seed)
+    _ = int32Gen.sample(size: size, seed: seed)
+    _ = int64Gen.sample(size: size, seed: seed)
 
     #expect(Bool(true), "Platform-specific type optimizations exercised")
   }
@@ -257,7 +257,7 @@ struct CoverageCompletionTests {
 
     // Exercise Size API
     let size1 = Size(value: 10)
-    let size2 = size1.scaled(by: 2.0)
+    let size2 = Size.scale(by: 2.0)(size1)
     #expect(size2.value == 20, "Size scaling should work correctly")
 
     // Exercise Seed API
@@ -274,16 +274,16 @@ struct CoverageCompletionTests {
     let testSeed = Seed(value: 999)
     let testSize = Size(value: 5)
 
-    let _ = gen1.sample(size: testSize, seed: testSeed)
-    let _ = gen2.sample(size: testSize, seed: testSeed)
-    let _ = gen3.sample(size: testSize, seed: testSeed)
+    _ = gen1.sample(size: testSize, seed: testSeed)
+    _ = gen2.sample(size: testSize, seed: testSeed)
+    _ = gen3.sample(size: testSize, seed: testSeed)
 
     // Exercise Property combinators
     let prop1 = Property(generator: Gen.int, predicate: { $0 > 0 })
     let prop2 = Property(generator: Gen.int, predicate: { $0 % 2 == 0 })
     let combinedProp = prop1.and(prop2)
 
-    let _ = PropertyChecker.check(combinedProp, config: PropertyConfig(iterations: 10))
+    _ = PropertyChecker.check(combinedProp, config: PropertyConfig(iterations: 10))
 
     // Exercise async PropertyRunner
     let runner = PropertyRunner()
@@ -302,7 +302,7 @@ struct CoverageCompletionTests {
 
     let budget = await collector.currentBudget()
     let biasedGen = Gen.int.biased(by: budget)
-    let _ = biasedGen.sample(size: testSize, seed: testSeed)
+    _ = biasedGen.sample(size: testSize, seed: testSeed)
 
     #expect(Bool(true), "All public APIs exercised successfully")
   }
@@ -404,7 +404,7 @@ struct GeneratorEdgeCaseCompletionTests {
 
     let complexPredicate: (Int) -> Bool = { value in
       // Complex predicate that's sometimes satisfied
-      return value > 0 && value % 7 == 0 && value < 1000
+      value > 0 && value % 7 == 0 && value < 1000
     }
 
     let filteredGen = Gen.int(in: -100...2000).suchThat(complexPredicate)

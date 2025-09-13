@@ -1,7 +1,6 @@
 import Testing
 import Foundation
 @testable import FunctionalTesting
-@testable import FunctionalTestingMacros
 
 /// Coverage validation and integration tests for achieving 99%+ code coverage
 /// This target validates that all major code paths are exercised by our test suite
@@ -20,7 +19,7 @@ struct CoverageValidationTests {
 
     switch result {
     case .success:
-      #expect(true, "Core property testing API is functional")
+      #expect(Bool(true), "Core property testing API is functional")
 
     default:
       Issue.record("Core property testing should work")
@@ -42,7 +41,7 @@ struct CoverageValidationTests {
 
     // Test size scaling
     let baseSize = Size(value: 50)
-    let scaledSize = baseSize.scaled(by: 0.5)
+    let scaledSize = Size.scale(by: 0.5)(baseSize)
     #expect(scaledSize.value <= baseSize.value, "Size scaling should work")
 
     // Test configuration APIs
@@ -64,7 +63,7 @@ struct CoverageValidationTests {
     // This test validates the integration points and ensures macro
     // infrastructure doesn't have coverage gaps
 
-    #expect(true, "Macro infrastructure integration validated")
+    #expect(Bool(true), "Macro infrastructure integration validated")
   }
 
   // MARK: - Edge Case Coverage Validation (Task 10)
@@ -93,7 +92,7 @@ struct CoverageValidationTests {
 
     switch minimalResult {
     case .success, .failure, .gaveUp:
-      #expect(true, "Edge case configuration should be handled")
+      #expect(Bool(true), "Edge case configuration should be handled")
     }
   }
 
@@ -131,7 +130,7 @@ struct CoverageValidationTests {
       #expect(iterations <= 5, "Should not exceed max iterations")
 
     case .success, .failure:
-      #expect(true, "Give up scenario may have different outcomes based on implementation")
+      #expect(Bool(true), "Give up scenario may have different outcomes based on implementation")
     }
   }
 
@@ -170,7 +169,7 @@ struct CoverageValidationTests {
 
     switch composedResult {
     case .success:
-      #expect(true, "Generator composition should work")
+      #expect(Bool(true), "Generator composition should work")
 
     default:
       Issue.record("Generator composition should succeed")
@@ -191,14 +190,14 @@ struct CoverageValidationTests {
 
     switch shrinkingResult {
     case .success:
-      #expect(true, "Shrinking integration succeeded (didn't generate FAIL)")
+      #expect(Bool(true), "Shrinking integration succeeded (didn't generate FAIL)")
 
     case .failure(let counterexample, _, let shrunk):
       #expect(shrunk.count <= counterexample.count, "Shrinking should reduce array size")
       #expect(shrunk.contains("FAIL"), "Shrunk array should still contain the failing element")
 
     case .gaveUp:
-      #expect(true, "Shrinking integration may give up in some cases")
+      #expect(Bool(true), "Shrinking integration may give up in some cases")
     }
   }
 
@@ -243,7 +242,7 @@ struct CoverageValidationTests {
 
     switch memoryResult {
     case .success, .failure, .gaveUp:
-      #expect(true, "Memory usage code paths should be exercised")
+      #expect(Bool(true), "Memory usage code paths should be exercised")
     }
   }
 
@@ -290,7 +289,7 @@ struct CoverageValidationTests {
   @Test("Edge case error handling in macro expansion")
   func edgeCaseErrorHandlingInMacroExpansion() {
     // Test various error conditions in macro expansion to improve coverage
-    #expect(true, "Edge case macro error handling tested")
+    #expect(Bool(true), "Edge case macro error handling tested")
   }
 
   @Test("Rarely used shrinking algorithms")

@@ -17,8 +17,10 @@ struct NumericGeneratorTests {
 
     switch result {
     case .success: break
+
     case .failure(let counterexample, _, _):
       Issue.record("Unexpected failure with: \(counterexample)")
+
     case .gaveUp:
       Issue.record("Test gave up unexpectedly")
     }
@@ -34,8 +36,10 @@ struct NumericGeneratorTests {
 
     switch result {
     case .success: break
+
     case .failure(let counterexample, _, _):
       Issue.record("Unexpected failure with: \(counterexample)")
+
     case .gaveUp:
       Issue.record("Test gave up unexpectedly")
     }
@@ -51,8 +55,10 @@ struct NumericGeneratorTests {
 
     switch result {
     case .success: break
+
     case .failure(let counterexample, _, _):
       Issue.record("Unexpected failure with: \(counterexample)")
+
     case .gaveUp:
       Issue.record("Test gave up unexpectedly")
     }
@@ -68,8 +74,10 @@ struct NumericGeneratorTests {
 
     switch result {
     case .success: break
+
     case .failure(let counterexample, _, _):
       Issue.record("Unexpected failure with: \(counterexample)")
+
     case .gaveUp:
       Issue.record("Test gave up unexpectedly")
     }
@@ -85,8 +93,10 @@ struct NumericGeneratorTests {
 
     switch result {
     case .success: break
+
     case .failure(let counterexample, _, _):
       Issue.record("Unexpected failure with: \(counterexample)")
+
     case .gaveUp:
       Issue.record("Test gave up unexpectedly")
     }
@@ -106,8 +116,10 @@ struct NumericGeneratorTests {
 
     switch result {
     case .success: break
+
     case .failure(let counterexample, _, _):
       Issue.record("Int16 bounds check failed with: \(counterexample)")
+
     case .gaveUp:
       Issue.record("Int16 test gave up unexpectedly")
     }
@@ -146,8 +158,10 @@ struct NumericGeneratorTests {
 
     switch result {
     case .success: break
+
     case .failure(let counterexample, _, _):
       Issue.record("Int32 bounds check failed with: \(counterexample)")
+
     case .gaveUp:
       Issue.record("Int32 test gave up unexpectedly")
     }
@@ -166,8 +180,10 @@ struct NumericGeneratorTests {
 
     switch result {
     case .success: break
+
     case .failure(let counterexample, _, _):
       Issue.record("Int32 range test failed with: \(counterexample)")
+
     case .gaveUp:
       Issue.record("Int32 range test gave up unexpectedly")
     }
@@ -185,8 +201,10 @@ struct NumericGeneratorTests {
 
     switch result {
     case .success: break
+
     case .failure(let counterexample, _, _):
       Issue.record("Int64 bounds check failed with: \(counterexample)")
+
     case .gaveUp:
       Issue.record("Int64 test gave up unexpectedly")
     }
@@ -196,7 +214,7 @@ struct NumericGeneratorTests {
   func int64GeneratorLargeValueTesting() async {
     let property = Property<Int64>(generator: Gen.int64) { value in
       // Test that Int64 can handle very large values
-      let _ = value.multipliedReportingOverflow(by: 2)
+      _ = value.multipliedReportingOverflow(by: 2)
       return true  // Always pass, we're testing generation capability
     }
     let result = await PropertyRunner().runProperty(
@@ -206,8 +224,10 @@ struct NumericGeneratorTests {
 
     switch result {
     case .success: break
+
     case .failure(let counterexample, _, _):
       Issue.record("Int64 large value test failed with: \(counterexample)")
+
     case .gaveUp:
       Issue.record("Int64 large value test gave up unexpectedly")
     }
@@ -227,8 +247,10 @@ struct NumericGeneratorTests {
 
     switch result {
     case .success: break
+
     case .failure(let counterexample, _, _):
       Issue.record("UInt16 bounds check failed with: \(counterexample)")
+
     case .gaveUp:
       Issue.record("UInt16 test gave up unexpectedly")
     }
@@ -269,8 +291,10 @@ struct NumericGeneratorTests {
 
     switch result {
     case .success: break
+
     case .failure(let counterexample, _, _):
       Issue.record("UInt32 bounds check failed with: \(counterexample)")
+
     case .gaveUp:
       Issue.record("UInt32 test gave up unexpectedly")
     }
@@ -289,8 +313,10 @@ struct NumericGeneratorTests {
 
     switch result {
     case .success: break
+
     case .failure(let counterexample, _, _):
       Issue.record("UInt32 range test failed with: \(counterexample)")
+
     case .gaveUp:
       Issue.record("UInt32 range test gave up unexpectedly")
     }
@@ -308,8 +334,10 @@ struct NumericGeneratorTests {
 
     switch result {
     case .success: break
+
     case .failure(let counterexample, _, _):
       Issue.record("UInt64 bounds check failed with: \(counterexample)")
+
     case .gaveUp:
       Issue.record("UInt64 test gave up unexpectedly")
     }
@@ -317,9 +345,9 @@ struct NumericGeneratorTests {
 
   @Test("UInt64 Generator Large Value Capability")
   func uint64GeneratorLargeValueCapability() async {
-    let property = Property<UInt64>(generator: Gen.uint64) { value in
+    let property = Property<UInt64>(generator: Gen.uint64) { _ in
       // Test UInt64's capability to handle large unsigned values
-      let _ = UInt64.max / 2
+      _ = UInt64.max / 2
       return true  // Always pass, testing generation capability
     }
     let result = await PropertyRunner().runProperty(
@@ -329,8 +357,10 @@ struct NumericGeneratorTests {
 
     switch result {
     case .success: break
+
     case .failure(let counterexample, _, _):
       Issue.record("UInt64 large value test failed with: \(counterexample)")
+
     case .gaveUp:
       Issue.record("UInt64 large value test gave up unexpectedly")
     }
@@ -342,7 +372,7 @@ struct NumericGeneratorTests {
   func floatSpecialValuesTesting() async {
     let property = Property<Float>(generator: Gen.float) { value in
       // Test that Float generator handles all categories of float values
-      return value.isFinite || value.isInfinite || value.isNaN
+      value.isFinite || value.isInfinite || value.isNaN
     }
     let result = await PropertyRunner().runProperty(
       property,
@@ -351,8 +381,10 @@ struct NumericGeneratorTests {
 
     switch result {
     case .success: break
+
     case .failure(let counterexample, _, _):
       Issue.record("Float special values test failed with: \(counterexample)")
+
     case .gaveUp:
       Issue.record("Float special values test gave up unexpectedly")
     }
@@ -362,7 +394,7 @@ struct NumericGeneratorTests {
   func doubleSpecialValuesTesting() async {
     let property = Property<Double>(generator: Gen.double) { value in
       // Test that Double generator handles all categories of double values
-      return value.isFinite || value.isInfinite || value.isNaN
+      value.isFinite || value.isInfinite || value.isNaN
     }
     let result = await PropertyRunner().runProperty(
       property,
@@ -371,8 +403,10 @@ struct NumericGeneratorTests {
 
     switch result {
     case .success: break
+
     case .failure(let counterexample, _, _):
       Issue.record("Double special values test failed with: \(counterexample)")
+
     case .gaveUp:
       Issue.record("Double special values test gave up unexpectedly")
     }
@@ -407,7 +441,7 @@ struct NumericGeneratorTests {
     let property = Property<Decimal>(generator: Gen.decimal) { value in
       // Test Decimal's precision characteristics
       let stringRep = "\(value)"
-      return stringRep.count > 0  // Basic validation that it converts to string
+      return !stringRep.isEmpty  // Basic validation that it converts to string
     }
     let result = await PropertyRunner().runProperty(
       property,
@@ -416,8 +450,10 @@ struct NumericGeneratorTests {
 
     switch result {
     case .success: break
+
     case .failure(let counterexample, _, _):
       Issue.record("Decimal precision test failed with: \(counterexample)")
+
     case .gaveUp:
       Issue.record("Decimal precision test gave up unexpectedly")
     }
@@ -437,8 +473,10 @@ struct NumericGeneratorTests {
 
     switch result {
     case .success: break
+
     case .failure(let counterexample, _, _):
       Issue.record("Decimal range test failed with: \(counterexample)")
+
     case .gaveUp:
       Issue.record("Decimal range test gave up unexpectedly")
     }
@@ -464,8 +502,10 @@ struct NumericGeneratorTests {
 
     switch result {
     case .success: break
+
     case .failure(let counterexample, _, _):
       Issue.record("CGFloat platform test failed with: \(counterexample)")
+
     case .gaveUp:
       Issue.record("CGFloat platform test gave up unexpectedly")
     }
@@ -475,8 +515,8 @@ struct NumericGeneratorTests {
   func cgFloatPrecisionCharacteristics() async {
     let property = Property<CGFloat>(generator: Gen.cgFloat) { value in
       // Test CGFloat precision and range characteristics
-      let _ = Float(value)
-      let _ = Double(value)
+      _ = Float(value)
+      _ = Double(value)
       return true  // Always pass, testing conversion capability
     }
     let result = await PropertyRunner().runProperty(
@@ -486,8 +526,10 @@ struct NumericGeneratorTests {
 
     switch result {
     case .success: break
+
     case .failure(let counterexample, _, _):
       Issue.record("CGFloat precision test failed with: \(counterexample)")
+
     case .gaveUp:
       Issue.record("CGFloat precision test gave up unexpectedly")
     }
@@ -499,7 +541,7 @@ struct NumericGeneratorTests {
   func intShrinkingBehaviorValidation() async {
     let property = Property<Int>(generator: Gen.int) { value in
       // Property that should fail for most values to test shrinking
-      return abs(value) < 5
+      abs(value) < 5
     }
 
     let result = await PropertyRunner().runProperty(
@@ -515,7 +557,7 @@ struct NumericGeneratorTests {
       )
     } else {
       // If it doesn't fail, that's also valid (means the property accidentally passed)
-      #expect(true, "Int shrinking test completed")
+      #expect(Bool(true), "Int shrinking test completed")
     }
   }
 
@@ -523,7 +565,7 @@ struct NumericGeneratorTests {
   func floatShrinkingBehaviorValidation() async {
     let property = Property<Float>(generator: Gen.float) { value in
       // Property that should fail for most finite values to test shrinking
-      return value.isNaN || value.isInfinite || abs(value) < 0.01
+      value.isNaN || value.isInfinite || abs(value) < 0.01
     }
 
     let result = await PropertyRunner().runProperty(
@@ -542,14 +584,14 @@ struct NumericGeneratorTests {
     }
 
     // Test completes regardless of specific result
-    #expect(true, "Float shrinking behavior test completed")
+    #expect(Bool(true), "Float shrinking behavior test completed")
   }
 
   @Test("Double Shrinking Behavior Validation")
   func doubleShrinkingBehaviorValidation() async {
     let property = Property<Double>(generator: Gen.double) { value in
       // Property that should fail for most finite values
-      return value.isNaN || value.isInfinite || abs(value) < 0.01
+      value.isNaN || value.isInfinite || abs(value) < 0.01
     }
 
     let result = await PropertyRunner().runProperty(
@@ -567,14 +609,14 @@ struct NumericGeneratorTests {
       }
     }
 
-    #expect(true, "Double shrinking behavior test completed")
+    #expect(Bool(true), "Double shrinking behavior test completed")
   }
 
   @Test("UInt Shrinking Behavior Validation")
   func uintShrinkingBehaviorValidation() async {
     let property = Property<UInt>(generator: Gen.uint) { value in
       // Property that should fail for most values to test shrinking
-      return value < 5
+      value < 5
     }
 
     let result = await PropertyRunner().runProperty(
@@ -590,14 +632,14 @@ struct NumericGeneratorTests {
       )
     }
 
-    #expect(true, "UInt shrinking behavior test completed")
+    #expect(Bool(true), "UInt shrinking behavior test completed")
   }
 
   @Test("Int64 Shrinking Large Values")
   func int64ShrinkingLargeValues() async {
     let property = Property<Int64>(generator: Gen.int64) { value in
       // Always fail to force shrinking with large values
-      return value < Int64.max - 1_000_000  // Force failure for large values
+      value < Int64.max - 1_000_000  // Force failure for large values
     }
 
     let result = await PropertyRunner().runProperty(
@@ -612,7 +654,7 @@ struct NumericGeneratorTests {
       )
     }
 
-    #expect(true, "Int64 shrinking large values test completed")
+    #expect(Bool(true), "Int64 shrinking large values test completed")
   }
 
   // MARK: - Overflow and Underflow Boundary Testing (Task 5)
@@ -641,8 +683,10 @@ struct NumericGeneratorTests {
 
     switch result {
     case .success: break
+
     case .failure(let counterexample, _, _):
       Issue.record("Int8 boundary test failed with: \(counterexample)")
+
     case .gaveUp:
       Issue.record("Int8 boundary test gave up unexpectedly")
     }
@@ -665,8 +709,10 @@ struct NumericGeneratorTests {
 
     switch result {
     case .success: break
+
     case .failure(let counterexample, _, _):
       Issue.record("UInt32 overflow test failed with: \(counterexample)")
+
     case .gaveUp:
       Issue.record("UInt32 overflow test gave up unexpectedly")
     }
@@ -693,8 +739,10 @@ struct NumericGeneratorTests {
 
     switch result {
     case .success: break
+
     case .failure(let counterexample, _, _):
       Issue.record("Float extreme value test failed with: \(counterexample)")
+
     case .gaveUp:
       Issue.record("Float extreme value test gave up unexpectedly")
     }
@@ -721,8 +769,10 @@ struct NumericGeneratorTests {
 
     switch result {
     case .success: break
+
     case .failure(let counterexample, _, _):
       Issue.record("Double precision boundary test failed with: \(counterexample)")
+
     case .gaveUp:
       Issue.record("Double precision boundary test gave up unexpectedly")
     }
@@ -745,8 +795,10 @@ struct NumericGeneratorTests {
 
     switch result {
     case .success: break
+
     case .failure(let counterexample, _, _):
       Issue.record("Decimal boundary test failed with: \(counterexample)")
+
     case .gaveUp:
       Issue.record("Decimal boundary test gave up unexpectedly")
     }
@@ -762,13 +814,13 @@ struct NumericGeneratorTests {
       // Extract values from nested tuple structure
       let intVal = nested.0.0.0
       let floatVal = nested.0.0.1
-      let _ = nested.0.1
+      _ = nested.0.1
       let uintVal = nested.1
 
       // Basic integration test for all numeric types
-      let _ = Float(intVal)
-      let _ = Double(floatVal)
-      let _ = Int(uintVal)
+      _ = Float(intVal)
+      _ = Double(floatVal)
+      _ = Int(uintVal)
 
       return true  // Always pass, testing generation integration
     }
@@ -780,8 +832,10 @@ struct NumericGeneratorTests {
 
     switch result {
     case .success: break
+
     case .failure(let counterexample, _, _):
       Issue.record("Numeric integration test failed with: \(counterexample)")
+
     case .gaveUp:
       Issue.record("Numeric integration test gave up unexpectedly")
     }

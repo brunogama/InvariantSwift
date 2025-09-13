@@ -134,7 +134,7 @@ public struct ExecutionEnvironment: Codable, Sendable {
     self.osVersion = ProcessInfo.processInfo.operatingSystemVersionString
     self.swiftVersion = "Swift 6.0"  // This would be detected dynamically
     self.architecture = ProcessInfo.processInfo.machineString
-    self.availableMemory = ProcessInfo.processInfo.physicalMemory
+    self.availableMemory = Int64(ProcessInfo.processInfo.physicalMemory)
     self.loadAverage = 0.0  // This would be read from system
     self.workingDirectory = FileManager.default.currentDirectoryPath
     self.environmentHash = Self.hashEnvironmentVariables()
@@ -331,7 +331,7 @@ public struct FlakePatterns: Sendable, Codable {
 }
 
 /// **Time-based pattern analysis**
-public struct TimePatterns: Sendable {
+public struct TimePatterns: Sendable, Codable {
   /// Failure rate by hour of day
   public let hourlyPattern: [Int: Double]
 
@@ -396,14 +396,14 @@ public struct TimePatterns: Sendable {
 }
 
 /// **Trend direction**
-public enum Trend: String, Sendable {
+public enum Trend: String, Sendable, Codable {
   case improving = "improving"
   case stable = "stable"
   case worsening = "worsening"
 }
 
 /// **Resource usage correlation analysis**
-public struct ResourceCorrelation: Sendable {
+public struct ResourceCorrelation: Sendable, Codable {
   /// Correlation between memory usage and failures
   public let memoryCorrelation: Double
 
@@ -926,7 +926,7 @@ extension PropertyRunner {
     }
 
     let startTime = CFAbsoluteTimeGetCurrent()
-    let result = await runProperty(property, config: config)
+    let result = runProperty(property, config: config)
     let duration = CFAbsoluteTimeGetCurrent() - startTime
 
     // Record execution
@@ -937,7 +937,7 @@ extension PropertyRunner {
       environment: ExecutionEnvironment(),
       seed: config.seed?.value,
       iterations: config.iterations,
-      memoryUsage: ProcessInfo.processInfo.physicalMemory,
+      memoryUsage: Int64(ProcessInfo.processInfo.physicalMemory),
       cpuUsage: 0.0  // This would be measured dynamically
     )
 
@@ -970,7 +970,11 @@ extension ProcessInfo {
     sysctlbyname("hw.machine", nil, &size, nil, 0)
     var machine = [CChar](repeating: 0, count: size)
     sysctlbyname("hw.machine", &machine, &size, nil, 0)
-    return String(cString: machine)
+    // Remove null termination and decode as UTF-8
+    let nullTerminatorIndex = machine.firstIndex(of: 0) ?? machine.count
+    let trimmed = Array(machine[0..<nullTerminatorIndex])
+    let uints = trimmed.map { UInt8(bitPattern: $0) }
+    return String(decoding: uints, as: UTF8.self)
   }
 }
 

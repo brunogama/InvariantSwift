@@ -506,7 +506,7 @@ public enum TestGenerators {
     Gen<[T]>(
       generate: { rng, size in
         let arraySize = min(size.value, 20)
-        return (0..<arraySize).map { _ in elementGen.generate(&rng, size.scaled(by: 0.8)) }
+        return (0..<arraySize).map { _ in elementGen.generate(&rng, Size.scale(by: 0.8)(size)) }
       },
       shrink: Shrink { array in
         if array.isEmpty { return [] }

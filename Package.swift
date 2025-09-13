@@ -37,7 +37,7 @@ let package = Package(
     .target(
       name: "FunctionalTesting",
       dependencies: [
-        // "FunctionalTestingMacros"  // Temporarily disabled due to SwiftSyntax version issues
+        "FunctionalTestingMacros"
       ],
       swiftSettings: [
         // Enable coverage collection for library code
@@ -179,8 +179,7 @@ let package = Package(
     .testTarget(
       name: "CoverageIntegrationTests",
       dependencies: [
-        "FunctionalTesting",
-        "FunctionalTestingMacros",
+        "FunctionalTesting"
       ],
       path: "Tests/CoverageIntegrationTests",
       swiftSettings: [

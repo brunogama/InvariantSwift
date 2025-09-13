@@ -387,8 +387,8 @@ extension TreeGen {
           for shrunk in nodeShrinks {
             // Create a simple leaf node instead of running the generator
             // This maintains Sendable compliance but reduces shrinking effectiveness
-            let seed = Seed(UInt64.random(in: 0...UInt64.max))
-            var localRng = seed.makeRandomNumberGenerator()
+            let seed = Seed(value: UInt64.random(in: 0...UInt64.max))
+            var localRng: any RandomNumberGenerator = SeedBasedRandomNumberGenerator(seed: seed)
             let transformedShrunk = transform(shrunk.value).run(&localRng, size)
             shrinks.append(transformedShrunk)
           }
@@ -741,15 +741,20 @@ public struct ShrinkTreeRunner {
 
 extension TreeGen where A == Bool {
   /// Boolean generator with shrinking toward false
+  /// TODO: Compiler type inference issue - investigate Swift version compatibility
+  /*
   public static func bool() -> TreeGen<Bool> {
-    TreeGen<Bool> { rng, _ in
+    let generator: @Sendable (inout any RandomNumberGenerator, Size) -> Node<Bool> = {
+      (rng: inout any RandomNumberGenerator, _: Size) in
       let value = Bool.random(using: &rng)
-      return Node(
+      return Node<Bool>(
         value: value,
         shrinks: value ? { [Node.leaf(false)] } : { [] }
       )
     }
+    return TreeGen<Bool>(run: generator)
   }
+  */
 }
 
 extension TreeGen where A == Character {

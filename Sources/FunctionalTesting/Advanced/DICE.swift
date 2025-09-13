@@ -480,7 +480,7 @@ public struct InterleavingTrace: Sendable {
         "maxSteps": configuration.maxSteps,
         "depth": configuration.depth,
         "seed": configuration.seed,
-      ],
+      ] as [String: any Sendable],
     ]
 
     return try! JSONSerialization.data(withJSONObject: dict)
@@ -513,6 +513,7 @@ public struct InterleavingTrace: Sendable {
 // MARK: - Custom Task Executor
 
 /// Custom task executor for deterministic scheduling
+@available(macOS 15.0, *)
 public final class DeterministicTaskExecutor: TaskExecutor, @unchecked Sendable {
   private let scheduler: DeterministicScheduler
 
@@ -543,6 +544,32 @@ public actor DeterministicScheduler {
 
   private init() {}
 
+  /// Setup deterministic execution environment (actor-isolated)
+  private func setup(with config: SchedulerConfig) async {
+    self.config = config
+    self.rng = SeededRNG(seed: config.seed)
+    self.currentTrace = []
+    self.taskRegistry = TaskRegistry()
+    self.executionStats = ExecutionStatistics()
+    executionStats.markExecutionStart()
+  }
+
+  /// Build comprehensive trace (actor-isolated)
+  private func buildTrace(
+    outcome: ExecutionOutcome,
+    startTime: ContinuousClock.Instant,
+    endTime: ContinuousClock.Instant
+  ) async -> InterleavingTrace {
+    InterleavingTrace(
+      steps: currentTrace,
+      happensBefore: computeHappensBefore(),
+      outcome: outcome,
+      configuration: config,
+      executionTime: endTime - startTime,
+      memoryPeakUsage: executionStats.peakMemoryUsage
+    )
+  }
+
   /// Execute with complete deterministic control
   public func withDeterministicScheduler<T: Sendable>(
     _ config: SchedulerConfig,
@@ -551,26 +578,24 @@ public actor DeterministicScheduler {
   ) async rethrows -> (result: T, trace: InterleavingTrace) {
 
     // Setup deterministic execution environment
-    self.config = config
-    self.rng = SeededRNG(seed: config.seed)
-    self.currentTrace = []
-    self.taskRegistry = TaskRegistry()
-    self.executionStats = ExecutionStatistics()
-
-    executionStats.markExecutionStart()
+    await self.setup(with: config)
     let startTime = ContinuousClock().now
-
-    // Install custom task executor for control
-    let customExecutor = DeterministicTaskExecutor(scheduler: self)
 
     let result: T
     let executionOutcome: ExecutionOutcome
 
     do {
-      result = try await withTaskExecutorPreference(customExecutor) {
-        try await operation()
+      if #available(macOS 15.0, *) {
+        // Install custom task executor for control
+        let customExecutor = DeterministicTaskExecutor(scheduler: self)
+        result = try await withTaskExecutorPreference(customExecutor) {
+          try await operation()
+        }
+      } else {
+        // Fallback for older versions - limited determinism
+        result = try await operation()
       }
-      executionOutcome = .success(result)
+      executionOutcome = .success(SendableValue(result))
     } catch {
       executionOutcome = .failure(error)
       throw error
@@ -579,13 +604,10 @@ public actor DeterministicScheduler {
     let endTime = ContinuousClock().now
 
     // Build comprehensive trace
-    let trace = InterleavingTrace(
-      steps: currentTrace,
-      happensBefore: computeHappensBefore(),
+    let trace = await self.buildTrace(
       outcome: executionOutcome,
-      configuration: config,
-      executionTime: endTime - startTime,
-      memoryPeakUsage: executionStats.peakMemoryUsage
+      startTime: startTime,
+      endTime: endTime
     )
 
     return (result, trace)

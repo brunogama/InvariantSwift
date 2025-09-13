@@ -20,8 +20,9 @@ struct ErrorPathCoverageTests {
     switch result {
     case .success:
       Issue.record("Empty oneOf should not succeed")
+
     case .failure, .gaveUp:
-      #expect(true, "Empty oneOf should fail or give up gracefully")
+      #expect(Bool(true), "Empty oneOf should fail or give up gracefully")
     }
   }
 
@@ -36,8 +37,9 @@ struct ErrorPathCoverageTests {
     switch result {
     case .success:
       Issue.record("Empty frequency should not succeed")
+
     case .failure, .gaveUp:
-      #expect(true, "Empty frequency should fail or give up gracefully")
+      #expect(Bool(true), "Empty frequency should fail or give up gracefully")
     }
   }
 
@@ -52,21 +54,23 @@ struct ErrorPathCoverageTests {
 
     let property = Property<String>(generator: Gen.frequency(invalidWeights)) { value in
       // Should only generate "positive" since other weights are invalid
-      return value == "positive"
+      value == "positive"
     }
 
     let result = PropertyChecker.check(property, config: PropertyConfig(iterations: 20))
 
     switch result {
     case .success:
-      #expect(true, "Frequency with invalid weights handled correctly")
+      #expect(Bool(true), "Frequency with invalid weights handled correctly")
+
     case .failure(let counterexample, _, _):
       #expect(
         counterexample != "zero" && counterexample != "negative",
         "Should not generate values with zero/negative weights"
       )
+
     case .gaveUp:
-      #expect(true, "Frequency with invalid weights may give up")
+      #expect(Bool(true), "Frequency with invalid weights may give up")
     }
   }
 
@@ -85,8 +89,9 @@ struct ErrorPathCoverageTests {
     switch result {
     case .success:
       Issue.record("All zero weights should not succeed")
+
     case .failure, .gaveUp:
-      #expect(true, "All zero weights should fail or give up")
+      #expect(Bool(true), "All zero weights should fail or give up")
     }
   }
 
@@ -107,8 +112,10 @@ struct ErrorPathCoverageTests {
     switch result {
     case .gaveUp(let discarded, _):
       #expect(discarded >= 20, "Should discard at least maxDiscarded attempts")
+
     case .success:
       Issue.record("Impossible suchThat should not succeed")
+
     case .failure:
       Issue.record("Impossible suchThat should give up, not fail")
     }
@@ -132,9 +139,11 @@ struct ErrorPathCoverageTests {
 
     switch result {
     case .success:
-      #expect(true, "Rare condition found successfully")
+      #expect(Bool(true), "Rare condition found successfully")
+
     case .gaveUp(let discarded, _):
       #expect(discarded > 0, "Should discard many attempts for rare condition")
+
     case .failure:
       Issue.record("Rare condition should either succeed or give up")
     }
@@ -171,11 +180,13 @@ struct ErrorPathCoverageTests {
 
     switch result {
     case .success:
-      #expect(true, "Extreme generator handled successfully")
+      #expect(Bool(true), "Extreme generator handled successfully")
+
     case .failure(let counterexample, _, let shrunk):
       #expect(abs(shrunk) <= abs(counterexample), "Shrinking should reduce magnitude")
+
     case .gaveUp:
-      #expect(true, "Extreme generator may give up")
+      #expect(Bool(true), "Extreme generator may give up")
     }
   }
 
@@ -196,9 +207,11 @@ struct ErrorPathCoverageTests {
 
     switch result {
     case .success:
-      #expect(true, "Property with comprehensive Double handling succeeded")
+      #expect(Bool(true), "Property with comprehensive Double handling succeeded")
+
     case .failure(let counterexample, _, _):
       Issue.record("Property should handle all Double cases, failed with: \(counterexample)")
+
     case .gaveUp:
       Issue.record("Property with comprehensive handling should not give up")
     }
@@ -236,8 +249,10 @@ struct ErrorPathCoverageTests {
     case .failure(let counterexample, _, let shrunk):
       #expect(shrunk >= 10, "Shrunk value should still fail the property")
       #expect(shrunk <= counterexample, "Shrunk should not be worse than original")
+
     case .success:
       Issue.record("Always failing property should not succeed")
+
     case .gaveUp:
       Issue.record("Property should fail, not give up")
     }
@@ -296,10 +311,12 @@ struct ErrorPathCoverageTests {
     case .failure(let counterexample, _, let shrunk):
       #expect(shrunk.contains(1), "Shrunk array should still contain 1")
       #expect(shrunk.count <= counterexample.count, "Shrunk should be smaller or equal")
+
     case .success:
-      #expect(true, "Property succeeded (no arrays contained 1)")
+      #expect(Bool(true), "Property succeeded (no arrays contained 1)")
+
     case .gaveUp:
-      #expect(true, "Expensive shrinking may cause give up")
+      #expect(Bool(true), "Expensive shrinking may cause give up")
     }
   }
 
@@ -316,6 +333,7 @@ struct ErrorPathCoverageTests {
     switch tinyResult {
     case .success(let iterations):
       #expect(iterations == 1, "Should complete exactly 1 iteration")
+
     case .failure, .gaveUp:
       Issue.record("Simple property with tiny config should succeed")
     }
@@ -327,6 +345,7 @@ struct ErrorPathCoverageTests {
     switch largeResult {
     case .success(let iterations):
       #expect(iterations == 5000, "Should complete all 5000 iterations")
+
     case .failure, .gaveUp:
       Issue.record("Simple property with large config should succeed")
     }
@@ -347,10 +366,12 @@ struct ErrorPathCoverageTests {
 
     switch result {
     case .success:
-      #expect(true, "Property succeeded despite high discard rate")
+      #expect(Bool(true), "Property succeeded despite high discard rate")
+
     case .gaveUp(let discarded, let iterations):
       #expect(discarded <= mismatchedConfig.maxDiscarded + 10, "Should respect maxDiscarded limit")
       #expect(iterations < mismatchedConfig.iterations, "Should not complete all iterations")
+
     case .failure:
       Issue.record("High discard property should succeed or give up, not fail")
     }
@@ -372,6 +393,7 @@ struct ErrorPathCoverageTests {
     switch maxSeedResult {
     case .success(let iterations):
       #expect(iterations == 10, "Max seed should work normally")
+
     case .failure, .gaveUp:
       Issue.record("Simple property with max seed should succeed")
     }
@@ -386,6 +408,7 @@ struct ErrorPathCoverageTests {
     switch zeroSeedResult {
     case .success(let iterations):
       #expect(iterations == 10, "Zero seed should work normally")
+
     case .failure, .gaveUp:
       Issue.record("Simple property with zero seed should succeed")
     }
@@ -407,9 +430,9 @@ struct ErrorPathCoverageTests {
       switch result {
       case .success:
         continue
+
       default:
         allSucceeded = false
-        break
       }
     }
 
@@ -427,10 +450,10 @@ struct ErrorPathCoverageTests {
     #expect(negativeSize.value == 0, "Negative size should be clamped to 0")
 
     // Test size scaling with zero
-    let scaledZero = zeroSize.scaled(by: 0.5)
+    let scaledZero = Size.scale(by: 0.5)(zeroSize)
     #expect(scaledZero.value == 0, "Scaled zero should remain zero")
 
-    let scaledNegative = zeroSize.scaled(by: -1.0)
+    let scaledNegative = Size.scale(by: -1.0)(zeroSize)
     #expect(scaledNegative.value == 0, "Zero scaled by negative should remain zero")
   }
 
@@ -439,20 +462,20 @@ struct ErrorPathCoverageTests {
     let baseSize = Size(value: 100)
 
     // Test extreme scaling up
-    let scaledUp = baseSize.scaled(by: 1000.0)
+    let scaledUp = Size.scale(by: 1000.0)(baseSize)
     #expect(scaledUp.value >= baseSize.value, "Extreme scale up should increase size")
 
     // Test extreme scaling down
-    let scaledDown = baseSize.scaled(by: 0.001)
+    let scaledDown = Size.scale(by: 0.001)(baseSize)
     #expect(scaledDown.value <= baseSize.value, "Extreme scale down should decrease size")
     #expect(scaledDown.value >= 0, "Scaled size should not be negative")
 
     // Test scaling with infinity (should be handled gracefully)
-    let scaledInf = baseSize.scaled(by: Double.infinity)
+    let scaledInf = Size.scale(by: Double.infinity)(baseSize)
     #expect(scaledInf.value >= 0, "Scaling by infinity should produce valid positive Int")
 
     // Test scaling with NaN (should be handled gracefully)
-    let scaledNaN = baseSize.scaled(by: Double.nan)
+    let scaledNaN = Size.scale(by: Double.nan)(baseSize)
     #expect(scaledNaN.value >= 0, "Scaling by NaN should produce valid positive Int")
   }
 
@@ -525,9 +548,11 @@ struct ErrorPathCoverageTests {
 
     switch result {
     case .success:
-      #expect(true, "Array generator should handle empty arrays")
+      #expect(Bool(true), "Array generator should handle empty arrays")
+
     case .failure(let counterexample, _, _):
       Issue.record("Array property failed with: \(counterexample)")
+
     case .gaveUp:
       Issue.record("Array generator should not give up")
     }
@@ -551,14 +576,16 @@ struct ErrorPathCoverageTests {
 
     switch result {
     case .success:
-      #expect(true, "Array property succeeded")
+      #expect(Bool(true), "Array property succeeded")
+
     case .failure(let counterexample, _, let shrunk):
       #expect(shrunk.count <= counterexample.count, "Shrunk array should be smaller or equal")
       if shrunk.count > 5 {
         #expect(shrunk.contains(42), "Shrunk array should still contain 42 if count > 5")
       }
+
     case .gaveUp:
-      #expect(true, "Array generator may give up during shrinking")
+      #expect(Bool(true), "Array generator may give up during shrinking")
     }
   }
 }

@@ -146,7 +146,10 @@ struct LensSystemTests {
     let optionalValue: Int? = 42
     let nilValue: Int? = nil
 
-    let somePrism: Prism<Int?, Int> = Prism.some()
+    let somePrism = Prism<Int?, Int>(
+      preview: { $0 },
+      review: { $0 }
+    )
 
     // Test preview (extract value)
     #expect(somePrism.preview(optionalValue) == 42)
@@ -161,8 +164,24 @@ struct LensSystemTests {
     let successResult: Result<Int, Error> = .success(42)
     let failureResult: Result<Int, Error> = .failure(NSError(domain: "test", code: 1))
 
-    let successPrism: Prism<Result<Int, Error>, Int> = Prism.success()
-    let failurePrism: Prism<Result<Int, Error>, Error> = Prism.failure()
+    let successPrism = Prism<Result<Int, Error>, Int>(
+      preview: { result in
+        switch result {
+        case .success(let value): return value
+        case .failure: return nil
+        }
+      },
+      review: { .success($0) }
+    )
+    let failurePrism = Prism<Result<Int, Error>, Error>(
+      preview: { result in
+        switch result {
+        case .success: return nil
+        case .failure(let error): return error
+        }
+      },
+      review: { .failure($0) }
+    )
 
     // Test success prism
     #expect(successPrism.preview(successResult) == 42)
@@ -176,7 +195,12 @@ struct LensSystemTests {
   @Test("Traversal operations with arrays")
   func traversalOperationsWithArrays() async {
     let numbers = [1, 2, 3, 4, 5]
-    let arrayTraversal: Traversal<[Int], Int> = Traversal.each()
+    let arrayTraversal = Traversal<[Int], Int>(
+      over: { transform in
+        { array in array.map(transform) }
+      },
+      toListOf: { $0 }
+    )
 
     // Test extracting all values
     let allValues = arrayTraversal.toListOf(numbers)
@@ -194,7 +218,14 @@ struct LensSystemTests {
   @Test("Traversal operations with dictionaries")
   func traversalOperationsWithDictionaries() async {
     let dict = ["a": 1, "b": 2, "c": 3]
-    let valuesTraversal: Traversal<[String: Int], Int> = Traversal.values()
+    let valuesTraversal = Traversal<[String: Int], Int>(
+      over: { transform in
+        { dict in
+          dict.mapValues(transform)
+        }
+      },
+      toListOf: { dict in Array(dict.values) }
+    )
 
     // Test extracting all values
     let allValues = Set(valuesTraversal.toListOf(dict))

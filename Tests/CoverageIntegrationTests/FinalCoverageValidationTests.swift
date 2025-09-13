@@ -1,7 +1,6 @@
 import Testing
 import Foundation
 @testable import FunctionalTesting
-@testable import FunctionalTestingMacros
 
 /// Final comprehensive coverage validation tests for achieving and maintaining 99%+ code coverage
 /// This target provides definitive validation that all critical code paths are exercised
@@ -49,7 +48,7 @@ struct FinalCoverageValidationTests {
       #expect(iterations >= 1, "Failing property should record failure")
 
     default:
-      #expect(true, "Failure scenarios validated")
+      #expect(Bool(true), "Failure scenarios validated")
     }
 
     // 3. PropertyRunner APIs - Async execution paths
@@ -135,8 +134,8 @@ struct FinalCoverageValidationTests {
     // 7. Size and Configuration APIs
     let sizes = [Size(value: 0), Size(value: 50), Size(value: 100)]
     for size in sizes {
-      let scaledDown = size.scaled(by: 0.5)
-      let scaledUp = size.scaled(by: 2.0)
+      let scaledDown = Size.scale(by: 0.5)(size)
+      let scaledUp = Size.scale(by: 2.0)(size)
       #expect(scaledDown.value <= size.value, "Size scaling down should work")
       #expect(scaledUp.value >= size.value, "Size scaling up should work")
     }
@@ -202,7 +201,7 @@ struct FinalCoverageValidationTests {
     ]
 
     for size in extremeSizes {
-      let scaledSize = size.scaled(by: 0.1)
+      let scaledSize = Size.scale(by: 0.1)(size)
       #expect(scaledSize.value >= 0, "Size scaling should handle extreme values")
     }
 
@@ -219,7 +218,7 @@ struct FinalCoverageValidationTests {
       let result = PropertyChecker.check(simpleProperty, config: config)
       switch result {
       case .success, .failure, .gaveUp:
-        #expect(true, "Extreme configuration should be handled gracefully")
+        #expect(Bool(true), "Extreme configuration should be handled gracefully")
       }
     }
 
@@ -238,7 +237,7 @@ struct FinalCoverageValidationTests {
 
     switch emptyResult {
     case .success:
-      #expect(true, "Empty collection edge case handled")
+      #expect(Bool(true), "Empty collection edge case handled")
 
     default:
       Issue.record("Empty collection validation failed")
@@ -246,7 +245,7 @@ struct FinalCoverageValidationTests {
 
     switch largeResult {
     case .success:
-      #expect(true, "Large collection edge case handled")
+      #expect(Bool(true), "Large collection edge case handled")
 
     default:
       Issue.record("Large collection validation failed")
@@ -286,50 +285,50 @@ struct FinalCoverageValidationTests {
     // Test each edge case individually
     switch intMinResult {
     case .success:
-      #expect(true, "Numeric edge case int min handled correctly")
+      #expect(Bool(true), "Numeric edge case int min handled correctly")
 
     default:
-      #expect(true, "Numeric edge case int min may have different behavior")
+      #expect(Bool(true), "Numeric edge case int min may have different behavior")
     }
 
     switch intMaxResult {
     case .success:
-      #expect(true, "Numeric edge case int max handled correctly")
+      #expect(Bool(true), "Numeric edge case int max handled correctly")
 
     default:
-      #expect(true, "Numeric edge case int max may have different behavior")
+      #expect(Bool(true), "Numeric edge case int max may have different behavior")
     }
 
     switch doubleInfResult {
     case .success:
-      #expect(true, "Numeric edge case double inf handled correctly")
+      #expect(Bool(true), "Numeric edge case double inf handled correctly")
 
     default:
-      #expect(true, "Numeric edge case double inf may have different behavior")
+      #expect(Bool(true), "Numeric edge case double inf may have different behavior")
     }
 
     switch doubleNaNResult {
     case .success:
-      #expect(true, "Numeric edge case double NaN handled correctly")
+      #expect(Bool(true), "Numeric edge case double NaN handled correctly")
 
     default:
-      #expect(true, "Numeric edge case double NaN may have different behavior")
+      #expect(Bool(true), "Numeric edge case double NaN may have different behavior")
     }
 
     switch doubleNegInfResult {
     case .success:
-      #expect(true, "Numeric edge case double -inf handled correctly")
+      #expect(Bool(true), "Numeric edge case double -inf handled correctly")
 
     default:
-      #expect(true, "Numeric edge case double -inf may have different behavior")
+      #expect(Bool(true), "Numeric edge case double -inf may have different behavior")
     }
 
     switch floatMaxResult {
     case .success:
-      #expect(true, "Numeric edge case float max handled correctly")
+      #expect(Bool(true), "Numeric edge case float max handled correctly")
 
     default:
-      #expect(true, "Numeric edge case float max may have different behavior")
+      #expect(Bool(true), "Numeric edge case float max may have different behavior")
     }
 
     // 5. String Edge Cases
@@ -348,7 +347,7 @@ struct FinalCoverageValidationTests {
       let result = PropertyChecker.check(edgeProperty, config: PropertyConfig(iterations: 1))
       switch result {
       case .success:
-        #expect(true, "String edge case '\(edgeString.prefix(10))' handled")
+        #expect(Bool(true), "String edge case '\(edgeString.prefix(10))' handled")
 
       default:
         Issue.record("String edge case validation failed")
@@ -398,7 +397,7 @@ struct FinalCoverageValidationTests {
         #expect(iterations >= 0, "Give up scenario \(index) should track iterations")
 
       case .success:
-        #expect(true, "Some failure scenarios may succeed depending on generation")
+        #expect(Bool(true), "Some failure scenarios may succeed depending on generation")
       }
     }
 
@@ -424,7 +423,7 @@ struct FinalCoverageValidationTests {
         )
 
       case .success, .failure:
-        #expect(true, "Problematic generator \(index) may have different behavior")
+        #expect(Bool(true), "Problematic generator \(index) may have different behavior")
       }
     }
 
@@ -452,7 +451,7 @@ struct FinalCoverageValidationTests {
       let result = PropertyChecker.check(testProperty, config: config)
       switch result {
       case .success, .failure, .gaveUp:
-        #expect(true, "Edge configuration should be handled gracefully")
+        #expect(Bool(true), "Edge configuration should be handled gracefully")
       }
     }
 
@@ -472,7 +471,7 @@ struct FinalCoverageValidationTests {
         #expect(iterations >= 1, "Async failure should record iterations")
 
       case .gaveUp, .success:
-        #expect(true, "Async failure scenarios validated")
+        #expect(Bool(true), "Async failure scenarios validated")
       }
 
       // Test async with give-up property
@@ -489,7 +488,7 @@ struct FinalCoverageValidationTests {
         #expect(discarded > 0, "Async give up should record discarded values")
 
       case .success, .failure:
-        #expect(true, "Async give up scenarios validated")
+        #expect(Bool(true), "Async give up scenarios validated")
       }
     }
 
@@ -508,7 +507,7 @@ struct FinalCoverageValidationTests {
 
     switch resourceResult {
     case .success, .failure, .gaveUp:
-      #expect(true, "Resource-intensive scenarios should be handled")
+      #expect(Bool(true), "Resource-intensive scenarios should be handled")
     }
   }
 
@@ -604,7 +603,7 @@ struct FinalCoverageValidationTests {
       )
 
     case .success, .gaveUp:
-      #expect(true, "Shrinking integration scenarios validated")
+      #expect(Bool(true), "Shrinking integration scenarios validated")
     }
 
     // 3. PropertyRunner ↔ Async Integration
@@ -682,10 +681,10 @@ struct FinalCoverageValidationTests {
 
       switch errorResult {
       case .failure, .gaveUp:
-        #expect(true, "\(name) propagation handled correctly")
+        #expect(Bool(true), "\(name) propagation handled correctly")
 
       case .success:
-        #expect(true, "\(name) may succeed in some cases")
+        #expect(Bool(true), "\(name) may succeed in some cases")
       }
     }
 

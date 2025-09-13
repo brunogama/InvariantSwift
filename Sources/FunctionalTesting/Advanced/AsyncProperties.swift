@@ -46,7 +46,7 @@ public enum ExecutorMode: Sendable {
 }
 
 /// Failure reporting strategy
-public enum FailureReporting: Sendable {
+public enum FailureReporting: Sendable, Equatable {
   case firstFailure  // Stop on first failure
   case collectAll  // Collect all failures
   case collectUpTo(Int)  // Collect up to N failures
@@ -172,7 +172,9 @@ public struct AsyncPredicate<T>: Sendable where T: Sendable {
   public func and<U>(_ other: AsyncPredicate<U>) -> AsyncPredicate<(T, U)> where U: Sendable {
     AsyncPredicate<(T, U)> { tuple in
       let (t, u) = tuple
-      return try await self.test(t) && other.test(u)
+      let firstResult = try await self.test(t)
+      let secondResult = try await other.test(u)
+      return firstResult && secondResult
     }
   }
 
@@ -180,7 +182,9 @@ public struct AsyncPredicate<T>: Sendable where T: Sendable {
   public func or<U>(_ other: AsyncPredicate<U>) -> AsyncPredicate<(T, U)> where U: Sendable {
     AsyncPredicate<(T, U)> { tuple in
       let (t, u) = tuple
-      return try await self.test(t) || other.test(u)
+      let firstResult = try await self.test(t)
+      if firstResult { return true }  // Short-circuit for OR
+      return try await other.test(u)
     }
   }
 
@@ -349,44 +353,24 @@ public actor AsyncPropertyRunner {
     completedIterations: inout Int,
     concurrencyTracker: inout ConcurrencyTracker
   ) async {
-    await SerialPropertyExecutor.shared.execute {
-      for iteration in 0..<property.config.iterations {
-        do {
-          let value = try await self.generateValueWithTimeout(
-            property.generator,
-            timeout: property.config.timeout
-          )
+    // Execute iterations serially without concurrent closure capture
+    for iteration in 0..<property.config.iterations {
+      do {
+        let value = try await self.generateValueWithTimeout(
+          property.generator,
+          timeout: property.config.timeout
+        )
 
-          concurrencyTracker.taskStarted(taskId: "serial-\(iteration)")
-          defer { concurrencyTracker.taskCompleted(taskId: "serial-\(iteration)") }
+        concurrencyTracker.taskStarted(taskId: "serial-\(iteration)")
+        defer { concurrencyTracker.taskCompleted(taskId: "serial-\(iteration)") }
 
-          let success = try await property.predicate.test(value)
+        let success = try await property.predicate.test(value)
 
-          if !success {
-            let failure = AsyncPropertyFailure(
-              iteration: iteration,
-              error: "Property predicate returned false",
-              generatedValues: ["value": value],
-              executionContext: ExecutionContext(
-                taskId: "serial-\(iteration)",
-                executorType: "serial",
-                concurrentTasks: 1
-              )
-            )
-            failures.append(failure)
-
-            if shouldStopOnFailure(property.config.failureReporting, failureCount: failures.count) {
-              break
-            }
-          }
-
-          completedIterations += 1
-          await SerialPropertyExecutor.shared.yield()
-
-        } catch {
+        if !success {
           let failure = AsyncPropertyFailure(
             iteration: iteration,
-            error: "Exception: \(error)",
+            error: "Property predicate returned false",
+            generatedValues: ["value": value],
             executionContext: ExecutionContext(
               taskId: "serial-\(iteration)",
               executorType: "serial",
@@ -395,12 +379,35 @@ public actor AsyncPropertyRunner {
           )
           failures.append(failure)
 
-          if shouldStopOnFailure(property.config.failureReporting, failureCount: failures.count) {
+          if self.shouldStopOnFailure(
+            property.config.failureReporting,
+            failureCount: failures.count
+          ) {
             break
           }
-
-          completedIterations += 1
         }
+
+        completedIterations += 1
+        await SerialPropertyExecutor.shared.yield()
+
+      } catch {
+        let failure = AsyncPropertyFailure(
+          iteration: iteration,
+          error: "Exception: \(error)",
+          executionContext: ExecutionContext(
+            taskId: "serial-\(iteration)",
+            executorType: "serial",
+            concurrentTasks: 1
+          )
+        )
+        failures.append(failure)
+
+        if self.shouldStopOnFailure(property.config.failureReporting, failureCount: failures.count)
+        {
+          break
+        }
+
+        completedIterations += 1
       }
     }
   }
@@ -411,6 +418,9 @@ public actor AsyncPropertyRunner {
     completedIterations: inout Int,
     concurrencyTracker: inout ConcurrencyTracker
   ) async {
+    // Create local copy to avoid capturing inout parameter
+    let localTracker = concurrencyTracker
+
     await withTaskGroup(of: AsyncTaskResult.self) { group in
       var remainingIterations = property.config.iterations
       var activeTasks = 0
@@ -426,7 +436,7 @@ public actor AsyncPropertyRunner {
             await self.executeIteration(
               property: property,
               iteration: iteration,
-              concurrencyTracker: concurrencyTracker,
+              concurrencyTracker: localTracker,
               executorType: "cooperative"
             )
           }
@@ -441,13 +451,19 @@ public actor AsyncPropertyRunner {
             completedIterations: &completedIterations
           )
 
-          if shouldStopOnFailure(property.config.failureReporting, failureCount: failures.count) {
+          if self.shouldStopOnFailure(
+            property.config.failureReporting,
+            failureCount: failures.count
+          ) {
             group.cancelAll()
             break
           }
         }
       }
     }
+
+    // Copy back local tracker changes
+    concurrencyTracker = localTracker
   }
 
   private func withIsolatedExecution<T>(
@@ -458,24 +474,25 @@ public actor AsyncPropertyRunner {
   ) async {
     let isolatedExecutor = IsolatedPropertyExecutor()
 
-    await isolatedExecutor.executeAll { executor in
-      for iteration in 0..<property.config.iterations {
-        let result = await executor.executeIteration(
-          property: property,
-          iteration: iteration,
-          concurrencyTracker: concurrencyTracker,
-          executorType: "isolated"
-        )
+    for iteration in 0..<property.config.iterations {
+      let result = await isolatedExecutor.executeIteration(
+        property: property,
+        iteration: iteration,
+        concurrencyTracker: concurrencyTracker,
+        executorType: "isolated"
+      )
 
-        self.handleAsyncTaskResult(
-          result,
-          failures: &failures,
-          completedIterations: &completedIterations
-        )
+      self.handleAsyncTaskResult(
+        result,
+        failures: &failures,
+        completedIterations: &completedIterations
+      )
 
-        if shouldStopOnFailure(property.config.failureReporting, failureCount: failures.count) {
-          break
-        }
+      if self.shouldStopOnFailure(
+        property.config.failureReporting,
+        failureCount: failures.count
+      ) {
+        break
       }
     }
   }
@@ -548,12 +565,14 @@ public actor AsyncPropertyRunner {
     }
   }
 
-  private func generateValueWithTimeout<T>(_ generator: Gen<T>, timeout: Duration) async throws -> T
-  {
+  private func generateValueWithTimeout<T: Sendable>(
+    _ generator: Gen<T>,
+    timeout: Duration
+  ) async throws -> T {
     try await withThrowingTaskGroup(of: T.self) { group in
       group.addTask {
-        var rng = SystemRandomNumberGenerator()
-        return generator.generate(&rng, Size.default)
+        var rng: any RandomNumberGenerator = SystemRandomNumberGenerator()
+        return generator.generate(&rng, Size.medium)
       }
 
       group.addTask {
@@ -603,7 +622,7 @@ public actor AsyncPropertyRunner {
 
 // MARK: - Supporting Types
 
-private enum AsyncAsyncTaskResult: Sendable {
+private enum AsyncTaskResult: Sendable {
   case success(Int)
   case failure(AsyncPropertyFailure)
 }
@@ -662,7 +681,7 @@ private class ConcurrencyTracker: @unchecked Sendable {
   }
 
   func taskCompleted(taskId: String) {
-    lock.withLock {
+    _ = lock.withLock {
       activeTasks.remove(taskId)
     }
   }

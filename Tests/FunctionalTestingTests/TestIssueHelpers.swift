@@ -6,6 +6,13 @@
 
 import Testing
 
+// MARK: - Test Error Types
+
+/// Simple error type for test failures
+struct TestFailure: Error {
+  let message: String
+}
+
 // MARK: - Test Issue Recording Helpers
 
 /// Consolidated test failure reporting utilities
@@ -17,17 +24,17 @@ public enum TestIssue {
   /// Records property validation failure with contextual information
   public static func propertyValidationFailed(_ testName: String, details: String? = nil) {
     let message = details.map { "\(testName) failed: \($0)" } ?? "\(testName) failed"
-    Issue.record(message)
+    Issue.record(TestFailure(message: message))
   }
 
   /// Records basic property test failure
   public static func basicPropertyFailed() {
-    Issue.record("Basic property validation failed")
+    Issue.record(TestFailure(message: "Basic property validation failed"))
   }
 
   /// Records async property runner failure
   public static func asyncPropertyFailed() {
-    Issue.record("Async property runner validation failed")
+    Issue.record(TestFailure(message: "Async property runner validation failed"))
   }
 
   // MARK: - Collection Test Failures
@@ -35,7 +42,7 @@ public enum TestIssue {
   /// Records collection-related test failure
   public static func collectionTestFailed(_ collectionType: String, size: String? = nil) {
     let sizeInfo = size.map { " (\($0))" } ?? ""
-    Issue.record("\(collectionType) collection\(sizeInfo) validation failed")
+    Issue.record(TestFailure(message: "\(collectionType) collection\(sizeInfo) validation failed"))
   }
 
   /// Records empty collection test failure
@@ -53,78 +60,80 @@ public enum TestIssue {
   /// Records type-specific integration test failure
   public static func integrationTestFailed(for type: String, index: Int? = nil) {
     let indexInfo = index.map { " \($0)" } ?? ""
-    Issue.record("\(type) integration test\(indexInfo) failed")
+    Issue.record(TestFailure(message: "\(type) integration test\(indexInfo) failed"))
   }
 
   /// Records string edge case test failure
   public static func stringEdgeCaseFailed() {
-    Issue.record("String edge case validation failed")
+    Issue.record(TestFailure(message: "String edge case validation failed"))
   }
 
   // MARK: - Performance Test Failures
 
   /// Records performance test failure with iteration count
   public static func performanceTestFailed(iterations: Int) {
-    Issue.record("Performance test should succeed for \(iterations) iterations")
+    Issue.record(
+      TestFailure(message: "Performance test should succeed for \(iterations) iterations")
+    )
   }
 
   /// Records memory validation test failure
   public static func memoryValidationFailed() {
-    Issue.record("Memory validation test should succeed")
+    Issue.record(TestFailure(message: "Memory validation test should succeed"))
   }
 
   // MARK: - Concurrent Test Failures
 
   /// Records concurrent test failure with index
   public static func concurrentTestFailed(index: Int) {
-    Issue.record("Concurrent integration test \(index) failed")
+    Issue.record(TestFailure(message: "Concurrent integration test \(index) failed"))
   }
 
   /// Records configuration integration test failure
   public static func configurationTestFailed(index: Int) {
-    Issue.record("Configuration integration test \(index) failed")
+    Issue.record(TestFailure(message: "Configuration integration test \(index) failed"))
   }
 
   // MARK: - Generator Test Failures
 
   /// Records generator composition test failure
   public static func generatorCompositionFailed() {
-    Issue.record("Generator composition should succeed")
+    Issue.record(TestFailure(message: "Generator composition should succeed"))
   }
 
   /// Records core generator test failure
   public static func corePropertyTestingFailed() {
-    Issue.record("Core property testing should work")
+    Issue.record(TestFailure(message: "Core property testing should work"))
   }
 
   // MARK: - Property Result Failures
 
   /// Records property result mismatch
   public static func propertyResultMismatch(_ expected: String, actual: String) {
-    Issue.record("Expected \(expected), but got \(actual)")
+    Issue.record(TestFailure(message: "Expected \(expected), but got \(actual)"))
   }
 
   /// Records that a property should have failed but succeeded
   public static func unexpectedPropertySuccess(_ description: String) {
-    Issue.record("\(description) should not succeed")
+    Issue.record(TestFailure(message: "\(description) should not succeed"))
   }
 
   /// Records that a property failed incorrectly
   public static func incorrectPropertyFailure(_ description: String) {
-    Issue.record("\(description) should fail, not give up")
+    Issue.record(TestFailure(message: "\(description) should fail, not give up"))
   }
 
   // MARK: - Generic Test Helpers
 
   /// Records a generic test failure with custom message
   public static func testFailed(_ message: String) {
-    Issue.record(message)
+    Issue.record(TestFailure(message: message))
   }
 
   /// Records a test failure with formatted string
   public static func testFailedf(_ format: String, _ args: CVarArg...) {
     let message = String(format: format, arguments: args)
-    Issue.record(message)
+    Issue.record(TestFailure(message: message))
   }
 
   /// Records assertion failure with context
@@ -136,8 +145,13 @@ public enum TestIssue {
     line: UInt = #line
   ) {
     Issue.record(
-      "Assertion failed: \(condition). Expected \(expected), got \(actual)",
-      sourceLocation: SourceLocation(fileID: file, line: line)
+      TestFailure(message: "Assertion failed: \(condition). Expected \(expected), got \(actual)"),
+      sourceLocation: SourceLocation(
+        fileID: String(describing: file),
+        filePath: String(describing: file),
+        line: Int(line),
+        column: 0
+      )
     )
   }
 }
@@ -148,14 +162,14 @@ extension TestIssue {
   /// Records issue only if condition is false
   public static func recordIfFalse(_ condition: Bool, _ message: String) {
     if !condition {
-      Issue.record(message)
+      Issue.record(TestFailure(message: message))
     }
   }
 
   /// Records issue only if result is nil
   public static func recordIfNil<T>(_ value: T?, _ message: String) {
     if value == nil {
-      Issue.record(message)
+      Issue.record(TestFailure(message: message))
     }
   }
 
@@ -166,7 +180,7 @@ extension TestIssue {
     _ message: String
   ) {
     if lhs != rhs {
-      Issue.record(message)
+      Issue.record(TestFailure(message: message))
     }
   }
 }
@@ -203,6 +217,6 @@ extension TestIssue {
       seed: seed,
       input: input
     )
-    Issue.record("\(error)\n\nContext:\n\(context)")
+    Issue.record(TestFailure(message: "\(error)\n\nContext:\n\(context)"))
   }
 }

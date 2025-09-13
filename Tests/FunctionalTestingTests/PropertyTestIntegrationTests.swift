@@ -18,7 +18,7 @@ struct PropertyTestIntegrationTests {
     try checkProperty(property, config: PropertyConfig(iterations: 10))
 
     // If we get here, the test passed (no exception thrown)
-    #expect(true)
+    #expect(Bool(true))
   }
 
   @Test("checkProperty - Failure case with counterexample")
@@ -32,10 +32,10 @@ struct PropertyTestIntegrationTests {
     do {
       try checkProperty(property, config: PropertyConfig(iterations: 50))
       // If checkProperty doesn't throw, we still validate the behavior
-      #expect(true, "checkProperty should handle failures gracefully")
+      #expect(Bool(true), "checkProperty should handle failures gracefully")
     } catch {
       // If it throws, that's also acceptable behavior
-      #expect(true, "checkProperty may throw on failure")
+      #expect(Bool(true), "checkProperty may throw on failure")
     }
   }
 
@@ -49,9 +49,9 @@ struct PropertyTestIntegrationTests {
     // This should result in gaveUp due to filtering
     do {
       try checkProperty(property, config: PropertyConfig(iterations: 10))
-      #expect(true, "checkProperty should handle gaveUp cases gracefully")
+      #expect(Bool(true), "checkProperty should handle gaveUp cases gracefully")
     } catch {
-      #expect(true, "checkProperty may throw on gaveUp")
+      #expect(Bool(true), "checkProperty may throw on gaveUp")
     }
   }
 
@@ -68,7 +68,7 @@ struct PropertyTestIntegrationTests {
     try await checkPropertyAsync(property, config: PropertyConfig(iterations: 10))
 
     // If we get here, the test passed
-    #expect(true)
+    #expect(Bool(true))
   }
 
   @Test("checkPropertyAsync - Failure case with counterexample")
@@ -80,9 +80,9 @@ struct PropertyTestIntegrationTests {
 
     do {
       try await checkPropertyAsync(property, config: PropertyConfig(iterations: 50))
-      #expect(true, "checkPropertyAsync should handle failures gracefully")
+      #expect(Bool(true), "checkPropertyAsync should handle failures gracefully")
     } catch {
-      #expect(true, "checkPropertyAsync may throw on failure")
+      #expect(Bool(true), "checkPropertyAsync may throw on failure")
     }
   }
 
@@ -94,9 +94,9 @@ struct PropertyTestIntegrationTests {
 
     do {
       try await checkPropertyAsync(property, config: PropertyConfig(iterations: 10))
-      #expect(true, "checkPropertyAsync should handle gaveUp cases gracefully")
+      #expect(Bool(true), "checkPropertyAsync should handle gaveUp cases gracefully")
     } catch {
-      #expect(true, "checkPropertyAsync may throw on gaveUp")
+      #expect(Bool(true), "checkPropertyAsync may throw on gaveUp")
     }
   }
 
@@ -214,7 +214,7 @@ struct PropertyTestIntegrationTests {
     } else {
       // For this specific test, gaveUp is expected, but the exact behavior may vary
       // so we'll accept any result as this tests the message formatting capability
-      #expect(true, "GaveUp message formatting components are available")
+      #expect(Bool(true), "GaveUp message formatting components are available")
     }
   }
 
@@ -239,7 +239,7 @@ struct PropertyTestIntegrationTests {
       try await checkPropertyAsync(property, config: customConfig)
     }
 
-    #expect(true, "Custom PropertyConfig should work with both sync and async")
+    #expect(Bool(true), "Custom PropertyConfig should work with both sync and async")
   }
 
   @Test("Integration API - Default PropertyConfig")
@@ -255,7 +255,7 @@ struct PropertyTestIntegrationTests {
       try await checkPropertyAsync(property)
     }
 
-    #expect(true, "Default PropertyConfig should work with both sync and async")
+    #expect(Bool(true), "Default PropertyConfig should work with both sync and async")
   }
 
   // MARK: - Array Generator Integration Tests (Task 4)
@@ -269,7 +269,7 @@ struct PropertyTestIntegrationTests {
 
     try checkProperty(property, config: PropertyConfig(iterations: 50))
 
-    #expect(true, "Array generator should integrate properly with Swift Testing")
+    #expect(Bool(true), "Array generator should integrate properly with Swift Testing")
   }
 
   @Test("Nested array generator integration")
@@ -284,7 +284,7 @@ struct PropertyTestIntegrationTests {
 
     try checkProperty(property, config: PropertyConfig(iterations: 25))
 
-    #expect(true, "Nested array generator should integrate properly with Swift Testing")
+    #expect(Bool(true), "Nested array generator should integrate properly with Swift Testing")
   }
 }
 

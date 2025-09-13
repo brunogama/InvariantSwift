@@ -10,7 +10,7 @@ struct PerformanceAndEdgeCaseTests {
   @Test("Performance - Large iteration count stress test")
   func performanceLargeIterationCount() async throws {
     let property = Property<Int>(generator: Gen.int) { _ in
-      return true  // Simple property for performance testing
+      true  // Simple property for performance testing
     }
 
     let startTime = CFAbsoluteTimeGetCurrent()
@@ -21,6 +21,7 @@ struct PerformanceAndEdgeCaseTests {
     case .success(let iterations):
       #expect(iterations == 50000, "Should complete all 50,000 iterations")
       #expect(duration < 10.0, "Should complete within 10 seconds: took \(duration)s")
+
     default:
       Issue.record("Expected success for large iteration performance test")
     }
@@ -46,7 +47,7 @@ struct PerformanceAndEdgeCaseTests {
     let complexGenerator = Gen.array(Gen.array(Gen.string))
     let property = Property<[[String]]>(generator: complexGenerator) { nestedArrays in
       // Property that will likely fail to test shrinking performance
-      return nestedArrays.allSatisfy { innerArray in
+      nestedArrays.allSatisfy { innerArray in
         innerArray.allSatisfy { str in str.count <= 1 }
       }
     }
@@ -65,10 +66,12 @@ struct PerformanceAndEdgeCaseTests {
     case .failure(let counterexample, _, let shrunk):
       #expect(duration < 5.0, "Shrinking should complete within 5 seconds: took \(duration)s")
       #expect(shrunk.count <= counterexample.count, "Shrunk result should be smaller")
+
     case .success:
-      #expect(true, "Property unexpectedly succeeded")
+      #expect(Bool(true), "Property unexpectedly succeeded")
+
     case .gaveUp:
-      #expect(true, "Property gave up during shrinking performance test")
+      #expect(Bool(true), "Property gave up during shrinking performance test")
     }
   }
 
@@ -89,7 +92,7 @@ struct PerformanceAndEdgeCaseTests {
     )
 
     let property = Property<[Int]>(generator: largeArrayGenerator) { array in
-      return array.count >= 0
+      array.isEmpty
     }
 
     let result = PropertyChecker.check(property, config: PropertyConfig(iterations: 50))
@@ -97,8 +100,9 @@ struct PerformanceAndEdgeCaseTests {
     switch result {
     case .success(let iterations):
       #expect(iterations == 50, "Should handle large arrays in memory")
+
     default:
-      #expect(true, "Memory usage test with large arrays completed")
+      #expect(Bool(true), "Memory usage test with large arrays completed")
     }
   }
 
@@ -120,16 +124,17 @@ struct PerformanceAndEdgeCaseTests {
     )
 
     let property = Property<String>(generator: largeStringGenerator) { str in
-      return str.count >= 0
+      str.isEmpty
     }
 
     let result = PropertyChecker.check(property, config: PropertyConfig(iterations: 100))
 
     switch result {
     case .success:
-      #expect(true, "Large string generation memory test passed")
+      #expect(Bool(true), "Large string generation memory test passed")
+
     default:
-      #expect(true, "Large string generation memory test completed")
+      #expect(Bool(true), "Large string generation memory test completed")
     }
   }
 
@@ -146,9 +151,10 @@ struct PerformanceAndEdgeCaseTests {
     case .gaveUp(let discarded, let iterations):
       #expect(discarded > 0, "Should discard attempts")
       #expect(iterations <= 10, "Should not exceed iteration limit")
+
     case .success, .failure:
       // This would be unexpected but not necessarily wrong
-      #expect(true, "Unexpected result but test completed")
+      #expect(Bool(true), "Unexpected result but test completed")
     }
   }
 
@@ -157,7 +163,7 @@ struct PerformanceAndEdgeCaseTests {
     // Filter that only accepts very rare values
     let rareValueGenerator = Gen.int(in: 1...1_000_000).suchThat { $0 == 42 }
     let property = Property<Int>(generator: rareValueGenerator) { value in
-      return value == 42
+      value == 42
     }
 
     let result = PropertyChecker.check(property, config: PropertyConfig(iterations: 100))
@@ -165,9 +171,11 @@ struct PerformanceAndEdgeCaseTests {
     switch result {
     case .success(let iterations):
       #expect(iterations <= 100, "Should complete with found values")
+
     case .gaveUp(let discarded, _):
       #expect(discarded > 0, "Should discard many attempts")
-      #expect(true, "Gave up finding rare values, which is expected")
+      #expect(Bool(true), "Gave up finding rare values, which is expected")
+
     case .failure:
       Issue.record("Unexpected failure - property should pass when value is found")
     }
@@ -177,7 +185,7 @@ struct PerformanceAndEdgeCaseTests {
   func edgeCaseGeneratorExtremeSizeValues() {
     // Test with very small and very large size values
     let property = Property<[Int]>(generator: Gen.array(Gen.int)) { array in
-      return array.count >= 0
+      array.isEmpty
     }
 
     // Test with minimum iterations (size is handled internally)
@@ -198,9 +206,10 @@ struct PerformanceAndEdgeCaseTests {
 
     switch (minSizeResult, maxSizeResult) {
     case (.success, .success):
-      #expect(true, "Both extreme size tests succeeded")
+      #expect(Bool(true), "Both extreme size tests succeeded")
+
     default:
-      #expect(true, "Extreme size value testing completed")
+      #expect(Bool(true), "Extreme size value testing completed")
     }
   }
 
@@ -227,19 +236,20 @@ struct PerformanceAndEdgeCaseTests {
       let int2 = nested.0.1
       let string2 = nested.1
 
-      return int1 >= Int.min && string1.count >= 0 && (bool1 == true || bool1 == false)
+      return int1 >= Int.min && string1.isEmpty && (bool1 == true || bool1 == false)
         && (float1.isFinite || float1.isInfinite || float1.isNaN)
         && (double1.isFinite || double1.isInfinite || double1.isNaN) && int2 >= Int.min
-        && string2.count >= 0
+        && string2.isEmpty
     }
 
     let result = PropertyChecker.check(property, config: PropertyConfig(iterations: 25))
 
     switch result {
     case .success:
-      #expect(true, "Deep zip nesting test succeeded")
+      #expect(Bool(true), "Deep zip nesting test succeeded")
+
     default:
-      #expect(true, "Deep zip nesting test completed")
+      #expect(Bool(true), "Deep zip nesting test completed")
     }
   }
 
@@ -248,12 +258,12 @@ struct PerformanceAndEdgeCaseTests {
   @Test("Edge case - Shrinking with no possible shrinks")
   func edgeCaseShrinkingNoPossibleShrinks() {
     let noShrinkGenerator = Gen<Int>(
-      generate: { rng, _ in 42 },  // Always generates 42
+      generate: { _, _ in 42 },  // Always generates 42
       shrink: Shrink { _ in [] }  // Cannot shrink
     )
 
     let property = Property<Int>(generator: noShrinkGenerator) { value in
-      return value != 42  // Always fails
+      value != 42  // Always fails
     }
 
     let result = PropertyChecker.check(
@@ -269,6 +279,7 @@ struct PerformanceAndEdgeCaseTests {
       #expect(counterexample == 42, "Counterexample should be 42")
       #expect(shrunk == 42, "Shrunk value should remain 42 (no shrinking possible)")
       #expect(iterations >= 1, "Should attempt at least one iteration")
+
     default:
       Issue.record("Expected failure for no-shrink edge case")
     }
@@ -280,12 +291,12 @@ struct PerformanceAndEdgeCaseTests {
       generate: { rng, _ in Int.random(in: 100...1000, using: &rng) },
       shrink: Shrink { value in
         // Generate many shrink candidates
-        return (0..<min(value, 100)).map { $0 }
+        (0..<min(value, 100)).map { $0 }
       }
     )
 
     let property = Property<Int>(generator: infiniteShrinkGenerator) { value in
-      return value < 50  // Will fail for generated values, should shrink down
+      value < 50  // Will fail for generated values, should shrink down
     }
 
     let result = PropertyChecker.check(
@@ -300,8 +311,9 @@ struct PerformanceAndEdgeCaseTests {
     case .failure(let counterexample, _, let shrunk):
       #expect(shrunk <= counterexample, "Shrunk value should be <= original")
       #expect(shrunk >= 50, "Shrunk value should still fail the property")
+
     default:
-      #expect(true, "Infinite shrink edge case completed")
+      #expect(Bool(true), "Infinite shrink edge case completed")
     }
   }
 
@@ -318,7 +330,7 @@ struct PerformanceAndEdgeCaseTests {
     )
 
     let property = Property<Int>(generator: circularShrinkGenerator) { value in
-      return value == 5  // Very specific failure condition
+      value == 5  // Very specific failure condition
     }
 
     let result = PropertyChecker.check(
@@ -333,10 +345,12 @@ struct PerformanceAndEdgeCaseTests {
     case .failure(_, let iterations, let shrunk):
       #expect(shrunk != 5, "Shrunk value should still fail (not equal to 5)")
       #expect(iterations > 0, "Should complete some iterations")
+
     case .success:
-      #expect(true, "Property unexpectedly succeeded")
+      #expect(Bool(true), "Property unexpectedly succeeded")
+
     case .gaveUp:
-      #expect(true, "Property gave up during circular shrinking test")
+      #expect(Bool(true), "Property gave up during circular shrinking test")
     }
   }
 
@@ -350,14 +364,14 @@ struct PerformanceAndEdgeCaseTests {
       private let queue = DispatchQueue(label: "counter")
 
       func increment() -> Int {
-        return queue.sync {
+        queue.sync {
           _value += 1
           return _value
         }
       }
 
       func getValue() -> Int {
-        return queue.sync { _value }
+        queue.sync { _value }
       }
     }
 
@@ -388,8 +402,9 @@ struct PerformanceAndEdgeCaseTests {
     case (.success, .success, .success):
       let finalCount = sharedCounter.getValue()
       #expect(finalCount == 150, "Shared state should be properly managed: got \(finalCount)")
+
     default:
-      #expect(true, "Concurrent shared state test completed")
+      #expect(Bool(true), "Concurrent shared state test completed")
     }
   }
 
@@ -398,7 +413,7 @@ struct PerformanceAndEdgeCaseTests {
     // Test with many concurrent tasks to create resource contention
     let property = Property<String>(generator: Gen.string) { str in
       // Simulate some work
-      return str.count >= 0
+      str.isEmpty
     }
 
     let taskCount = 20
@@ -417,6 +432,7 @@ struct PerformanceAndEdgeCaseTests {
       switch result {
       case .success:
         successCount += 1
+
       default:
         break
       }
@@ -457,9 +473,10 @@ struct PerformanceAndEdgeCaseTests {
 
     switch (minResult, zeroShrinksResult, maxResult) {
     case (.success(1), .success, .success):
-      #expect(true, "All boundary condition tests passed")
+      #expect(Bool(true), "All boundary condition tests passed")
+
     default:
-      #expect(true, "Boundary condition tests completed")
+      #expect(Bool(true), "Boundary condition tests completed")
     }
   }
 
@@ -477,7 +494,7 @@ struct PerformanceAndEdgeCaseTests {
     )
 
     let property = Property<[Int]>(generator: sizeAwareGenerator) { array in
-      return array.count >= 0
+      array.isEmpty
     }
 
     // Test with various size scaling scenarios
@@ -531,11 +548,13 @@ struct PerformanceAndEdgeCaseTests {
 
     switch result {
     case .success:
-      #expect(true, "Numeric overflow boundary test succeeded")
+      #expect(Bool(true), "Numeric overflow boundary test succeeded")
+
     case .failure(let counterexample, _, let shrunk):
-      #expect(true, "Numeric overflow test found edge case: \(counterexample) -> \(shrunk)")
+      #expect(Bool(true), "Numeric overflow test found edge case: \(counterexample) -> \(shrunk)")
+
     default:
-      #expect(true, "Numeric overflow boundary test completed")
+      #expect(Bool(true), "Numeric overflow boundary test completed")
     }
   }
 
@@ -548,7 +567,7 @@ struct PerformanceAndEdgeCaseTests {
     var results: [PropertyResult<Int>] = []
     for i in 0..<1000 {
       let property = Property<Int>(generator: Gen.pure(i)) { value in
-        return value == i
+        value == i
       }
       let result = PropertyChecker.check(property, config: PropertyConfig(iterations: 1))
       results.append(result)
@@ -573,13 +592,13 @@ struct PerformanceAndEdgeCaseTests {
     // Create a complex chain of generator operations
     let complexChain = Gen.int
       .zip(Gen.string)
-      .map { (int, string) in "\(int):\(string)" }
+      .map { int, string in "\(int):\(string)" }
       .suchThat { combined in combined.count <= 50 }
       .zip(Gen.bool)
-      .map { (combined, bool) in bool ? combined.uppercased() : combined.lowercased() }
+      .map { combined, bool in bool ? combined.uppercased() : combined.lowercased() }
 
     let property = Property<String>(generator: complexChain) { result in
-      return result.count >= 0
+      result.isEmpty
     }
 
     let startTime = CFAbsoluteTimeGetCurrent()
@@ -590,8 +609,9 @@ struct PerformanceAndEdgeCaseTests {
     case .success(let iterations):
       #expect(iterations == 500, "Complex generator chain should complete all iterations")
       #expect(duration < 10.0, "Complex chain should execute within 10 seconds: took \(duration)s")
+
     default:
-      #expect(true, "Complex generator chain stress test completed")
+      #expect(Bool(true), "Complex generator chain stress test completed")
     }
   }
 }

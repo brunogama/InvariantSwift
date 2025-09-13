@@ -179,7 +179,7 @@ public struct CorpusStatistics: Sendable {
 /// Persistent example database with SQLite backend
 public actor ExampleDatabase {
   private let dbPath: URL
-  private var db: OpaquePointer?
+  nonisolated(unsafe) private var db: OpaquePointer?
   private let encoder = JSONEncoder()
   private let decoder = JSONDecoder()
   private var isInitialized = false

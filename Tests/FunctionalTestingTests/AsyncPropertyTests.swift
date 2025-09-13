@@ -392,7 +392,7 @@ struct AsyncPropertyTests {
       #expect(finalCount >= 0, "Actor interaction completed")
 
     case .failure, .gaveUp:
-      #expect(true, "Actor-isolated property test completed")
+      #expect(Bool(true), "Actor-isolated property test completed")
     }
   }
 
@@ -441,7 +441,7 @@ struct AsyncPropertyTests {
       #expect(count1 >= 0 && count2 >= 0, "Actor state maintained during concurrent access")
 
     default:
-      #expect(true, "Concurrent actor access during property testing completed")
+      #expect(Bool(true), "Concurrent actor access during property testing completed")
     }
   }
 

@@ -399,7 +399,9 @@ extension PropertyEffect {
     PropertyEffect<(A, B)>(
       generator: Gen<(A, B)>.zip(generator, other.generator),
       effect: { a, b in
-        try await self.effect(a) && other.effect(b)
+        let firstResult = try await self.effect(a)
+        let secondResult = try await other.effect(b)
+        return firstResult && secondResult
       },
       actorIsolation: actorIsolation,  // Use primary effect's isolation
       config: config

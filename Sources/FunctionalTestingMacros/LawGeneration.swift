@@ -5,6 +5,9 @@
 /// and custom property law derivation using SwiftSyntax.
 
 import Foundation
+import SwiftSyntax
+import SwiftSyntaxMacros
+import SwiftCompilerPlugin
 
 // MARK: - Law Generation Macros
 
@@ -48,21 +51,28 @@ public struct FunctorLawsMacro: MemberMacro {
   public static func expansion(
     of node: AttributeSyntax,
     providingMembersOf declaration: some DeclGroupSyntax,
+    conformingTo protocols: [TypeSyntax],
     in context: some MacroExpansionContext
   ) throws -> [DeclSyntax] {
 
     // Extract type information
-    guard
-      let typeDecl = declaration.as(StructDeclSyntax.self) ?? declaration.as(ClassDeclSyntax.self)
-        ?? declaration.as(EnumDeclSyntax.self)
-    else {
+    let typeName: String
+    let genericParams: [String]
+
+    if let structDecl = declaration.as(StructDeclSyntax.self) {
+      typeName = structDecl.name.text
+      genericParams = extractGenericParameters(from: structDecl)
+    } else if let classDecl = declaration.as(ClassDeclSyntax.self) {
+      typeName = classDecl.name.text
+      genericParams = extractGenericParameters(from: classDecl)
+    } else if let enumDecl = declaration.as(EnumDeclSyntax.self) {
+      typeName = enumDecl.name.text
+      genericParams = extractGenericParameters(from: enumDecl)
+    } else {
       throw MacroExpansionError.invalidDeclaration(
         "FunctorLaws can only be applied to struct, class, or enum"
       )
     }
-
-    let typeName = typeDecl.name.text
-    let genericParams = extractGenericParameters(from: typeDecl)
 
     return [
       generateFunctorIdentityLaw(typeName: typeName, genericParams: genericParams),
@@ -153,20 +163,27 @@ public struct ApplicativeLawsMacro: MemberMacro {
   public static func expansion(
     of node: AttributeSyntax,
     providingMembersOf declaration: some DeclGroupSyntax,
+    conformingTo protocols: [TypeSyntax],
     in context: some MacroExpansionContext
   ) throws -> [DeclSyntax] {
 
-    guard
-      let typeDecl = declaration.as(StructDeclSyntax.self) ?? declaration.as(ClassDeclSyntax.self)
-        ?? declaration.as(EnumDeclSyntax.self)
-    else {
+    let typeName: String
+    let genericParams: [String]
+
+    if let structDecl = declaration.as(StructDeclSyntax.self) {
+      typeName = structDecl.name.text
+      genericParams = extractGenericParameters(from: structDecl)
+    } else if let classDecl = declaration.as(ClassDeclSyntax.self) {
+      typeName = classDecl.name.text
+      genericParams = extractGenericParameters(from: classDecl)
+    } else if let enumDecl = declaration.as(EnumDeclSyntax.self) {
+      typeName = enumDecl.name.text
+      genericParams = extractGenericParameters(from: enumDecl)
+    } else {
       throw MacroExpansionError.invalidDeclaration(
         "ApplicativeLaws can only be applied to struct, class, or enum"
       )
     }
-
-    let typeName = typeDecl.name.text
-    let genericParams = extractGenericParameters(from: typeDecl)
 
     return [
       generateApplicativeIdentityLaw(typeName: typeName, genericParams: genericParams),
@@ -318,20 +335,27 @@ public struct MonadLawsMacro: MemberMacro {
   public static func expansion(
     of node: AttributeSyntax,
     providingMembersOf declaration: some DeclGroupSyntax,
+    conformingTo protocols: [TypeSyntax],
     in context: some MacroExpansionContext
   ) throws -> [DeclSyntax] {
 
-    guard
-      let typeDecl = declaration.as(StructDeclSyntax.self) ?? declaration.as(ClassDeclSyntax.self)
-        ?? declaration.as(EnumDeclSyntax.self)
-    else {
+    let typeName: String
+    let genericParams: [String]
+
+    if let structDecl = declaration.as(StructDeclSyntax.self) {
+      typeName = structDecl.name.text
+      genericParams = extractGenericParameters(from: structDecl)
+    } else if let classDecl = declaration.as(ClassDeclSyntax.self) {
+      typeName = classDecl.name.text
+      genericParams = extractGenericParameters(from: classDecl)
+    } else if let enumDecl = declaration.as(EnumDeclSyntax.self) {
+      typeName = enumDecl.name.text
+      genericParams = extractGenericParameters(from: enumDecl)
+    } else {
       throw MacroExpansionError.invalidDeclaration(
         "MonadLaws can only be applied to struct, class, or enum"
       )
     }
-
-    let typeName = typeDecl.name.text
-    let genericParams = extractGenericParameters(from: typeDecl)
 
     return [
       generateMonadLeftIdentityLaw(typeName: typeName, genericParams: genericParams),
@@ -447,20 +471,27 @@ public struct CustomLawsMacro: MemberMacro {
   public static func expansion(
     of node: AttributeSyntax,
     providingMembersOf declaration: some DeclGroupSyntax,
+    conformingTo protocols: [TypeSyntax],
     in context: some MacroExpansionContext
   ) throws -> [DeclSyntax] {
 
-    guard
-      let typeDecl = declaration.as(StructDeclSyntax.self) ?? declaration.as(ClassDeclSyntax.self)
-        ?? declaration.as(EnumDeclSyntax.self)
-    else {
+    let typeName: String
+    let methods: [MethodSignature]
+
+    if let structDecl = declaration.as(StructDeclSyntax.self) {
+      typeName = structDecl.name.text
+      methods = extractMethods(from: structDecl)
+    } else if let classDecl = declaration.as(ClassDeclSyntax.self) {
+      typeName = classDecl.name.text
+      methods = extractMethods(from: classDecl)
+    } else if let enumDecl = declaration.as(EnumDeclSyntax.self) {
+      typeName = enumDecl.name.text
+      methods = extractMethods(from: enumDecl)
+    } else {
       throw MacroExpansionError.invalidDeclaration(
         "CustomLaws can only be applied to struct, class, or enum"
       )
     }
-
-    let typeName = typeDecl.name.text
-    let methods = extractMethods(from: typeDecl)
 
     var generatedLaws: [DeclSyntax] = []
 
@@ -532,7 +563,7 @@ public struct DeriveLawMacro: ExpressionMacro {
     in context: some MacroExpansionContext
   ) throws -> ExprSyntax {
 
-    guard let argument = node.argumentList.first?.expression else {
+    guard let argument = node.arguments.first?.expression else {
       throw MacroExpansionError.missingArgument("deriveLaw requires an expression argument")
     }
 
@@ -557,7 +588,7 @@ public struct DeriveLawMacro: ExpressionMacro {
 
   private static func generatePropertyForFunctionCall(_ call: FunctionCallExprSyntax) -> String {
     let functionName = call.calledExpression.description
-    let argCount = call.argumentList.count
+    let argCount = call.arguments.count
 
     return """
       Property(
@@ -574,7 +605,7 @@ public struct DeriveLawMacro: ExpressionMacro {
   }
 
   private static func generatePropertyForMemberAccess(_ access: MemberAccessExprSyntax) -> String {
-    let memberName = access.name.text
+    let memberName = access.declName.baseName.text
 
     return """
       Property(
@@ -606,20 +637,23 @@ public struct AlgebraicLawsMacro: MemberMacro {
   public static func expansion(
     of node: AttributeSyntax,
     providingMembersOf declaration: some DeclGroupSyntax,
+    conformingTo protocols: [TypeSyntax],
     in context: some MacroExpansionContext
   ) throws -> [DeclSyntax] {
 
-    guard
-      let typeDecl = declaration.as(StructDeclSyntax.self) ?? declaration.as(ClassDeclSyntax.self)
-        ?? declaration.as(EnumDeclSyntax.self)
-    else {
+    let typeName: String
+    if let structDecl = declaration.as(StructDeclSyntax.self) {
+      typeName = structDecl.name.text
+    } else if let classDecl = declaration.as(ClassDeclSyntax.self) {
+      typeName = classDecl.name.text
+    } else if let enumDecl = declaration.as(EnumDeclSyntax.self) {
+      typeName = enumDecl.name.text
+    } else {
       throw MacroExpansionError.invalidDeclaration(
         "AlgebraicLaws can only be applied to struct, class, or enum"
       )
     }
-
-    let typeName = typeDecl.name.text
-    let conformances = extractProtocolConformances(from: typeDecl)
+    let conformances = extractProtocolConformances(from: declaration)
 
     var generatedLaws: [DeclSyntax] = []
 
@@ -795,19 +829,19 @@ private enum MacroExpansionError: Error, CustomStringConvertible {
 
 private func extractGenericParameters(from decl: some DeclGroupSyntax) -> [String] {
   if let structDecl = decl.as(StructDeclSyntax.self),
-    let genericParams = structDecl.genericParameterClause?.genericParameterList
+    let genericParams = structDecl.genericParameterClause?.parameters
   {
     return genericParams.map { $0.name.text }
   }
 
   if let classDecl = decl.as(ClassDeclSyntax.self),
-    let genericParams = classDecl.genericParameterClause?.genericParameterList
+    let genericParams = classDecl.genericParameterClause?.parameters
   {
     return genericParams.map { $0.name.text }
   }
 
   if let enumDecl = decl.as(EnumDeclSyntax.self),
-    let genericParams = enumDecl.genericParameterClause?.genericParameterList
+    let genericParams = enumDecl.genericParameterClause?.parameters
   {
     return genericParams.map { $0.name.text }
   }
@@ -820,11 +854,11 @@ private func extractMethods(from decl: some DeclGroupSyntax) -> [MethodSignature
 
   for member in decl.memberBlock.members {
     if let function = member.decl.as(FunctionDeclSyntax.self) {
-      let name = function.identifier.text
-      let parameters = function.signature.input.parameterList.map { param in
-        (name: param.firstName?.text ?? "_", type: param.type.description)
+      let name = function.name.text
+      let parameters = function.signature.parameterClause.parameters.map { param in
+        (name: param.firstName.text, type: param.type.description)
       }
-      let returnType = function.signature.output?.returnType.description
+      let returnType = function.signature.returnClause?.type.description
 
       methods.append(MethodSignature(name: name, parameters: parameters, returnType: returnType))
     }
@@ -839,34 +873,23 @@ private func extractProtocolConformances(from decl: some DeclGroupSyntax) -> [St
   if let structDecl = decl.as(StructDeclSyntax.self),
     let inheritanceClause = structDecl.inheritanceClause
   {
-    conformances = inheritanceClause.inheritedTypeCollection.map { $0.typeName.description }
+    conformances = inheritanceClause.inheritedTypes.map { $0.type.description }
   }
 
   if let classDecl = decl.as(ClassDeclSyntax.self),
     let inheritanceClause = classDecl.inheritanceClause
   {
-    conformances = inheritanceClause.inheritedTypeCollection.map { $0.typeName.description }
+    conformances = inheritanceClause.inheritedTypes.map { $0.type.description }
   }
 
   if let enumDecl = decl.as(EnumDeclSyntax.self),
     let inheritanceClause = enumDecl.inheritanceClause
   {
-    conformances = inheritanceClause.inheritedTypeCollection.map { $0.typeName.description }
+    conformances = inheritanceClause.inheritedTypes.map { $0.type.description }
   }
 
   return conformances
 }
 
 // MARK: - Compiler Plugin
-
-@main
-struct FunctionalTestingMacroPlugin: CompilerPlugin {
-  let providingMacros: [Macro.Type] = [
-    FunctorLawsMacro.self,
-    ApplicativeLawsMacro.self,
-    MonadLawsMacro.self,
-    CustomLawsMacro.self,
-    DeriveLawMacro.self,
-    AlgebraicLawsMacro.self,
-  ]
-}
+// Note: Plugin definition is in MacroPlugin.swift to avoid duplicate @main attributes
