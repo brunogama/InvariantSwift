@@ -353,7 +353,7 @@ public func checkPropertiesAsyncConcurrently<A>(
       }
 
       // Limit concurrency by waiting for some tasks to complete
-      if results.count % maxConcurrency == 0 && results.count > 0 {
+      if results.count % maxConcurrency == 0 && !results.isEmpty {
         if let result = await group.next() {
           results.append(result)
         }

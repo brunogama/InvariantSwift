@@ -59,18 +59,18 @@ public struct DiscoveredInvariant: Sendable, Hashable, CustomStringConvertible {
 
   /// Generate code for this invariant as a property test
   public func generatePropertyTest() -> String {
-    return """
-      @Test("Generated invariant: \(predicate)")
-      func testInvariant_\(id.uuidString.prefix(8))() async {
-          let property = Property(generator: /* appropriate generator */) { input in
-              // \(predicate)
-              /* generated assertion code */
-              return true
-          }
-          
-          #expect(await checkProperty(property).isSuccess)
-      }
-      """
+    """
+    @Test("Generated invariant: \(predicate)")
+    func testInvariant_\(id.uuidString.prefix(8))() async {
+        let property = Property(generator: /* appropriate generator */) { input in
+            // \(predicate)
+            /* generated assertion code */
+            return true
+        }
+        
+        #expect(await checkProperty(property).isSuccess)
+    }
+    """
   }
 }
 
@@ -134,14 +134,14 @@ public struct MiningConfig: Sendable {
     self.sampleSize = max(10, sampleSize)
   }
 
-  public static let fast = MiningConfig(
+  public static let fast = Self(
     minSupport: 5,
     minConfidence: 0.7,
     maxInvariants: 20,
     sampleSize: 100
   )
 
-  public static let thorough = MiningConfig(
+  public static let thorough = Self(
     minSupport: 20,
     minConfidence: 0.9,
     maxInvariants: 500,
@@ -206,12 +206,16 @@ public struct ExecutionState: Sendable, Hashable {
       switch value {
       case .integer(let i):
         props[name] = Double(i)
+
       case .double(let d):
         props[name] = d
+
       case .array(let arr):
         props["\(name).count"] = Double(arr.count)
+
       case .string(let s):
         props["\(name).length"] = Double(s.count)
+
       default:
         break
       }
@@ -227,8 +231,8 @@ public enum StateValue: Sendable, Hashable, CustomStringConvertible {
   case double(Double)
   case string(String)
   case boolean(Bool)
-  case array([StateValue])
-  case dictionary([String: StateValue])
+  case array([Self])
+  case dictionary([String: Self])
   case null
 
   public var description: String {
@@ -238,6 +242,7 @@ public enum StateValue: Sendable, Hashable, CustomStringConvertible {
     case .string(let s): return "\"\(s)\""
     case .boolean(let b): return "\(b)"
     case .array(let arr): return "[\(arr.map(\.description).joined(separator: ", "))]"
+
     case .dictionary(let dict):
       let pairs = dict.map { "\($0): \($1)" }.joined(separator: ", ")
       return "{\(pairs)}"
@@ -408,7 +413,7 @@ public actor InvariantMiningEngine {
   ) async -> Bool {
     // This would contain the actual verification logic based on the invariant type
     // For now, simplified implementation
-    return true  // Placeholder
+    true  // Placeholder
   }
 }
 
@@ -732,7 +737,7 @@ public struct ClusteringMiner: InvariantMiner {
 
   private func clusterTraces(_ traces: [ExecutionTrace]) -> [[ExecutionTrace]] {
     // Simplified clustering - would use proper ML clustering
-    return [traces]  // Single cluster for now
+    [traces]  // Single cluster for now
   }
 
   private func extractClusterInvariant(_ cluster: [ExecutionTrace]) -> DiscoveredInvariant? {

@@ -137,6 +137,7 @@ public enum OptionalGen {
         switch optional {
         case .none:
           return []
+
         case .some(let value):
           let nilShrink: [T?] = [nil]
           let valueShrinks = valueGen.shrink.shrink(value).map { Optional.some($0) }
@@ -202,6 +203,7 @@ public enum ResultGen {
         case .success(let value):
           // Shrink success value
           return successGen.shrink.shrink(value).map { Result.success($0) }
+
         case .failure(let error):
           // Shrink failure value
           return failureGen.shrink.shrink(error).map { Result.failure($0) }
@@ -272,6 +274,7 @@ public enum ResultGen {
         switch result {
         case .success(let value):
           return successGen.shrink.shrink(value).map { Result.success($0) }
+
         case .failure:
           // For enum-based errors, we typically don't shrink
           return []
@@ -394,7 +397,7 @@ public enum ThrowingFunctionGen {
       },
       shrink: Shrink<() throws -> Success>({ _ in
         // Shrinking throwing functions is complex - simplified approach
-        return []
+        []
       })
     )
   }
@@ -451,7 +454,7 @@ public enum ThrowingFunctionGen {
       },
       shrink: Shrink<() async throws -> Success>({ _ in
         // Shrinking async functions is complex - simplified approach
-        return []
+        []
       })
     )
   }
@@ -753,7 +756,7 @@ public enum WeightedGen {
       },
       shrink: Shrink<T>({ _ in
         // For weighted selection, prefer simpler/lighter-weight options
-        return []
+        []
       })
     )
   }
