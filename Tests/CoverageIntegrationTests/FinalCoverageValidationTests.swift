@@ -17,7 +17,7 @@ struct FinalCoverageValidationTests {
     // 1. Property Creation APIs
     let basicProperty = Property<Int>(generator: Gen.int) { _ in true }
     let conditionalProperty = Property<String>(generator: Gen.string.suchThat { !$0.isEmpty }) {
-      $0.count > 0
+      !$0.isEmpty
     }
     let timedProperty = Property<Double>(generator: Gen.double) { $0.isFinite }
 
@@ -39,6 +39,7 @@ struct FinalCoverageValidationTests {
     switch successResult {
     case .success(let iterations):
       #expect(iterations == 1, "Basic property should succeed")
+
     default:
       Issue.record("Basic property validation failed")
     }
@@ -46,6 +47,7 @@ struct FinalCoverageValidationTests {
     switch failureResult {
     case .failure(_, let iterations, _):
       #expect(iterations >= 1, "Failing property should record failure")
+
     default:
       #expect(true, "Failure scenarios validated")
     }
@@ -61,6 +63,7 @@ struct FinalCoverageValidationTests {
       switch asyncResult {
       case .success(let iterations):
         #expect(iterations == 5, "Async execution should complete")
+
       default:
         Issue.record("Async property runner validation failed")
       }
@@ -89,7 +92,7 @@ struct FinalCoverageValidationTests {
 
     var stringRng: any RandomNumberGenerator = SeededRandomNumberGenerator(seed: 104)
     let stringValue = Gen.string.generate(&stringRng, Size(value: 10))
-    #expect(stringValue.count >= 0, "String generator should work")
+    #expect(stringValue.isEmpty, "String generator should work")
 
     var pureRng: any RandomNumberGenerator = SeededRandomNumberGenerator(seed: 105)
     let pureValue = Gen.pure(42).generate(&pureRng, Size(value: 10))
@@ -98,15 +101,15 @@ struct FinalCoverageValidationTests {
     // 5. Collection Generators - All patterns
     var arrayIntRng: any RandomNumberGenerator = SeededRandomNumberGenerator(seed: 200)
     let arrayIntValue = Gen.array(Gen.int).generate(&arrayIntRng, Size(value: 10))
-    #expect(arrayIntValue.count >= 0, "Int array generator should work")
+    #expect(arrayIntValue.isEmpty, "Int array generator should work")
 
     var arrayStringRng: any RandomNumberGenerator = SeededRandomNumberGenerator(seed: 201)
     let arrayStringValue = Gen.array(Gen.string).generate(&arrayStringRng, Size(value: 10))
-    #expect(arrayStringValue.count >= 0, "String array generator should work")
+    #expect(arrayStringValue.isEmpty, "String array generator should work")
 
     var arrayBoolRng: any RandomNumberGenerator = SeededRandomNumberGenerator(seed: 202)
     let arrayBoolValue = Gen.array(Gen.bool).generate(&arrayBoolRng, Size(value: 10))
-    #expect(arrayBoolValue.count >= 0, "Bool array generator should work")
+    #expect(arrayBoolValue.isEmpty, "Bool array generator should work")
 
     // 6. Generator Combinators - All composition patterns
     let intStringZip = Gen.int.zip(Gen.string)
@@ -124,9 +127,9 @@ struct FinalCoverageValidationTests {
     let flatMappedValue = flatMappedGenerator.generate(&combRng3, Size(value: 10))
     let filteredValue = filteredGenerator.generate(&combRng4, Size(value: 10))
 
-    #expect(zipValue.0 >= Int.min && zipValue.1.count >= 0, "Zip combinator should work")
+    #expect(zipValue.0 >= Int.min && zipValue.1.isEmpty, "Zip combinator should work")
     #expect(mappedValue % 2 == 0, "Map combinator should work")
-    #expect(flatMappedValue.count >= 0, "FlatMap combinator should work")
+    #expect(flatMappedValue.isEmpty, "FlatMap combinator should work")
     #expect(filteredValue > 0, "SuchThat filter should work")
 
     // 7. Size and Configuration APIs
@@ -165,21 +168,21 @@ struct FinalCoverageValidationTests {
     let stringShrinks = stringShrink.shrink("hello world")
     let arrayShrinks = arrayShrink.shrink([1, 2, 3, 4, 5])
 
-    #expect(intShrinks.count >= 0, "Int shrinking should produce non-negative count of candidates")
+    #expect(intShrinks.isEmpty, "Int shrinking should produce non-negative count of candidates")
     #expect(
-      doubleShrinks.count >= 0,
+      doubleShrinks.isEmpty,
       "Double shrinking should produce non-negative count of candidates"
     )
     #expect(
-      boolShrinks.count >= 0,
+      boolShrinks.isEmpty,
       "Bool shrinking should produce non-negative count of candidates"
     )
     #expect(
-      stringShrinks.count >= 0,
+      stringShrinks.isEmpty,
       "String shrinking should produce non-negative count of candidates"
     )
     #expect(
-      arrayShrinks.count >= 0,
+      arrayShrinks.isEmpty,
       "Array shrinking should produce non-negative count of candidates"
     )
   }
@@ -222,7 +225,7 @@ struct FinalCoverageValidationTests {
 
     // 3. Empty and Large Collection Edge Cases
     let emptyArrayProperty = Property<[Int]>(generator: Gen.pure([])) { $0.isEmpty }
-    let largeArrayProperty = Property<[Int]>(generator: Gen.array(Gen.int)) { $0.count >= 0 }
+    let largeArrayProperty = Property<[Int]>(generator: Gen.array(Gen.int)) { $0.isEmpty }
 
     let emptyResult = PropertyChecker.check(
       emptyArrayProperty,
@@ -236,6 +239,7 @@ struct FinalCoverageValidationTests {
     switch emptyResult {
     case .success:
       #expect(true, "Empty collection edge case handled")
+
     default:
       Issue.record("Empty collection validation failed")
     }
@@ -243,6 +247,7 @@ struct FinalCoverageValidationTests {
     switch largeResult {
     case .success:
       #expect(true, "Large collection edge case handled")
+
     default:
       Issue.record("Large collection validation failed")
     }
@@ -282,6 +287,7 @@ struct FinalCoverageValidationTests {
     switch intMinResult {
     case .success:
       #expect(true, "Numeric edge case int min handled correctly")
+
     default:
       #expect(true, "Numeric edge case int min may have different behavior")
     }
@@ -289,6 +295,7 @@ struct FinalCoverageValidationTests {
     switch intMaxResult {
     case .success:
       #expect(true, "Numeric edge case int max handled correctly")
+
     default:
       #expect(true, "Numeric edge case int max may have different behavior")
     }
@@ -296,6 +303,7 @@ struct FinalCoverageValidationTests {
     switch doubleInfResult {
     case .success:
       #expect(true, "Numeric edge case double inf handled correctly")
+
     default:
       #expect(true, "Numeric edge case double inf may have different behavior")
     }
@@ -303,6 +311,7 @@ struct FinalCoverageValidationTests {
     switch doubleNaNResult {
     case .success:
       #expect(true, "Numeric edge case double NaN handled correctly")
+
     default:
       #expect(true, "Numeric edge case double NaN may have different behavior")
     }
@@ -310,6 +319,7 @@ struct FinalCoverageValidationTests {
     switch doubleNegInfResult {
     case .success:
       #expect(true, "Numeric edge case double -inf handled correctly")
+
     default:
       #expect(true, "Numeric edge case double -inf may have different behavior")
     }
@@ -317,6 +327,7 @@ struct FinalCoverageValidationTests {
     switch floatMaxResult {
     case .success:
       #expect(true, "Numeric edge case float max handled correctly")
+
     default:
       #expect(true, "Numeric edge case float max may have different behavior")
     }
@@ -338,6 +349,7 @@ struct FinalCoverageValidationTests {
       switch result {
       case .success:
         #expect(true, "String edge case '\(edgeString.prefix(10))' handled")
+
       default:
         Issue.record("String edge case validation failed")
       }
@@ -355,7 +367,7 @@ struct FinalCoverageValidationTests {
         intValue >= Int.min && intValue <= Int.max,
         "RNG seed \(seed) should produce valid integers"
       )
-      #expect(stringValue.count >= 0, "RNG seed \(seed) should produce valid strings")
+      #expect(stringValue.isEmpty, "RNG seed \(seed) should produce valid strings")
     }
   }
 
@@ -380,9 +392,11 @@ struct FinalCoverageValidationTests {
         #expect(iterations >= 1, "Failure scenario \(index) should attempt iterations")
         #expect(counterexample >= Int.min, "Counterexample should be valid")
         #expect(shrunk >= Int.min, "Shrunk value should be valid")
+
       case .gaveUp(let discarded, let iterations):
         #expect(discarded >= 0, "Give up scenario \(index) should track discarded")
         #expect(iterations >= 0, "Give up scenario \(index) should track iterations")
+
       case .success:
         #expect(true, "Some failure scenarios may succeed depending on generation")
       }
@@ -408,6 +422,7 @@ struct FinalCoverageValidationTests {
           discarded > 0,
           "Problematic generator \(index) should give up with discarded values"
         )
+
       case .success, .failure:
         #expect(true, "Problematic generator \(index) may have different behavior")
       }
@@ -419,10 +434,10 @@ struct FinalCoverageValidationTests {
     let zeroShrinks = Gen.int.shrink.shrink(0)
     let falseShrinks = Gen.bool.shrink.shrink(false)
 
-    #expect(emptyShrinks.count >= 0, "String shrinking should handle empty values")
-    #expect(emptyArrayShrinks.count >= 0, "Array shrinking should handle empty values")
-    #expect(zeroShrinks.count >= 0, "Int shrinking should handle zero")
-    #expect(falseShrinks.count >= 0, "Bool shrinking should handle false")
+    #expect(emptyShrinks.isEmpty, "String shrinking should handle empty values")
+    #expect(emptyArrayShrinks.isEmpty, "Array shrinking should handle empty values")
+    #expect(zeroShrinks.isEmpty, "Int shrinking should handle zero")
+    #expect(falseShrinks.isEmpty, "Bool shrinking should handle false")
 
     // 4. Configuration Error Scenarios
     let edgeConfigurations = [
@@ -455,6 +470,7 @@ struct FinalCoverageValidationTests {
       switch asyncFailResult {
       case .failure(_, let iterations, _):
         #expect(iterations >= 1, "Async failure should record iterations")
+
       case .gaveUp, .success:
         #expect(true, "Async failure scenarios validated")
       }
@@ -471,6 +487,7 @@ struct FinalCoverageValidationTests {
       switch asyncGiveUpResult {
       case .gaveUp(let discarded, _):
         #expect(discarded > 0, "Async give up should record discarded values")
+
       case .success, .failure:
         #expect(true, "Async give up scenarios validated")
       }
@@ -481,7 +498,7 @@ struct FinalCoverageValidationTests {
       generator: Gen.array(Gen.string)
     ) { array in
       // Test that doesn't consume excessive memory
-      return array.allSatisfy { $0.count >= 0 }
+      array.allSatisfy { $0.isEmpty }
     }
 
     let resourceResult = PropertyChecker.check(
@@ -498,7 +515,6 @@ struct FinalCoverageValidationTests {
   // MARK: - Integration Coverage Completion (Task 12)
 
   @Test("Final validation - all integration points and component interactions covered")
-  @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
   func finalValidationAllIntegrationPointsAndComponentInteractionsCovered() async {
     // Comprehensive integration validation
 
@@ -529,6 +545,7 @@ struct FinalCoverageValidationTests {
     switch intResult {
     case .success(let iterations):
       #expect(iterations == 10, "Int Generator-PropertyChecker integration should work")
+
     default:
       Issue.record("Int integration test failed")
     }
@@ -536,6 +553,7 @@ struct FinalCoverageValidationTests {
     switch stringResult {
     case .success(let iterations):
       #expect(iterations == 10, "String Generator-PropertyChecker integration should work")
+
     default:
       Issue.record("String integration test failed")
     }
@@ -543,6 +561,7 @@ struct FinalCoverageValidationTests {
     switch boolResult {
     case .success(let iterations):
       #expect(iterations == 10, "Bool Generator-PropertyChecker integration should work")
+
     default:
       Issue.record("Bool integration test failed")
     }
@@ -550,6 +569,7 @@ struct FinalCoverageValidationTests {
     switch arrayResult {
     case .success(let iterations):
       #expect(iterations == 10, "Array Generator-PropertyChecker integration should work")
+
     default:
       Issue.record("Array integration test failed")
     }
@@ -557,6 +577,7 @@ struct FinalCoverageValidationTests {
     switch zipResult {
     case .success(let iterations):
       #expect(iterations == 10, "Zip Generator-PropertyChecker integration should work")
+
     default:
       Issue.record("Zip integration test failed")
     }
@@ -581,6 +602,7 @@ struct FinalCoverageValidationTests {
         shrunk.count <= counterexample.count,
         "Shrinking integration should reduce complexity"
       )
+
     case .success, .gaveUp:
       #expect(true, "Shrinking integration scenarios validated")
     }
@@ -602,6 +624,7 @@ struct FinalCoverageValidationTests {
       switch asyncResult {
       case .success(let iterations):
         #expect(iterations == 15, "Async integration \(index) should complete all iterations")
+
       default:
         Issue.record("Async integration test \(index) failed")
       }
@@ -618,7 +641,7 @@ struct FinalCoverageValidationTests {
 
       #expect(intValue >= Int.min, "Size-Generator integration should work for size \(size.value)")
       #expect(
-        arrayValue.count >= 0,
+        arrayValue.isEmpty,
         "Size-Collection integration should work for size \(size.value)"
       )
     }
@@ -630,7 +653,7 @@ struct FinalCoverageValidationTests {
       PropertyConfig(iterations: 30, maxShrinks: 15, maxDiscarded: 60, seed: Seed(value: 333)),
     ]
 
-    let configProperty = Property<String>(generator: Gen.string) { $0.count >= 0 }
+    let configProperty = Property<String>(generator: Gen.string) { $0.isEmpty }
 
     for (index, config) in integrationConfigs.enumerated() {
       let configResult = PropertyChecker.check(configProperty, config: config)
@@ -641,6 +664,7 @@ struct FinalCoverageValidationTests {
           iterations == config.iterations,
           "Configuration integration \(index) should respect settings"
         )
+
       default:
         Issue.record("Configuration integration test \(index) failed")
       }
@@ -659,6 +683,7 @@ struct FinalCoverageValidationTests {
       switch errorResult {
       case .failure, .gaveUp:
         #expect(true, "\(name) propagation handled correctly")
+
       case .success:
         #expect(true, "\(name) may succeed in some cases")
       }
@@ -683,6 +708,7 @@ struct FinalCoverageValidationTests {
           switch concurrentResult {
           case .success(let iterations):
             #expect(iterations == 8, "Concurrent integration \(index) should complete")
+
           default:
             Issue.record("Concurrent integration test \(index) failed")
           }
@@ -734,12 +760,12 @@ struct FinalCoverageValidationTests {
     }
 
     // 2. Generator Performance Validation
-    let generatorBenchmarks: [(String, Gen<Any>)] = [
-      ("Int", Gen.int.map { $0 as Any }),
-      ("Double", Gen.double.map { $0 as Any }),
-      ("String", Gen.string.map { $0 as Any }),
-      ("Bool", Gen.bool.map { $0 as Any }),
-      ("Array", Gen.array(Gen.int).map { $0 as Any }),
+    let generatorBenchmarks: [(String, Gen<AnySendable>)] = [
+      ("Int", Gen.int.map { $0 as AnySendable }),
+      ("Double", Gen.double.map { $0 as AnySendable }),
+      ("String", Gen.string.map { $0 as AnySendable }),
+      ("Bool", Gen.bool.map { $0 as AnySendable }),
+      ("Array", Gen.array(Gen.int).map { $0 as AnySendable }),
     ]
 
     for (name, generator) in generatorBenchmarks {
@@ -780,19 +806,19 @@ struct FinalCoverageValidationTests {
     let arrayShrinkDuration = CFAbsoluteTimeGetCurrent() - arrayShrinkTime
 
     #expect(intShrinkDuration < 0.1, "Int shrinking should be fast: \(intShrinkDuration)s")
-    #expect(intShrinks.count >= 0, "Int should produce valid shrink candidates")
+    #expect(intShrinks.isEmpty, "Int should produce valid shrink candidates")
 
     #expect(stringShrinkDuration < 0.1, "String shrinking should be fast: \(stringShrinkDuration)s")
-    #expect(stringShrinks.count >= 0, "String should produce valid shrink candidates")
+    #expect(stringShrinks.isEmpty, "String should produce valid shrink candidates")
 
     #expect(arrayShrinkDuration < 0.1, "Array shrinking should be fast: \(arrayShrinkDuration)s")
-    #expect(arrayShrinks.count >= 0, "Array should produce valid shrink candidates")
+    #expect(arrayShrinks.isEmpty, "Array should produce valid shrink candidates")
 
     // 4. Memory Usage Validation
     let memoryTestProperty = Property<[String]>(
       generator: Gen.array(Gen.string)
     ) { array in
-      return array.allSatisfy { $0.count >= 0 }
+      array.allSatisfy { $0.isEmpty }
     }
 
     // Simple memory monitoring
@@ -813,6 +839,7 @@ struct FinalCoverageValidationTests {
         abs(memoryDeltaMB) < 100.0,
         "Memory usage should be reasonable: \(memoryDeltaMB)MB delta"
       )
+
     default:
       Issue.record("Memory validation test should succeed")
     }
@@ -826,7 +853,7 @@ struct FinalCoverageValidationTests {
           group.addTask {
             let concurrentProperty = Property<Int>(generator: Gen.int) { _ in true }
             let concurrentRunner = PropertyRunner(seed: Seed(value: UInt64(i + 999)))
-            let _ = await concurrentRunner.runProperty(
+            _ = await concurrentRunner.runProperty(
               concurrentProperty,
               config: PropertyConfig(iterations: 50)
             )
@@ -946,7 +973,7 @@ struct FinalCoverageReport {
   let integrationPointsCovered: Bool
 
   var isTargetMet: Bool {
-    return coveragePercentage >= 99.0 && criticalPathsCovered && publicAPIsCovered
+    coveragePercentage >= 99.0 && criticalPathsCovered && publicAPIsCovered
       && errorPathsCovered
   }
 

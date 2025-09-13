@@ -6,54 +6,25 @@
 import _Concurrency
 import Foundation
 
+// Import the consolidated identifier system
+// The identifier types (TaskID, ActorID, StepID, LogicalTime) are now defined in IdentifierTypes.swift
+
+/// Sendable wrapper for AnySendable values
+public struct SendableValue: @unchecked Sendable {
+  public let value: AnySendable
+
+  public init(_ value: AnySendable) {
+    self.value = value
+  }
+}
+
 // MARK: - Core Types
 
-/// Unique identifier for tasks in the scheduler
-public struct TaskID: Sendable, Hashable, CustomStringConvertible {
-  public let value: UInt64
+// Note: TaskID, ActorID, StepID, and LogicalTime are now imported from IdentifierTypes.swift
+// This eliminates code duplication across the framework while maintaining the same API
 
-  public init(_ value: UInt64) {
-    self.value = value
-  }
-
-  public var description: String {
-    "Task(\(value))"
-  }
-}
-
-/// Unique identifier for actors in the scheduler
-public struct ActorID: Sendable, Hashable, CustomStringConvertible {
-  public let value: String
-
-  public init(_ value: String) {
-    self.value = value
-  }
-
-  public var description: String {
-    "Actor(\(value))"
-  }
-}
-
-/// Logical timestamp for ordering operations
-public typealias LogicalTime = UInt64
-
-/// Unique identifier for execution steps
-public struct StepID: Sendable, Hashable, CustomStringConvertible {
-  public let taskId: TaskID
-  public let timestamp: LogicalTime
-
-  public init(taskId: TaskID, timestamp: LogicalTime) {
-    self.taskId = taskId
-    self.timestamp = timestamp
-  }
-
-  public var description: String {
-    "\(taskId)@\(timestamp)"
-  }
-}
-
-/// Execution context information
-public struct ExecutionContext: Sendable, Hashable {
+/// DICE-specific execution context information
+public struct DICEExecutionContext: Sendable, Hashable {
   public let isolatedActor: ActorID?
   public let sourceLocation: SourceLocation?
   public let stackDepth: Int
@@ -112,7 +83,7 @@ public enum TaskResult: Sendable, Hashable {
 
 /// Outcome of entire execution
 public enum ExecutionOutcome: Sendable {
-  case success(Any?)
+  case success(SendableValue?)
   case failure(Error)
   case cancelled
 }
@@ -141,7 +112,7 @@ public struct SchedulerConfig: Sendable {
     self.preemptionStrategy = preemptionStrategy
   }
 
-  public static let testDefault = SchedulerConfig(
+  public static let testDefault = Self(
     maxSteps: 2000,
     depth: 15,
     fairness: .preemptive,
@@ -149,7 +120,7 @@ public struct SchedulerConfig: Sendable {
     preemptionStrategy: .yieldPoints
   )
 
-  public static let deepExploration = SchedulerConfig(
+  public static let deepExploration = Self(
     maxSteps: 10000,
     depth: 25,
     fairness: .bounded(100),
@@ -171,15 +142,16 @@ public enum PreemptionStrategy: Sendable {
   case yieldPoints  // Only at explicit Task.yield()
   case awaitPoints  // At all await expressions
   case aggressive  // At await + periodic interrupts
-  case custom((TaskContext) -> Bool)  // User-defined strategy
+  case custom(@Sendable (TaskContext) -> Bool)  // User-defined strategy
 
   /// Check if two strategies are equal (custom strategies never equal)
-  public static func == (lhs: PreemptionStrategy, rhs: PreemptionStrategy) -> Bool {
+  public static func == (lhs: Self, rhs: Self) -> Bool {
     switch (lhs, rhs) {
     case (.yieldPoints, .yieldPoints),
       (.awaitPoints, .awaitPoints),
       (.aggressive, .aggressive):
       return true
+
     case (.custom, .custom):
       return false  // Cannot compare closures
     default:
@@ -214,7 +186,7 @@ public struct TaskContext: Sendable {
 // MARK: - Operations and Steps
 
 /// Types of operations that can be scheduled
-public enum DICEOperation: Sendable, Hashable {
+public enum DICEOperation: Sendable {
   case taskStart(priority: TaskPriority?)
   case taskSuspend(reason: SuspensionReason)
   case taskResume
@@ -225,13 +197,49 @@ public enum DICEOperation: Sendable, Hashable {
   case detachedTaskCreate
 }
 
+extension DICEOperation: Hashable {
+  public func hash(into hasher: inout Hasher) {
+    switch self {
+    case .taskStart(let priority):
+      hasher.combine("taskStart")
+      hasher.combine(priority?.rawValue)
+
+    case .taskSuspend(let reason):
+      hasher.combine("taskSuspend")
+      hasher.combine(reason)
+
+    case .taskResume:
+      hasher.combine("taskResume")
+
+    case .taskComplete(let result):
+      hasher.combine("taskComplete")
+      hasher.combine(result)
+
+    case .actorCall(let method, let isolated):
+      hasher.combine("actorCall")
+      hasher.combine(method)
+      hasher.combine(isolated)
+
+    case .awaitExpression(let location):
+      hasher.combine("awaitExpression")
+      hasher.combine(location)
+
+    case .yieldExplicit:
+      hasher.combine("yieldExplicit")
+
+    case .detachedTaskCreate:
+      hasher.combine("detachedTaskCreate")
+    }
+  }
+}
+
 /// Individual execution step with complete context
 public struct Step: Sendable, Hashable {
   public let taskId: TaskID
   public let operation: DICEOperation
   public let timestamp: LogicalTime
   public let actorId: ActorID?
-  public let executionContext: ExecutionContext
+  public let executionContext: DICEExecutionContext
   public let preemptionCause: PreemptionCause?
 
   public init(
@@ -239,7 +247,7 @@ public struct Step: Sendable, Hashable {
     operation: DICEOperation,
     timestamp: LogicalTime,
     actorId: ActorID? = nil,
-    executionContext: ExecutionContext = ExecutionContext(),
+    executionContext: DICEExecutionContext = DICEExecutionContext(),
     preemptionCause: PreemptionCause? = nil
   ) {
     self.taskId = taskId
@@ -319,13 +327,13 @@ public struct HappensBefore: Sendable {
   public func validLinearizations() -> [Linearization] {
     // This is a simplified version - full implementation would use topological sorting
     // with backtracking to find all valid orderings
-    return [Linearization(steps: [])]
+    [Linearization(steps: [])]
   }
 
   /// Compute transitive reduction of the happens-before relation
   private static func computeTransitiveReduction(from edges: Set<CausalEdge>) -> Set<CausalEdge> {
     // Simplified implementation - full version would use graph algorithms
-    return edges
+    edges
   }
 }
 
@@ -428,7 +436,7 @@ public struct SeededRNG: Sendable {
 
   public mutating func nextInt(in range: Range<Int>) -> Int {
     let count = range.count
-    guard count > 0 else { return range.lowerBound }
+    guard !range.isEmpty else { return range.lowerBound }
     return range.lowerBound + Int(next() % UInt64(count))
   }
 }
@@ -463,7 +471,7 @@ public struct InterleavingTrace: Sendable {
   /// Export trace for external analysis tools
   public func serialize() -> Data {
     // Simplified JSON serialization
-    let dict: [String: Any] = [
+    let dict: [String: AnySendable] = [
       "steps": steps.count,
       "outcome": "\(outcome)",
       "executionTime": executionTime.components.seconds,
@@ -479,15 +487,15 @@ public struct InterleavingTrace: Sendable {
   }
 
   /// Import trace from external source
-  public static func deserialize(_ data: Data) -> InterleavingTrace? {
+  public static func deserialize(_ data: Data) -> Self? {
     // Simplified deserialization - full implementation would be more robust
-    return nil
+    nil
   }
 
   /// Extract minimal trace that reproduces outcome
-  public func minimizeTrace() -> InterleavingTrace {
+  public func minimizeTrace() -> Self {
     // Delta debugging on step sequence - simplified implementation
-    return self
+    self
   }
 
   /// Visualize trace as sequence diagram
@@ -529,9 +537,9 @@ public actor DeterministicScheduler {
   private var config: SchedulerConfig = .testDefault
   private var currentTrace: [Step] = []
   private var logicalClock: LogicalTime = 0
-  private var rng: SeededRNG = SeededRNG(seed: 42)
-  private var taskRegistry: TaskRegistry = TaskRegistry()
-  private var executionStats: ExecutionStatistics = ExecutionStatistics()
+  private var rng = SeededRNG(seed: 42)
+  private var taskRegistry = TaskRegistry()
+  private var executionStats = ExecutionStatistics()
 
   private init() {}
 
@@ -662,7 +670,7 @@ public actor DeterministicScheduler {
     originalTrace: InterleavingTrace
   ) async -> Bool {
     // Simplified check - in reality, this would re-execute with the candidate schedule
-    return candidate.steps.count < originalTrace.steps.count
+    candidate.steps.count < originalTrace.steps.count
   }
 }
 
@@ -720,13 +728,13 @@ extension DeterministicScheduler {
 }
 
 /// Property test failure with DICE trace information
-public struct PropertyTestFailure: Error, Sendable {
+public struct PropertyTestFailure: Error, @unchecked Sendable {
   public let message: String
-  public let counterexample: Any
-  public let shrunk: Any
+  public let counterexample: AnySendable
+  public let shrunk: AnySendable
   public let iterations: Int
 
-  public init(message: String, counterexample: Any, shrunk: Any, iterations: Int) {
+  public init(message: String, counterexample: AnySendable, shrunk: AnySendable, iterations: Int) {
     self.message = message
     self.counterexample = counterexample
     self.shrunk = shrunk

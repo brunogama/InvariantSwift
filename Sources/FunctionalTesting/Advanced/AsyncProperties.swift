@@ -30,8 +30,8 @@ public struct AsyncPropertyConfig: Sendable {
     self.failureReporting = failureReporting
   }
 
-  public static let `default` = AsyncPropertyConfig()
-  public static let concurrent = AsyncPropertyConfig(
+  public static let `default` = Self()
+  public static let concurrent = Self(
     maxConcurrentIterations: 10,
     executorMode: .cooperativeExecutor
   )
@@ -94,14 +94,14 @@ public struct AsyncPropertyResult: Sendable {
 public struct AsyncPropertyFailure: Sendable {
   public let iteration: Int
   public let error: String
-  public let generatedValues: [String: Any]
+  public let generatedValues: [String: AnySendable]
   public let executionContext: ExecutionContext
   public let timestamp: Date
 
   public init(
     iteration: Int,
     error: String,
-    generatedValues: [String: Any] = [:],
+    generatedValues: [String: AnySendable] = [:],
     executionContext: ExecutionContext,
     timestamp: Date = Date()
   ) {
@@ -411,7 +411,7 @@ public actor AsyncPropertyRunner {
     completedIterations: inout Int,
     concurrencyTracker: inout ConcurrencyTracker
   ) async {
-    await withTaskGroup(of: TaskResult.self) { group in
+    await withTaskGroup(of: AsyncTaskResult.self) { group in
       var remainingIterations = property.config.iterations
       var activeTasks = 0
 
@@ -435,7 +435,7 @@ public actor AsyncPropertyRunner {
         // Wait for at least one task to complete
         if let result = await group.next() {
           activeTasks -= 1
-          self.handleTaskResult(
+          self.handleAsyncTaskResult(
             result,
             failures: &failures,
             completedIterations: &completedIterations
@@ -467,7 +467,7 @@ public actor AsyncPropertyRunner {
           executorType: "isolated"
         )
 
-        self.handleTaskResult(
+        self.handleAsyncTaskResult(
           result,
           failures: &failures,
           completedIterations: &completedIterations
@@ -504,7 +504,7 @@ public actor AsyncPropertyRunner {
     iteration: Int,
     concurrencyTracker: ConcurrencyTracker,
     executorType: String
-  ) async -> TaskResult {
+  ) async -> AsyncTaskResult {
     do {
       let value = try await generateValueWithTimeout(
         property.generator,
@@ -567,14 +567,15 @@ public actor AsyncPropertyRunner {
     }
   }
 
-  private func handleTaskResult(
-    _ result: TaskResult,
+  private func handleAsyncTaskResult(
+    _ result: AsyncTaskResult,
     failures: inout [AsyncPropertyFailure],
     completedIterations: inout Int
   ) {
     switch result {
     case .success:
       completedIterations += 1
+
     case .failure(let failure):
       failures.append(failure)
       completedIterations += 1
@@ -585,8 +586,10 @@ public actor AsyncPropertyRunner {
     switch reporting {
     case .firstFailure:
       return failureCount > 0
+
     case .collectAll:
       return false
+
     case .collectUpTo(let max):
       return failureCount >= max
     }
@@ -600,7 +603,7 @@ public actor AsyncPropertyRunner {
 
 // MARK: - Supporting Types
 
-private enum TaskResult: Sendable {
+private enum AsyncAsyncTaskResult: Sendable {
   case success(Int)
   case failure(AsyncPropertyFailure)
 }
@@ -615,10 +618,10 @@ private actor IsolatedPropertyExecutor {
     iteration: Int,
     concurrencyTracker: ConcurrencyTracker,
     executorType: String
-  ) async -> TaskResult {
+  ) async -> AsyncTaskResult {
     // Implementation similar to AsyncPropertyRunner.executeIteration
     // but executed within this isolated actor
-    return .success(iteration)
+    .success(iteration)
   }
 }
 

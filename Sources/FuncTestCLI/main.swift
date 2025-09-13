@@ -34,18 +34,25 @@ struct FuncTestCLI {
     switch command {
     case "run":
       await runTests(args: Array(args.dropFirst(2)))
+
     case "report":
       await generateReport(args: Array(args.dropFirst(2)))
+
     case "corpus":
       await manageCorpus(args: Array(args.dropFirst(2)))
+
     case "benchmark":
       await runBenchmarks(args: Array(args.dropFirst(2)))
+
     case "interactive":
       await runInteractive()
+
     case "version":
       printVersion()
+
     case "help", "--help", "-h":
       printHelp()
+
     default:
       print("Unknown command: \(command)")
       printHelp()
@@ -88,14 +95,19 @@ extension FuncTestCLI {
     switch subcommand {
     case "list":
       await listCorpusEntries()
+
     case "clear":
       await clearCorpus()
+
     case "stats":
       await showCorpusStats()
+
     case "export":
       await exportCorpus(path: args.count > 1 ? args[1] : "corpus.json")
+
     case "import":
       await importCorpus(path: args.count > 1 ? args[1] : "corpus.json")
+
     default:
       print("Unknown corpus command: \(subcommand)")
     }
@@ -143,7 +155,7 @@ struct TestConfig {
   let patterns: [String]
   let excludePatterns: [String]
 
-  static let `default` = TestConfig(
+  static let `default` = Self(
     iterations: 100,
     maxShrinks: 1000,
     timeout: 30.0,
@@ -194,6 +206,7 @@ extension FuncTestCLI {
           )
           i += 1
         }
+
       case "--max-shrinks", "-s":
         if i + 1 < args.count, let shrinks = Int(args[i + 1]) {
           config = TestConfig(
@@ -207,6 +220,7 @@ extension FuncTestCLI {
           )
           i += 1
         }
+
       case "--timeout", "-t":
         if i + 1 < args.count, let timeout = TimeInterval(args[i + 1]) {
           config = TestConfig(
@@ -220,6 +234,7 @@ extension FuncTestCLI {
           )
           i += 1
         }
+
       case "--report", "-r":
         if i + 1 < args.count {
           config = TestConfig(
@@ -233,6 +248,7 @@ extension FuncTestCLI {
           )
           i += 1
         }
+
       case "--verbose", "-v":
         config = TestConfig(
           iterations: config.iterations,
@@ -243,6 +259,7 @@ extension FuncTestCLI {
           patterns: config.patterns,
           excludePatterns: config.excludePatterns
         )
+
       default:
         if arg.hasPrefix("--") {
           print("Warning: Unknown option \(arg)")
@@ -271,15 +288,19 @@ extension FuncTestCLI {
           outputPath = args[i + 1]
           i += 1
         }
+
       case "--format", "-f":
         if i + 1 < args.count, let f = ReportConfig.ReportFormat(rawValue: args[i + 1]) {
           format = f
           i += 1
         }
+
       case "--include-corpus":
         includeCorpus = true
+
       case "--no-stats":
         includeStats = false
+
       default:
         break
       }
@@ -298,8 +319,8 @@ extension FuncTestCLI {
   static func parseBenchmarkConfig(from args: [String]) -> BenchmarkConfig {
     var iterations = [10, 50, 100, 500, 1000]
     var sizes = [1, 5, 10, 50, 100]
-    var outputPath: String? = nil
-    var compareBaseline: String? = nil
+    var outputPath: String?
+    var compareBaseline: String?
 
     var i = 0
     while i < args.count {
@@ -311,21 +332,25 @@ extension FuncTestCLI {
           iterations = args[i + 1].split(separator: ",").compactMap { Int($0) }
           i += 1
         }
+
       case "--sizes":
         if i + 1 < args.count {
           sizes = args[i + 1].split(separator: ",").compactMap { Int($0) }
           i += 1
         }
+
       case "--output", "-o":
         if i + 1 < args.count {
           outputPath = args[i + 1]
           i += 1
         }
+
       case "--compare":
         if i + 1 < args.count {
           compareBaseline = args[i + 1]
           i += 1
         }
+
       default:
         break
       }
@@ -380,11 +405,13 @@ extension FuncTestCLI {
     case .success(let iterations):
       passedTests += 1
       print("✅ PASSED (\(iterations) iterations)")
+
     case .failure(let counterexample, let iterations, let shrunk):
       failedTests += 1
       print("❌ FAILED after \(iterations) iterations")
       print("   Counterexample: \(counterexample)")
       print("   Shrunk to: \(shrunk)")
+
     case .gaveUp(let iterations):
       print("⚠️  GAVE UP after \(iterations) iterations")
     }
@@ -403,11 +430,13 @@ extension FuncTestCLI {
     case .success(let iterations):
       passedTests += 1
       print("✅ PASSED (\(iterations) iterations)")
+
     case .failure(let counterexample, let iterations, let shrunk):
       failedTests += 1
       print("❌ FAILED after \(iterations) iterations")
       print("   Counterexample: \(counterexample)")
       print("   Shrunk to: \(shrunk)")
+
     case .gaveUp(let iterations):
       print("⚠️  GAVE UP after \(iterations) iterations")
     }
@@ -490,8 +519,10 @@ extension FuncTestCLI {
         switch result {
         case .success:
           print("   Result: ✅ PASSED")
+
         case .failure:
           print("   Result: ❌ FAILED")
+
         case .gaveUp:
           print("   Result: ⚠️  GAVE UP")
         }
@@ -511,14 +542,19 @@ extension FuncTestCLI {
     switch cmd {
     case "help":
       printInteractiveHelp()
+
     case "gen":
       await handleGeneratorCommand(parts: Array(parts.dropFirst()))
+
     case "test":
       await handleTestCommand(parts: Array(parts.dropFirst()))
+
     case "stats":
       await showCorpusStats()
+
     case "clear":
       print("Console cleared! 🧹")
+
     default:
       print("Unknown command: \(cmd). Type 'help' for available commands.")
     }
@@ -541,16 +577,19 @@ extension FuncTestCLI {
         let value = Gen.int.generate(&SystemRandomNumberGenerator(), Size(10))
         print("  \(i). \(value)")
       }
+
     case "string":
       for i in 1...count {
         let value = Gen.string.generate(&SystemRandomNumberGenerator(), Size(10))
         print("  \(i). \"\(value)\"")
       }
+
     case "array":
       for i in 1...count {
         let value = Gen.array(Gen.int).generate(&SystemRandomNumberGenerator(), Size(5))
         print("  \(i). \(value)")
       }
+
     default:
       print("Generator type '\(generatorType)' not implemented in interactive mode yet.")
     }
@@ -596,10 +635,12 @@ extension FuncTestCLI {
     switch result {
     case .success(let iterations):
       print("✅ \(propertyName) PASSED (\(iterations) iterations)")
+
     case .failure(let counterexample, let iterations, let shrunk):
       print("❌ \(propertyName) FAILED after \(iterations) iterations")
       print("   Counterexample: \(counterexample)")
       print("   Shrunk to: \(shrunk)")
+
     case .gaveUp(let iterations):
       print("⚠️  \(propertyName) GAVE UP after \(iterations) iterations")
     }
@@ -701,7 +742,7 @@ extension FuncTestCLI {
 
     switch format {
     case .json:
-      let json: [String: Any] = [
+      let json: [String: AnySendable] = [
         "timestamp": formatter.string(from: report.timestamp),
         "totalTests": report.totalTests,
         "passedTests": report.passedTests,
@@ -790,7 +831,7 @@ extension FuncTestCLI {
   }
 
   static func generateCorpusStats() -> String {
-    return "Corpus statistics placeholder"
+    "Corpus statistics placeholder"
   }
 
   static func saveReport(
@@ -907,6 +948,6 @@ extension FuncTestCLI {
 
 extension String {
   static func * (string: String, count: Int) -> String {
-    return String(repeating: string, count: count)
+    String(repeating: string, count: count)
   }
 }

@@ -97,6 +97,7 @@ public enum TestResult: String, Codable, Sendable {
     switch self {
     case .passed, .skipped:
       return false
+
     case .failed, .timeout, .error:
       return true
     }
@@ -154,7 +155,7 @@ public struct ExecutionEnvironment: Codable, Sendable {
 }
 
 /// **Flake detection statistics**
-public struct FlakeStatistics: Sendable {
+public struct FlakeStatistics: Sendable, Codable {
   /// Total number of executions
   public let totalExecutions: Int
 
@@ -278,7 +279,7 @@ public struct FlakeStatistics: Sendable {
 }
 
 /// **Pattern analysis in flaky test behavior**
-public struct FlakePatterns: Sendable {
+public struct FlakePatterns: Sendable, Codable {
   /// Tendency to fail in CI vs local environments
   public let ciFailureRate: Double
   public let localFailureRate: Double
@@ -449,8 +450,7 @@ public struct ResourceCorrelation: Sendable {
 // MARK: - Flake Hunter Actor
 
 /// **Main Flake Hunter system**
-@available(macOS 13.0, iOS 16.0, tvOS 16.0, watchOS 9.0, *)
-public actor FlakeHunter: Sendable {
+public actor FlakeHunter {
 
   // MARK: - Configuration
 
@@ -632,13 +632,13 @@ public actor FlakeHunter: Sendable {
   /// - Parameter testId: Test identifier
   /// - Returns: Quarantine record if test is quarantined
   public func getQuarantineRecord(for testId: String) -> QuarantineRecord? {
-    return quarantinedTests[testId]
+    quarantinedTests[testId]
   }
 
   /// **Get all quarantined tests**
   /// - Returns: Dictionary of quarantined tests and their records
   public func getAllQuarantinedTests() -> [String: QuarantineRecord] {
-    return quarantinedTests
+    quarantinedTests
   }
 
   /// **Manually quarantine a test**
@@ -695,7 +695,7 @@ public actor FlakeHunter: Sendable {
     }
 
     // Sort by flakiness score descending
-    testReports.sort { (a, b) in
+    testReports.sort { a, b in
       let aScore = a.statistics?.flakinessScore ?? 0.0
       let bScore = b.statistics?.flakinessScore ?? 0.0
       return aScore > bScore
@@ -954,8 +954,10 @@ extension PropertyResult {
     switch self {
     case .success:
       return .passed
+
     case .failure:
       return .failed
+
     case .gaveUp:
       return .skipped
     }
@@ -999,7 +1001,7 @@ private func correlation(_ x: [Double], _ y: [Double]) -> Double {
   let xMean = x.average()
   let yMean = y.average()
 
-  let numerator = zip(x, y).map { (xi, yi) in (xi - xMean) * (yi - yMean) }.reduce(0, +)
+  let numerator = zip(x, y).map { xi, yi in (xi - xMean) * (yi - yMean) }.reduce(0, +)
   let xVariance = x.map { ($0 - xMean) * ($0 - xMean) }.reduce(0, +)
   let yVariance = y.map { ($0 - yMean) * ($0 - yMean) }.reduce(0, +)
 

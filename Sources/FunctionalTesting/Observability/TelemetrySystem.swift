@@ -28,8 +28,7 @@ import os
 /// - [Statistical Process Control](https://en.wikipedia.org/wiki/Statistical_process_control)
 /// - [Performance Monitoring Best Practices](https://sre.google/sre-book/monitoring-distributed-systems/)
 
-@available(macOS 13.0, iOS 16.0, tvOS 16.0, watchOS 9.0, *)
-public actor TelemetrySystem: Sendable {
+public actor TelemetrySystem {
 
   // MARK: - Types and Configuration
 
@@ -83,7 +82,7 @@ public actor TelemetrySystem: Sendable {
   }
 
   /// **Telemetry event types**
-  public enum EventType: String, CaseIterable, Sendable {
+  public enum EventType: String, CaseIterable, Sendable, Codable {
     case testStart = "test.start"
     case testComplete = "test.complete"
     case testFailure = "test.failure"
@@ -250,7 +249,7 @@ public actor TelemetrySystem: Sendable {
 
   private let config: Config
   private var eventBuffer: [TelemetryEvent] = []
-  private var lastFlush: Date = Date()
+  private var lastFlush = Date()
   private let logger = Logger(subsystem: "FunctionalTesting", category: "Telemetry")
   private var activeTraces: [String: TraceContext] = [:]
   private var resourceMonitorTask: Task<Void, Never>?
@@ -288,7 +287,9 @@ public actor TelemetrySystem: Sendable {
     decoder.dateDecodingStrategy = .iso8601
 
     if config.enabled {
-      startBackgroundTasks()
+      Task {
+        await startBackgroundTasks()
+      }
     }
   }
 
@@ -428,6 +429,11 @@ public actor TelemetrySystem: Sendable {
         parentSpanId: context.parentSpanId
       )
     )
+  }
+
+  /// **Check if resource monitoring is enabled**
+  public func isResourceMonitoringEnabled() -> Bool {
+    config.enableResourceMonitoring
   }
 
   /// **Record performance metrics**
@@ -645,7 +651,7 @@ public actor TelemetrySystem: Sendable {
     logger.info("📊 Event Summary: \(summary)")
   }
 
-  private func captureResourceSnapshot() -> ResourceSnapshot {
+  public func captureResourceSnapshot() -> ResourceSnapshot {
     let processInfo = ProcessInfo.processInfo
 
     // This is a simplified implementation
@@ -718,7 +724,6 @@ public struct TelemetryStatistics: Codable, Sendable {
 
 // MARK: - PropertyRunner Integration
 
-@available(macOS 13.0, iOS 16.0, tvOS 16.0, watchOS 9.0, *)
 extension PropertyRunner {
 
   /// **Run property test with full telemetry integration**
@@ -734,7 +739,7 @@ extension PropertyRunner {
       tags: [
         "property_type": String(describing: T.self),
         "iterations": "\(config.iterations)",
-        "timeout": "\(config.timeout)",
+          // Note: PropertyConfig doesn't have a timeout property, removing this line
       ].merging(tags) { _, new in new }
     )
 
@@ -742,12 +747,12 @@ extension PropertyRunner {
     var resourceStart: TelemetrySystem.ResourceSnapshot?
 
     // Capture initial resource state
-    if await telemetry.config.enableResourceMonitoring {
+    if await telemetry.isResourceMonitoringEnabled() {
       resourceStart = await telemetry.captureResourceSnapshot()
     }
 
     // Run the property test
-    let result = await runProperty(property, config: config)
+    let result = runProperty(property, config: config)
 
     let endTime = Date()
     let duration = endTime.timeIntervalSince(startTime)
@@ -796,13 +801,13 @@ extension PropertyRunner {
         tags: tags
       )
 
-    case .gaveUp(let iterations):
+    case .gaveUp(let discarded, let iterations):
       await telemetry.recordEvent(
         TelemetrySystem.TelemetryEvent(
           type: .testComplete,
           duration: duration,
           tags: ["result": "gave_up"].merging(tags) { _, new in new },
-          metrics: ["iterations_completed": Double(iterations)],
+          metrics: ["iterations_completed": Double(iterations), "discarded": Double(discarded)],
           traceId: traceId
         )
       )
@@ -815,12 +820,3 @@ extension PropertyRunner {
 }
 
 // MARK: - Utility Extensions
-
-private extension PropertyResult {
-  var isSuccess: Bool {
-    switch self {
-    case .success: return true
-    case .failure, .gaveUp: return false
-    }
-  }
-}

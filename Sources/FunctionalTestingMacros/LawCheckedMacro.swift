@@ -523,7 +523,7 @@ private func generateLawTests(
 
   // Generate tests for built-in laws
   for law in config.laws {
-    let lawTests = try generateLawTests(for: law, structure: structure, config: config)
+    let lawTests = try generateLawTestsForSpecificLaw(law, structure: structure, config: config)
     tests.append(contentsOf: lawTests)
   }
 
@@ -541,8 +541,8 @@ private func generateLawTests(
   return tests
 }
 
-private func generateLawTests(
-  for law: MathematicalLaw,
+private func generateLawTestsForSpecificLaw(
+  _ law: MathematicalLaw,
   structure: MathematicalStructure,
   config: LawCheckedConfig
 ) throws -> [DeclSyntax] {
@@ -715,7 +715,7 @@ private func generateApplicativeCompositionLaw(
         let property = Property<(\(typeName), \(typeName), \(typeName))>(
             generator: Gen.zip3(\(typeName).gen, \(typeName).gen, \(typeName).gen),
             predicate: { (u, v, w) in
-                let compose: (Any) -> (Any) -> (Any) -> Any = { f in { g in { x in f(g(x)) } } }
+                let compose: (AnySendable) -> (AnySendable) -> (AnySendable) -> AnySendable = { f in { g in { x in f(g(x)) } } }
                 let left = \(typeName).pure(compose).apply(u).apply(v).apply(w)
                 let right = u.apply(v.apply(w))
                 return left == right

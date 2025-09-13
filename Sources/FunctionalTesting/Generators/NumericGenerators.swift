@@ -376,7 +376,6 @@ extension Gen where T == Double {
 }
 
 #if !os(watchOS)  // Float16 is not available on watchOS
-@available(macOS 11.0, iOS 14.0, tvOS 14.0, *)
 extension Gen where T == Float16 {
   /// Generate Float16 with comprehensive edge cases
   public static var float16: Gen<Float16> {

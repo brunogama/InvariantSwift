@@ -78,10 +78,13 @@ public enum PropertyTestError: Error, CustomStringConvertible {
     switch self {
     case .onlyApplicableToFunction:
       return "@PropertyTest can only be applied to functions"
+
     case .noParameters:
       return "@PropertyTest requires functions to have at least one parameter"
+
     case .cannotInferParameterType(let paramName):
       return "Cannot infer generator type for parameter '\(paramName)'"
+
     case .invalidConfiguration(let message):
       return "Invalid @PropertyTest configuration: \(message)"
     }

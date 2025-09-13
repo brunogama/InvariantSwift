@@ -6,20 +6,13 @@
 
 import Foundation
 
+// Import the consolidated identifier system
+// ThreadID is now defined in IdentifierTypes.swift
+
 // MARK: - Core Types
 
-/// Unique identifier for threads in concurrent execution
-public struct ThreadID: Sendable, Hashable, CustomStringConvertible {
-  public let value: UInt64
-
-  public init(_ value: UInt64) {
-    self.value = value
-  }
-
-  public var description: String {
-    "Thread(\(value))"
-  }
-}
+// Note: ThreadID is now imported from IdentifierTypes.swift
+// This eliminates code duplication while maintaining the same API
 
 /// Context information for operations
 public struct OperationContext: Sendable, Hashable {
@@ -164,14 +157,14 @@ public struct CheckerConfig: Sendable {
     self.debugMode = debugMode
   }
 
-  public static let fast = CheckerConfig(
+  public static let fast = Self(
     maxSearchSteps: 10000,
     maxSearchTime: .seconds(5),
     enableOptimizations: true,
     enableStateCompression: true
   )
 
-  public static let thorough = CheckerConfig(
+  public static let thorough = Self(
     maxSearchSteps: 1_000_000,
     maxSearchTime: .seconds(120),
     enableOptimizations: true,
@@ -223,7 +216,7 @@ public struct SearchState<Model>: Sendable where Model: Sendable {
     var newSequence = executedSequence
     newSequence.append(operation.id)
 
-    return SearchState(
+    return Self(
       remainingOps: newRemaining,
       currentState: newState,
       executedSequence: newSequence,
@@ -706,27 +699,30 @@ extension Spec {
           let oldValue = state
           state += delta
           return oldValue
+
         case .decrement(let delta):
           let oldValue = state
           state -= delta
           return oldValue
+
         case .get:
           return state
         }
       },
-      precondition: { state, op in
+      precondition: { _, _ in
         // All operations are always valid for counter
-        return true
+        true
       },
-      postcondition: { state, result in
+      postcondition: { _, _ in
         // All results are valid for counter
-        return true
+        true
       },
-      commutes: { state, op1, op2 in
+      commutes: { _, op1, op2 in
         // Only get operations commute with everything
         switch (op1, op2) {
         case (.get, _), (_, .get):
           return true
+
         default:
           return false
         }
@@ -744,10 +740,12 @@ extension Spec {
           let wasPresent = state.contains(element)
           state.insert(element)
           return .addResult(!wasPresent)
+
         case .remove(let element):
           let wasPresent = state.contains(element)
           state.remove(element)
           return .removeResult(wasPresent)
+
         case .contains(let element):
           return .containsResult(state.contains(element))
         }
@@ -766,8 +764,10 @@ public enum CounterOp: Sendable, Equatable, CustomStringConvertible {
     switch self {
     case .increment(let delta):
       return "increment(\(delta))"
+
     case .decrement(let delta):
       return "decrement(\(delta))"
+
     case .get:
       return "get"
     }

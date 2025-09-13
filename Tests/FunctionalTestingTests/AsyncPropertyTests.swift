@@ -8,10 +8,9 @@ struct AsyncPropertyTests {
   // MARK: - PropertyRunner Async Execution with Different Seeds (Task 6)
 
   @Test("PropertyRunner async execution - deterministic with seed")
-  @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
   func propertyRunnerAsyncExecutionDeterministicWithSeed() async throws {
     let property = Property<Int>(generator: Gen.int) { _ in
-      return true  // Always pass
+      true  // Always pass
     }
 
     let seed = Seed(value: 12345)
@@ -25,6 +24,7 @@ struct AsyncPropertyTests {
     switch (result1, result2) {
     case (.success(let iter1), .success(let iter2)):
       #expect(iter1 == iter2, "Same seed should produce consistent iteration counts")
+
     default:
       #expect(true, "Async execution with seed completed")
     }
@@ -34,7 +34,7 @@ struct AsyncPropertyTests {
   func propertyRunnerAsyncExecutionDifferentSeeds() async throws {
     let property = Property<Int>(generator: Gen.int) { value in
       // Property that might fail for some values
-      return abs(value) < 1_000_000
+      abs(value) < 1_000_000
     }
 
     let runner1 = PropertyRunner(seed: Seed(value: 111))
@@ -49,6 +49,7 @@ struct AsyncPropertyTests {
     switch (result1, result2, result3) {
     case (.success, .success, .success):
       #expect(true, "All async executions with different seeds succeeded")
+
     default:
       #expect(true, "Async executions with different seeds completed")
     }
@@ -57,7 +58,7 @@ struct AsyncPropertyTests {
   @Test("PropertyRunner async execution - no seed (random)")
   func propertyRunnerAsyncExecutionNoSeed() async throws {
     let property = Property<String>(generator: Gen.string) { _ in
-      return true  // Always pass
+      true  // Always pass
     }
 
     let runner = PropertyRunner(seed: nil)
@@ -66,6 +67,7 @@ struct AsyncPropertyTests {
     switch result {
     case .success(let iterations):
       #expect(iterations == 25, "Should complete all iterations")
+
     case .failure, .gaveUp:
       Issue.record("Unexpected result from simple property")
     }
@@ -76,15 +78,15 @@ struct AsyncPropertyTests {
   @Test("Concurrent property execution - multiple properties")
   func concurrentPropertyExecutionMultipleProperties() async throws {
     let property1 = Property<Int>(generator: Gen.int) { value in
-      return value >= Int.min && value <= Int.max
+      value >= Int.min && value <= Int.max
     }
 
     let property2 = Property<String>(generator: Gen.string) { value in
-      return value.count >= 0
+      value.isEmpty
     }
 
     let property3 = Property<Bool>(generator: Gen.bool) { value in
-      return value == true || value == false
+      value == true || value == false
     }
 
     // Execute multiple properties concurrently
@@ -107,6 +109,7 @@ struct AsyncPropertyTests {
     switch (r1, r2, r3) {
     case (.success, .success, .success):
       #expect(true, "Concurrent execution succeeded")
+
     default:
       #expect(true, "Concurrent execution completed")
     }
@@ -115,7 +118,7 @@ struct AsyncPropertyTests {
   @Test("Concurrent property execution - same property multiple runners")
   func concurrentPropertyExecutionSamePropertyMultipleRunners() async throws {
     let property = Property<Double>(generator: Gen.double) { value in
-      return value.isFinite || value.isInfinite || value.isNaN
+      value.isFinite || value.isInfinite || value.isNaN
     }
 
     // Run the same property with multiple runners concurrently
@@ -143,7 +146,7 @@ struct AsyncPropertyTests {
   @Test("Concurrent property execution - stress test")
   func concurrentPropertyExecutionStressTest() async throws {
     let property = Property<Int>(generator: Gen.int(in: 1...100)) { _ in
-      return true  // Simple always-passing property
+      true  // Simple always-passing property
     }
 
     // Create many concurrent property executions
@@ -179,7 +182,7 @@ struct AsyncPropertyTests {
   func asyncPropertyFailureHandlingWithShrinking() async throws {
     let property = Property<Int>(generator: Gen.int) { value in
       // Property that should fail for large values
-      return abs(value) < 10
+      abs(value) < 10
     }
 
     let runner = PropertyRunner(seed: Seed(value: 42))
@@ -203,6 +206,7 @@ struct AsyncPropertyTests {
 
     case .success:
       Issue.record("Expected failure but got success")
+
     case .gaveUp:
       #expect(true, "Property gave up, which is acceptable")
     }
@@ -212,7 +216,7 @@ struct AsyncPropertyTests {
   func asyncPropertyFailureHandlingMultipleFailures() async throws {
     let failingProperty = Property<String>(generator: Gen.string) { value in
       // Property that fails for non-empty strings
-      return value.isEmpty
+      value.isEmpty
     }
 
     // Run multiple failing properties concurrently
@@ -247,7 +251,7 @@ struct AsyncPropertyTests {
   func asyncPropertyShrinkingEffectiveness() async throws {
     let property = Property<[Int]>(generator: Gen.array(Gen.int)) { array in
       // Property that fails for arrays containing the value 42
-      return !array.contains(42)
+      !array.contains(42)
     }
 
     let runner = PropertyRunner()
@@ -276,6 +280,7 @@ struct AsyncPropertyTests {
 
     case .success:
       #expect(true, "Property passed (didn't generate arrays containing 42)")
+
     case .gaveUp:
       #expect(true, "Property gave up")
     }
@@ -287,7 +292,7 @@ struct AsyncPropertyTests {
   func asyncPropertyWithTaskCancellation() async throws {
     let property = Property<Int>(generator: Gen.int) { _ in
       // Simple property that should complete quickly
-      return true
+      true
     }
 
     // Test that property execution can be cancelled
@@ -312,7 +317,7 @@ struct AsyncPropertyTests {
   @Test("Async property timeout simulation")
   func asyncPropertyTimeoutSimulation() async throws {
     let property = Property<Int>(generator: Gen.int) { value in
-      return abs(value) < 1_000_000  // Should generally pass quickly
+      abs(value) < 1_000_000  // Should generally pass quickly
     }
 
     // Simulate timeout by racing with a timeout task
@@ -343,8 +348,10 @@ struct AsyncPropertyTests {
     switch result {
     case .success:
       #expect(true, "Property completed before timeout")
+
     case .failure:
       #expect(true, "Property failed before timeout")
+
     case .gaveUp:
       #expect(true, "Property gave up or timed out")
     }
@@ -363,14 +370,14 @@ struct AsyncPropertyTests {
       }
 
       func getValue() -> Int {
-        return value
+        value
       }
     }
 
     let counter = Counter()
 
     let property = Property<Int>(generator: Gen.int(in: 1...10)) { incrementCount in
-      return incrementCount > 0
+      incrementCount > 0
     }
 
     // Test property that interacts with actor
@@ -400,7 +407,7 @@ struct AsyncPropertyTests {
       }
 
       func getCount(key: String) -> Int {
-        return counters[key, default: 0]
+        counters[key, default: 0]
       }
     }
 
@@ -432,6 +439,7 @@ struct AsyncPropertyTests {
       let count1 = await sharedState.getCount(key: "test1")
       let count2 = await sharedState.getCount(key: "test2")
       #expect(count1 >= 0 && count2 >= 0, "Actor state maintained during concurrent access")
+
     default:
       #expect(true, "Concurrent actor access during property testing completed")
     }
@@ -442,7 +450,7 @@ struct AsyncPropertyTests {
   @Test("Swift Testing async integration - checkPropertyAsync")
   func swiftTestingAsyncIntegrationCheckPropertyAsync() async throws {
     let property = Property<Float>(generator: Gen.float) { value in
-      return value.isFinite || value.isInfinite || value.isNaN
+      value.isFinite || value.isInfinite || value.isNaN
     }
 
     // Test the integration function directly
@@ -469,7 +477,7 @@ struct AsyncPropertyTests {
   func swiftTestingAsyncIntegrationFailureScenario() async throws {
     let failingProperty = Property<Int>(generator: Gen.int) { value in
       // Property that should fail for most values
-      return value == 42
+      value == 42
     }
 
     do {
@@ -495,6 +503,7 @@ struct AsyncPropertyTests {
     switch result {
     case .success(let iterations):
       #expect(iterations == 10000, "Should complete all iterations even with large count")
+
     case .failure, .gaveUp:
       Issue.record("Unexpected result for large iteration count test")
     }
@@ -514,7 +523,7 @@ struct AsyncPropertyTests {
       let floatVal = nested.1
 
       // Complex property validation
-      return intVal >= Int.min && stringVal.count >= 0 && (boolVal == true || boolVal == false)
+      return intVal >= Int.min && stringVal.isEmpty && (boolVal == true || boolVal == false)
         && (floatVal.isFinite || floatVal.isInfinite || floatVal.isNaN)
     }
 
@@ -526,6 +535,7 @@ struct AsyncPropertyTests {
     switch result {
     case .success:
       #expect(true, "Complex async property generation succeeded")
+
     case .failure, .gaveUp:
       #expect(true, "Complex async property generation completed")
     }
@@ -535,7 +545,7 @@ struct AsyncPropertyTests {
   func asyncPropertyMemoryUsageUnderLoad() async throws {
     let property = Property<[String]>(generator: Gen.array(Gen.string)) { array in
       // Test with potentially large arrays
-      return array.count >= 0
+      array.isEmpty
     }
 
     // Run multiple concurrent property tests to check memory usage
@@ -554,6 +564,7 @@ struct AsyncPropertyTests {
       switch result {
       case .success:
         continue
+
       default:
         allSucceeded = false
       }

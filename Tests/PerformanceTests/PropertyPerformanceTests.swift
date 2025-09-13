@@ -171,7 +171,6 @@ struct PropertyPerformanceTests {
   // MARK: - Concurrent Performance Tests (Task 10)
 
   @Test("Concurrent performance - parallel property execution")
-  @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
   func concurrentPerformanceParallelPropertyExecution() async {
     let property = Property<Int>(generator: Gen.int) { _ in true }
     let config = PropertyConfig(iterations: 100)

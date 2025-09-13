@@ -62,7 +62,6 @@ public func checkProperty<T: Sendable>(
 }
 
 /// Async version of checkProperty for concurrent property testing
-@available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
 public func checkPropertyAsync<T: Sendable>(
   _ property: Property<T>,
   config: PropertyConfig = .default,
@@ -94,15 +93,15 @@ public func checkPropertyAsync<T: Sendable>(
 
 /// Helper function to flatten nested tuples for multi-parameter properties
 public func flattenTuple<A, B, C>(_ tuple: ((A, B), C)) -> (A, B, C) {
-  return (tuple.0.0, tuple.0.1, tuple.1)
+  (tuple.0.0, tuple.0.1, tuple.1)
 }
 
 public func flattenTuple<A, B, C, D>(_ tuple: (((A, B), C), D)) -> (A, B, C, D) {
-  return (tuple.0.0.0, tuple.0.0.1, tuple.0.1, tuple.1)
+  (tuple.0.0.0, tuple.0.0.1, tuple.0.1, tuple.1)
 }
 
 public func flattenTuple<A, B, C, D, E>(_ tuple: ((((A, B), C), D), E)) -> (A, B, C, D, E) {
-  return (tuple.0.0.0.0, tuple.0.0.0.1, tuple.0.0.1, tuple.0.1, tuple.1)
+  (tuple.0.0.0.0, tuple.0.0.0.1, tuple.0.0.1, tuple.0.1, tuple.1)
 }
 
 // MARK: - Property Test Result Types
@@ -119,12 +118,14 @@ public func convertPropertyResult<T>(_ result: PropertyResult<T>) -> PropertyTes
   switch result {
   case .success(let iterations):
     return .success(iterations: iterations)
+
   case .failure(let counterexample, let iterations, let shrunk):
     return .failure(
       counterexample: "\(counterexample)",
       shrunk: "\(shrunk)",
       iterations: iterations
     )
+
   case .gaveUp(let discarded, let iterations):
     return .gaveUp(discarded: discarded, iterations: iterations)
   }
@@ -139,10 +140,10 @@ extension Gen {
   /// Create array generator for any element generator
   public static func array<Element>(_ elementGen: Gen<Element>) -> Gen<[Element]>
   where T == [Element] {
-    return Gen<[Element]>(
+    Gen<[Element]>(
       generate: { rng, size in
         let arraySize = Int.random(in: 0...min(size.value, 100), using: &rng)
-        return (0..<arraySize).map { _ in elementGen.generate(&rng, size.scaled(by: 0.8)) }
+        return (0..<arraySize).map { _ in elementGen.generate(&rng, Size.scale(by: 0.8)(size)) }
       },
       shrink: Shrink { array in
         if array.isEmpty {

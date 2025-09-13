@@ -5,7 +5,6 @@ import Testing
 ///
 /// Provides automated coverage measurement using llvm-cov with precise branch and line coverage calculation.
 /// This is the foundational infrastructure for achieving and maintaining 99%+ code coverage.
-@available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
 public actor LLVMCoverageRunner {
 
   /// Detailed coverage report with precise metrics
@@ -35,7 +34,7 @@ public actor LLVMCoverageRunner {
 
     /// Check if coverage meets the 99%+ target
     public var meetsTargetCoverage: Bool {
-      return linePercentage >= 99.0 && regionPercentage >= 95.0
+      linePercentage >= 99.0 && regionPercentage >= 95.0
     }
 
     /// Human-readable coverage summary
@@ -145,7 +144,7 @@ public actor LLVMCoverageRunner {
         "-o", "\(codecovPath)/default.profdata",
       ]
 
-    let _ = try await executeCommand(mergeCommand)
+    _ = try await executeCommand(mergeCommand)
   }
 
   /// Generate LLVM coverage report and parse results
@@ -332,7 +331,7 @@ public actor CoverageBaseline {
     current: LLVMCoverageRunner.CoverageReport,
     against baseline: LLVMCoverageRunner.CoverageReport
   ) -> Bool {
-    return current.linePercentage < baseline.linePercentage
+    current.linePercentage < baseline.linePercentage
       || current.regionPercentage < baseline.regionPercentage
   }
 

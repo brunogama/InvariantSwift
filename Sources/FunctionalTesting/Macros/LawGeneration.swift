@@ -8,6 +8,10 @@ import Foundation
 
 // MARK: - Law Generation Macros
 
+// MARK: - Law Generation Macros (Temporarily Disabled)
+// These macros are disabled until implementations are moved to FunctionalTestingMacros module
+
+/*
 /// Macro that generates functor law tests for a type
 @attached(member, names: arbitrary)
 public macro FunctorLaws() =
@@ -36,6 +40,7 @@ public macro deriveLaw<T>(_ expression: T) -> Property<T> =
 @attached(member, names: arbitrary)
 public macro AlgebraicLaws() =
   #externalMacro(module: "FunctionalTestingMacros", type: "AlgebraicLawsMacro")
+*/
 
 // MARK: - Functor Laws Implementation
 
@@ -81,7 +86,7 @@ public struct FunctorLawsMacro: MemberMacro {
           return Property(
               forAll: Gen<\(raw: typeName)\(raw: genericConstraints)>.arbitrary,
               check: { functor in
-                  let identity: (Any) -> Any = { $0 }
+                  let identity: (AnySendable) -> AnySendable = { $0 }
                   let mapped = functor.fmap(identity)
                   return Self.functorEqual(mapped, functor)
               }
@@ -102,12 +107,12 @@ public struct FunctorLawsMacro: MemberMacro {
       """
       /// Functor Composition Law: fmap(g . f) = fmap(g) . fmap(f)
       /// Mapping a composition should be equivalent to composing mappings
-      public static func functorCompositionLaw\(raw: genericConstraints)() -> Property<(\(raw: typeName)\(raw: genericConstraints), (Any) -> Any, (Any) -> Any)> where \(raw: typeName): Functor {
+      public static func functorCompositionLaw\(raw: genericConstraints)() -> Property<(\(raw: typeName)\(raw: genericConstraints), (AnySendable) -> AnySendable, (AnySendable) -> AnySendable)> where \(raw: typeName): Functor {
           return Property(
               forAll: Gen.zip3(
                   Gen<\(raw: typeName)\(raw: genericConstraints)>.arbitrary,
-                  Gen<(Any) -> Any>.arbitrary,
-                  Gen<(Any) -> Any>.arbitrary
+                  Gen<(AnySendable) -> AnySendable>.arbitrary,
+                  Gen<(AnySendable) -> AnySendable>.arbitrary
               ),
               check: { (functor, f, g) in
                   let composed = { x in g(f(x)) }
@@ -131,10 +136,10 @@ public struct FunctorLawsMacro: MemberMacro {
     return DeclSyntax(
       """
       /// Complete functor law test suite
-      public static func allFunctorLaws\(raw: genericConstraints)() -> [Property<Any>] where \(raw: typeName): Functor {
+      public static func allFunctorLaws\(raw: genericConstraints)() -> [Property<AnySendable>] where \(raw: typeName): Functor {
           return [
-              functorIdentityLaw().contramap { _ in () as Any },
-              functorCompositionLaw().contramap { _ in () as Any }
+              functorIdentityLaw().contramap { _ in () as AnySendable },
+              functorCompositionLaw().contramap { _ in () as AnySendable }
           ]
       }
       """
@@ -186,7 +191,7 @@ public struct ApplicativeLawsMacro: MemberMacro {
           return Property(
               forAll: Gen<\(raw: typeName)\(raw: genericConstraints)>.arbitrary,
               check: { applicative in
-                  let identity: (Any) -> Any = { $0 }
+                  let identity: (AnySendable) -> AnySendable = { $0 }
                   let pureIdentity = \(raw: typeName).pure(identity)
                   let result = pureIdentity.apply(applicative)
                   return Self.applicativeEqual(result, applicative)
@@ -207,15 +212,15 @@ public struct ApplicativeLawsMacro: MemberMacro {
     return DeclSyntax(
       """
       /// Applicative Composition Law: pure(.) <*> u <*> v <*> w = u <*> (v <*> w)
-      public static func applicativeCompositionLaw\(raw: genericConstraints)() -> Property<(\(raw: typeName)<(Any) -> Any>, \(raw: typeName)<(Any) -> Any>, \(raw: typeName)\(raw: genericConstraints))> where \(raw: typeName): Applicative {
+      public static func applicativeCompositionLaw\(raw: genericConstraints)() -> Property<(\(raw: typeName)<(AnySendable) -> AnySendable>, \(raw: typeName)<(AnySendable) -> AnySendable>, \(raw: typeName)\(raw: genericConstraints))> where \(raw: typeName): Applicative {
           return Property(
               forAll: Gen.zip3(
-                  Gen<\(raw: typeName)<(Any) -> Any>>.arbitrary,
-                  Gen<\(raw: typeName)<(Any) -> Any>>.arbitrary,
+                  Gen<\(raw: typeName)<(AnySendable) -> AnySendable>>.arbitrary,
+                  Gen<\(raw: typeName)<(AnySendable) -> AnySendable>>.arbitrary,
                   Gen<\(raw: typeName)\(raw: genericConstraints)>.arbitrary
               ),
               check: { (u, v, w) in
-                  let compose: ((Any) -> Any) -> (Any) -> Any -> Any = { f in { g in { x in f(g(x)) } } }
+                  let compose: ((AnySendable) -> AnySendable) -> (AnySendable) -> AnySendable -> AnySendable = { f in { g in { x in f(g(x)) } } }
                   let pureCompose = \(raw: typeName).pure(compose)
                   
                   let leftSide = pureCompose.apply(u).apply(v).apply(w)
@@ -239,11 +244,11 @@ public struct ApplicativeLawsMacro: MemberMacro {
     return DeclSyntax(
       """
       /// Applicative Homomorphism Law: pure(f) <*> pure(x) = pure(f(x))
-      public static func applicativeHomomorphismLaw\(raw: genericConstraints)() -> Property<(Any, (Any) -> Any)> where \(raw: typeName): Applicative {
+      public static func applicativeHomomorphismLaw\(raw: genericConstraints)() -> Property<(AnySendable, (AnySendable) -> AnySendable)> where \(raw: typeName): Applicative {
           return Property(
               forAll: Gen.zip(
-                  Gen<Any>.arbitrary,
-                  Gen<(Any) -> Any>.arbitrary
+                  Gen<AnySendable>.arbitrary,
+                  Gen<(AnySendable) -> AnySendable>.arbitrary
               ),
               check: { (x, f) in
                   let leftSide = \(raw: typeName).pure(f).apply(\(raw: typeName).pure(x))
@@ -266,15 +271,15 @@ public struct ApplicativeLawsMacro: MemberMacro {
     return DeclSyntax(
       """
       /// Applicative Interchange Law: u <*> pure(y) = pure($ y) <*> u
-      public static func applicativeInterchangeLaw\(raw: genericConstraints)() -> Property<(\(raw: typeName)<(Any) -> Any>, Any)> where \(raw: typeName): Applicative {
+      public static func applicativeInterchangeLaw\(raw: genericConstraints)() -> Property<(\(raw: typeName)<(AnySendable) -> AnySendable>, AnySendable)> where \(raw: typeName): Applicative {
           return Property(
               forAll: Gen.zip(
-                  Gen<\(raw: typeName)<(Any) -> Any>>.arbitrary,
-                  Gen<Any>.arbitrary
+                  Gen<\(raw: typeName)<(AnySendable) -> AnySendable>>.arbitrary,
+                  Gen<AnySendable>.arbitrary
               ),
               check: { (u, y) in
                   let leftSide = u.apply(\(raw: typeName).pure(y))
-                  let flip: ((Any) -> Any) -> Any = { f in f(y) }
+                  let flip: ((AnySendable) -> AnySendable) -> AnySendable = { f in f(y) }
                   let rightSide = \(raw: typeName).pure(flip).apply(u)
                   return Self.applicativeEqual(leftSide, rightSide)
               }
@@ -294,12 +299,12 @@ public struct ApplicativeLawsMacro: MemberMacro {
     return DeclSyntax(
       """
       /// Complete applicative law test suite
-      public static func allApplicativeLaws\(raw: genericConstraints)() -> [Property<Any>] where \(raw: typeName): Applicative {
+      public static func allApplicativeLaws\(raw: genericConstraints)() -> [Property<AnySendable>] where \(raw: typeName): Applicative {
           return [
-              applicativeIdentityLaw().contramap { _ in () as Any },
-              applicativeCompositionLaw().contramap { _ in () as Any },
-              applicativeHomomorphismLaw().contramap { _ in () as Any },
-              applicativeInterchangeLaw().contramap { _ in () as Any }
+              applicativeIdentityLaw().contramap { _ in () as AnySendable },
+              applicativeCompositionLaw().contramap { _ in () as AnySendable },
+              applicativeHomomorphismLaw().contramap { _ in () as AnySendable },
+              applicativeInterchangeLaw().contramap { _ in () as AnySendable }
           ]
       }
       """
@@ -346,11 +351,11 @@ public struct MonadLawsMacro: MemberMacro {
     return DeclSyntax(
       """
       /// Monad Left Identity Law: return a >>= k = k a
-      public static func monadLeftIdentityLaw\(raw: genericConstraints)() -> Property<(Any, (Any) -> \(raw: typeName)\(raw: genericConstraints))> where \(raw: typeName): Monad {
+      public static func monadLeftIdentityLaw\(raw: genericConstraints)() -> Property<(AnySendable, (AnySendable) -> \(raw: typeName)\(raw: genericConstraints))> where \(raw: typeName): Monad {
           return Property(
               forAll: Gen.zip(
-                  Gen<Any>.arbitrary,
-                  Gen<(Any) -> \(raw: typeName)\(raw: genericConstraints)>.arbitrary
+                  Gen<AnySendable>.arbitrary,
+                  Gen<(AnySendable) -> \(raw: typeName)\(raw: genericConstraints)>.arbitrary
               ),
               check: { (a, k) in
                   let leftSide = \(raw: typeName).pure(a).flatMap(k)
@@ -396,12 +401,12 @@ public struct MonadLawsMacro: MemberMacro {
     return DeclSyntax(
       """
       /// Monad Associativity Law: (m >>= f) >>= g = m >>= (\\x -> f x >>= g)
-      public static func monadAssociativityLaw\(raw: genericConstraints)() -> Property<(\(raw: typeName)\(raw: genericConstraints), (Any) -> \(raw: typeName)<Any>, (Any) -> \(raw: typeName)\(raw: genericConstraints))> where \(raw: typeName): Monad {
+      public static func monadAssociativityLaw\(raw: genericConstraints)() -> Property<(\(raw: typeName)\(raw: genericConstraints), (AnySendable) -> \(raw: typeName)<AnySendable>, (AnySendable) -> \(raw: typeName)\(raw: genericConstraints))> where \(raw: typeName): Monad {
           return Property(
               forAll: Gen.zip3(
                   Gen<\(raw: typeName)\(raw: genericConstraints)>.arbitrary,
-                  Gen<(Any) -> \(raw: typeName)<Any>>.arbitrary,
-                  Gen<(Any) -> \(raw: typeName)\(raw: genericConstraints)>.arbitrary
+                  Gen<(AnySendable) -> \(raw: typeName)<AnySendable>>.arbitrary,
+                  Gen<(AnySendable) -> \(raw: typeName)\(raw: genericConstraints)>.arbitrary
               ),
               check: { (m, f, g) in
                   let leftSide = m.flatMap(f).flatMap(g)
@@ -424,11 +429,11 @@ public struct MonadLawsMacro: MemberMacro {
     return DeclSyntax(
       """
       /// Complete monad law test suite
-      public static func allMonadLaws\(raw: genericConstraints)() -> [Property<Any>] where \(raw: typeName): Monad {
+      public static func allMonadLaws\(raw: genericConstraints)() -> [Property<AnySendable>] where \(raw: typeName): Monad {
           return [
-              monadLeftIdentityLaw().contramap { _ in () as Any },
-              monadRightIdentityLaw().contramap { _ in () as Any },
-              monadAssociativityLaw().contramap { _ in () as Any }
+              monadLeftIdentityLaw().contramap { _ in () as AnySendable },
+              monadRightIdentityLaw().contramap { _ in () as AnySendable },
+              monadAssociativityLaw().contramap { _ in () as AnySendable }
           ]
       }
       """
@@ -502,14 +507,14 @@ public struct CustomLawsMacro: MemberMacro {
     typeName: String,
     methods: [MethodSignature]
   ) -> DeclSyntax {
-    let lawCalls = methods.map { "\($0.name)Law().contramap { _ in () as Any }" }.joined(
+    let lawCalls = methods.map { "\($0.name)Law().contramap { _ in () as AnySendable }" }.joined(
       separator: ",\n                "
     )
 
     return DeclSyntax(
       """
       /// Complete custom law test suite
-      public static func allCustomLaws() -> [Property<Any>] {
+      public static func allCustomLaws() -> [Property<AnySendable>] {
           return [
               \(raw: lawCalls)
           ]
@@ -557,7 +562,7 @@ public struct DeriveLawMacro: ExpressionMacro {
     return """
       Property(
           forAll: Gen.zip\(argCount)(
-              \(String(repeating: "Gen<Any>.arbitrary", count: argCount).components(separatedBy: ", ").joined(separator: ", "))
+              \(String(repeating: "Gen<AnySendable>.arbitrary", count: argCount).components(separatedBy: ", ").joined(separator: ", "))
           ),
           check: { args in
               // Generated property for \(functionName)
@@ -573,7 +578,7 @@ public struct DeriveLawMacro: ExpressionMacro {
 
     return """
       Property(
-          forAll: Gen<Any>.arbitrary,
+          forAll: Gen<AnySendable>.arbitrary,
           check: { value in
               // Generated property for .\(memberName)
               return true
@@ -585,7 +590,7 @@ public struct DeriveLawMacro: ExpressionMacro {
   private static func generateGenericProperty(_ expr: ExprSyntax) -> String {
     """
     Property(
-        forAll: Gen<Any>.arbitrary,
+        forAll: Gen<AnySendable>.arbitrary,
         check: { _ in
             // Generated property for expression: \(expr.description)
             return true
@@ -727,19 +732,19 @@ public struct AlgebraicLawsMacro: MemberMacro {
     var testCalls: [String] = []
 
     if conformances.contains("Semigroup") {
-      testCalls.append("semigroupAssociativityLaw().contramap { _ in () as Any }")
+      testCalls.append("semigroupAssociativityLaw().contramap { _ in () as AnySendable }")
     }
 
     if conformances.contains("Monoid") {
-      testCalls.append("monoidIdentityLaw().contramap { _ in () as Any }")
+      testCalls.append("monoidIdentityLaw().contramap { _ in () as AnySendable }")
     }
 
     if conformances.contains("Group") {
-      testCalls.append("groupInverseLaw().contramap { _ in () as Any }")
+      testCalls.append("groupInverseLaw().contramap { _ in () as AnySendable }")
     }
 
     if conformances.contains("Ring") {
-      testCalls.append("ringDistributionLaw().contramap { _ in () as Any }")
+      testCalls.append("ringDistributionLaw().contramap { _ in () as AnySendable }")
     }
 
     let lawCalls = testCalls.isEmpty ? "" : testCalls.joined(separator: ",\n                ")
@@ -747,7 +752,7 @@ public struct AlgebraicLawsMacro: MemberMacro {
     return DeclSyntax(
       """
       /// Complete algebraic law test suite
-      public static func allAlgebraicLaws() -> [Property<Any>] {
+      public static func allAlgebraicLaws() -> [Property<AnySendable>] {
           return [
               \(raw: lawCalls)
           ]

@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - Array Generators
 
-extension Gen where T == [Any] {
+extension Gen where T == [AnySendable] {
   /// Generate arrays of any element type with comprehensive edge cases
   public static func array<Element>(_ elementGen: Gen<Element>) -> Gen<[Element]> {
     Gen<[Element]>(
@@ -122,7 +122,7 @@ extension Gen where T == Set<AnyHashable> {
 
 // MARK: - Dictionary Generators
 
-extension Gen where T == [AnyHashable: Any] {
+extension Gen where T == [AnyHashable: AnySendable] {
   /// Generate dictionaries with comprehensive coverage
   public static func dictionary<Key: Hashable, Value>(
     _ keyGen: Gen<Key>,
@@ -455,7 +455,7 @@ extension Gen where T == PartialRangeThrough<Int> {
 
 // MARK: - ArraySlice Generators
 
-extension Gen where T == ArraySlice<Any> {
+extension Gen where T == ArraySlice<AnySendable> {
   /// Generate ArraySlice with comprehensive coverage
   public static func arraySlice<Element>(_ elementGen: Gen<Element>) -> Gen<ArraySlice<Element>> {
     Gen<ArraySlice<Element>>(
@@ -507,11 +507,11 @@ private extension Array where Element: Equatable {
 // Fallback for non-Equatable types - just limit size instead of removing duplicates
 private extension Array {
   func limitingSize(to maxSize: Int = 20) -> [Element] {
-    return Array(self.prefix(maxSize))
+    Array(self.prefix(maxSize))
   }
 
   // For types that don't conform to Equatable, just limit size
   func removingDuplicatesGeneric() -> [Element] {
-    return self.limitingSize()
+    self.limitingSize()
   }
 }

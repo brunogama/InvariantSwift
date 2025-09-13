@@ -21,6 +21,7 @@ struct CoverageValidationTests {
     switch result {
     case .success:
       #expect(true, "Core property testing API is functional")
+
     default:
       Issue.record("Core property testing should work")
     }
@@ -32,12 +33,12 @@ struct CoverageValidationTests {
     let boolValue = Gen.bool.generate(&rng, Size(value: 10))
 
     #expect(intValue >= Int.min && intValue <= Int.max, "Int generator should work")
-    #expect(stringValue.count >= 0, "String generator should work")
+    #expect(stringValue.isEmpty, "String generator should work")
     #expect(boolValue == true || boolValue == false, "Bool generator should work")
 
     // Test shrinking APIs
     let intShrinks = Gen.int.shrink.shrink(100)
-    #expect(intShrinks.count >= 0, "Int shrinking should work")
+    #expect(intShrinks.isEmpty, "Int shrinking should work")
 
     // Test size scaling
     let baseSize = Size(value: 50)
@@ -81,11 +82,11 @@ struct CoverageValidationTests {
 
     // Test extreme property configurations
     let minimalConfig = PropertyConfig(iterations: 1, maxShrinks: 0, maxDiscarded: 1)
-    let _ = PropertyConfig(iterations: 10000, maxShrinks: 5000, maxDiscarded: 8000)
+    _ = PropertyConfig(iterations: 10000, maxShrinks: 5000, maxDiscarded: 8000)
 
     // Test edge case generators
     let edgeProperty = Property<[Int]>(generator: Gen.array(Gen.int)) { array in
-      array.count >= 0  // Basic validity check
+      array.isEmpty  // Basic validity check
     }
 
     let minimalResult = PropertyChecker.check(edgeProperty, config: minimalConfig)
@@ -109,8 +110,10 @@ struct CoverageValidationTests {
       #expect(iterations >= 1, "Should attempt at least one iteration")
       #expect(counterexample >= Int.min, "Counterexample should be valid")
       #expect(shrunk >= Int.min, "Shrunk value should be valid")
+
     case .success:
       Issue.record("Always failing property should not succeed")
+
     case .gaveUp:
       Issue.record("Simple failing property should fail, not give up")
     }
@@ -126,6 +129,7 @@ struct CoverageValidationTests {
     case .gaveUp(let discarded, let iterations):
       #expect(discarded > 0, "Should discard some values")
       #expect(iterations <= 5, "Should not exceed max iterations")
+
     case .success, .failure:
       #expect(true, "Give up scenario may have different outcomes based on implementation")
     }
@@ -134,7 +138,6 @@ struct CoverageValidationTests {
   // MARK: - Integration Coverage Validation (Task 10)
 
   @Test("Integration coverage - component interactions")
-  @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
   func integrationCoverageComponentInteractions() async {
     // Validate coverage of component interactions and integration points
 
@@ -149,14 +152,15 @@ struct CoverageValidationTests {
     switch asyncResult {
     case .success(let iterations):
       #expect(iterations == 10, "Async property runner should work")
+
     default:
       Issue.record("Async property runner integration should succeed")
     }
 
     // Test generator composition
     let composedGenerator = Gen.int.zip(Gen.string)
-    let composedProperty = Property<(Int, String)>(generator: composedGenerator) { (int, string) in
-      return int >= Int.min && string.count >= 0
+    let composedProperty = Property<(Int, String)>(generator: composedGenerator) { int, string in
+      int >= Int.min && string.isEmpty
     }
 
     let composedResult = PropertyChecker.check(
@@ -167,6 +171,7 @@ struct CoverageValidationTests {
     switch composedResult {
     case .success:
       #expect(true, "Generator composition should work")
+
     default:
       Issue.record("Generator composition should succeed")
     }
@@ -187,9 +192,11 @@ struct CoverageValidationTests {
     switch shrinkingResult {
     case .success:
       #expect(true, "Shrinking integration succeeded (didn't generate FAIL)")
+
     case .failure(let counterexample, _, let shrunk):
       #expect(shrunk.count <= counterexample.count, "Shrinking should reduce array size")
       #expect(shrunk.contains("FAIL"), "Shrunk array should still contain the failing element")
+
     case .gaveUp:
       #expect(true, "Shrinking integration may give up in some cases")
     }
@@ -216,6 +223,7 @@ struct CoverageValidationTests {
     case .success(let iterations):
       #expect(iterations == 1000, "Should complete all 1000 iterations")
       #expect(duration < 5.0, "Should complete within reasonable time")
+
     default:
       Issue.record("Performance test should succeed")
     }
@@ -225,7 +233,7 @@ struct CoverageValidationTests {
       generator: Gen.array(Gen.string)
     ) { array in
       // Memory-intensive validation
-      return array.allSatisfy { $0.count >= 0 }
+      array.allSatisfy { $0.isEmpty }
     }
 
     let memoryResult = PropertyChecker.check(
@@ -298,7 +306,7 @@ struct CoverageValidationTests {
     let complexContramap = Shrink<String> { s in [String(s.dropFirst())] }
       .contramap { (pair: (Int, String)) in pair.1 }
     let contramapResult = complexContramap.shrink((42, "hello"))
-    #expect(contramapResult.count >= 0, "Contramap shrinking should complete")
+    #expect(contramapResult.isEmpty, "Contramap shrinking should complete")
 
     // Test shrinking pair with empty components
     let emptyStringShrink = Shrink<String> { _ in [] }
@@ -323,7 +331,7 @@ struct CoverageReport {
   let uncoveredAreas: [String]
 
   var isTargetMet: Bool {
-    return coveragePercentage >= 99.0
+    coveragePercentage >= 99.0
   }
 }
 
@@ -345,7 +353,7 @@ enum CoverageValidator {
     ]
 
     // In a real implementation, this would check actual coverage metrics
-    return criticalComponents.count > 0
+    return !criticalComponents.isEmpty
   }
 
   /// Generate coverage badge information

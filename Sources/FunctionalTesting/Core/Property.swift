@@ -47,7 +47,7 @@ public struct PropertyConfig: Sendable {
     self.seed = seed
   }
 
-  public static let `default` = PropertyConfig()
+  public static let `default` = Self()
 }
 
 /// Thread-safe random number generator wrapper
@@ -66,7 +66,6 @@ public struct SeededRandomNumberGenerator: RandomNumberGenerator, Sendable {
 }
 
 /// Actor for thread-safe property testing execution
-@available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
 public actor PropertyRunner {
   private var rng: any RandomNumberGenerator
 
@@ -252,7 +251,6 @@ public struct PropertyChecker {
 
 // MARK: - Coverage-Guided Property Testing Extensions
 
-@available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
 extension PropertyRunner {
   /// Run property with coverage guidance
   public func runPropertyWithCoverageGuidance<T>(
@@ -351,6 +349,7 @@ extension PropertyResult {
     switch self {
     case .failure:
       return true
+
     case .success, .gaveUp:
       return false
     }
@@ -361,6 +360,7 @@ extension PropertyResult {
     switch self {
     case .success:
       return true
+
     case .failure, .gaveUp:
       return false
     }

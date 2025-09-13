@@ -11,7 +11,7 @@ struct PropertyTestIntegrationTests {
   func checkPropertySuccessCase() async throws {
     let property = Property<Int>(generator: Gen.int) { _ in
       // Property that always succeeds
-      return true
+      true
     }
 
     // This should not throw or record any issues
@@ -25,7 +25,7 @@ struct PropertyTestIntegrationTests {
   func checkPropertyFailureCase() async throws {
     let property = Property<Int>(generator: Gen.int(in: 1...100)) { n in
       // Property that should fail (no integer is greater than 200 in range 1...100)
-      return n > 200
+      n > 200
     }
 
     // This should record an Issue but not throw in our test framework
@@ -43,7 +43,7 @@ struct PropertyTestIntegrationTests {
   func checkPropertyGaveUpCase() async throws {
     let property = Property<Int>(generator: Gen.int.suchThat { _ in false }) { _ in
       // This generator will never produce values (always filtered out)
-      return true
+      true
     }
 
     // This should result in gaveUp due to filtering
@@ -58,11 +58,10 @@ struct PropertyTestIntegrationTests {
   // MARK: - checkPropertyAsync Function Tests (Task 4)
 
   @Test("checkPropertyAsync - Success case")
-  @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
   func checkPropertyAsyncSuccessCase() async throws {
     let property = Property<Int>(generator: Gen.int) { _ in
       // Property that always succeeds
-      return true
+      true
     }
 
     // This should not throw or record any issues
@@ -73,11 +72,10 @@ struct PropertyTestIntegrationTests {
   }
 
   @Test("checkPropertyAsync - Failure case with counterexample")
-  @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
   func checkPropertyAsyncFailureCase() async throws {
     let property = Property<Int>(generator: Gen.int(in: 1...100)) { n in
       // Property that should fail
-      return n > 200
+      n > 200
     }
 
     do {
@@ -89,10 +87,9 @@ struct PropertyTestIntegrationTests {
   }
 
   @Test("checkPropertyAsync - GaveUp case")
-  @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
   func checkPropertyAsyncGaveUpCase() async throws {
     let property = Property<Int>(generator: Gen.int.suchThat { _ in false }) { _ in
-      return true
+      true
     }
 
     do {
@@ -186,7 +183,7 @@ struct PropertyTestIntegrationTests {
     // Test that failure messages have the expected structure
     let property = Property<Int>(generator: Gen.pure(42)) { n in
       // Always fails to test message formatting
-      return n != 42
+      n != 42
     }
 
     let result = PropertyChecker.check(property, config: PropertyConfig(iterations: 1))
@@ -205,7 +202,7 @@ struct PropertyTestIntegrationTests {
   func errorMessageFormattingGaveUp() {
     // Create a property that will give up due to filtering
     let property = Property<Int>(generator: Gen.int.suchThat { _ in false }) { _ in
-      return true
+      true
     }
 
     let result = PropertyChecker.check(property, config: PropertyConfig(iterations: 5))
@@ -232,7 +229,7 @@ struct PropertyTestIntegrationTests {
     )
 
     let property = Property<Int>(generator: Gen.int) { _ in
-      return true
+      true
     }
 
     // Test both sync and async versions with custom config
@@ -248,7 +245,7 @@ struct PropertyTestIntegrationTests {
   @Test("Integration API - Default PropertyConfig")
   func integrationApiDefaultPropertyConfig() async throws {
     let property = Property<String>(generator: Gen.string) { _ in
-      return true
+      true
     }
 
     // Test with default config (no config parameter)
@@ -267,7 +264,7 @@ struct PropertyTestIntegrationTests {
   func arrayGeneratorIntegration() async throws {
     let property = Property<[Int]>(generator: Gen.array(Gen.int)) { array in
       // Test that array generator produces valid arrays
-      return array.count >= 0
+      array.isEmpty
     }
 
     try checkProperty(property, config: PropertyConfig(iterations: 50))
@@ -280,8 +277,8 @@ struct PropertyTestIntegrationTests {
     let property = Property<[[String]]>(generator: Gen.array(Gen.array(Gen.string))) {
       nestedArray in
       // Test that nested array generators work
-      return nestedArray.allSatisfy { innerArray in
-        innerArray.count >= 0
+      nestedArray.allSatisfy { innerArray in
+        innerArray.isEmpty
       }
     }
 
@@ -337,6 +334,7 @@ struct IntegrationApiCoverageTests {
     switch successResult {
     case .success(let iterations):
       #expect(iterations == 100)
+
     default:
       Issue.record("Expected success case")
     }
@@ -346,6 +344,7 @@ struct IntegrationApiCoverageTests {
       #expect(counterexample == "42")
       #expect(shrunk == "0")
       #expect(iterations == 50)
+
     default:
       Issue.record("Expected failure case")
     }
@@ -354,6 +353,7 @@ struct IntegrationApiCoverageTests {
     case .gaveUp(let discarded, let iterations):
       #expect(discarded == 25)
       #expect(iterations == 10)
+
     default:
       Issue.record("Expected gaveUp case")
     }

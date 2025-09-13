@@ -60,15 +60,15 @@ public struct Node<A>: Sendable where A: Sendable {
 
   /// Create a leaf node with no shrinks
   public static func leaf(_ value: A) -> Node<A> {
-    Node(value: value, shrinks: { [] })
+    Self(value: value, shrinks: { [] })
   }
 
   /// Create a node with immediate shrink values
   public static func node(_ value: A, shrinking to: [A]) -> Node<A> {
-    Node(
+    Self(
       value: value,
       shrinks: {
-        to.map(Node.leaf)
+        to.map(Self.leaf)
       }
     )
   }
@@ -77,8 +77,8 @@ public struct Node<A>: Sendable where A: Sendable {
   public func map<B: Sendable>(_ transform: @escaping @Sendable (A) -> B) -> Node<B> {
     Node<B>(
       value: transform(value),
-      shrinks: shrinks.map { nodes in
-        nodes.map { node in
+      shrinks: {
+        self.shrinks.value.map { node in
           node.map(transform)
         }
       }
@@ -106,10 +106,10 @@ public struct Node<A>: Sendable where A: Sendable {
 
   /// Filter shrinks based on a predicate while preserving structure
   public func filter(_ predicate: @escaping @Sendable (A) -> Bool) -> Node<A> {
-    Node(
+    Self(
       value: value,
-      shrinks: shrinks.map { nodes in
-        nodes.compactMap { node in
+      shrinks: {
+        self.shrinks.value.compactMap { node in
           predicate(node.value) ? node.filter(predicate) : nil
         }
       }
@@ -118,10 +118,10 @@ public struct Node<A>: Sendable where A: Sendable {
 
   /// Take only the first n shrinks for performance
   public func take(_ n: Int) -> Node<A> {
-    Node(
+    Self(
       value: value,
-      shrinks: shrinks.map { nodes in
-        Array(nodes.prefix(n))
+      shrinks: {
+        Array(self.shrinks.value.prefix(n))
       }
     )
   }
@@ -154,7 +154,7 @@ public struct TreeGen<A>: Sendable where A: Sendable {
 
   /// Create generator from a single value
   public static func pure(_ value: A) -> TreeGen<A> {
-    TreeGen { _, _ in Node.leaf(value) }
+    Self { _, _ in Node.leaf(value) }
   }
 
   /// Create generator that chooses from array with shrinking toward earlier elements
@@ -163,7 +163,7 @@ public struct TreeGen<A>: Sendable where A: Sendable {
       fatalError("Cannot generate element from empty array")
     }
 
-    return TreeGen { rng, _ in
+    return Self { rng, _ in
       let index = Int.random(in: 0..<array.count, using: &rng)
       let value = array[index]
 
@@ -178,7 +178,7 @@ public struct TreeGen<A>: Sendable where A: Sendable {
 
   /// Generate integers with shrinking toward zero
   public static func int(in range: ClosedRange<Int>) -> TreeGen<Int> where A == Int {
-    TreeGen { rng, _ in
+    Self { rng, _ in
       let value = Int.random(in: range, using: &rng)
 
       return Node(
@@ -220,7 +220,7 @@ public struct TreeGen<A>: Sendable where A: Sendable {
 
   /// Generate strings with shrinking toward empty string
   public static func string(maxLength: Int = 100) -> TreeGen<String> where A == String {
-    TreeGen { rng, size in
+    Self { rng, size in
       let length = Int.random(in: 0...min(maxLength, size.value), using: &rng)
       let characters = (0..<length).map { _ in
         Character(UnicodeScalar(Int.random(in: 97...122, using: &rng))!)
@@ -265,7 +265,7 @@ public struct TreeGen<A>: Sendable where A: Sendable {
     of elementGen: TreeGen<Element>,
     maxCount: Int = 20
   ) -> TreeGen<[Element]> where A == [Element] {
-    TreeGen { rng, size in
+    Self { rng, size in
       let count = Int.random(in: 0...min(maxCount, size.value), using: &rng)
       var elements: [Node<Element>] = []
 
@@ -277,7 +277,7 @@ public struct TreeGen<A>: Sendable where A: Sendable {
 
       return Node(
         value: values,
-        shrinks: {
+        shrinks: { [elements] in
           var shrinks: [Node<[Element]>] = []
 
           // Empty array
@@ -323,7 +323,7 @@ public struct TreeGen<A>: Sendable where A: Sendable {
 extension TreeGen {
   /// Functor map - preserves shrink structure
   public func map<B: Sendable>(_ transform: @escaping @Sendable (A) -> B) -> TreeGen<B> {
-    Gen<B> { rng, size in
+    TreeGen<B> { rng, size in
       let node = self.run(&rng, size)
       return node.map(transform)
     }
@@ -331,7 +331,7 @@ extension TreeGen {
 
   /// Applicative apply
   public func apply<B: Sendable>(_ genF: TreeGen<@Sendable (A) -> B>) -> TreeGen<B> {
-    Gen<B> { rng, size in
+    TreeGen<B> { rng, size in
       let functionNode = genF.run(&rng, size)
       let valueNode = self.run(&rng, size)
 
@@ -366,9 +366,12 @@ extension TreeGen {
   /// Monadic bind
   public func flatMap<B: Sendable>(_ transform: @escaping @Sendable (A) -> TreeGen<B>) -> TreeGen<B>
   {
-    Gen<B> { rng, size in
+    TreeGen<B> { rng, size in
       let node = self.run(&rng, size)
       let resultNode = transform(node.value).run(&rng, size)
+
+      // Capture needed values for closure
+      let nodeShrinks = node.shrinks.value
 
       return Node(
         value: resultNode.value,
@@ -379,8 +382,14 @@ extension TreeGen {
           shrinks.append(contentsOf: resultNode.shrinks.value)
 
           // Include shrinks from transforming shrunk inputs
-          for shrunk in node.shrinks.value {
-            let transformedShrunk = transform(shrunk.value).run(&rng, size)
+          // Note: We can't easily re-run the generator in a Sendable closure
+          // This is a simplified implementation that loses some shrinking power
+          for shrunk in nodeShrinks {
+            // Create a simple leaf node instead of running the generator
+            // This maintains Sendable compliance but reduces shrinking effectiveness
+            let seed = Seed(UInt64.random(in: 0...UInt64.max))
+            var localRng = seed.makeRandomNumberGenerator()
+            let transformedShrunk = transform(shrunk.value).run(&localRng, size)
             shrinks.append(transformedShrunk)
           }
 
@@ -472,8 +481,8 @@ extension Node {
 
     return Node(
       value: value,
-      shrinks: shrinks.map { nodes in
-        nodes.map { node in
+      shrinks: {
+        shrinks.value.map { node in
           node.prune(maxDepth: maxDepth - 1)
         }
       }
@@ -487,7 +496,7 @@ extension TreeGen {
   /// Combine two generators while preserving shrinking laws
   public static func zip<B: Sendable>(_ genA: TreeGen<A>, _ genB: TreeGen<B>) -> TreeGen<(A, B)>
   where A: Sendable {
-    Gen<(A, B)> { rng, size in
+    TreeGen<(A, B)> { rng, size in
       let nodeA = genA.run(&rng, size)
       let nodeB = genB.run(&rng, size)
 
@@ -529,19 +538,26 @@ extension TreeGen {
       let index = Int.random(in: 0..<generators.count, using: &rng)
       let selectedNode = generators[index].run(&rng, size)
 
+      // Pre-generate earlier nodes for shrinking
+      var earlierNodes: [Node<A>] = []
+      for i in 0..<index {
+        earlierNodes.append(generators[i].run(&rng, size))
+      }
+
+      // Capture needed values for closure
+      let selectedShrinks = selectedNode.shrinks.value
+      let earlierNodesArray = earlierNodes
+
       return Node(
         value: selectedNode.value,
         shrinks: {
           var shrinks: [Node<A>] = []
 
           // Include shrinks from selected generator
-          shrinks.append(contentsOf: selectedNode.shrinks.value)
+          shrinks.append(contentsOf: selectedShrinks)
 
           // Include values from earlier generators (shrinking toward simpler generators)
-          for i in 0..<index {
-            let earlierNode = generators[i].run(&rng, size)
-            shrinks.append(earlierNode)
-          }
+          shrinks.append(contentsOf: earlierNodesArray)
 
           return shrinks
         }
@@ -571,21 +587,28 @@ extension TreeGen {
 
       let selectedNode = weighted[selectedIndex].1.run(&rng, size)
 
+      // Pre-generate higher frequency nodes for shrinking
+      var higherFreqNodes: [Node<A>] = []
+      for (_, (weight, generator)) in weighted.enumerated() {
+        if weight > weighted[selectedIndex].0 {
+          higherFreqNodes.append(generator.run(&rng, size))
+        }
+      }
+
+      // Capture needed values for closure
+      let selectedShrinks = selectedNode.shrinks.value
+      let higherFreqNodesArray = higherFreqNodes
+
       return Node(
         value: selectedNode.value,
         shrinks: {
           var shrinks: [Node<A>] = []
 
           // Include shrinks from selected generator
-          shrinks.append(contentsOf: selectedNode.shrinks.value)
+          shrinks.append(contentsOf: selectedShrinks)
 
           // Include values from higher frequency generators
-          for (index, (weight, generator)) in weighted.enumerated() {
-            if weight > weighted[selectedIndex].0 {
-              let higherFreqNode = generator.run(&rng, size)
-              shrinks.append(higherFreqNode)
-            }
-          }
+          shrinks.append(contentsOf: higherFreqNodesArray)
 
           return shrinks
         }
@@ -622,7 +645,7 @@ public struct ShrinkTreeRunner {
     property: @escaping @Sendable (A) throws -> Bool
   ) async throws -> Result<Void, ShrinkResult<A>> {
 
-    var rng = SystemRandomNumberGenerator()
+    var rng: any RandomNumberGenerator = SystemRandomNumberGenerator()
 
     for iteration in 0..<iterations {
       let size = Size(value: iteration / 10 + 1)
@@ -716,10 +739,10 @@ public struct ShrinkTreeRunner {
 
 // MARK: - Common Generators with Enhanced Shrinking
 
-extension TreeGen {
+extension TreeGen where A == Bool {
   /// Boolean generator with shrinking toward false
-  public static func bool() -> TreeGen<Bool> where A == Bool {
-    TreeGen { rng, _ in
+  public static func bool() -> TreeGen<Bool> {
+    TreeGen<Bool> { rng, _ in
       let value = Bool.random(using: &rng)
       return Node(
         value: value,
@@ -727,10 +750,12 @@ extension TreeGen {
       )
     }
   }
+}
 
+extension TreeGen where A == Character {
   /// Character generator with shrinking toward 'a'
-  public static func char() -> TreeGen<Character> where A == Character {
-    TreeGen { rng, _ in
+  public static func char() -> TreeGen<Character> {
+    TreeGen<Character> { rng, _ in
       let codePoint = Int.random(in: 97...122, using: &rng)  // a-z
       let value = Character(UnicodeScalar(codePoint)!)
 
@@ -749,9 +774,11 @@ extension TreeGen {
       )
     }
   }
+}
 
+extension TreeGen {
   /// Optional generator with shrinking toward nil
-  public static func optional<T: Sendable>(_ gen: TreeGen<T>) -> TreeGen<T?> where A == T? {
+  public static func optional<T: Sendable>(_ gen: TreeGen<T>) -> TreeGen<T?> {
     TreeGen<T?> { rng, size in
       if Bool.random(using: &rng) {
         let innerNode = gen.run(&rng, size)

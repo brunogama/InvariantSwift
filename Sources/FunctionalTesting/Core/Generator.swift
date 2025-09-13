@@ -7,13 +7,12 @@ public struct Size: Sendable {
   public init(value: Int) {
     self.value = max(0, value)
   }
-}
-
-extension Size {
   public init(_ value: Int) {
     self.value = max(0, value)
   }
+}
 
+extension Size {
   public static let small = Size(10)
   public static let medium = Size(50)
   public static let large = Size(100)

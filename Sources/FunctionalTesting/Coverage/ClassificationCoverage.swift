@@ -28,8 +28,7 @@ import Dispatch
 /// - [Coverage-Based Testing](https://link.springer.com/chapter/10.1007/978-3-642-16573-3_1)
 /// - [Statistical Test Analysis](https://www.jstor.org/stable/2984156)
 
-@available(macOS 13.0, iOS 16.0, tvOS 16.0, watchOS 9.0, *)
-public actor ClassificationCoverageSystem: Sendable {
+public actor ClassificationCoverageSystem {
 
   // MARK: - Types and Configuration
 
@@ -343,7 +342,7 @@ public actor ClassificationCoverageSystem: Sendable {
 
   private var activeContracts: [String: CoverageContract] = [:]
   private var observations: [String: [CoverageObservation]] = [:]
-  private var registeredClassifiers: [String: Any] = [:]
+  private var registeredClassifiers: [String: AnySendable] = [:]
   private let logger = Logger(subsystem: "FunctionalTesting", category: "Coverage")
 
   /// **Shared coverage system instance**
@@ -472,7 +471,7 @@ public actor ClassificationCoverageSystem: Sendable {
     name: String = "boundary",
     bounds: (min: T, max: T)
   ) -> InputClassifier<T> {
-    return InputClassifier<T>(name: name) { value in
+    InputClassifier<T>(name: name) { value in
       var classifications: [Classification] = []
 
       if value <= bounds.min {
@@ -542,7 +541,7 @@ public actor ClassificationCoverageSystem: Sendable {
   public static func collectionSizeClassifier<T: Collection>(
     name: String = "collection_size"
   ) -> InputClassifier<T> {
-    return InputClassifier<T>(name: name) { collection in
+    InputClassifier<T>(name: name) { collection in
       var classifications: [Classification] = []
 
       switch collection.count {
@@ -556,6 +555,7 @@ public actor ClassificationCoverageSystem: Sendable {
             priority: 10
           )
         )
+
       case 1:
         classifications.append(
           Classification(
@@ -566,6 +566,7 @@ public actor ClassificationCoverageSystem: Sendable {
             priority: 9
           )
         )
+
       case 2...10:
         classifications.append(
           Classification(
@@ -576,6 +577,7 @@ public actor ClassificationCoverageSystem: Sendable {
             priority: 7
           )
         )
+
       case 11...100:
         classifications.append(
           Classification(
@@ -586,6 +588,7 @@ public actor ClassificationCoverageSystem: Sendable {
             priority: 5
           )
         )
+
       default:
         classifications.append(
           Classification(
@@ -606,7 +609,7 @@ public actor ClassificationCoverageSystem: Sendable {
   public static func stringPatternClassifier(
     name: String = "string_pattern"
   ) -> InputClassifier<String> {
-    return InputClassifier<String>(name: name) { string in
+    InputClassifier<String>(name: name) { string in
       var classifications: [Classification] = []
 
       // Length-based classification
@@ -620,6 +623,7 @@ public actor ClassificationCoverageSystem: Sendable {
             priority: 10
           )
         )
+
       case 1:
         classifications.append(
           Classification(
@@ -629,6 +633,7 @@ public actor ClassificationCoverageSystem: Sendable {
             priority: 9
           )
         )
+
       case 2...20:
         classifications.append(
           Classification(
@@ -638,6 +643,7 @@ public actor ClassificationCoverageSystem: Sendable {
             priority: 5
           )
         )
+
       case 21...200:
         classifications.append(
           Classification(
@@ -647,6 +653,7 @@ public actor ClassificationCoverageSystem: Sendable {
             priority: 5
           )
         )
+
       default:
         classifications.append(
           Classification(
@@ -901,7 +908,7 @@ public actor ClassificationCoverageSystem: Sendable {
 
   private func generateInputId<T>(_ input: T) -> String {
     // Simple hash-based ID generation
-    return String(describing: input).hash.description
+    String(describing: input).hash.description
   }
 }
 
@@ -932,7 +939,6 @@ public struct CoverageSummary: Codable, Sendable {
 
 // MARK: - PropertyRunner Integration
 
-@available(macOS 13.0, iOS 16.0, tvOS 16.0, watchOS 9.0, *)
 extension PropertyRunner {
 
   /// **Run property test with classification coverage**

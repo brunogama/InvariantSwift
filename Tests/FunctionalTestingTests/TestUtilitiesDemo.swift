@@ -23,6 +23,7 @@ struct TestUtilitiesDemo {
     switch result {
     case .success(let iterations):
       #expect(iterations == 10)
+
     default:
       Issue.record("Expected success")
     }
@@ -42,13 +43,13 @@ struct TestUtilitiesDemo {
     switch result {
     case .failure(_, let iterations, _):
       #expect(iterations == 1, "Should fail on first iteration")
+
     default:
       Issue.record("Expected failure")
     }
   }
 
   @Test("TestUtilities.runPropertyAsync - async testing")
-  @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
   func testUtilitiesRunPropertyAsync() async {
     let property = Property<String>(generator: Gen.string) { _ in true }
 
@@ -101,7 +102,7 @@ struct TestUtilitiesDemo {
   @Test("TestUtilities.measurePropertyExecution - performance measurement")
   func testUtilitiesMeasurePropertyExecution() {
     let property = Property<[Int]>(generator: Gen.array(Gen.int)) { array in
-      return array.count >= 0
+      array.isEmpty
     }
 
     let (result, duration) = TestUtilities.measurePropertyExecution(
@@ -114,6 +115,7 @@ struct TestUtilitiesDemo {
     case .success:
       #expect(duration > 0, "Duration should be positive")
       #expect(duration < 5.0, "Should complete within time limit")
+
     default:
       Issue.record("Performance test should succeed")
     }
@@ -124,7 +126,7 @@ struct TestUtilitiesDemo {
     let property = Property<[String]>(
       generator: TestGenerators.smallArray(TestGenerators.asciiString)
     ) { array in
-      return array.allSatisfy { $0.count >= 0 }
+      array.allSatisfy { $0.isEmpty }
     }
 
     let (result, memoryInfo) = TestUtilities.measurePropertyMemory(
@@ -136,6 +138,7 @@ struct TestUtilitiesDemo {
     case .success:
       #expect(memoryInfo.before > 0, "Should have initial memory usage")
       #expect(memoryInfo.after > 0, "Should have final memory usage")
+
     default:
       Issue.record("Memory measurement test should succeed")
     }
@@ -236,7 +239,6 @@ struct TestUtilitiesDemo {
   // MARK: - Concurrent Testing Demo (Task 11)
 
   @Test("TestUtilities.runPropertiesConcurrently - concurrent execution")
-  @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
   func testUtilitiesRunPropertiesConcurrently() async {
     // Test with homogeneous properties (all Int)
     let properties: [Property<Int>] = [
@@ -298,7 +300,7 @@ struct TestUtilitiesDemo {
   @Test("TestGenerators.smallPositiveInt - small positive integer generator")
   func testGeneratorsSmallPositiveInt() {
     let property = Property<Int>(generator: TestGenerators.smallPositiveInt) { value in
-      return value >= 1 && value <= 100
+      value >= 1 && value <= 100
     }
 
     let result = PropertyChecker.check(property, config: PropertyConfig(iterations: 50))
@@ -309,7 +311,7 @@ struct TestUtilitiesDemo {
   func testGeneratorsSmallArray() {
     let arrayGenerator = TestGenerators.smallArray(Gen.int)
     let property = Property<[Int]>(generator: arrayGenerator) { array in
-      return array.count <= 20  // Should respect size limit
+      array.count <= 20  // Should respect size limit
     }
 
     let result = PropertyChecker.check(property, config: PropertyConfig(iterations: 30))
@@ -319,7 +321,7 @@ struct TestUtilitiesDemo {
   @Test("TestGenerators.asciiString - ASCII string generator")
   func testGeneratorsAsciiString() {
     let property = Property<String>(generator: TestGenerators.asciiString) { string in
-      return string.allSatisfy { char in
+      string.allSatisfy { char in
         let code = char.asciiValue ?? 0
         return code >= 32 && code <= 126
       }
@@ -332,7 +334,7 @@ struct TestUtilitiesDemo {
   @Test("TestGenerators.nonEmptyString - non-empty string generator")
   func testGeneratorsNonEmptyString() {
     let property = Property<String>(generator: TestGenerators.nonEmptyString) { string in
-      return !string.isEmpty
+      !string.isEmpty
     }
 
     let result = PropertyChecker.check(property, config: PropertyConfig(iterations: 40))
@@ -351,7 +353,7 @@ struct TestUtilitiesDemo {
     let complexProperty = Property<(([Int], String), Bool)>(generator: complexGenerator) { nested in
       let (arrayAndString, flag) = nested
       let (array, string) = arrayAndString
-      return array.count >= 0 && !string.isEmpty && (flag == true || flag == false)
+      return array.isEmpty && !string.isEmpty && (flag == true || flag == false)
     }
 
     // Test with multiple configurations

@@ -5,11 +5,11 @@ import CompilerPluginSupport
 let package = Package(
   name: "FunctionalTesting",
   platforms: [
-    .iOS(.v16),  // Updated for Duration and modern async APIs
-    .macOS(.v13),  // Updated for Duration and modern async APIs
-    .tvOS(.v16),
-    .watchOS(.v9),
-    .macCatalyst(.v16),
+    .iOS(.v17),  // Updated for Duration and modern async APIs
+    .macOS(.v14),  // Updated for Duration and modern async APIs
+    .tvOS(.v17),
+    .watchOS(.v10),
+    .macCatalyst(.v17),
   ],
   products: [
     .library(
