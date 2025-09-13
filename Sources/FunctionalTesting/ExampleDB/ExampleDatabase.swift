@@ -26,8 +26,7 @@ import Dispatch
 /// - [AFL Technical Details](https://lcamtuf.coredump.cx/afl/technical_details.txt)
 /// - [LibFuzzer Corpus](https://llvm.org/docs/LibFuzzer.html#corpus)
 /// - [Property-Based Testing Patterns](https://hypothesis.readthedocs.io/en/latest/database.html)
-@available(macOS 13.0, iOS 16.0, tvOS 16.0, watchOS 9.0, *)
-public actor ExampleDatabase: Sendable {
+public actor JSONExampleDatabase {
 
   // MARK: - Types
 
@@ -230,7 +229,7 @@ public actor ExampleDatabase: Sendable {
     }
 
     return
-      try entries
+      entries
       .sorted { $0.metadata.priority > $1.metadata.priority }
       .compactMap { entry in
         try? decoder.decode(CorpusEntry<T>.self, from: entry.data)
@@ -363,7 +362,7 @@ public actor ExampleDatabase: Sendable {
   }
 
   private func pruneIfNeeded(for key: ExampleKey) async {
-    guard var entries = corpus[key],
+    guard let entries = corpus[key],
       entries.count > maxEntriesPerKey
     else { return }
 
@@ -379,7 +378,6 @@ public actor ExampleDatabase: Sendable {
 
 // MARK: - Integration with PropertyRunner
 
-@available(macOS 13.0, iOS 16.0, tvOS 16.0, watchOS 9.0, *)
 extension PropertyRunner {
 
   /// Run property test with example database integration
@@ -392,9 +390,9 @@ extension PropertyRunner {
   public func runPropertyWithDatabase<T>(
     _ property: Property<T>,
     config: PropertyConfig = .default,
-    database: ExampleDatabase,
-    key: ExampleDatabase.ExampleKey
-  ) async -> (PropertyResult<T>, ExampleDatabase.DatabaseStats) where T: Codable & Sendable {
+    database: JSONExampleDatabase,
+    key: JSONExampleDatabase.ExampleKey
+  ) async -> (PropertyResult<T>, JSONExampleDatabase.DatabaseStats) where T: Codable & Sendable {
 
     // First, replay any existing failures
     let existingFailures = try? await database.get(key, as: T.self)
@@ -415,12 +413,12 @@ extension PropertyRunner {
     }
 
     // Run normal property test
-    let result = await runProperty(property, config: config)
+    let result = runProperty(property, config: config)
 
     // Store interesting results
     switch result {
     case .failure(let counterexample, _, let shrunk):
-      let entry = ExampleDatabase.CorpusEntry(
+      let entry = JSONExampleDatabase.CorpusEntry(
         value: counterexample,
         seed: config.seed?.value ?? 0,
         minimal: shrunk,

@@ -7,15 +7,16 @@ public struct Size: Sendable {
   public init(value: Int) {
     self.value = max(0, value)
   }
+}
 
-  /// Scale size by a factor
-  public func scaled(by factor: Double) -> Size {
-    Size(value: max(0, Int(Double(value) * factor)))
+extension Size {
+  public init(_ value: Int) {
+    self.value = max(0, value)
   }
 
-  public static let small = Size(value: 10)
-  public static let medium = Size(value: 50)
-  public static let large = Size(value: 100)
+  public static let small = Size(10)
+  public static let medium = Size(50)
+  public static let large = Size(100)
 }
 
 /// Shrink represents a coalgebraic structure for generating shrinking sequences
@@ -28,7 +29,7 @@ public struct Shrink<T>: @unchecked Sendable {
 
   /// Empty shrinking - produces no shrunk values
   public static var empty: Shrink<T> {
-    Shrink { _ in [] }
+    Self { _ in [] }
   }
 
   /// Contramap for shrinking - enables transformation of shrinking context
@@ -49,7 +50,7 @@ public struct Shrink<T>: @unchecked Sendable {
 
   /// Monadic bind for dependent shrinking
   public func flatMap<U>(_ f: @escaping (T) -> Shrink<U>) -> Shrink<U> {
-    Shrink<U> { u in
+    Shrink<U> { _ in
       // This is a simplified implementation - full implementation would
       // need to handle the coalgebraic unfolding properly
       []
@@ -90,7 +91,7 @@ extension Gen {
   public func map<U>(_ f: @escaping (T) -> U) -> Gen<U> {
     Gen<U>(
       generate: { rng, size in f(self.generate(&rng, size)) },
-      shrink: Shrink<U> { u in [] }  // Simplified - proper shrinking would require inverse transformation
+      shrink: Shrink<U> { _ in [] }  // Simplified - proper shrinking would require inverse transformation
     )
   }
 
@@ -102,6 +103,12 @@ extension Gen {
   /// Applicative pure - lift a value into the generation context
   public static func pure(_ value: T) -> Gen<T> {
     Gen { _, _ in value }
+  }
+
+  /// Create a generator that always returns the same constant value
+  /// This is an alias for pure() to match common property-based testing conventions
+  public static func constant(_ value: T) -> Gen<T> {
+    pure(value)
   }
 
   /// Applicative apply - combine generators applying functions to values
