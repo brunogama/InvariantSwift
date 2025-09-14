@@ -2,6 +2,11 @@ import Testing
 import Foundation
 @testable import FunctionalTesting
 
+// Install signal handlers for crash debugging as soon as this module loads
+private let _signalHandlersInstalled: Void = {
+  ensureSignalHandlersInstalled()
+}()
+
 // MARK: - Test Utilities Framework for 99%+ Code Coverage (Task 11)
 
 /// Comprehensive test utilities framework for property-based testing
