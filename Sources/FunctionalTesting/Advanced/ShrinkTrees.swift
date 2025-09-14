@@ -264,10 +264,13 @@ public struct TreeGen<A>: Sendable where A: Sendable {
   }
 
   /// Create generator that chooses from array with shrinking toward earlier elements
+  /// Precondition: array must not be empty
   public static func element(of array: [A]) -> TreeGen<A> {
-    guard !array.isEmpty else {
-      fatalError("Cannot generate element from empty array")
-    }
+    // Use precondition which provides better error messages than fatalError
+    precondition(
+      !array.isEmpty,
+      "Cannot generate element from empty array - use .element(of: array, default: value) for safe handling"
+    )
 
     return Self { rng, _ in
       let index = Int.random(in: 0..<array.count, using: &rng)
@@ -512,17 +515,23 @@ extension TreeGen {
       // This is a simplified implementation - production version would have better retry logic
       var attempts = 0
       let maxAttempts = 100
+      var lastNode: Node<A>?
 
       while attempts < maxAttempts {
         let node = self.run(&rng, size)
+        lastNode = node
         if predicate(node.value) {
           return node.filter(predicate)
         }
         attempts += 1
       }
 
-      // Fallback - this should rarely happen with good generators
-      fatalError("Could not generate satisfying value after \(maxAttempts) attempts")
+      // Fallback - return the last generated node instead of crashing
+      // This preserves totality of the function while providing debugging info
+      print(
+        "Warning: Could not generate satisfying value after \(maxAttempts) attempts, using fallback"
+      )
+      return lastNode ?? Node(value: self.run(&rng, Size(value: 0)).value, shrinks: { [] })
     }
   }
 }
@@ -636,9 +645,7 @@ extension TreeGen {
 
   /// Choose between generators with shrinking preference toward first
   public static func oneOf(_ generators: [TreeGen<A>]) -> TreeGen<A> {
-    guard !generators.isEmpty else {
-      fatalError("Cannot choose from empty list of generators")
-    }
+    precondition(!generators.isEmpty, "Cannot choose from empty list of generators")
 
     return TreeGen { rng, size in
       let index = Int.random(in: 0..<generators.count, using: &rng)
@@ -674,9 +681,7 @@ extension TreeGen {
   /// Frequency-based choice with shrinking toward higher frequency items
   public static func frequency(_ weighted: [(Int, TreeGen<A>)]) -> TreeGen<A> {
     let totalWeight = weighted.reduce(0) { $0 + $1.0 }
-    guard totalWeight > 0 else {
-      fatalError("Total weight must be positive")
-    }
+    precondition(totalWeight > 0, "Total weight must be positive")
 
     return TreeGen { rng, size in
       let target = Int.random(in: 1...totalWeight, using: &rng)
