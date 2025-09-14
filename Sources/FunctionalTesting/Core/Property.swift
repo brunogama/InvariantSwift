@@ -201,6 +201,10 @@ public struct PropertyChecker {
       rng = SystemRandomNumberGenerator()
     }
 
+    // Reset exhaustion counter before starting
+    _ = GeneratorExhaustionTracker.shared.getAndResetExhaustionCount()
+    var totalExhaustion = 0
+
     for iteration in 0..<config.iterations {
       let size = Size(value: min(iteration, 100))
       let testCase = property.generator.generate(&rng, size)
@@ -216,6 +220,19 @@ public struct PropertyChecker {
           iterations: iteration + 1,
           shrunk: shrunkCase
         )
+      }
+
+      // Check exhaustion for this iteration
+      let currentExhaustion = GeneratorExhaustionTracker.shared.getAndResetExhaustionCount()
+      totalExhaustion += currentExhaustion
+
+      // Only trigger giveUp if we see consistent exhaustion indicating impossible conditions
+      // This means multiple consecutive iterations each exhausted 100 attempts
+      if currentExhaustion >= 100 && iteration >= 1 {  // Need at least 2 iterations to establish pattern
+        // Check if previous iteration also had high exhaustion
+        if totalExhaustion >= 200 {  // At least 2 iterations of full exhaustion
+          return .gaveUp(discarded: totalExhaustion, iterations: iteration + 1)
+        }
       }
     }
 

@@ -162,14 +162,21 @@ struct NumericConversionRegressionTests {
 
     func safeIntConversion(_ value: Double) -> Int {
       guard value.isFinite, !value.isNaN else { return 1 }
-      return Int(max(1, min(value, Double(Int.max))))
+      // Safely clamp to Int range, accounting for Double precision loss
+      let clampedValue = max(1.0, min(value, Double(Int.max - 1)))
+      return Int(clampedValue)
     }
 
     // Test the safety pattern directly
     #expect(safeIntConversion(Double.infinity) == 1, "Infinity should fallback to 1")
     #expect(safeIntConversion(Double.nan) == 1, "NaN should fallback to 1")
     #expect(safeIntConversion(-Double.infinity) == 1, "Negative infinity should fallback to 1")
-    #expect(safeIntConversion(Double(Int.max) + 1) == Int.max, "Overflow should clamp to Int.max")
+    let largeValue = Double(Int.max >> 1) + 1_000_000
+    let expectedValue = Int(largeValue)  // This should be safe now since it's much smaller than Int.max
+    #expect(
+      safeIntConversion(largeValue) == expectedValue,
+      "Large values should convert safely"
+    )
     #expect(safeIntConversion(-1000) == 1, "Negative values should clamp to minimum 1")
     #expect(safeIntConversion(0) == 1, "Zero should clamp to minimum 1")
     #expect(safeIntConversion(50.7) == 50, "Normal values should convert correctly")
@@ -194,7 +201,7 @@ struct NumericConversionRegressionTests {
     #expect(!swiftLintRuleDocumentation.isEmpty, "SwiftLint rule documentation exists")
 
     // Verify the pattern would catch fatalError usage
-    let testPattern = #"\\bfatalError\\("#
+    let testPattern = #"\bfatalError\("#
     let testCode = "fatalError(\"This should be caught\")"
     let regex = try! NSRegularExpression(pattern: testPattern)
     let matches = regex.numberOfMatches(

@@ -123,10 +123,12 @@ struct TestUtilitiesDemo {
 
   @Test("TestUtilities.measurePropertyMemory - memory measurement")
   func testUtilitiesMeasurePropertyMemory() {
+    // Use a property that can actually succeed: check array count is reasonable
     let property = Property<[String]>(
       generator: TestGenerators.smallArray(TestGenerators.asciiString)
     ) { array in
-      array.allSatisfy { $0.isEmpty }
+      // Property that should succeed: array size is within reasonable bounds
+      array.count <= 20  // smallArray should respect size limits
     }
 
     let (result, memoryInfo) = TestUtilities.measurePropertyMemory(

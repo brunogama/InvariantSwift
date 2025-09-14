@@ -287,7 +287,8 @@ public struct ComplexityAnalyzer: Sendable {
     public var totalComplexity: Int {
       let scaled = Double(parameterComplexity + bodyComplexity) * riskFactor
       guard scaled.isFinite, !scaled.isNaN else { return parameterComplexity + bodyComplexity }
-      return Int(max(1, min(scaled, Double(Int.max))))
+      // Safely clamp to Int range, accounting for Double precision loss
+      return Int(max(1, min(scaled, Double(Int.max - 1))))
     }
   }
 

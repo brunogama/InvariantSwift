@@ -1,5 +1,27 @@
 import Foundation
 
+/// Simple tracker for generator exhaustion during property checking
+/// This allows PropertyChecker to detect when generators are failing to produce valid values
+public final class GeneratorExhaustionTracker: @unchecked Sendable {
+  public static let shared = GeneratorExhaustionTracker()
+  private let lock = NSLock()
+  private var exhaustionCount: Int = 0
+
+  public func recordExhaustion(attempts: Int) {
+    lock.lock()
+    defer { lock.unlock() }
+    exhaustionCount += attempts
+  }
+
+  public func getAndResetExhaustionCount() -> Int {
+    lock.lock()
+    defer { lock.unlock() }
+    let current = exhaustionCount
+    exhaustionCount = 0
+    return current
+  }
+}
+
 /// Size parameter for controlling the complexity of generated values
 public struct Size: Sendable {
   public let value: Int
@@ -122,7 +144,10 @@ extension Gen {
       shrink: Shrink.pair(genF.shrink, self.shrink).contramap { u in
         // Safe conversion - if this fails, the types are incompatible
         guard let t = u as? T else {
-          return (({ _ in u }), u as! T)  // This maintains the same behavior but documents the risk
+          // Instead of force casting, use a safe fallback
+          fatalError(
+            "Type mismatch in generator apply - cannot convert \(type(of: u)) to \(T.self)"
+          )
         }
         return (({ _ in u }), t)
       }
@@ -163,18 +188,7 @@ extension Gen {
 extension Gen {
   /// Choose one of the provided generators with equal probability
   public static func oneOf(_ generators: [Gen<T>]) -> Gen<T> {
-    guard !generators.isEmpty else {
-      // Return a generator that always fails gracefully instead of crashing
-      print("Warning: oneOf called with empty array, returning failing generator")
-      // This is a programming error, but we'll return a generator that tries its best
-      // Using type erasure to provide a reasonable fallback
-      return Gen { _, _ in
-        // Since we can't create a T from nothing, we'll have to fail gracefully
-        // This should never happen in practice if oneOf is used correctly
-        print("ERROR: Attempting to generate from empty oneOf - this is a bug")
-        return 0 as! T  // Force cast as last resort - will crash if T isn't compatible
-      }
-    }
+    precondition(!generators.isEmpty, "oneOf requires at least one generator")
 
     return Gen { rng, size in
       let index = Int.random(in: 0..<generators.count, using: &rng)
@@ -222,6 +236,9 @@ extension Gen {
         }
         attempts += 1
       }
+
+      // Signal exhaustion by incrementing the global counter
+      GeneratorExhaustionTracker.shared.recordExhaustion(attempts: maxAttempts)
 
       // If we can't generate a valid value, just return the last attempt
       return self.generate(&rng, size)

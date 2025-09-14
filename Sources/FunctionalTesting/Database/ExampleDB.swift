@@ -286,7 +286,10 @@ public actor ExampleDatabase {
 
   /// Default database path in user's cache directory
   public static var defaultDatabasePath: URL {
-    let cacheDir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
+    guard let cacheDir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first
+    else {
+      fatalError("Unable to access caches directory")
+    }
     return cacheDir.appendingPathComponent("FunctionalTesting")
       .appendingPathComponent("corpus.db")
   }

@@ -751,8 +751,11 @@ public enum WeightedGen {
           }
         }
 
-        // Fallback to last value (should not reach here with correct implementation)
-        return weightedValues.last!.1
+        // Fallback to last value - safe because we precondition non-empty above
+        guard let lastValue = weightedValues.last else {
+          precondition(false, "weightedValues cannot be empty at this point")
+        }
+        return lastValue.1
       },
       shrink: Shrink<T>({ _ in
         // For weighted selection, prefer simpler/lighter-weight options

@@ -443,7 +443,11 @@ public actor TelemetrySystem {
     context.endTime = Date()
     activeTraces[traceId]?.spans[spanId] = context
 
-    let duration = context.endTime!.timeIntervalSince(context.startTime)
+    guard let endTime = context.endTime else {
+      print("Warning: Span ended without endTime set")
+      return
+    }
+    let duration = endTime.timeIntervalSince(context.startTime)
 
     recordEvent(
       TelemetryEvent(
@@ -528,7 +532,7 @@ public actor TelemetrySystem {
         ],
         context: [
           "counterexample": String(describing: counterexample),
-          "shrunk_value": shrunkValue != nil ? String(describing: shrunkValue!) : "",
+          "shrunk_value": shrunkValue.map { String(describing: $0) } ?? "",
         ],
         traceId: traceId ?? UUID().uuidString
       )

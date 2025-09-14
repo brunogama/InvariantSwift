@@ -322,10 +322,14 @@ public actor JSONExampleDatabase {
   // MARK: - Private Methods
 
   private static func defaultDatabasePath() -> URL {
-    let appSupport = FileManager.default.urls(
-      for: .applicationSupportDirectory,
-      in: .userDomainMask
-    ).first!
+    guard
+      let appSupport = FileManager.default.urls(
+        for: .applicationSupportDirectory,
+        in: .userDomainMask
+      ).first
+    else {
+      fatalError("Unable to access application support directory")
+    }
 
     return
       appSupport

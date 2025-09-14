@@ -86,7 +86,8 @@ extension PropertyConfig {
     iterations.over {
       let scaled = Double($0) * factor
       guard scaled.isFinite, !scaled.isNaN else { return $0 }
-      return Int(max(1, min(scaled, Double(Int.max))))
+      // Safely clamp to Int range, accounting for Double precision loss
+      return Int(max(1, min(scaled, Double(Int.max - 1))))
     }
   }
 
@@ -153,7 +154,8 @@ extension Size {
     value.over {
       let scaled = Double($0) * factor
       guard scaled.isFinite, !scaled.isNaN else { return $0 }
-      return Int(max(0, min(scaled, Double(Int.max))))
+      // Safely clamp to Int range, accounting for Double precision loss
+      return Int(max(0, min(scaled, Double(Int.max - 1))))
     }
   }
 

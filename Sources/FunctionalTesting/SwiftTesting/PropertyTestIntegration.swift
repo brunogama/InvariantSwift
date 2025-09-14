@@ -333,24 +333,60 @@ extension Gen {
 
         var candidates: [[Element]] = []
 
-        // Shrink by removing elements
+        // MATHEMATICAL INVARIANT: All shrunk arrays must satisfy:
+        // ∀ s ∈ shrink(array). s.count < array.count
+        // This ensures the well-founded relation required for terminating shrinking
+
+        // Shrink to empty array (maximum reduction)
+        candidates.append([])
+
+        // Shrink by removing elements (guarantees smaller arrays)
         if array.count > 1 {
           candidates.append(Array(array.dropFirst()))
           candidates.append(Array(array.dropLast()))
           candidates.append(Array(array.prefix(array.count / 2)))
+          candidates.append(Array(array.suffix(array.count / 2)))
         }
 
-        // Shrink individual elements
-        for (index, element) in array.enumerated() {
-          let shrunkElements = elementGen.shrink.shrink(element)
-          for shrunkElement in shrunkElements {
-            var newArray = array
-            newArray[index] = shrunkElement
-            candidates.append(newArray)
+        // Remove elements one by one (systematic reduction)
+        for i in array.indices {
+          var smaller = array
+          smaller.remove(at: i)
+          candidates.append(smaller)
+        }
+
+        // Progressive removal (geometric reduction)
+        if array.count > 3 {
+          let quarter = array.count / 4
+          if quarter > 0 {
+            let middleStart = quarter
+            let middleEnd = array.count - quarter
+            candidates.append(Array(array[middleStart..<middleEnd]))
           }
         }
 
-        return candidates
+        // Element shrinking with size constraint
+        // CRITICAL: Only shrink elements in smaller arrays to maintain size invariant
+        for removeCount in 1..<min(array.count, 3) {
+          if array.count - removeCount > 0 {
+            // Create smaller array first
+            let smallerArray = Array(array.dropLast(removeCount))
+
+            // Now shrink elements in the smaller array
+            for (index, element) in smallerArray.enumerated() {
+              let shrunkElements = elementGen.shrink.shrink(element)
+              // Limit to prevent explosion of variants
+              for shrunkElement in shrunkElements.prefix(2) {
+                var newArray = smallerArray
+                newArray[index] = shrunkElement
+                candidates.append(newArray)
+              }
+            }
+          }
+        }
+
+        // Apply mathematical constraint: all results must be smaller
+        return candidates.filter { $0.count < array.count }
       }
     )
   }

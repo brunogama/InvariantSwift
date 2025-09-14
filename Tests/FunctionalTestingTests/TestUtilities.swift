@@ -532,7 +532,11 @@ public enum TestGenerators {
   /// Generator for ASCII strings
   public static let asciiString = Gen<String>(
     generate: { rng, size in
-      let length = min(size.value, 50)
+      // Ensure we generate non-empty strings more often for proper testing
+      // MATHEMATICAL PROPERTY: Must generate diverse lengths to test edge cases
+      let minLength = 1  // Avoid empty strings that make tests trivial
+      let maxLength = max(size.value, 20)  // Ensure reasonable max length
+      let length = Int.random(in: minLength...maxLength, using: &rng)
       return String(
         (0..<length).map { _ in
           Character(UnicodeScalar(Int.random(in: 32...126, using: &rng))!)

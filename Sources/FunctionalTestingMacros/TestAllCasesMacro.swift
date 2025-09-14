@@ -526,7 +526,7 @@ private extension TestAllCasesMacro {
           }
           
           static var boundaryTests: [Gen<\(typeName)>] {
-              [Gen.constant(\(cases.first!)), Gen.constant(\(cases.last!))]
+              [Gen.constant(\(cases[0])), Gen.constant(\(cases[cases.count - 1]))]
           }
           
           static var edgeCaseTests: [Gen<\(typeName)>] {

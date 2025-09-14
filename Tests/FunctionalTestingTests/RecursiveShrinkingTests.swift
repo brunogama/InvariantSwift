@@ -26,7 +26,7 @@ struct RecursiveShrinkingTests {
     /// fundamental property that shrunk values are smaller than original values.
 
     // Generator that creates different shrinking strategies
-    let shrinkGen = Gen<Shrink<[Int]>> { rng, size in
+    let shrinkGen = Gen<Shrink<[Int]>> { rng, _ in
       let strategy = Int.random(in: 0...2, using: &rng)
 
       switch strategy {
@@ -40,11 +40,13 @@ struct RecursiveShrinkingTests {
             return smaller
           }
         }
+
       case 1:
         // Halve-elements strategy
         return Shrink { array in
-          return [array.map { $0 / 2 }, Array(array.dropLast())]
+          [array.map { $0 / 2 }, Array(array.dropLast())]
         }
+
       default:
         // Binary-search strategy
         return Shrink { array in
@@ -91,7 +93,7 @@ struct RecursiveShrinkingTests {
     /// the resulting shrinking functions still maintain the core shrinking invariants.
 
     // Create a "shrinking function for shrinking functions"
-    let metaShrink = Shrink<Shrink<Int>> { originalShrink in
+    let metaShrink = Shrink<Shrink<Int>> { _ in
       // Generate simpler shrinking strategies
       let simpleShrinks: [Shrink<Int>] = [
         // Identity shrink (no shrinking)
@@ -317,7 +319,7 @@ struct RecursiveShrinkingTests {
     // Simple recursive tree structure
     indirect enum Tree: Equatable {
       case leaf(Int)
-      case node(Tree, Tree)
+      case node(Self, Self)
 
       var size: Int {
         switch self {
@@ -445,6 +447,19 @@ struct RecursiveShrinkingTests {
     let shrunk = Gen.array(Gen.int).shrink.shrink(largeArray)
     let duration = Date().timeIntervalSince(startTime)
 
+    // Debug output to understand the issue
+    print("DEBUG: Original array count: \(largeArray.count)")
+    print("DEBUG: Total shrunk variants: \(shrunk.count)")
+    let invalidShrinks = shrunk.filter { $0.count >= largeArray.count }
+    print("DEBUG: Invalid shrinks (same/larger count): \(invalidShrinks.count)")
+
+    if !invalidShrinks.isEmpty {
+      print("DEBUG: First few invalid shrinks:")
+      for (i, arr) in invalidShrinks.prefix(5).enumerated() {
+        print("  [\(i)]: count = \(arr.count) (first few elements: \(Array(arr.prefix(10))))")
+      }
+    }
+
     #expect(duration < 1.0, "Shrinking large arrays should complete within 1 second")
     #expect(!shrunk.isEmpty, "Large arrays should produce some shrunk variants")
     #expect(
@@ -464,7 +479,7 @@ struct ShrinkingUtilities {
     baseShrink: Shrink<T>,
     invariant: @escaping (T) -> Bool
   ) -> Shrink<T> {
-    return Shrink<T> { value in
+    Shrink<T> { value in
       let candidates = baseShrink.shrink(value)
       return candidates.filter(invariant)
     }
@@ -472,8 +487,8 @@ struct ShrinkingUtilities {
 
   /// Combine multiple shrinking strategies
   static func combineShrinkingStrategies<T>(_ strategies: [Shrink<T>]) -> Shrink<T> {
-    return Shrink<T> { value in
-      return strategies.flatMap { strategy in
+    Shrink<T> { value in
+      strategies.flatMap { strategy in
         strategy.shrink(value)
       }
     }
@@ -481,7 +496,7 @@ struct ShrinkingUtilities {
 
   /// Create a bounded shrinking function that limits the number of results
   static func createBoundedShrink<T>(_ baseShrink: Shrink<T>, maxResults: Int) -> Shrink<T> {
-    return Shrink<T> { value in
+    Shrink<T> { value in
       let results = baseShrink.shrink(value)
       return Array(results.prefix(maxResults))
     }

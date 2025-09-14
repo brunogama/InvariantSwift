@@ -594,7 +594,12 @@ public struct InterleavingTrace: Sendable {
       ] as [String: any Sendable],
     ]
 
-    return try! JSONSerialization.data(withJSONObject: dict)
+    do {
+      return try JSONSerialization.data(withJSONObject: dict)
+    } catch {
+      print("Warning: Failed to serialize DICE data: \(error)")
+      return Data()  // Return empty data instead of crashing
+    }
   }
 
   /// Import trace from external source

@@ -12,7 +12,7 @@ extension Gen where T == Int8 {
         if size.value <= 5 {
           let edgeCases: [Int8] = [0, 1, -1, Int8.min, Int8.max, 127, -128]
           if Bool.random(using: &rng) {
-            return edgeCases.randomElement(using: &rng)!
+            return edgeCases.randomElement(using: &rng) ?? 0
           }
         }
 
@@ -43,7 +43,7 @@ extension Gen where T == Int16 {
         if size.value <= 5 {
           let edgeCases: [Int16] = [0, 1, -1, Int16.min, Int16.max, 32767, -32768]
           if Bool.random(using: &rng) {
-            return edgeCases.randomElement(using: &rng)!
+            return edgeCases.randomElement(using: &rng) ?? 0
           }
         }
 
@@ -74,7 +74,7 @@ extension Gen where T == Int32 {
         if size.value <= 5 {
           let edgeCases: [Int32] = [0, 1, -1, Int32.min, Int32.max]
           if Bool.random(using: &rng) {
-            return edgeCases.randomElement(using: &rng)!
+            return edgeCases.randomElement(using: &rng) ?? 0
           }
         }
 
@@ -105,7 +105,7 @@ extension Gen where T == Int64 {
         if size.value <= 5 {
           let edgeCases: [Int64] = [0, 1, -1, Int64.min, Int64.max]
           if Bool.random(using: &rng) {
-            return edgeCases.randomElement(using: &rng)!
+            return edgeCases.randomElement(using: &rng) ?? 0
           }
         }
 
@@ -138,7 +138,7 @@ extension Gen where T == UInt {
         if size.value <= 5 {
           let edgeCases: [UInt] = [0, 1, UInt.max, UInt.max - 1]
           if Bool.random(using: &rng) {
-            return edgeCases.randomElement(using: &rng)!
+            return edgeCases.randomElement(using: &rng) ?? 0
           }
         }
 
@@ -169,7 +169,7 @@ extension Gen where T == UInt8 {
         if size.value <= 5 {
           let edgeCases: [UInt8] = [0, 1, UInt8.max, 255]
           if Bool.random(using: &rng) {
-            return edgeCases.randomElement(using: &rng)!
+            return edgeCases.randomElement(using: &rng) ?? 0
           }
         }
 
@@ -200,7 +200,7 @@ extension Gen where T == UInt16 {
         if size.value <= 5 {
           let edgeCases: [UInt16] = [0, 1, UInt16.max, 65535]
           if Bool.random(using: &rng) {
-            return edgeCases.randomElement(using: &rng)!
+            return edgeCases.randomElement(using: &rng) ?? 0
           }
         }
 
@@ -231,7 +231,7 @@ extension Gen where T == UInt32 {
         if size.value <= 5 {
           let edgeCases: [UInt32] = [0, 1, UInt32.max]
           if Bool.random(using: &rng) {
-            return edgeCases.randomElement(using: &rng)!
+            return edgeCases.randomElement(using: &rng) ?? 0
           }
         }
 
@@ -262,7 +262,7 @@ extension Gen where T == UInt64 {
         if size.value <= 5 {
           let edgeCases: [UInt64] = [0, 1, UInt64.max]
           if Bool.random(using: &rng) {
-            return edgeCases.randomElement(using: &rng)!
+            return edgeCases.randomElement(using: &rng) ?? 0
           }
         }
 
@@ -301,7 +301,7 @@ extension Gen where T == Float {
             Float.pi, -Float.pi, Float.ulpOfOne,
           ]
           if Bool.random(using: &rng) {
-            return edgeCases.randomElement(using: &rng)!
+            return edgeCases.randomElement(using: &rng) ?? 0
           }
         }
 
@@ -345,7 +345,7 @@ extension Gen where T == Double {
             Double.pi, -Double.pi, Double.ulpOfOne, 2.0 * Double.pi,
           ]
           if Bool.random(using: &rng) {
-            return edgeCases.randomElement(using: &rng)!
+            return edgeCases.randomElement(using: &rng) ?? 0
           }
         }
 
@@ -387,7 +387,7 @@ extension Gen where T == Float16 {
             Float16.greatestFiniteMagnitude, -Float16.greatestFiniteMagnitude,
           ]
           if Bool.random(using: &rng) {
-            return edgeCases.randomElement(using: &rng)!
+            return edgeCases.randomElement(using: &rng) ?? 0
           }
         }
 
@@ -430,7 +430,7 @@ extension Gen where T == CGFloat {
             CGFloat.pi, -CGFloat.pi,
           ]
           if Bool.random(using: &rng) {
-            return edgeCases.randomElement(using: &rng)!
+            return edgeCases.randomElement(using: &rng) ?? 0
           }
         }
 
@@ -473,7 +473,7 @@ extension Gen where T == Decimal {
             Decimal.nan, Decimal.quietNaN,
           ]
           if Bool.random(using: &rng) {
-            return edgeCases.randomElement(using: &rng)!
+            return edgeCases.randomElement(using: &rng) ?? 0
           }
         }
 
@@ -535,7 +535,7 @@ extension Gen {
         if size.value <= 5 {
           let edgeCases: [U] = [U(0), U(1), U(-1)].compactMap { $0 }
           if Bool.random(using: &rng) && !edgeCases.isEmpty {
-            return edgeCases.randomElement(using: &rng)!
+            return edgeCases.randomElement(using: &rng) ?? 0
           }
         }
 
@@ -570,7 +570,7 @@ extension Gen {
         if size.value <= 5 {
           let edgeCases: [U] = [U(0), U(1), U(-1), U.infinity, -U.infinity, U.nan]
           if Bool.random(using: &rng) {
-            return edgeCases.randomElement(using: &rng)!
+            return edgeCases.randomElement(using: &rng) ?? 0
           }
         }
 

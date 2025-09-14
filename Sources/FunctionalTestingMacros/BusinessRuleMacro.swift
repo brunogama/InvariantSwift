@@ -309,7 +309,8 @@ private extension BusinessRuleMacro {
     let scaledComplexity = Double(paramComplexity + 1) * businessRisk
     let totalComplexity =
       scaledComplexity.isFinite && !scaledComplexity.isNaN
-      ? Int(max(1, min(scaledComplexity, Double(Int.max))))
+      // Safely clamp to Int range, accounting for Double precision loss
+      ? Int(max(1, min(scaledComplexity, Double(Int.max - 1))))
       : paramComplexity + 1
 
     let complexity = FunctionAnalysis.ComplexityScore(

@@ -11,7 +11,7 @@ extension Gen where T == Int {
         if size.value <= 5 {
           let edgeCases = [0, 1, -1, Int.min, Int.max]
           if Bool.random(using: &rng) {
-            return edgeCases.randomElement(using: &rng)!
+            return edgeCases.randomElement(using: &rng) ?? 0
           }
         }
 
@@ -104,7 +104,7 @@ extension Gen where T == Double {
         if size.value <= 5 {
           let edgeCases = [0.0, 1.0, -1.0, Double.infinity, -Double.infinity, Double.nan]
           if Bool.random(using: &rng) {
-            return edgeCases.randomElement(using: &rng)!
+            return edgeCases.randomElement(using: &rng) ?? 0.0
           }
         }
 
@@ -185,7 +185,7 @@ extension Gen where T == String {
 
         return String(
           (0..<length).map { _ in
-            characters.randomElement(using: &rng)!
+            characters.randomElement(using: &rng) ?? "a"
           }
         )
       },
@@ -254,7 +254,7 @@ extension Gen where T == Character {
     Gen<Character>(
       generate: { rng, _ in
         let letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        return letters.randomElement(using: &rng)!
+        return letters.randomElement(using: &rng) ?? "a"
       },
       shrink: Shrink { c in
         // Shrink towards 'a'
@@ -271,7 +271,7 @@ extension Gen where T == Character {
     Gen<Character>(
       generate: { rng, _ in
         let letters = "abcdefghijklmnopqrstuvwxyz"
-        return letters.randomElement(using: &rng)!
+        return letters.randomElement(using: &rng) ?? "a"
       },
       shrink: Shrink { c in
         if c != "a" {
@@ -287,7 +287,7 @@ extension Gen where T == Character {
     Gen<Character>(
       generate: { rng, _ in
         let digits = "0123456789"
-        return digits.randomElement(using: &rng)!
+        return digits.randomElement(using: &rng) ?? "0"
       },
       shrink: Shrink { c in
         if c != "0" {

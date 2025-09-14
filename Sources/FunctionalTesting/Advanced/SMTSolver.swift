@@ -422,8 +422,13 @@ public actor SMTSolver {
       SMTExpression.unary(.not, .binary(.equals, .variable(name), .constant(value)))
     }
 
+    guard let firstEquality = negatedEqualities.first else {
+      // Return a trivial false expression if no negated equalities
+      return .constant(.bool(false))
+    }
+
     return negatedEqualities.reduce(
-      negatedEqualities.first!,
+      firstEquality,
       { acc, expr in
         .binary(.or, acc, expr)
       }
@@ -498,8 +503,13 @@ extension SMTExpression {
       }
     }
 
+    guard let firstConstraint = constraints.first else {
+      // Return a trivial true expression if no constraints
+      return .constant(.bool(true))
+    }
+
     return constraints.reduce(
-      constraints.first!,
+      firstConstraint,
       { acc, expr in
         .binary(.and, acc, expr)
       }
