@@ -414,7 +414,7 @@ struct AsyncPropertyTests {
 
       func increment(key: String) -> Int {
         counters[key, default: 0] += 1
-        return counters[key]!
+        return counters[key, default: 0]
       }
 
       func getCount(key: String) -> Int {
@@ -491,11 +491,26 @@ struct AsyncPropertyTests {
       value == 42
     }
 
-    // checkPropertyAsync records issues instead of throwing on property failures
-    try await checkPropertyAsync(failingProperty, config: PropertyConfig(iterations: 100))
+    // Test the failure behavior by using PropertyRunner directly
+    // This allows us to verify failure handling without using checkPropertyAsync
+    // which would record an issue and fail the test
+    let runner = PropertyRunner(seed: Seed(value: 12345))
+    let result = await runner.runProperty(failingProperty, config: PropertyConfig(iterations: 100))
 
-    // The issue should have been recorded by checkPropertyAsync for the failing property
-    #expect(Bool(true), "checkPropertyAsync handled failure by recording issue")
+    // Verify that the property fails as expected
+    switch result {
+    case .failure(let counterexample, let iterations, let shrunk):
+      #expect(counterexample != 42, "Counterexample should not equal 42")
+      #expect(shrunk != 42, "Shrunk counterexample should not equal 42")
+      #expect(iterations > 0, "Should have completed some iterations before failing")
+
+    case .success:
+      Issue.record("Expected property to fail but it succeeded")
+
+    case .gaveUp(let discarded, let iterations):
+      #expect(discarded >= 0, "Should track discarded attempts")
+      #expect(iterations >= 0, "Should track iterations")
+    }
   }
 
   // MARK: - Async Property Testing Edge Cases (Task 6)
