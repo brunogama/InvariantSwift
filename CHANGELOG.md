@@ -25,6 +25,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * SHARDING-GUIDE.md for team-distributed ownership
   * README.md navigation hub for documentation suite
   * sections/ directory with pre-sharded architecture sections (17 files + index)
+- Developer onboarding and quick start guides:
+  * ONBOARDING.md (1,297 lines) - Complete developer onboarding guide
+  * QUICKSTART.md (158 lines) - 10-minute quick start guide
+  * README_IMPROVEMENTS.md (359 lines) - README improvement analysis
+  * .claude/commands/tools/onboarding.md - Onboarding analysis template
 
 ### Changed
 - Remove swift-docs-generation pre-commit hook
