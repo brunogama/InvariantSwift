@@ -20,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI tool (`functest`) for property-based testing
 - Swift Package Manager plugin integration
 - CodeRabbit automated code review configuration with Swift-specific optimizations
+- Comprehensive architecture documentation suite:
+  * InvariantSwift-architecture.md (37 KB, 18 sections, 13 diagrams, 6 ADRs)
+  * SHARDING-GUIDE.md for team-distributed ownership
+  * README.md navigation hub for documentation suite
 
 ### Changed
 - Remove swift-docs-generation pre-commit hook
