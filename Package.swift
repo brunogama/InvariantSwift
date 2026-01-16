@@ -3,7 +3,7 @@ import PackageDescription
 import CompilerPluginSupport
 
 let package = Package(
-  name: "FunctionalTesting",
+  name: "InvariantSwift",
   platforms: [
     .iOS(.v18),  // Required for latest TaskExecutor and Sendable APIs
     .macOS(.v15),  // Required for latest TaskExecutor and Sendable APIs
@@ -13,8 +13,8 @@ let package = Package(
   ],
   products: [
     .library(
-      name: "FunctionalTesting",
-      targets: ["FunctionalTesting"]
+      name: "InvariantSwift",
+      targets: ["InvariantSwift"]
     ),
     .executable(
       name: "functest",
@@ -35,9 +35,13 @@ let package = Package(
     /// Main functional testing library target
     /// Configured for comprehensive code coverage analysis
     .target(
-      name: "FunctionalTesting",
+      name: "InvariantSwift",
       dependencies: [
-        "FunctionalTestingMacros"
+        "InvariantSwiftMacros"
+      ],
+      path: "Sources/InvariantSwift",
+      exclude: [
+        "Macros/LawGeneration.swift.disabled"
       ],
       swiftSettings: [
         // Enable coverage collection for library code
@@ -54,12 +58,13 @@ let package = Package(
     /// Macro implementation target
     /// SwiftSyntax-based macro implementations for @PropertyTest
     .macro(
-      name: "FunctionalTestingMacros",
+      name: "InvariantSwiftMacros",
       dependencies: [
         .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
         .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
         .product(name: "SwiftParser", package: "swift-syntax"),
       ],
+      path: "Sources/InvariantSwiftMacros",
       swiftSettings: [
         // Enable testing and strict warnings for macro code
         .unsafeFlags(
@@ -79,7 +84,7 @@ let package = Package(
     .executableTarget(
       name: "FuncTestCLI",
       dependencies: [
-        "FunctionalTesting",
+        "InvariantSwift",
         .product(name: "CustomDump", package: "swift-custom-dump"),
       ],
       path: "Sources/FuncTestCLI",
@@ -122,8 +127,9 @@ let package = Package(
     /// Primary test target - covers core functionality, generators, properties
     /// Contains: PropertyTests, GeneratorCoreTests, CollectionGeneratorTests, DogfoodPropertyTests
     .testTarget(
-      name: "FunctionalTestingTests",
-      dependencies: ["FunctionalTesting"],
+      name: "FunctionalTesting",
+      dependencies: ["InvariantSwift"],
+      path: "Tests/FunctionalTesting",
       swiftSettings: [
         // Optimize for coverage collection
         .unsafeFlags(
@@ -139,11 +145,12 @@ let package = Package(
     /// Macro-specific test target - covers macro expansion and error paths
     /// Contains: PropertyMacroTests with expansion, error handling, and syntax testing
     .testTarget(
-      name: "FunctionalTestingMacroTests",
+      name: "InvariantSwiftMacroTests",
       dependencies: [
-        "FunctionalTestingMacros",
+        "InvariantSwiftMacros",
         .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
       ],
+      path: "Tests/InvariantSwiftMacroTests",
       swiftSettings: [
         .unsafeFlags(
           [
@@ -159,7 +166,7 @@ let package = Package(
     /// Currently contains placeholder - can be used for performance regression testing
     .testTarget(
       name: "PerformanceTests",
-      dependencies: ["FunctionalTesting"],
+      dependencies: ["InvariantSwift"],
       path: "Tests/PerformanceTests",
       swiftSettings: [
         .unsafeFlags(
@@ -179,8 +186,8 @@ let package = Package(
     .testTarget(
       name: "CoverageIntegrationTests",
       dependencies: [
-        "FunctionalTesting",
-        "FunctionalTestingMacros",
+        "InvariantSwift",
+        "InvariantSwiftMacros",
       ],
       path: "Tests/CoverageIntegrationTests",
       swiftSettings: [

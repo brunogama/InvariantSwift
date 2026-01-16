@@ -1,6 +1,6 @@
 import Testing
 import Foundation
-@testable import FunctionalTesting
+@testable import InvariantSwift
 
 /// Comprehensive automated coverage validation tests
 ///
@@ -183,7 +183,7 @@ struct AutomatedCoverageTests {
       generator: Gen.array(Gen.int(in: 1...100)),
       predicate: { array in
         // This should exercise array generation and validation
-        return array.allSatisfy { $0 > 0 }
+        array.allSatisfy { $0 > 0 }
       }
     )
 
@@ -205,7 +205,7 @@ struct AutomatedCoverageTests {
     let runner = LLVMCoverageRunner()
 
     let startTime = Date()
-    let _ = try await runner.calculateCoverage()
+    _ = try await runner.calculateCoverage()
     let executionTime = Date().timeIntervalSince(startTime)
 
     // Coverage analysis should complete within reasonable time
@@ -278,9 +278,9 @@ struct CoverageTestUtilities {
     _ path: LLVMCoverageRunner.UncoveredPath
   ) -> Property<Int> {
     // Create a property test designed to hit the specific uncovered path
-    return Property(generator: Gen.int) { value in
+    Property(generator: Gen.int) { _ in
       // This is a placeholder - actual implementation would be path-specific
-      return true
+      true
     }
   }
 

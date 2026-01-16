@@ -25,15 +25,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Remove swift-docs-generation pre-commit hook
 - Clean up duplicate Swift format configuration files
 - Add Claude Code development workflow configuration
+- **Migrate main library target from FunctionalTesting to InvariantSwift**
+- Reorganize source files from FunctionalTesting/ to InvariantSwift/
+- Reorganize test files from FunctionalTestingTests/ to FunctionalTesting/
 
 ### Deprecated
 - N/A (initial release)
 
 ### Removed
-- N/A (initial release)
+- ClassificationCoverage.swift (obsolete coverage file)
 
 ### Fixed
 - Clean up duplicate content in CodeRabbit configuration file
+- Fix compilation errors in DICE.swift, Seed.swift, CombinatorGenerators.swift (isEmpty checks)
+- Fix generic parameter naming collision in ModelTesting.swift (Command → CommandType)
+- Fix FuncTestCLI/main.swift: actor-isolated method calls, Property API usage, RandomNumberGenerator types
+- Fix Package.swift to exclude LawGeneration.swift.disabled file
+- Ensure Swift 6 strict concurrency compliance across all targets
+- Apply linter corrections for code style consistency
 
 ### Security
 - N/A (initial release)

@@ -1,6 +1,6 @@
 import Testing
 import Foundation
-@testable import FunctionalTesting
+@testable import InvariantSwift
 
 /// Performance tests for property-based testing framework
 /// Validates performance characteristics and identifies regressions
@@ -97,7 +97,7 @@ struct PropertyPerformanceTests {
       generator: Gen.array(Gen.string)
     ) { array in
       // Validate without storing large intermediate results
-      return array.count >= 0
+      array.isEmpty
     }
 
     let config = PropertyConfig(iterations: 200)
@@ -133,7 +133,7 @@ struct PropertyPerformanceTests {
 
     for complexity in complexities {
       let property = Property<[Int]>(generator: Gen.array(Gen.int)) { array in
-        return array.count >= 0
+        array.isEmpty
       }
 
       let config = PropertyConfig(iterations: complexity)
@@ -145,6 +145,7 @@ struct PropertyPerformanceTests {
       switch result {
       case .success:
         results.append((complexity: complexity, duration: duration))
+
       default:
         Issue.record("Scalability test should succeed for complexity \(complexity)")
       }
@@ -189,6 +190,7 @@ struct PropertyPerformanceTests {
           switch result {
           case .success(let iterations):
             #expect(iterations == 100, "Concurrent execution should complete all iterations")
+
           default:
             Issue.record("Concurrent property execution should succeed")
           }

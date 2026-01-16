@@ -1,5 +1,5 @@
 import Foundation
-import FunctionalTesting
+import InvariantSwift
 import CustomDump
 
 // MARK: - FuncTest CLI Tool
@@ -388,14 +388,16 @@ extension FuncTestCLI {
 
     // Sample property: Array reverse is involution
     print("🧪 Testing Array Reverse Involution...")
-    let arrayReverseProperty = Property<[Int]> { array in
-      array.reversed().reversed() == array
-    }
+    let arrayReverseProperty = Property(
+      generator: Gen.array(Gen.int(in: 0...100)),
+      predicate: { array in
+        array.reversed().reversed() == array
+      }
+    )
 
     let testConfig = PropertyConfig(
       iterations: config.iterations,
-      maxShrinkSteps: config.maxShrinks,
-      timeout: config.timeout
+      maxShrinks: config.maxShrinks
     )
 
     let result = await runner.runProperty(arrayReverseProperty, config: testConfig)
@@ -412,16 +414,22 @@ extension FuncTestCLI {
       print("   Counterexample: \(counterexample)")
       print("   Shrunk to: \(shrunk)")
 
-    case .gaveUp(let iterations):
-      print("⚠️  GAVE UP after \(iterations) iterations")
+    case .gaveUp(let discarded, let iterations):
+      print("⚠️  GAVE UP after \(iterations) iterations (discarded: \(discarded))")
     }
 
     // Sample property: String concatenation associativity
     print("\n🧪 Testing String Concatenation Associativity...")
-    let stringConcatProperty = Property<(String, String, String)> { strings in
-      let (a, b, c) = strings
-      return (a + b) + c == a + (b + c)
-    }
+    let stringConcatProperty = Property(
+      generator: Gen.string.zip(Gen.string).zip(Gen.string).map { nested in
+        let ((a, b), c) = nested
+        return (a, b, c)
+      },
+      predicate: { strings in
+        let (a, b, c) = strings
+        return (a + b) + c == a + (b + c)
+      }
+    )
 
     let stringResult = await runner.runProperty(stringConcatProperty, config: testConfig)
     totalTests += 1
@@ -437,8 +445,8 @@ extension FuncTestCLI {
       print("   Counterexample: \(counterexample)")
       print("   Shrunk to: \(shrunk)")
 
-    case .gaveUp(let iterations):
-      print("⚠️  GAVE UP after \(iterations) iterations")
+    case .gaveUp(let discarded, let iterations):
+      print("⚠️  GAVE UP after \(iterations) iterations (discarded: \(discarded))")
     }
 
     let duration = Date().timeIntervalSince(startTime)
@@ -501,13 +509,15 @@ extension FuncTestCLI {
         let arrayGen = Gen.array(Gen.int)
         let runner = PropertyRunner()
 
-        let property = Property<[Int]> { array in
-          array.sorted().count == array.count
-        }
+        let property = Property(
+          generator: arrayGen,
+          predicate: { array in
+            array.sorted().count == array.count
+          }
+        )
 
         let testConfig = PropertyConfig(
-          iterations: iterations,
-          size: Size(size)
+          iterations: iterations
         )
 
         let result = await runner.runProperty(property, config: testConfig)
@@ -574,19 +584,22 @@ extension FuncTestCLI {
     switch generatorType {
     case "int":
       for i in 1...count {
-        let value = Gen.int.generate(&SystemRandomNumberGenerator(), Size(10))
+        var rng: any RandomNumberGenerator = SystemRandomNumberGenerator()
+        let value = Gen.int.generate(&rng, Size(value: 10))
         print("  \(i). \(value)")
       }
 
     case "string":
       for i in 1...count {
-        let value = Gen.string.generate(&SystemRandomNumberGenerator(), Size(10))
+        var rng: any RandomNumberGenerator = SystemRandomNumberGenerator()
+        let value = Gen.string.generate(&rng, Size(value: 10))
         print("  \(i). \"\(value)\"")
       }
 
     case "array":
       for i in 1...count {
-        let value = Gen.array(Gen.int).generate(&SystemRandomNumberGenerator(), Size(5))
+        var rng: any RandomNumberGenerator = SystemRandomNumberGenerator()
+        let value = Gen.array(Gen.int).generate(&rng, Size(value: 5))
         print("  \(i). \(value)")
       }
 
@@ -607,22 +620,28 @@ extension FuncTestCLI {
 
     // Quick interactive property testing
     let runner = PropertyRunner()
-    let config = PropertyConfig(iterations: 20, maxShrinkSteps: 100)
+    let config = PropertyConfig(iterations: 20, maxShrinks: 100)
 
     switch property {
     case "reverse":
-      let prop = Property<[Int]> { array in
-        array.reversed().reversed() == array
-      }
+      let prop = Property(
+        generator: Gen.array(Gen.int),
+        predicate: { array in
+          array.reversed().reversed() == array
+        }
+      )
       let result = await runner.runProperty(prop, config: config)
       printResult(result, propertyName: "Array Reverse Involution")
 
     case "sort":
-      let prop = Property<[Int]> { array in
-        let sorted = array.sorted()
-        return sorted.count == array.count
-          && (sorted.isEmpty || zip(sorted, sorted.dropFirst()).allSatisfy(<=))
-      }
+      let prop = Property(
+        generator: Gen.array(Gen.int),
+        predicate: { array in
+          let sorted = array.sorted()
+          return sorted.count == array.count
+            && (sorted.isEmpty || zip(sorted, sorted.dropFirst()).allSatisfy(<=))
+        }
+      )
       let result = await runner.runProperty(prop, config: config)
       printResult(result, propertyName: "Array Sort Properties")
 
@@ -641,8 +660,8 @@ extension FuncTestCLI {
       print("   Counterexample: \(counterexample)")
       print("   Shrunk to: \(shrunk)")
 
-    case .gaveUp(let iterations):
-      print("⚠️  \(propertyName) GAVE UP after \(iterations) iterations")
+    case .gaveUp(let discarded, let iterations):
+      print("⚠️  \(propertyName) GAVE UP after \(iterations) iterations (discarded: \(discarded))")
     }
   }
 }
@@ -777,7 +796,7 @@ extension FuncTestCLI {
                 <h1>FuncTest Report</h1>
                 <p>Generated: \(formatter.string(from: report.timestamp))</p>
             </div>
-            
+
             <div class="stats">
                 <div class="stat">
                     <h3>Total Tests</h3>
