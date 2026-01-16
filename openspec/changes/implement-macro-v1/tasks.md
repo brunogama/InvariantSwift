@@ -33,12 +33,12 @@
 - [x] 1.4.1 Verify `@Test` attribute generation compatibility
 - [x] 1.4.2 Ensure `#expect` macros pass through correctly
 - [x] 1.4.3 Test `Issue.record()` integration for failures
-- [ ] 1.4.4 Write integration tests with Swift Testing framework
+- [x] 1.4.4 Write integration tests with Swift Testing framework
 
 ### 1.5 Phase 1 Validation
 - [x] 1.5.1 All existing `PropertyMacroTests` pass
-- [ ] 1.5.2 New tests for generator inference edge cases
-- [ ] 1.5.3 Build passes with zero warnings
+- [x] 1.5.2 New tests for generator inference edge cases
+- [x] 1.5.3 Build passes with zero warnings
 - [ ] 1.5.4 DocC comments on all public APIs
 
 ---

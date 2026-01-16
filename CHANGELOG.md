@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Property API enhanced with improved documentation and safer patterns
 
+### Tests
+- Add PropertyMacroIntegrationTests with 18 integration tests validating macro runtime behavior
+- Test coverage for property execution, generator inference, failure detection, seed determinism
+
 ### Added
 - Property-based testing framework for Swift
 - Core generator system with integrated shrinking
