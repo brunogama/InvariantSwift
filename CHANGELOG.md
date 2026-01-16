@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Per-field shrinking for @Arbitrary macro - each struct field shrinks independently
+- `Shrink.automatic` static property for default no-op shrinking strategy
+- `Shrink.towards(_:)` static function for target-based shrinking
+- `GeneratorInference.inferShrink(for:)` for deriving shrink from generator type
+
 ### Fixed
 - Remove fatalError calls from production code paths:
   - PropertyEffect: Replace fatalError contramap with safe contramapWith method

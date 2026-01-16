@@ -496,6 +496,54 @@ struct ShrinkingUtilities {
   }
 }
 
+// MARK: - Shrink.automatic and Shrink.towards Tests
+
+@Test("Shrink.automatic returns empty shrink results")
+func shrinkAutomaticReturnsEmpty() {
+  let shrink = Shrink<Int>.automatic
+  let results = shrink.shrink(42)
+  #expect(results.isEmpty, "Shrink.automatic should return empty array")
+}
+
+@Test("Shrink.towards shrinks to target value")
+func shrinkTowardsShrinksToTarget() {
+  let target = 0
+  let shrink = Shrink<Int>.towards(target)
+  let results = shrink.shrink(100)
+  #expect(results == [target], "Shrink.towards should return only the target")
+}
+
+@Test("Shrink.towards with struct target")
+func shrinkTowardsWithStructTarget() {
+  struct Config: Equatable {
+    let debug: Bool
+    let timeout: Int
+  }
+
+  let defaultConfig = Config(debug: false, timeout: 30)
+  let shrink = Shrink<Config>.towards(defaultConfig)
+
+  let complexConfig = Config(debug: true, timeout: 999)
+  let results = shrink.shrink(complexConfig)
+
+  #expect(results.count == 1, "Should produce exactly one shrink result")
+  #expect(results.first == defaultConfig, "Should shrink to the target config")
+}
+
+@Test("Shrink.automatic works with complex types")
+func shrinkAutomaticWorksWithComplexTypes() {
+  struct ComplexType: Equatable {
+    let name: String
+    let values: [Int]
+  }
+
+  let shrink = Shrink<ComplexType>.automatic
+  let testValue = ComplexType(name: "test", values: [1, 2, 3])
+  let results = shrink.shrink(testValue)
+
+  #expect(results.isEmpty, "Shrink.automatic should return empty for any type")
+}
+
 /// Documentation and examples for recursive shrinking patterns
 ///
 /// Recursive shrinking represents one of the most sophisticated aspects of

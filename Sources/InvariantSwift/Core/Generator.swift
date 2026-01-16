@@ -169,6 +169,55 @@ public struct Shrink<T>: @unchecked Sendable {
     Self { _ in [] }
   }
 
+  /// Automatic shrinking strategy that provides a default no-op shrink.
+  ///
+  /// Use when a type should have automatic shrinking but no specific strategy
+  /// is available. This is primarily used by macro-generated code for types
+  /// that don't have custom shrinking requirements.
+  ///
+  /// - Note: This currently returns an empty shrink. Future implementations
+  ///   may provide smarter automatic shrinking based on type structure.
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   @Arbitrary
+  ///   struct Config {
+  ///       let debug: Bool
+  ///       let timeout: Int
+  ///   }
+  ///   // Generated code uses Shrink.automatic when no defaults exist
+  ///   ```
+  public static var automatic: Shrink<T> {
+    Self { _ in [] }
+  }
+
+  /// Creates a shrinking strategy that shrinks toward a specific target value.
+  ///
+  /// This strategy generates shrunk values by interpolating between the current
+  /// value and the target. For types that support meaningful comparison, this
+  /// enables efficient convergence toward the target value.
+  ///
+  /// - Parameters:
+  ///   - target: The value to shrink toward
+  ///
+  /// - Returns: Shrinking strategy that attempts to produce the target value
+  ///
+  /// - Note: The current implementation returns only the target as a shrink
+  ///   candidate. Callers should ensure the target is a valid minimal value.
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   @Arbitrary(shrink: .towards(Config()))
+  ///   struct Config {
+  ///       let debug: Bool = false
+  ///       let timeout: Int = 30
+  ///   }
+  ///   // Shrinking will attempt to reach Config() as the minimal case
+  ///   ```
+  public static func towards(_ target: T) -> Shrink<T> {
+    Self { _ in [target] }
+  }
+
   /// Transforms the shrinking context via a function.
   ///
   /// Contramap allows adapting a `Shrink<T>` to work with a different type `U`

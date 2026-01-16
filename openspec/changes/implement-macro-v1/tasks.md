@@ -56,7 +56,7 @@
 - [x] 2.2.2 Generate `Gen.zip(...)` for all fields
 - [x] 2.2.3 Generate `.map { ... }` to construct instance
 - [x] 2.2.4 Handle memberwise initializer pattern
-- [ ] 2.2.5 Handle default values in properties
+- [x] 2.2.5 Handle default values in properties
 
 ### 2.3 Enum Analysis and Generation
 - [x] 2.3.1 Implement `EnumAnalyzer.swift` to extract cases
@@ -67,8 +67,8 @@
 
 ### 2.4 Shrinking Derivation
 - [x] 2.4.1 Implement `ShrinkDerivation.swift`
-- [ ] 2.4.2 Generate shrink for each field independently
-- [ ] 2.4.3 Combine field shrinks into composite shrink
+- [x] 2.4.2 Generate shrink for each field independently
+- [x] 2.4.3 Combine field shrinks into composite shrink
 - [x] 2.4.4 Handle `ShrinkStrategy` configuration (`.automatic`, `.towards`, `.none`)
 
 ### 2.5 Constraint Syntax
@@ -79,7 +79,7 @@
 
 ### 2.6 Phase 2 Validation
 - [x] 2.6.1 Tests for `@Arbitrary` on simple structs
-- [ ] 2.6.2 Tests for `@Arbitrary` on nested structs
+- [x] 2.6.2 Tests for `@Arbitrary` on nested structs
 - [x] 2.6.3 Tests for `@Arbitrary` on enums with associated values
 - [ ] 2.6.4 Tests for constraint application
 - [x] 2.6.5 Build passes with zero warnings
