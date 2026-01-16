@@ -472,6 +472,116 @@ func testOptionalFunctorIdentity<T>(value: T?) {
 - **Warnings as errors**: Code must compile with no warnings
 - **Macro placement**: Macro annotations on separate lines from functions/properties
 
+## Documentation Guidelines
+
+### DocC Standards (Milestone 0.3-0.4)
+
+All public API documentation must follow [API_DOCUMENTATION_TEMPLATE.md](docs/API_DOCUMENTATION_TEMPLATE.md). Required elements:
+
+**For Every Public Symbol:**
+1. **Summary**: One-line description of purpose
+2. **Discussion**: Detailed explanation (2-3 paragraphs), use cases, constraints
+3. **Parameters**: Document each input parameter with type and constraints
+4. **Returns**: Describe return value type and meaning
+5. **Throws**: List error conditions (if applicable)
+6. **Example**: Compilable code snippet showing primary use case
+7. **Notes**: Caveats, thread-safety, actor isolation, performance characteristics (optional but recommended)
+8. **See Also**: Links to related types/functions (optional)
+
+### Documentation Compliance Rules
+
+Before marking a symbol as documented:
+
+- [ ] All required elements present (per above checklist)
+- [ ] Example code compiles without warnings: `swift build -Xswiftc -warnings-as-errors`
+- [ ] No internal implementation details exposed in documentation
+- [ ] Mathematical concepts include external references (Wikipedia, academic papers)
+- [ ] Concurrency constraints documented (async, actor isolation, thread-safety)
+- [ ] Performance characteristics documented for O(n+) algorithms
+- [ ] Cross-references use proper DocC syntax: ``` `` ```
+- [ ] Consistency: Similar types documented with similar structure
+
+### Documentation Examples
+
+#### Protocol/Type
+```swift
+/// One-line summary of purpose.
+///
+/// Detailed explanation covering key characteristics, use cases,
+/// and connection to mathematical concepts.
+///
+/// Mathematical foundation: [Reference to external resource]
+///
+/// - Parameters:
+///   - param1: Description with type and constraints
+///   - param2: Description with type and constraints
+///
+/// - Returns: Description of return value
+///
+/// - Example:
+///   ```swift
+///   // Code that demonstrates primary use case
+///   ```
+///
+/// - See Also: ``RelatedType``, ``relatedFunction()``
+public struct MyType { }
+```
+
+#### Function/Method
+```swift
+/// Action verb describing what this does.
+///
+/// Additional context about when to use, performance implications,
+/// and mathematical properties (if applicable).
+///
+/// - Parameters:
+///   - input: Purpose, type, valid range
+///
+/// - Returns: What is returned, type, guarantees
+///
+/// - Throws: `ErrorType` if [condition]
+///
+/// - Note: Important thread-safety or actor isolation info
+///
+/// - Example:
+///   ```swift
+///   let result = try myFunction(input: value)
+///   ```
+///
+/// - See Also: ``alternativeFunction()``, ``RelatedType``
+public func myFunction(input: String) throws -> Result { }
+```
+
+### Building and Validating Documentation
+
+```bash
+# Generate and validate DocC
+swift package generate-documentation
+
+# Check for missing documentation (should produce 0 warnings)
+swift build -Xswiftc -warnings-as-errors 2>&1 | grep -i "missing documentation"
+
+# Open generated documentation locally
+open .build/documentation/docc/Invariant*.doccarchive
+
+# Verify all public symbols documented (per API_AUDIT.md)
+# Each of 82 symbols should have corresponding DocC comment
+```
+
+### Documentation Template Reference
+
+Detailed guidance for each type of API (protocols, structs, enums, functions, operators, mathematical APIs, async properties, model-based testing) is in [docs/API_DOCUMENTATION_TEMPLATE.md](docs/API_DOCUMENTATION_TEMPLATE.md).
+
+### Functional Programming Concepts
+
+When documenting functional programming concepts, follow these additional guidelines:
+
+- **Explain mathematical foundations**: Describe functor/monad laws, coalgebraic structures, etc.
+- **Provide external references**: Link to Haskell documentation, academic papers, or Wikipedia
+- **Include formal definitions**: When applicable, provide mathematical notation
+- **Example law verification**: Show how to verify that types satisfy their laws
+- **Performance implications**: Document algorithmic complexity with O-notation
+
 ## Functional Programming Concepts
 
 When documenting functional programming code:

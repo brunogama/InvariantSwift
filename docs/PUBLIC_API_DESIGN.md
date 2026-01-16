@@ -491,16 +491,29 @@ public extension PropertyRunner {
 | Results | `{Task}Result<T>` | `PropertyResult<T>`, `ModelTestResult<T>` |
 | RNG | `{Type}RandomNumberGenerator` | `SeedBasedRandomNumberGenerator` |
 
-### 7.2 Naming Changes (0.x → 1.0)
+### 7.2 Breaking Changes (Execute in M0.5, Pre-1.0)
 
-| Old Name | New Name | Reason | Deprecation |
-|----------|----------|--------|-------------|
-| `SeededRandomNumberGenerator` | `SeedBasedRandomNumberGenerator` | Consistency with Seed type | Mark @available with bridge |
-| `PropertyChecker` | *(remove)* | Superseded by PropertyRunner | Deprecate, document migration |
-| `Gen.either()` | *(clarify or remove)* | Ambiguous naming | Clarify intent or provide alias |
-| `●` operator | *(consider removing)* | Prefer explicit `compose()` | Keep but document |
+| Old Name | Action | Reason | Implementation |
+|----------|--------|--------|-----------------|
+| `SeededRandomNumberGenerator` | **RENAME** | Consistency with Seed type | Direct rename, no bridge |
+| `PropertyChecker` | **DELETE** | Superseded by PropertyRunner | Remove entirely |
+| `Gen.either()` | **DELETE** | Ambiguous naming | Remove or rename clearly |
+| `●` operator | **DELETE** | Favor explicit `compose()` | Remove, use method instead |
 
-### 7.3 Semantic Versioning Commitments
+**Why no deprecation?** Pre-1.0, zero public users, one-time breaking change acceptable.
+
+### 7.3 Semantic Versioning Strategy
+
+**Now (Pre-1.0, M0.5)**:
+```
+🔨 BREAK FREELY (one-time cleanup):
+- SeededRandomNumberGenerator → SeedBasedRandomNumberGenerator (rename)
+- PropertyChecker (delete)
+- Gen.either() (delete/rename)
+- ● operator (delete)
+
+→ Clean slate for 1.0 release
+```
 
 **Once released as 1.0**:
 
@@ -513,62 +526,52 @@ public extension PropertyRunner {
 - PropertyConfig parameters
 - All primitive generators (Gen.int, Gen.string, etc.)
 
-✅ CAN ADD WITHOUT BREAKING:
+✅ CAN ADD WITHOUT BREAKING (purely additive):
 - New static generator properties (Gen.uuid, etc.)
 - New Gen combinator methods
 - New optional parameters with defaults
 - New types in separate namespaces
 
-❌ BREAKING CHANGES ONLY IN:
-- Major version bumps (1.0 → 2.0)
-- Require 2-release deprecation period first (0.9 warning period)
-- Public changelog entry required
+❌ NO BREAKING CHANGES (until 2.0):
+- Removing or renaming existing APIs forbidden
+- Adding optional parameters only if default provided
+- Behavior changes only if invisible to users
 ```
 
 ---
 
 ## 8. Deprecation & Migration Strategy
 
-### 8.1 PropertyChecker → PropertyRunner Migration
+### 8.1 Breaking Changes Strategy (Pre-1.0)
 
-**Current (0.x)**:
+**Since InvariantSwift is pre-1.0 and has NO public users**:
+- ✅ **Break freely now** - no deprecation bridges needed
+- ✅ **Rename directly** - no @available markers required
+- ✅ **Remove unused APIs** - delete PropertyChecker entirely
+- ✅ **Consolidate duplicates** - merge ExampleDatabase instances
+
+**Breaking Changes to Execute in M0.5**:
+
 ```swift
-let checker = PropertyChecker()
-let result = checker.check(property)  // Synchronous
-```
+// REMOVE (unused, superseded by PropertyRunner)
+// ❌ PropertyChecker - DELETE entirely
 
-**Planned (0.x release notes)**:
-```swift
-// In 0.9, mark deprecated:
-@available(*, deprecated: "Use PropertyRunner instead")
-public struct PropertyChecker { ... }
+// RENAME (consistency with Seed type naming)
+// ❌ SeededRandomNumberGenerator
+// ✅ SeedBasedRandomNumberGenerator
 
-// Migration path:
-let runner = PropertyRunner()
-let result = runner.runProperty(property)  // Synchronous in thread-safe actor
+// REMOVE (ambiguous, low usage)
+// ❌ Gen.either() - DELETE or rename to Gen.eitherOr()
+
+// REMOVE (symbol preference over @available)
+// ❌ ● operator - DELETE, use compose() method
+// ✅ >>> and |> operators - KEEP (widely recognized)
 ```
 
 **1.0.0 Release**:
-```swift
-// PropertyChecker removed entirely
-// Users must use PropertyRunner
-```
-
-### 8.2 SeededRandomNumberGenerator Deprecation
-
-**In 0.9**:
-```swift
-// Old name with deprecation
-@available(*, deprecated: "Use SeedBasedRandomNumberGenerator",
-           renamed: "SeedBasedRandomNumberGenerator")
-public typealias SeededRandomNumberGenerator = SeedBasedRandomNumberGenerator
-```
-
-**In 1.0**:
-```swift
-// Only SeedBasedRandomNumberGenerator exists
-public struct SeedBasedRandomNumberGenerator: RandomNumberGenerator, Sendable { ... }
-```
+- All breaking changes complete
+- Clean, renamed API released
+- Semantic versioning begins (1.0 → 1.x is safe, 1.x → 2.0 is breaking)
 
 ---
 
