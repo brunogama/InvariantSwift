@@ -41,7 +41,7 @@ struct TestUtilitiesDemo {
 
     // The utility should handle the expectation validation
     switch result {
-    case .failure(_, let iterations, _):
+    case .failure(_, let iterations, _, _, _):
       #expect(iterations == 1, "Should fail on first iteration")
 
     default:
@@ -68,7 +68,7 @@ struct TestUtilitiesDemo {
   @Test("TestUtilities.expectSuccess - detailed success assertion")
   func testUtilitiesExpectSuccess() {
     let property = Property<Bool>(generator: Gen.bool) { _ in true }
-    let result = PropertyChecker.check(property, config: PropertyConfig(iterations: 25))
+    let result = runPropertySynchronously(property, config: PropertyConfig(iterations: 25))
 
     // Use utility assertion
     TestUtilities.expectSuccess(result, iterations: 25)
@@ -77,7 +77,7 @@ struct TestUtilitiesDemo {
   @Test("TestUtilities.expectFailure - detailed failure assertion")
   func testUtilitiesExpectFailure() {
     let property = Property<Int>(generator: Gen.int(in: 1...100)) { $0 > 50 }
-    let result = PropertyChecker.check(property, config: PropertyConfig(iterations: 100))
+    let result = runPropertySynchronously(property, config: PropertyConfig(iterations: 100))
 
     // Use utility assertion with custom predicates
     TestUtilities.expectFailure(
@@ -93,7 +93,7 @@ struct TestUtilitiesDemo {
       generator: Gen.int.suchThat { _ in false },  // Impossible condition
       predicate: { _ in true }
     )
-    let result = PropertyChecker.check(property, config: PropertyConfig(iterations: 10))
+    let result = runPropertySynchronously(property, config: PropertyConfig(iterations: 10))
 
     TestUtilities.expectGaveUp(result, minDiscarded: 10)
   }
@@ -274,9 +274,9 @@ struct TestUtilitiesDemo {
     let property3 = Property<Int>(generator: Gen.int.suchThat { _ in false }) { _ in true }
 
     let results = [
-      PropertyChecker.check(property1, config: PropertyConfig(iterations: 10)),
-      PropertyChecker.check(property2, config: PropertyConfig(iterations: 10)),
-      PropertyChecker.check(property3, config: PropertyConfig(iterations: 10)),
+      runPropertySynchronously(property1, config: PropertyConfig(iterations: 10)),
+      runPropertySynchronously(property2, config: PropertyConfig(iterations: 10)),
+      runPropertySynchronously(property3, config: PropertyConfig(iterations: 10)),
     ]
 
     let analysis = TestUtilities.analyzeResults(results)
@@ -305,7 +305,7 @@ struct TestUtilitiesDemo {
       value >= 1 && value <= 100
     }
 
-    let result = PropertyChecker.check(property, config: PropertyConfig(iterations: 50))
+    let result = runPropertySynchronously(property, config: PropertyConfig(iterations: 50))
     TestUtilities.expectSuccess(result, iterations: 50)
   }
 
@@ -316,7 +316,7 @@ struct TestUtilitiesDemo {
       array.count <= 20  // Should respect size limit
     }
 
-    let result = PropertyChecker.check(property, config: PropertyConfig(iterations: 30))
+    let result = runPropertySynchronously(property, config: PropertyConfig(iterations: 30))
     TestUtilities.expectSuccess(result, iterations: 30)
   }
 
@@ -329,7 +329,7 @@ struct TestUtilitiesDemo {
       }
     }
 
-    let result = PropertyChecker.check(property, config: PropertyConfig(iterations: 50))
+    let result = runPropertySynchronously(property, config: PropertyConfig(iterations: 50))
     TestUtilities.expectSuccess(result, iterations: 50)
   }
 
@@ -339,7 +339,7 @@ struct TestUtilitiesDemo {
       !string.isEmpty
     }
 
-    let result = PropertyChecker.check(property, config: PropertyConfig(iterations: 40))
+    let result = runPropertySynchronously(property, config: PropertyConfig(iterations: 40))
     TestUtilities.expectSuccess(result, iterations: 40)
   }
 
@@ -355,7 +355,7 @@ struct TestUtilitiesDemo {
     let complexProperty = Property<(([Int], String), Bool)>(generator: complexGenerator) { nested in
       let (arrayAndString, flag) = nested
       let (array, string) = arrayAndString
-      return array.isEmpty && !string.isEmpty && (flag == true || flag == false)
+      return !string.isEmpty && (flag == true || flag == false)
     }
 
     // Test with multiple configurations

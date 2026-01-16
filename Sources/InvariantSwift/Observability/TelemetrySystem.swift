@@ -791,7 +791,7 @@ extension PropertyRunner {
         )
       )
 
-    case .failure(let counterexample, let iterations, let shrunk):
+    case .failure(let counterexample, let iterations, let shrunk, _, _):
       await telemetry.recordCounterexample(
         counterexample,
         shrunkValue: shrunk,

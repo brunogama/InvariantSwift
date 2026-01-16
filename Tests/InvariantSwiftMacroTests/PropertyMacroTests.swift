@@ -5,7 +5,7 @@ import SwiftSyntaxMacrosTestSupport
 import Testing
 
 // Import the macro implementation
-@testable import FunctionalTestingMacros
+@testable import InvariantSwiftMacros
 
 /// Base class for macro testing with helper methods and validation utilities
 class MacroTestCase {
@@ -38,8 +38,8 @@ class MacroTestCase {
       "Expected expansion should contain Property generator"
     )
     #expect(
-      expectedExpansion.contains("PropertyChecker.check"),
-      "Expected expansion should contain PropertyChecker.check call"
+      expectedExpansion.contains("PropertyRunner") || expectedExpansion.contains("runProperty"),
+      "Expected expansion should contain PropertyRunner or runProperty call"
     )
   }
 
@@ -230,7 +230,8 @@ struct PropertyMacroInfrastructureTests {
               return x >= Int.min
           }
 
-          let result = PropertyChecker.check(property, config: PropertyConfig(
+          let runner = PropertyRunner(seed: nil)
+          let result = runner.runProperty(property, config: PropertyConfig(
               iterations: 100,
               maxShrinks: 1000,
               seed: nil
@@ -240,7 +241,7 @@ struct PropertyMacroInfrastructureTests {
           case .success:
               break
 
-          case .failure(let counterexample, let iterations, let shrunk):
+          case .failure(let counterexample, let iterations, let shrunk, _, _):
               throw PropertyTestFailure(
                   message: "Property 'Basic test' failed after \\(iterations) iterations.\\nCounterexample: \\(counterexample)\\nShrunk: \\(shrunk)",
                   counterexample: counterexample,
@@ -298,7 +299,8 @@ struct MacroExpansionTests {
               return x >= Int.min
           }
 
-          let result = PropertyChecker.check(property, config: PropertyConfig(
+          let runner = PropertyRunner(seed: nil)
+          let result = runner.runProperty(property, config: PropertyConfig(
               iterations: 100,
               maxShrinks: 1000,
               seed: nil
@@ -308,7 +310,7 @@ struct MacroExpansionTests {
           case .success:
               break
 
-          case .failure(let counterexample, let iterations, let shrunk):
+          case .failure(let counterexample, let iterations, let shrunk, _, _):
               throw PropertyTestFailure(
                   message: "Property 'Int property test' failed after \\\\(iterations) iterations.\\\\nCounterexample: \\\\(counterexample)\\\\nShrunk: \\\\(shrunk)",
                   counterexample: counterexample,
@@ -352,7 +354,8 @@ struct MacroExpansionTests {
               return x >= Int.min && y.count >= 0
           }
 
-          let result = PropertyChecker.check(property, config: PropertyConfig(
+          let runner = PropertyRunner(seed: nil)
+          let result = runner.runProperty(property, config: PropertyConfig(
               iterations: 100,
               maxShrinks: 1000,
               seed: nil
@@ -362,7 +365,7 @@ struct MacroExpansionTests {
           case .success:
               break
 
-          case .failure(let counterexample, let iterations, let shrunk):
+          case .failure(let counterexample, let iterations, let shrunk, _, _):
               throw PropertyTestFailure(
                   message: "Property 'Two parameter property' failed after \\\\(iterations) iterations.\\\\nCounterexample: \\\\(counterexample)\\\\nShrunk: \\\\(shrunk)",
                   counterexample: counterexample,
@@ -406,7 +409,8 @@ struct MacroExpansionTests {
               return x >= Int.min && y.count >= 0 && (z == true || z == false)
           }
 
-          let result = PropertyChecker.check(property, config: PropertyConfig(
+          let runner = PropertyRunner(seed: nil)
+          let result = runner.runProperty(property, config: PropertyConfig(
               iterations: 100,
               maxShrinks: 1000,
               seed: nil
@@ -416,7 +420,7 @@ struct MacroExpansionTests {
           case .success:
               break
 
-          case .failure(let counterexample, let iterations, let shrunk):
+          case .failure(let counterexample, let iterations, let shrunk, _, _):
               throw PropertyTestFailure(
                   message: "Property 'Three parameter property' failed after \\\\(iterations) iterations.\\\\nCounterexample: \\\\(counterexample)\\\\nShrunk: \\\\(shrunk)",
                   counterexample: counterexample,
@@ -465,7 +469,8 @@ struct MacroArgumentParsingTests {
               return x >= Int.min
           }
 
-          let result = PropertyChecker.check(property, config: PropertyConfig(
+          let runner = PropertyRunner(seed: nil)
+          let result = runner.runProperty(property, config: PropertyConfig(
               iterations: 500,
               maxShrinks: 1000,
               seed: nil
@@ -475,7 +480,7 @@ struct MacroArgumentParsingTests {
           case .success:
               break
 
-          case .failure(let counterexample, let iterations, let shrunk):
+          case .failure(let counterexample, let iterations, let shrunk, _, _):
               throw PropertyTestFailure(
                   message: "Property 'Custom iterations test' failed after \\\\(iterations) iterations.\\\\nCounterexample: \\\\(counterexample)\\\\nShrunk: \\\\(shrunk)",
                   counterexample: counterexample,
@@ -519,7 +524,8 @@ struct MacroArgumentParsingTests {
               return x >= Int.min
           }
 
-          let result = PropertyChecker.check(property, config: PropertyConfig(
+          let runner = PropertyRunner(seed: nil)
+          let result = runner.runProperty(property, config: PropertyConfig(
               iterations: 100,
               maxShrinks: 1000,
               seed: 42
@@ -529,7 +535,7 @@ struct MacroArgumentParsingTests {
           case .success:
               break
 
-          case .failure(let counterexample, let iterations, let shrunk):
+          case .failure(let counterexample, let iterations, let shrunk, _, _):
               throw PropertyTestFailure(
                   message: "Property 'Custom seed test' failed after \\\\(iterations) iterations.\\\\nCounterexample: \\\\(counterexample)\\\\nShrunk: \\\\(shrunk)",
                   counterexample: counterexample,
@@ -573,7 +579,8 @@ struct MacroArgumentParsingTests {
               return x >= Int.min
           }
 
-          let result = PropertyChecker.check(property, config: PropertyConfig(
+          let runner = PropertyRunner(seed: nil)
+          let result = runner.runProperty(property, config: PropertyConfig(
               iterations: 100,
               maxShrinks: 500,
               seed: nil
@@ -583,7 +590,7 @@ struct MacroArgumentParsingTests {
           case .success:
               break
 
-          case .failure(let counterexample, let iterations, let shrunk):
+          case .failure(let counterexample, let iterations, let shrunk, _, _):
               throw PropertyTestFailure(
                   message: "Property 'Custom maxShrinks test' failed after \\\\(iterations) iterations.\\\\nCounterexample: \\\\(counterexample)\\\\nShrunk: \\\\(shrunk)",
                   counterexample: counterexample,
@@ -627,7 +634,8 @@ struct MacroArgumentParsingTests {
               return x >= Int.min
           }
 
-          let result = PropertyChecker.check(property, config: PropertyConfig(
+          let runner = PropertyRunner(seed: nil)
+          let result = runner.runProperty(property, config: PropertyConfig(
               iterations: 200,
               maxShrinks: 50,
               seed: 123
@@ -637,7 +645,7 @@ struct MacroArgumentParsingTests {
           case .success:
               break
 
-          case .failure(let counterexample, let iterations, let shrunk):
+          case .failure(let counterexample, let iterations, let shrunk, _, _):
               throw PropertyTestFailure(
                   message: "Property 'All custom arguments' failed after \\\\(iterations) iterations.\\\\nCounterexample: \\\\(counterexample)\\\\nShrunk: \\\\(shrunk)",
                   counterexample: counterexample,
@@ -686,7 +694,8 @@ struct FunctionNamingTests {
               return list.reversed().reversed() == list
           }
 
-          let result = PropertyChecker.check(property, config: PropertyConfig(
+          let runner = PropertyRunner(seed: nil)
+          let result = runner.runProperty(property, config: PropertyConfig(
               iterations: 100,
               maxShrinks: 1000,
               seed: nil
@@ -696,7 +705,7 @@ struct FunctionNamingTests {
           case .success:
               break
 
-          case .failure(let counterexample, let iterations, let shrunk):
+          case .failure(let counterexample, let iterations, let shrunk, _, _):
               throw PropertyTestFailure(
                   message: "Property 'Test naming' failed after \\\\(iterations) iterations.\\\\nCounterexample: \\\\(counterexample)\\\\nShrunk: \\\\(shrunk)",
                   counterexample: counterexample,

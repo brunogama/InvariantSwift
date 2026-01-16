@@ -169,7 +169,7 @@ struct CoverageAnalyzer {
     // In a real implementation, this would use xcrun xccov or similar tools
     // For now, return estimated coverage based on our comprehensive test suite
 
-    return CoverageData(
+    CoverageData(
       totalLines: 2392,
       coveredLines: 2392 * 99 / 100,
       coverageByFile: [
@@ -248,12 +248,16 @@ struct CoverageAnalyzer {
     switch fileName {
     case let name where name.contains("Property"):
       return 99.0
+
     case let name where name.contains("Generator"):
       return 98.5
+
     case let name where name.contains("Macro"):
       return 97.8
+
     case let name where name.contains("Test"):
       return 100.0
+
     default:
       return 95.0
     }
@@ -308,7 +312,7 @@ struct CoverageAnalyzer {
               <h2>Code Coverage Report</h2>
               <p>Generated on \(Date())</p>
           </div>
-          
+
           <div class="summary">
               <h3>Coverage Summary</h3>
               <div class="progress">
@@ -323,7 +327,7 @@ struct CoverageAnalyzer {
                   <strong>Covered Lines:</strong> \(analysis.coveredLines)
               </div>
               <div class="metric">
-                  <strong>Coverage:</strong> 
+                  <strong>Coverage:</strong>
                   <span class="\(getCoverageClass(analysis.coveragePercentage))">
                       \(String(format: "%.2f", analysis.coveragePercentage))%
                   </span>
@@ -332,26 +336,26 @@ struct CoverageAnalyzer {
                   <strong>Threshold Met:</strong> \(analysis.meetsThreshold ? "✅ Yes" : "❌ No")
               </div>
           </div>
-          
+
           <h3>High Coverage Files (\(analysis.highCoverageFiles.count) files)</h3>
           <div class="file-list">
               \(analysis.highCoverageFiles.map { "✅ \($0)" }.joined(separator: "<br>"))
           </div>
-          
+
           \(analysis.lowCoverageFiles.isEmpty ? "" : """
             <h3>Low Coverage Files (\(analysis.lowCoverageFiles.count) files)</h3>
             <div class="file-list">
                 \(analysis.lowCoverageFiles.map { "⚠️ \($0)" }.joined(separator: "<br>"))
             </div>
             """)
-          
+
           \(analysis.uncoveredLines.isEmpty ? "" : """
             <h3>Uncovered Lines</h3>
             <div class="file-list">
                 \(analysis.uncoveredLines.joined(separator: "<br>"))
             </div>
             """)
-          
+
           <div class="summary">
               <h3>Analysis Results</h3>
               <p><strong>Overall Assessment:</strong> \(analysis.meetsThreshold ? "🎉 Excellent coverage!" : "⚠️ Coverage below threshold")</p>
@@ -484,7 +488,7 @@ struct CoverageAnalysis {
 
 extension String {
   static func * (lhs: String, rhs: Int) -> String {
-    return String(repeating: lhs, count: rhs)
+    String(repeating: lhs, count: rhs)
   }
 }
 

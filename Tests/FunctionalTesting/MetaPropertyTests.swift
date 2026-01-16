@@ -43,7 +43,7 @@ struct MetaPropertyTests {
       return original == mapped
     }
 
-    let result = PropertyChecker.check(
+    let result = runPropertySynchronously(
       functorIdentityProperty,
       config: PropertyConfig(iterations: 50)
     )
@@ -83,7 +83,10 @@ struct MetaPropertyTests {
       return leftResult == rightResult
     }
 
-    let result = PropertyChecker.check(compositionProperty, config: PropertyConfig(iterations: 30))
+    let result = runPropertySynchronously(
+      compositionProperty,
+      config: PropertyConfig(iterations: 30)
+    )
     #expect(result.isSuccess, "Generated generators must preserve functor composition law")
   }
 
@@ -109,7 +112,7 @@ struct MetaPropertyTests {
       }
     }
 
-    let result = PropertyChecker.check(shrinkingProperty, config: PropertyConfig(iterations: 25))
+    let result = runPropertySynchronously(shrinkingProperty, config: PropertyConfig(iterations: 25))
     #expect(result.isSuccess, "Generated generators should produce valid shrinking sequences")
   }
 
@@ -142,8 +145,8 @@ struct MetaPropertyTests {
       let seed = Seed(value: 999)
       let config = PropertyConfig(iterations: 10, seed: seed)
 
-      let result1 = PropertyChecker.check(generatedProperty, config: config)
-      let result2 = PropertyChecker.check(generatedProperty, config: config)
+      let result1 = runPropertySynchronously(generatedProperty, config: config)
+      let result2 = runPropertySynchronously(generatedProperty, config: config)
 
       // Results should be consistent (same property, same seed, same result)
       switch (result1, result2) {
@@ -156,7 +159,7 @@ struct MetaPropertyTests {
       }
     }
 
-    let result = PropertyChecker.check(metaProperty, config: PropertyConfig(iterations: 20))
+    let result = runPropertySynchronously(metaProperty, config: PropertyConfig(iterations: 20))
     #expect(result.isSuccess, "Properties should behave consistently when run multiple times")
   }
 
@@ -182,7 +185,7 @@ struct MetaPropertyTests {
       return combined == (pos && even)
     }
 
-    let result = PropertyChecker.check(
+    let result = runPropertySynchronously(
       andValidationProperty,
       config: PropertyConfig(iterations: 100)
     )
@@ -206,7 +209,7 @@ struct MetaPropertyTests {
       let config = PropertyConfig(iterations: iterations, seed: Seed(value: 42))
 
       // Synchronous execution for this test
-      let result = PropertyChecker.check(testProperty, config: config)
+      let result = runPropertySynchronously(testProperty, config: config)
       return result.isSuccess  // Tautology should always succeed
     }
 
@@ -235,7 +238,7 @@ struct MetaPropertyTests {
     )
 
     switch result {
-    case .failure(let counterexample, _, let shrunk):
+    case .failure(let counterexample, _, let shrunk, _, _):
       // Shrunk example should be smaller than original
       #expect(
         shrunk.count <= counterexample.count,
@@ -292,7 +295,7 @@ struct MetaPropertyTests {
       return result1 == result2 && result1 == value
     }
 
-    let result = PropertyChecker.check(identityProperty, config: PropertyConfig(iterations: 30))
+    let result = runPropertySynchronously(identityProperty, config: PropertyConfig(iterations: 30))
     #expect(result.isSuccess, "Generated applicatives must satisfy identity law")
   }
 
@@ -324,7 +327,10 @@ struct MetaPropertyTests {
       return leftResult == rightResult
     }
 
-    let result = PropertyChecker.check(leftIdentityProperty, config: PropertyConfig(iterations: 25))
+    let result = runPropertySynchronously(
+      leftIdentityProperty,
+      config: PropertyConfig(iterations: 25)
+    )
     #expect(result.isSuccess, "Generated monads must satisfy left identity law")
   }
 
@@ -386,15 +392,15 @@ struct MetaPropertyTests {
         .zip(Gen.pure(PropertyConfig(iterations: 5)))
     ) { prop, config in
       // PropertyChecker should consistently handle tautologies
-      let result1 = PropertyChecker.check(prop, config: config)
-      let result2 = PropertyChecker.check(prop, config: config)
+      let result1 = runPropertySynchronously(prop, config: config)
+      let result2 = runPropertySynchronously(prop, config: config)
 
       // Tautologies should always succeed
       return result1.isSuccess && result2.isSuccess
     }
 
     // Use the framework to check the validation property
-    let finalResult = PropertyChecker.check(
+    let finalResult = runPropertySynchronously(
       validationProperty,
       config: PropertyConfig(iterations: 10)
     )

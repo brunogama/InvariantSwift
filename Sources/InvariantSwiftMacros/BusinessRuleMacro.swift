@@ -6,36 +6,6 @@ import SwiftDiagnostics
 import SwiftParser
 import Foundation
 
-/// **@BusinessRule macro for generating business-friendly property-based tests**
-///
-/// This macro transforms business rule functions into property-based tests that integrate
-/// seamlessly with Swift Testing while hiding mathematical complexity behind business-friendly APIs.
-///
-/// **Usage Example:**
-/// ```swift
-/// @BusinessRule("Discount should never exceed product price")
-/// func validateDiscount(product: Product, discount: Discount) -> Bool {
-///     return discount.amount <= product.price
-/// }
-/// ```
-///
-/// **Generated Code:**
-/// The macro generates a corresponding `@Test` function that:
-/// 1. Creates appropriate generators for the function parameters using smart inference
-/// 2. Runs the property test with business-appropriate configuration
-/// 3. Provides clear, actionable error messages for business stakeholders
-/// 4. Integrates with Swift Testing's assertion system
-///
-/// **Mathematical Foundation:**
-/// While hidden from users, the implementation leverages property-based testing theory:
-/// - ∀ x ∈ Domain, P(x) = true (universal quantification over generated inputs)
-/// - Generator composition via functor laws: Gen<T>.map(f) • Gen<T>.map(g) = Gen<T>.map(g • f)
-/// - Shrinking via tree traversal for minimal counterexample discovery
-///
-/// **External References:**
-/// - [Property-Based Testing](https://en.wikipedia.org/wiki/Software_testing#Property_testing)
-/// - [QuickCheck: A Lightweight Tool for Random Testing](https://dl.acm.org/doi/10.1145/351240.351266)
-/// - [Shrinking and showing functions](https://dl.acm.org/doi/10.1145/2364527.2364529)
 public struct BusinessRuleMacro: PeerMacro {
 
   public static func expansion(
@@ -44,61 +14,40 @@ public struct BusinessRuleMacro: PeerMacro {
     in context: some MacroExpansionContext
   ) throws -> [DeclSyntax] {
 
-    // Extract function declaration
-    let funcDecl: FunctionDeclSyntax
-    if let directFunc = declaration as? FunctionDeclSyntax {
-      funcDecl = directFunc
-    } else if let declSyntax = declaration as? DeclSyntax,
-      let wrappedFunc = declSyntax.as(FunctionDeclSyntax.self)
-    {
-      funcDecl = wrappedFunc
-    } else {
-      context.diagnose(
-        Diagnostic(
-          node: node,
-          message: MacroExpansionErrorMessage("@BusinessRule can only be applied to functions")
-        )
+    let ctx = MacroContext(context: context)
+
+    guard
+      let funcDecl = DeclarationAnalyzer.requireFunction(
+        from: declaration,
+        context: ctx,
+        macroName: "BusinessRule"
       )
+    else {
       return []
     }
 
-    // Validate function signature
     guard funcDecl.signature.returnClause?.type.trimmed.description == "Bool" else {
-      context.diagnose(
-        Diagnostic(
-          node: node,
-          message: MacroExpansionErrorMessage("@BusinessRule functions must return Bool")
-        )
-      )
+      ctx.error("@BusinessRule functions must return Bool", at: node)
       return []
     }
 
     guard !funcDecl.signature.parameterClause.parameters.isEmpty else {
-      context.diagnose(
-        Diagnostic(
-          node: node,
-          message: MacroExpansionErrorMessage(
-            "@BusinessRule requires functions to have at least one parameter"
-          )
-        )
+      ctx.error(
+        "@BusinessRule requires functions to have at least one parameter",
+        at: node
       )
       return []
     }
 
-    // Extract macro arguments
     let config = try extractBusinessRuleConfig(from: node)
 
-    // Extract function details
     let functionName = funcDecl.name.text
     let parameters = funcDecl.signature.parameterClause.parameters
 
-    // Generate property test function name
     let propertyTestName = "\(functionName)_PropertyTest"
 
-    // Generate generator expressions for parameters
     let generatorExpressions = try generateGeneratorExpressions(for: parameters)
 
-    // Generate the property test function
     let testFunction = try generatePropertyTestFunction(
       functionName: functionName,
       propertyTestName: propertyTestName,
@@ -111,12 +60,9 @@ public struct BusinessRuleMacro: PeerMacro {
   }
 }
 
-// MARK: - Configuration and Error Types
-
-/// **Configuration for BusinessRule macro**
 private struct BusinessRuleConfig {
   let description: String
-  let iterations: String  // Expression that evaluates to Int (.smart or specific number)
+  let iterations: String
   let timeout: TimeInterval
 
   init(
@@ -130,7 +76,6 @@ private struct BusinessRuleConfig {
   }
 }
 
-/// **Errors that can occur during BusinessRule macro expansion**
 public enum BusinessRuleError: Error, CustomStringConvertible {
   case cannotInferParameterType(String)
   case invalidConfiguration(String)
@@ -151,7 +96,6 @@ public enum BusinessRuleError: Error, CustomStringConvertible {
   }
 }
 
-/// **Error message type for macro diagnostics**
 public struct MacroExpansionErrorMessage: DiagnosticMessage {
   public let message: String
   public let diagnosticID: MessageID
@@ -164,9 +108,6 @@ public struct MacroExpansionErrorMessage: DiagnosticMessage {
   }
 }
 
-// MARK: - Configuration Extraction
-
-/// **Extract BusinessRule configuration from macro arguments**
 private func extractBusinessRuleConfig(from node: AttributeSyntax) throws -> BusinessRuleConfig {
   guard case .argumentList(let arguments) = node.arguments else {
     throw BusinessRuleError.invalidDescription
@@ -177,14 +118,12 @@ private func extractBusinessRuleConfig(from node: AttributeSyntax) throws -> Bus
     throw BusinessRuleError.invalidDescription
   }
 
-  // Extract description (first argument, required)
   guard let firstArg = args.first,
     let stringLiteral = firstArg.expression.as(StringLiteralExprSyntax.self)
   else {
     throw BusinessRuleError.invalidDescription
   }
 
-  // Extract the string content (remove quotes)
   let description = stringLiteral.segments.compactMap { segment in
     if case .stringSegment(let content) = segment {
       return content.content.text
@@ -194,7 +133,6 @@ private func extractBusinessRuleConfig(from node: AttributeSyntax) throws -> Bus
 
   var config = BusinessRuleConfig(description: description)
 
-  // Process remaining labeled arguments
   for argument in args.dropFirst() {
     guard let label = argument.label?.text else { continue }
 
@@ -385,7 +323,7 @@ private func generatePropertyTestFunction(
         case .success:
             break // Test passes
 
-        case .failure(let counterexample, let iterations, let shrunk):
+        case .failure(let counterexample, let iterations, let shrunk, _, _):
             throw BusinessRuleViolation(
                 rule: "\(config.description)",
                 counterexample: String(describing: counterexample),

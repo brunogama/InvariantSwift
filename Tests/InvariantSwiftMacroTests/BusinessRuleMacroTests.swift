@@ -1,7 +1,7 @@
 import XCTest
 import SwiftSyntaxMacros
 import SwiftSyntaxMacrosTestSupport
-@testable import FunctionalTestingMacros
+@testable import InvariantSwiftMacros
 
 /// Tests for the @BusinessRule macro implementation
 ///
@@ -46,7 +46,7 @@ final class BusinessRuleMacroTests: XCTestCase {
             case .success:
                 break // Test passes
 
-            case .failure(let counterexample, let iterations, let shrunk):
+            case .failure(let counterexample, let iterations, let shrunk, _, _):
                 throw BusinessRuleViolation(
                     rule: "Age must be at least 18",
                     counterexample: String(describing: counterexample),
@@ -106,7 +106,7 @@ final class BusinessRuleMacroTests: XCTestCase {
             case .success:
                 break // Test passes
 
-            case .failure(let counterexample, let iterations, let shrunk):
+            case .failure(let counterexample, let iterations, let shrunk, _, _):
                 throw BusinessRuleViolation(
                     rule: "Discount cannot exceed price",
                     counterexample: String(describing: counterexample),
@@ -166,7 +166,7 @@ final class BusinessRuleMacroTests: XCTestCase {
             case .success:
                 break // Test passes
 
-            case .failure(let counterexample, let iterations, let shrunk):
+            case .failure(let counterexample, let iterations, let shrunk, _, _):
                 throw BusinessRuleViolation(
                     rule: "Amount must be positive",
                     counterexample: String(describing: counterexample),
@@ -297,7 +297,7 @@ final class BusinessRuleMacroTests: XCTestCase {
             case .success:
                 break // Test passes
 
-            case .failure(let counterexample, let iterations, let shrunk):
+            case .failure(let counterexample, let iterations, let shrunk, _, _):
                 throw BusinessRuleViolation(
                     rule: "Email must be valid format",
                     counterexample: String(describing: counterexample),

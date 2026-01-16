@@ -80,7 +80,7 @@ struct RecursiveShrinkingTests {
       }
     }
 
-    let result = PropertyChecker.check(shrinkingProperty, config: PropertyConfig(iterations: 50))
+    let result = runPropertySynchronously(shrinkingProperty, config: PropertyConfig(iterations: 50))
     #expect(
       result.isSuccess,
       "All shrinking strategies should produce progressively smaller values"
@@ -186,7 +186,10 @@ struct RecursiveShrinkingTests {
       }
     }
 
-    let result = PropertyChecker.check(idempotencyProperty, config: PropertyConfig(iterations: 30))
+    let result = runPropertySynchronously(
+      idempotencyProperty,
+      config: PropertyConfig(iterations: 30)
+    )
     #expect(
       result.isSuccess,
       "Shrinking should be idempotent or produce progressively smaller values"
@@ -301,7 +304,7 @@ struct RecursiveShrinkingTests {
       }
     }
 
-    let result = PropertyChecker.check(
+    let result = runPropertySynchronously(
       nestedShrinkingProperty,
       config: PropertyConfig(iterations: 25)
     )
@@ -392,7 +395,7 @@ struct RecursiveShrinkingTests {
       }
     }
 
-    let result = PropertyChecker.check(
+    let result = runPropertySynchronously(
       treeShrinkingProperty,
       config: PropertyConfig(iterations: 30)
     )
@@ -432,7 +435,10 @@ struct RecursiveShrinkingTests {
       return iterations < maxIterations
     }
 
-    let result = PropertyChecker.check(terminationProperty, config: PropertyConfig(iterations: 50))
+    let result = runPropertySynchronously(
+      terminationProperty,
+      config: PropertyConfig(iterations: 50)
+    )
     #expect(result.isSuccess, "Shrinking should always terminate within reasonable bounds")
   }
 

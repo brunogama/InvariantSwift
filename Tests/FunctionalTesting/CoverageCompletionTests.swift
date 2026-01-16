@@ -169,8 +169,8 @@ struct CoverageCompletionTests {
     }
 
     // Run these properties to exercise debug paths
-    let result1 = PropertyChecker.check(debugProperty1, config: PropertyConfig(iterations: 50))
-    let result2 = PropertyChecker.check(debugProperty2, config: PropertyConfig(iterations: 50))
+    let result1 = runPropertySynchronously(debugProperty1, config: PropertyConfig(iterations: 50))
+    let result2 = runPropertySynchronously(debugProperty2, config: PropertyConfig(iterations: 50))
 
     #expect(result1.isSuccess, "Debug assertion paths should not break property validation")
     #expect(result2.isSuccess, "String debug paths should be exercised")
@@ -283,7 +283,7 @@ struct CoverageCompletionTests {
     let prop2 = Property(generator: Gen.int, predicate: { $0 % 2 == 0 })
     let combinedProp = prop1.and(prop2)
 
-    _ = PropertyChecker.check(combinedProp, config: PropertyConfig(iterations: 10))
+    _ = runPropertySynchronously(combinedProp, config: PropertyConfig(iterations: 10))
 
     // Exercise async PropertyRunner
     let runner = PropertyRunner()
@@ -324,7 +324,7 @@ struct CoverageCompletionTests {
 
     for config in configs {
       // Each config should work or normalize gracefully
-      let result = PropertyChecker.check(simpleProperty, config: config)
+      let result = runPropertySynchronously(simpleProperty, config: config)
       #expect(result.isSuccess, "PropertyConfig edge cases should be handled gracefully")
     }
   }

@@ -15,7 +15,7 @@ struct ErrorPathCoverageTests {
 
     // This should be handled gracefully (likely create a generator that always fails)
     let property = Property<Int>(generator: Gen.oneOf(emptyGenerators)) { _ in true }
-    let result = PropertyChecker.check(property, config: PropertyConfig(iterations: 5))
+    let result = runPropertySynchronously(property, config: PropertyConfig(iterations: 5))
 
     switch result {
     case .success:
@@ -32,7 +32,7 @@ struct ErrorPathCoverageTests {
     let emptyFrequencies: [(Int, Gen<String>)] = []
 
     let property = Property<String>(generator: Gen.frequency(emptyFrequencies)) { _ in true }
-    let result = PropertyChecker.check(property, config: PropertyConfig(iterations: 5))
+    let result = runPropertySynchronously(property, config: PropertyConfig(iterations: 5))
 
     switch result {
     case .success:
@@ -57,13 +57,13 @@ struct ErrorPathCoverageTests {
       value == "positive"
     }
 
-    let result = PropertyChecker.check(property, config: PropertyConfig(iterations: 20))
+    let result = runPropertySynchronously(property, config: PropertyConfig(iterations: 20))
 
     switch result {
     case .success:
       #expect(true, "Frequency with invalid weights handled correctly")
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       #expect(
         counterexample != "zero" && counterexample != "negative",
         "Should not generate values with zero/negative weights"
@@ -84,7 +84,7 @@ struct ErrorPathCoverageTests {
     ]
 
     let property = Property<String>(generator: Gen.frequency(allZeroWeights)) { _ in true }
-    let result = PropertyChecker.check(property, config: PropertyConfig(iterations: 5))
+    let result = runPropertySynchronously(property, config: PropertyConfig(iterations: 5))
 
     switch result {
     case .success:
@@ -101,7 +101,7 @@ struct ErrorPathCoverageTests {
     let impossibleGen = Gen.int(in: 1...10).suchThat { _ in false }
     let property = Property<Int>(generator: impossibleGen) { _ in true }
 
-    let result = PropertyChecker.check(
+    let result = runPropertySynchronously(
       property,
       config: PropertyConfig(
         iterations: 10,
@@ -129,7 +129,7 @@ struct ErrorPathCoverageTests {
       value == 7777
     }
 
-    let result = PropertyChecker.check(
+    let result = runPropertySynchronously(
       property,
       config: PropertyConfig(
         iterations: 5,
@@ -176,13 +176,13 @@ struct ErrorPathCoverageTests {
       abs(value) <= Int.max / 2
     }
 
-    let result = PropertyChecker.check(property, config: PropertyConfig(iterations: 50))
+    let result = runPropertySynchronously(property, config: PropertyConfig(iterations: 50))
 
     switch result {
     case .success:
       #expect(true, "Extreme generator handled successfully")
 
-    case .failure(let counterexample, _, let shrunk):
+    case .failure(let counterexample, _, let shrunk, _, _):
       #expect(abs(shrunk) <= abs(counterexample), "Shrinking should reduce magnitude")
 
     case .gaveUp:
@@ -203,13 +203,13 @@ struct ErrorPathCoverageTests {
       return false  // This should never be reached
     }
 
-    let result = PropertyChecker.check(property, config: PropertyConfig(iterations: 100))
+    let result = runPropertySynchronously(property, config: PropertyConfig(iterations: 100))
 
     switch result {
     case .success:
       #expect(true, "Property with comprehensive Double handling succeeded")
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Property should handle all Double cases, failed with: \(counterexample)")
 
     case .gaveUp:
@@ -237,7 +237,7 @@ struct ErrorPathCoverageTests {
       value < 10
     }
 
-    let result = PropertyChecker.check(
+    let result = runPropertySynchronously(
       property,
       config: PropertyConfig(
         iterations: 10,
@@ -246,7 +246,7 @@ struct ErrorPathCoverageTests {
     )
 
     switch result {
-    case .failure(let counterexample, _, let shrunk):
+    case .failure(let counterexample, _, let shrunk, _, _):
       #expect(shrunk >= 10, "Shrunk value should still fail the property")
       #expect(shrunk <= counterexample, "Shrunk should not be worse than original")
 
@@ -299,7 +299,7 @@ struct ErrorPathCoverageTests {
       !array.contains(1)
     }
 
-    let result = PropertyChecker.check(
+    let result = runPropertySynchronously(
       property,
       config: PropertyConfig(
         iterations: 20,
@@ -308,7 +308,7 @@ struct ErrorPathCoverageTests {
     )
 
     switch result {
-    case .failure(let counterexample, _, let shrunk):
+    case .failure(let counterexample, _, let shrunk, _, _):
       #expect(shrunk.contains(1), "Shrunk array should still contain 1")
       #expect(shrunk.count <= counterexample.count, "Shrunk should be smaller or equal")
 
@@ -328,7 +328,7 @@ struct ErrorPathCoverageTests {
 
     // Test with extremely small values
     let tinyConfig = PropertyConfig(iterations: 1, maxShrinks: 0, maxDiscarded: 1)
-    let tinyResult = PropertyChecker.check(property, config: tinyConfig)
+    let tinyResult = runPropertySynchronously(property, config: tinyConfig)
 
     switch tinyResult {
     case .success(let iterations):
@@ -340,7 +340,7 @@ struct ErrorPathCoverageTests {
 
     // Test with large but reasonable values
     let largeConfig = PropertyConfig(iterations: 5000, maxShrinks: 2000, maxDiscarded: 3000)
-    let largeResult = PropertyChecker.check(property, config: largeConfig)
+    let largeResult = runPropertySynchronously(property, config: largeConfig)
 
     switch largeResult {
     case .success(let iterations):
@@ -362,7 +362,7 @@ struct ErrorPathCoverageTests {
       predicate: { _ in true }
     )
 
-    let result = PropertyChecker.check(highDiscardProperty, config: mismatchedConfig)
+    let result = runPropertySynchronously(highDiscardProperty, config: mismatchedConfig)
 
     switch result {
     case .success:
@@ -481,31 +481,31 @@ struct ErrorPathCoverageTests {
 
   // MARK: - Random Number Generator Edge Cases (Task 8)
 
-  @Test("SeededRandomNumberGenerator edge cases")
+  @Test("SeedBasedRandomNumberGenerator edge cases")
   func seededRandomNumberGeneratorEdgeCases() {
     // Test various extreme seed values
-    let extremeSeeds: [UInt64] = [0, 1, UInt64.max - 1, UInt64.max, 0x123_4567_89AB_CDEF]
+    let extremeSeeds: [Seed] = [Seed(value: 0), Seed(value: 1), Seed(value: UInt64.max - 1)]
 
     for seed in extremeSeeds {
-      var rng = SeededRandomNumberGenerator(seed: seed)
+      var rng = SeedBasedRandomNumberGenerator(seed: seed)
 
       // Generate several values to ensure no crashes
       let values = (0..<10).map { _ in rng.next() }
 
-      #expect(values.count == 10, "Should generate 10 values for seed \(seed)")
+      #expect(values.count == 10, "Should generate 10 values for seed \(seed.rawValue)")
 
       // Test that values are reasonably distributed (not all zeros)
       let nonZeroCount = values.filter { $0 != 0 }.count
-      #expect(nonZeroCount > 0, "Should generate some non-zero values for seed \(seed)")
+      #expect(nonZeroCount > 0, "Should generate some non-zero values for seed \(seed.rawValue)")
     }
   }
 
-  @Test("SeededRandomNumberGenerator deterministic behavior")
+  @Test("SeedBasedRandomNumberGenerator deterministic behavior")
   func seededRandomNumberGeneratorDeterministicBehavior() {
-    let seed: UInt64 = 0xDEAD_BEEF
+    let seed = Seed(value: 0xDEAD_BEEF)
 
-    var rng1 = SeededRandomNumberGenerator(seed: seed)
-    var rng2 = SeededRandomNumberGenerator(seed: seed)
+    var rng1 = SeedBasedRandomNumberGenerator(seed: seed)
+    var rng2 = SeedBasedRandomNumberGenerator(seed: seed)
 
     // Generate a longer sequence to test consistency
     let sequence1 = (0..<100).map { _ in rng1.next() }
@@ -514,7 +514,7 @@ struct ErrorPathCoverageTests {
     #expect(sequence1 == sequence2, "Same seed should produce identical sequences")
 
     // Test that different seeds produce different sequences
-    var rng3 = SeededRandomNumberGenerator(seed: seed + 1)
+    var rng3 = SeedBasedRandomNumberGenerator(seed: Seed(value: seed.rawValue + 1))
     let sequence3 = (0..<100).map { _ in rng3.next() }
 
     #expect(sequence1 != sequence3, "Different seeds should produce different sequences")
@@ -544,13 +544,13 @@ struct ErrorPathCoverageTests {
       array.allSatisfy { $0.hasPrefix("item") }
     }
 
-    let result = PropertyChecker.check(property, config: PropertyConfig(iterations: 50))
+    let result = runPropertySynchronously(property, config: PropertyConfig(iterations: 50))
 
     switch result {
     case .success:
       #expect(true, "Array generator should handle empty arrays")
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Array property failed with: \(counterexample)")
 
     case .gaveUp:
@@ -566,7 +566,7 @@ struct ErrorPathCoverageTests {
       !(array.count > 5 && array.contains(42))
     }
 
-    let result = PropertyChecker.check(
+    let result = runPropertySynchronously(
       property,
       config: PropertyConfig(
         iterations: 100,
@@ -578,7 +578,7 @@ struct ErrorPathCoverageTests {
     case .success:
       #expect(true, "Array property succeeded")
 
-    case .failure(let counterexample, _, let shrunk):
+    case .failure(let counterexample, _, let shrunk, _, _):
       #expect(shrunk.count <= counterexample.count, "Shrunk array should be smaller or equal")
       if shrunk.count > 5 {
         #expect(shrunk.contains(42), "Shrunk array should still contain 42 if count > 5")

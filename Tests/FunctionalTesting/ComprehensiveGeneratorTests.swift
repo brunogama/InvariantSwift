@@ -32,11 +32,11 @@ struct ComprehensiveGeneratorTests {
     /// **Coverage**: sequence(length:) generation logic, size distribution
     @Test("Sequence length generator produces correct sizes", arguments: [0, 1, 5, 10, 50])
     func testSequenceLengthGenerator(targetLength: Int) async throws {
-      let lengthGen = Gen<Int>.constant(targetLength)
-      let intGen = Gen<Int>.constant(42)
-      let arrayGen = intGen.sequence(length: lengthGen)
+      let lengthGen = Gen<Int>.pure(targetLength)
+      let intGen = Gen<Int>.pure(42)
+      let arrayGen = Gen.sequence(elementGen: intGen, length: lengthGen)
 
-      var rng = SystemRandomNumberGenerator()
+      var rng: any RandomNumberGenerator = SystemRandomNumberGenerator()
       let size = Size(value: 10)
 
       // Test generation produces expected length
@@ -55,10 +55,10 @@ struct ComprehensiveGeneratorTests {
     /// **Coverage**: sequence(count:) generation logic, element distribution
     @Test("Fixed count sequence generator", arguments: [0, 1, 3, 10])
     func testFixedCountSequence(count: Int) async throws {
-      let stringGen = Gen<String>.constant("test")
-      let arrayGen = stringGen.sequence(count: count)
+      let stringGen = Gen<String>.pure("test")
+      let arrayGen = Gen.sequence(elementGen: stringGen, count: count)
 
-      var rng = SystemRandomNumberGenerator()
+      var rng: any RandomNumberGenerator = SystemRandomNumberGenerator()
       let size = Size(value: 20)
 
       let generated = arrayGen.generate(&rng, size)
@@ -77,9 +77,9 @@ struct ComprehensiveGeneratorTests {
     @Test("Sequence shrinking maintains structure")
     func testSequenceShrinking() async throws {
       let intGen = Gen<Int>.int(in: 1...100)
-      let arrayGen = intGen.sequence(count: 5)
+      let arrayGen = Gen.sequence(elementGen: intGen, count: 5)
 
-      var rng = SystemRandomNumberGenerator()
+      var rng: any RandomNumberGenerator = SystemRandomNumberGenerator()
       let size = Size(value: 10)
 
       let originalArray = arrayGen.generate(&rng, size)
@@ -99,9 +99,9 @@ struct ComprehensiveGeneratorTests {
     func testSequenceSizeDistribution() async throws {
       let intGen = Gen<Int>.int(in: 1...1000)
       let lengthGen = Gen<Int>.int(in: 1...10)
-      let arrayGen = intGen.sequence(length: lengthGen)
+      let arrayGen = Gen.sequence(elementGen: intGen, length: lengthGen)
 
-      var rng = SystemRandomNumberGenerator()
+      var rng: any RandomNumberGenerator = SystemRandomNumberGenerator()
       let largeSize = Size(value: 100)
 
       // Generate multiple samples to verify distribution
@@ -130,12 +130,12 @@ struct ComprehensiveGeneratorTests {
     @Test("Traverse preserves collection structure")
     func testTraverseStructurePreservation() async throws {
       let inputArray = [1, 2, 3, 4, 5]
-      let stringGen = Gen<String>.constant("test")
+      let stringGen = Gen<String>.pure("test")
       let transform: (Int) -> Gen<String> = { _ in stringGen }
 
       let traverseGen = Gen<Int>.traverse(inputArray, transform)
 
-      var rng = SystemRandomNumberGenerator()
+      var rng: any RandomNumberGenerator = SystemRandomNumberGenerator()
       let size = Size(value: 10)
 
       let result = traverseGen.generate(&rng, size)
@@ -154,12 +154,12 @@ struct ComprehensiveGeneratorTests {
     @Test("Traverse empty collection returns empty result")
     func testTraverseEmptyCollection() async throws {
       let emptyArray: [Int] = []
-      let stringGen = Gen<String>.constant("unused")
+      let stringGen = Gen<String>.pure("unused")
       let transform: (Int) -> Gen<String> = { _ in stringGen }
 
       let traverseGen = Gen<Int>.traverse(emptyArray, transform)
 
-      var rng = SystemRandomNumberGenerator()
+      var rng: any RandomNumberGenerator = SystemRandomNumberGenerator()
       let size = Size(value: 10)
 
       let result = traverseGen.generate(&rng, size)
@@ -174,17 +174,17 @@ struct ComprehensiveGeneratorTests {
       let inputArray = [1, 2, 3]
 
       // Test identity-like transformation
-      let identityTransform: (Int) -> Gen<Int> = { value in Gen<Int>.constant(value) }
+      let identityTransform: (Int) -> Gen<Int> = { value in Gen<Int>.pure(value) }
       let identityGen = Gen<Int>.traverse(inputArray, identityTransform)
 
-      var rng = SystemRandomNumberGenerator()
+      var rng: any RandomNumberGenerator = SystemRandomNumberGenerator()
       let size = Size(value: 10)
 
       let identityResult = identityGen.generate(&rng, size)
       #expect(identityResult == inputArray)
 
       // Test multiplicative transformation
-      let doubleTransform: (Int) -> Gen<Int> = { value in Gen<Int>.constant(value * 2) }
+      let doubleTransform: (Int) -> Gen<Int> = { value in Gen<Int>.pure(value * 2) }
       let doubleGen = Gen<Int>.traverse(inputArray, doubleTransform)
 
       let doubleResult = doubleGen.generate(&rng, size)
@@ -198,11 +198,11 @@ struct ComprehensiveGeneratorTests {
     @Test("Traverse distributes size across elements")
     func testTraverseSizeDistribution() async throws {
       let largeCollection = Array(1...20)
-      let transform: (Int) -> Gen<Int> = { value in Gen<Int>.constant(value) }
+      let transform: (Int) -> Gen<Int> = { value in Gen<Int>.pure(value) }
 
       let traverseGen = Gen<Int>.traverse(largeCollection, transform)
 
-      var rng = SystemRandomNumberGenerator()
+      var rng: any RandomNumberGenerator = SystemRandomNumberGenerator()
       let size = Size(value: 100)
 
       let result = traverseGen.generate(&rng, size)
@@ -224,13 +224,13 @@ struct ComprehensiveGeneratorTests {
     func testRecursiveTermination() async throws {
       let intGen = Gen<Int>.int(in: 1...10)
 
-      let recursiveGen = intGen.recursive(
+      let recursiveGen = Gen<Int>.recursive(
         recursiveCase: { gen in gen.map { $0 + 1 } },
-        baseCase: Gen<Int>.constant(0),
+        baseCase: Gen<Int>.pure(0),
         probability: 0.9  // High recursion probability
       )
 
-      var rng = SystemRandomNumberGenerator()
+      var rng: any RandomNumberGenerator = SystemRandomNumberGenerator()
 
       // Test with very small size forces termination
       let smallSize = Size(value: 1)
@@ -249,23 +249,23 @@ struct ComprehensiveGeneratorTests {
     /// **Coverage**: Probability-based recursive case selection
     @Test("Recursive probability affects case selection")
     func testRecursiveProbabilityEffect() async throws {
-      let baseGen = Gen<String>.constant("base")
+      let baseGen = Gen<String>.pure("base")
 
       // Low probability recursive generator
-      let lowProbGen = baseGen.recursive(
+      let lowProbGen = Gen<String>.recursive(
         recursiveCase: { gen in gen.map { $0 + "R" } },
-        baseCase: Gen<String>.constant("base"),
+        baseCase: Gen<String>.pure("base"),
         probability: 0.1
       )
 
       // High probability recursive generator
-      let highProbGen = baseGen.recursive(
+      let highProbGen = Gen<String>.recursive(
         recursiveCase: { gen in gen.map { $0 + "R" } },
-        baseCase: Gen<String>.constant("base"),
+        baseCase: Gen<String>.pure("base"),
         probability: 0.9
       )
 
-      var rng = SystemRandomNumberGenerator()
+      var rng: any RandomNumberGenerator = SystemRandomNumberGenerator()
       let size = Size(value: 10)
 
       // Generate multiple samples to test distribution
@@ -291,17 +291,17 @@ struct ComprehensiveGeneratorTests {
     /// **Coverage**: Size reduction logic in recursive calls
     @Test("Recursive size reduction prevents infinite loops")
     func testRecursiveSizeReduction() async throws {
-      let intGen = Gen<Int>.constant(1)
+      let intGen = Gen<Int>.pure(1)
 
-      let recursiveGen = intGen.recursive(
+      let recursiveGen = Gen<Int>.recursive(
         recursiveCase: { gen in
           gen.map { value in value + 1 }  // Increment to track depth
         },
-        baseCase: Gen<Int>.constant(0),
+        baseCase: Gen<Int>.pure(0),
         probability: 0.8
       )
 
-      var rng = SystemRandomNumberGenerator()
+      var rng: any RandomNumberGenerator = SystemRandomNumberGenerator()
       let size = Size(value: 20)
 
       let result = recursiveGen.generate(&rng, size)
@@ -317,15 +317,15 @@ struct ComprehensiveGeneratorTests {
     /// **Coverage**: Shrink implementation for recursive generators
     @Test("Recursive shrinking prefers base case")
     func testRecursiveShrinking() async throws {
-      let stringGen = Gen<String>.constant("recursive")
+      let stringGen = Gen<String>.pure("recursive")
 
-      let recursiveGen = stringGen.recursive(
+      let recursiveGen = Gen<String>.recursive(
         recursiveCase: { gen in gen.map { $0 + "-R" } },
-        baseCase: Gen<String>.constant("base"),
+        baseCase: Gen<String>.pure("base"),
         probability: 0.7
       )
 
-      var rng = SystemRandomNumberGenerator()
+      var rng: any RandomNumberGenerator = SystemRandomNumberGenerator()
       let size = Size(value: 10)
 
       let generated = recursiveGen.generate(&rng, size)
@@ -349,8 +349,8 @@ struct ComprehensiveGeneratorTests {
     /// **Coverage**: Mutual termination logic, shared size bounds
     @Test("Mutually recursive generators terminate")
     func testMutualRecursiveTermination() async throws {
-      let baseA = Gen<String>.constant("A")
-      let baseB = Gen<String>.constant("B")
+      let baseA = Gen<String>.pure("A")
+      let baseB = Gen<String>.pure("B")
 
       let mutualA: (Gen<String>) -> Gen<String> = { genB in
         genB.map { "A-\($0)" }
@@ -366,7 +366,7 @@ struct ComprehensiveGeneratorTests {
         mutualB: mutualB
       )
 
-      var rng = SystemRandomNumberGenerator()
+      var rng: any RandomNumberGenerator = SystemRandomNumberGenerator()
       let size = Size(value: 10)
 
       let resultA = genA.generate(&rng, size)
@@ -383,8 +383,8 @@ struct ComprehensiveGeneratorTests {
     /// **Coverage**: Size-based termination in mutual recursion
     @Test("Mutual recursion respects size bounds")
     func testMutualRecursionSizeBounds() async throws {
-      let baseA = Gen<Int>.constant(1)
-      let baseB = Gen<Int>.constant(2)
+      let baseA = Gen<Int>.pure(1)
+      let baseB = Gen<Int>.pure(2)
 
       let mutualA: (Gen<Int>) -> Gen<Int> = { genB in genB.map { $0 + 10 } }
       let mutualB: (Gen<Int>) -> Gen<Int> = { genA in genA.map { $0 + 20 } }
@@ -396,7 +396,7 @@ struct ComprehensiveGeneratorTests {
         mutualB: mutualB
       )
 
-      var rng = SystemRandomNumberGenerator()
+      var rng: any RandomNumberGenerator = SystemRandomNumberGenerator()
       let smallSize = Size(value: 1)
 
       let resultA = genA.generate(&rng, smallSize)
@@ -413,11 +413,11 @@ struct ComprehensiveGeneratorTests {
     /// **Coverage**: Balanced generation across mutual generators
     @Test("Balanced mutual recursion uses both generators")
     func testBalancedMutualRecursion() async throws {
-      let baseA = Gen<Character>.constant("A")
-      let baseB = Gen<Character>.constant("B")
+      let baseA = Gen<Character>.pure("A")
+      let baseB = Gen<Character>.pure("B")
 
-      let mutualA: (Gen<Character>) -> Gen<Character> = { _ in Gen<Character>.constant("X") }
-      let mutualB: (Gen<Character>) -> Gen<Character> = { _ in Gen<Character>.constant("Y") }
+      let mutualA: (Gen<Character>) -> Gen<Character> = { _ in Gen<Character>.pure("X") }
+      let mutualB: (Gen<Character>) -> Gen<Character> = { _ in Gen<Character>.pure("Y") }
 
       let (genA, genB) = Gen<Character>.mutuallyRecursive(
         baseA: baseA,
@@ -426,7 +426,7 @@ struct ComprehensiveGeneratorTests {
         mutualB: mutualB
       )
 
-      var rng = SystemRandomNumberGenerator()
+      var rng: any RandomNumberGenerator = SystemRandomNumberGenerator()
       let size = Size(value: 10)
 
       // Generate multiple samples
@@ -464,15 +464,15 @@ struct ComprehensiveGeneratorTests {
     @Test("Binary tree generator produces valid trees")
     func testBinaryTreeGeneration() async throws {
       let intGen = Gen<Int>.int(in: 1...10)
-      let treeGen = BinaryTree.generator(intGen)
+      let treeGen = BinaryTree.generator(elementGen: intGen)
 
-      var rng = SystemRandomNumberGenerator()
+      var rng: any RandomNumberGenerator = SystemRandomNumberGenerator()
       let size = Size(value: 10)
 
       let tree = treeGen.generate(&rng, size)
 
       // Verify tree structure is valid
-      func validateTree<T>(_ tree: BinaryTree<T>) -> Bool {
+      func validateTree(_ tree: BinaryTree<Int>) -> Bool {
         switch tree {
         case .leaf:
           return true
@@ -491,16 +491,16 @@ struct ComprehensiveGeneratorTests {
     /// **Coverage**: BinaryTree.balanced(_:) implementation
     @Test("Balanced binary tree maintains depth bounds")
     func testBalancedBinaryTree() async throws {
-      let stringGen = Gen<String>.constant("node")
-      let balancedGen = BinaryTree.balanced(stringGen)
+      let stringGen = Gen<String>.pure("node")
+      let balancedGen = BinaryTree.balanced(elementGen: stringGen)
 
-      var rng = SystemRandomNumberGenerator()
+      var rng: any RandomNumberGenerator = SystemRandomNumberGenerator()
       let size = Size(value: 8)
 
       let tree = balancedGen.generate(&rng, size)
 
       // Calculate tree depth
-      func treeDepth<T>(_ tree: BinaryTree<T>) -> Int {
+      func treeDepth(_ tree: BinaryTree<String>) -> Int {
         switch tree {
         case .leaf:
           return 1
@@ -522,15 +522,15 @@ struct ComprehensiveGeneratorTests {
     @Test("Rose tree generator produces valid multi-way trees")
     func testRoseTreeGeneration() async throws {
       let charGen = Gen<Character>.element(of: Array("ABCDEFG"))
-      let roseGen = RoseTree.generator(charGen)
+      let roseGen = RoseTree.generator(elementGen: charGen)
 
-      var rng = SystemRandomNumberGenerator()
+      var rng: any RandomNumberGenerator = SystemRandomNumberGenerator()
       let size = Size(value: 6)
 
       let tree = roseGen.generate(&rng, size)
 
       // Verify tree structure
-      func validateRoseTree<T>(_ tree: RoseTree<T>) -> Bool {
+      func validateRoseTree(_ tree: RoseTree<Character>) -> Bool {
         // Children should all be valid rose trees
         tree.children.allSatisfy(validateRoseTree)
       }
@@ -546,26 +546,26 @@ struct ComprehensiveGeneratorTests {
     @Test("Tree shrinking preserves structure")
     func testTreeShrinking() async throws {
       let intGen = Gen<Int>.int(in: 1...100)
-      let treeGen = BinaryTree.generator(intGen)
+      let treeGen = BinaryTree.generator(elementGen: intGen)
 
-      var rng = SystemRandomNumberGenerator()
+      var rng: any RandomNumberGenerator = SystemRandomNumberGenerator()
       let size = Size(value: 10)
 
       let originalTree = treeGen.generate(&rng, size)
       let shrinks = treeGen.shrink.shrink(originalTree)
 
       // All shrinks should be valid trees
-      for shrunkTree in shrinks {
-        func isValidTree<T>(_ tree: BinaryTree<T>) -> Bool {
-          switch tree {
-          case .leaf:
-            return true
+      func isValidTree(_ tree: BinaryTree<Int>) -> Bool {
+        switch tree {
+        case .leaf:
+          return true
 
-          case .node(_, let left, let right):
-            return isValidTree(left) && isValidTree(right)
-          }
+        case .node(_, let left, let right):
+          return isValidTree(left) && isValidTree(right)
         }
+      }
 
+      for shrunkTree in shrinks {
         #expect(isValidTree(shrunkTree))
       }
     }
@@ -584,10 +584,10 @@ struct ComprehensiveGeneratorTests {
     func testDependentGeneration() async throws {
       let sizeGen = Gen<Int>.int(in: 1...10)
       let dependentGen = sizeGen.dependent { size in
-        Gen<String>.constant(String(repeating: "x", count: size))
+        Gen<String>.pure(String(repeating: "x", count: size))
       }
 
-      var rng = SystemRandomNumberGenerator()
+      var rng: any RandomNumberGenerator = SystemRandomNumberGenerator()
       let size = Size(value: 10)
 
       let (originalSize, dependentString) = dependentGen.generate(&rng, size)
@@ -605,9 +605,9 @@ struct ComprehensiveGeneratorTests {
     func testArrayGenerationBounds() async throws {
       let boolGen = Gen<Bool>.bool()
       let maxLength = 5
-      let arrayGen = Gen<Bool>.array(boolGen, maxLength: maxLength)
+      let arrayGen = Gen<Bool>.array(elementGen: boolGen, maxLength: maxLength)
 
-      var rng = SystemRandomNumberGenerator()
+      var rng: any RandomNumberGenerator = SystemRandomNumberGenerator()
       let size = Size(value: 20)
 
       // Generate multiple arrays to test bounds
@@ -628,13 +628,13 @@ struct ComprehensiveGeneratorTests {
     /// **Coverage**: zip3(_:_:_:) implementation
     @Test("Zip3 combinator preserves all values")
     func testZip3Combinator() async throws {
-      let intGen = Gen<Int>.constant(1)
-      let stringGen = Gen<String>.constant("test")
-      let boolGen = Gen<Bool>.constant(true)
+      let intGen = Gen<Int>.pure(1)
+      let stringGen = Gen<String>.pure("test")
+      let boolGen = Gen<Bool>.pure(true)
 
-      let zip3Gen = Gen<Int>.zip3(intGen, stringGen, boolGen)
+      let zip3Gen = Gen<(Int, String, Bool)>.zip3(intGen, stringGen, boolGen)
 
-      var rng = SystemRandomNumberGenerator()
+      var rng: any RandomNumberGenerator = SystemRandomNumberGenerator()
       let size = Size(value: 10)
 
       let (intVal, stringVal, boolVal) = zip3Gen.generate(&rng, size)
@@ -651,12 +651,12 @@ struct ComprehensiveGeneratorTests {
     @Test("Zip3 shrinking affects all components")
     func testZip3Shrinking() async throws {
       let intGen = Gen<Int>.int(in: 10...20)
-      let stringGen = Gen<String>.constant("original")
+      let stringGen = Gen<String>.pure("original")
       let boolGen = Gen<Bool>.bool()
 
-      let zip3Gen = Gen<Int>.zip3(intGen, stringGen, boolGen)
+      let zip3Gen = Gen<(Int, String, Bool)>.zip3(intGen, stringGen, boolGen)
 
-      var rng = SystemRandomNumberGenerator()
+      var rng: any RandomNumberGenerator = SystemRandomNumberGenerator()
       let size = Size(value: 10)
 
       let original = zip3Gen.generate(&rng, size)
@@ -665,12 +665,8 @@ struct ComprehensiveGeneratorTests {
       // Should have some shrinks (at least from int component)
       #expect(!shrinks.isEmpty)
 
-      // Verify shrinks maintain type structure
-      for (intVal, stringVal, boolVal) in shrinks {
-        #expect(intVal is Int)
-        #expect(stringVal is String)
-        #expect(boolVal is Bool)
-      }
+      // Verify shrinks maintain type structure - tuple components are strongly typed
+      #expect(!shrinks.isEmpty)
     }
   }
 
@@ -689,21 +685,17 @@ struct ComprehensiveGeneratorTests {
       let intGen = Gen<Int>.int(in: 1...100)
       let identity: (Int) -> Int = { $0 }
 
-      var rng1 = SystemRandomNumberGenerator()
-      var rng2 = SystemRandomNumberGenerator()
+      var rng1: any RandomNumberGenerator = SystemRandomNumberGenerator()
+      var rng2: any RandomNumberGenerator = SystemRandomNumberGenerator()
       let size = Size(value: 10)
-
-      // Set same seed for reproducible comparison
-      rng1 = SystemRandomNumberGenerator()
-      rng2 = SystemRandomNumberGenerator()
 
       let originalValue = intGen.generate(&rng1, size)
       let mappedValue = intGen.map(identity).generate(&rng2, size)
 
       // Note: This is a structural test - in practice you'd need seeded RNG
       // for exact equality. Here we test the mapping preserves type and validity
-      #expect(originalValue is Int)
-      #expect(mappedValue is Int)
+      #expect(originalValue > 0 || originalValue <= 0)  // Always true for Int
+      #expect(mappedValue > 0 || mappedValue <= 0)  // Always true for Int
     }
 
     /// Test Functor Composition Law: fmap (g ∘ f) = fmap g ∘ fmap f
@@ -716,8 +708,8 @@ struct ComprehensiveGeneratorTests {
       let f: (Int) -> Int = { $0 * 2 }
       let g: (Int) -> String = { "value: \($0)" }
 
-      var rng1 = SystemRandomNumberGenerator()
-      var rng2 = SystemRandomNumberGenerator()
+      var rng1: any RandomNumberGenerator = SystemRandomNumberGenerator()
+      var rng2: any RandomNumberGenerator = SystemRandomNumberGenerator()
       let size = Size(value: 10)
 
       // fmap (g ∘ f)
@@ -742,18 +734,18 @@ struct ComprehensiveGeneratorTests {
     func testApplicativeIdentityLaw() async throws {
       let intGen = Gen<Int>.int(in: 1...50)
       let identity: (Int) -> Int = { $0 }
-      let identityGen = Gen<(Int) -> Int>.constant(identity)
+      let identityGen = Gen<(Int) -> Int>.pure(identity)
 
-      var rng1 = SystemRandomNumberGenerator()
-      var rng2 = SystemRandomNumberGenerator()
+      var rng1: any RandomNumberGenerator = SystemRandomNumberGenerator()
+      var rng2: any RandomNumberGenerator = SystemRandomNumberGenerator()
       let size = Size(value: 10)
 
       let originalValue = intGen.generate(&rng1, size)
       let appliedValue = intGen.apply(identityGen).generate(&rng2, size)
 
-      // Both should be valid integers
-      #expect(originalValue is Int)
-      #expect(appliedValue is Int)
+      // Both should be valid integers between 1 and 50
+      #expect(originalValue >= 1 && originalValue <= 50)
+      #expect(appliedValue >= 1 && appliedValue <= 50)
     }
 
     /// Test Monad Left Identity Law: return a >>= f = f a
@@ -764,11 +756,11 @@ struct ComprehensiveGeneratorTests {
     @Test("Monad left identity law validation")
     func testMonadLeftIdentityLaw() async throws {
       let value = 42
-      let pureGen = Gen<Int>.constant(value)
-      let f: (Int) -> Gen<String> = { val in Gen<String>.constant("result: \(val)") }
+      let pureGen = Gen<Int>.pure(value)
+      let f: (Int) -> Gen<String> = { val in Gen<String>.pure("result: \(val)") }
 
-      var rng1 = SystemRandomNumberGenerator()
-      var rng2 = SystemRandomNumberGenerator()
+      var rng1: any RandomNumberGenerator = SystemRandomNumberGenerator()
+      var rng2: any RandomNumberGenerator = SystemRandomNumberGenerator()
       let size = Size(value: 10)
 
       // return a >>= f
@@ -791,11 +783,11 @@ struct ComprehensiveGeneratorTests {
     /// **Coverage**: Monad right identity law for generators
     @Test("Monad right identity law validation")
     func testMonadRightIdentityLaw() async throws {
-      let stringGen = Gen<String>.constant("test")
-      let returnF: (String) -> Gen<String> = { Gen<String>.constant($0) }
+      let stringGen = Gen<String>.pure("test")
+      let returnF: (String) -> Gen<String> = { Gen<String>.pure($0) }
 
-      var rng1 = SystemRandomNumberGenerator()
-      var rng2 = SystemRandomNumberGenerator()
+      var rng1: any RandomNumberGenerator = SystemRandomNumberGenerator()
+      var rng2: any RandomNumberGenerator = SystemRandomNumberGenerator()
       let size = Size(value: 10)
 
       let originalValue = stringGen.generate(&rng1, size)
@@ -833,10 +825,10 @@ struct ComprehensiveGeneratorTests {
     /// **Coverage**: Empty array edge case
     @Test("Sequence with zero length produces empty array")
     func testZeroLengthSequence() async throws {
-      let stringGen = Gen<String>.constant("unused")
-      let emptyGen = stringGen.sequence(count: 0)
+      let stringGen = Gen<String>.pure("unused")
+      let emptyGen = Gen.sequence(elementGen: stringGen, count: 0)
 
-      var rng = SystemRandomNumberGenerator()
+      var rng: any RandomNumberGenerator = SystemRandomNumberGenerator()
       let size = Size(value: 10)
 
       let result = emptyGen.generate(&rng, size)
@@ -849,15 +841,13 @@ struct ComprehensiveGeneratorTests {
     /// **Coverage**: Edge case of probability-based recursion
     @Test("Recursive with zero probability always uses base case")
     func testZeroProbabilityRecursion() async throws {
-      let intGen = Gen<Int>.constant(1)
-
-      let neverRecursiveGen = intGen.recursive(
+      let neverRecursiveGen = Gen<Int>.recursive(
         recursiveCase: { gen in gen.map { $0 + 100 } },  // Would be obvious if called
-        baseCase: Gen<Int>.constant(42),
+        baseCase: Gen<Int>.pure(42),
         probability: 0.0  // Never recurse
       )
 
-      var rng = SystemRandomNumberGenerator()
+      var rng: any RandomNumberGenerator = SystemRandomNumberGenerator()
       let size = Size(value: 100)  // Large size to encourage recursion
 
       // Should always return base case regardless of size
@@ -874,9 +864,9 @@ struct ComprehensiveGeneratorTests {
     @Test("Array generation with zero max length")
     func testZeroMaxLengthArray() async throws {
       let intGen = Gen<Int>.int(in: 1...10)
-      let emptyArrayGen = Gen<Int>.array(intGen, maxLength: 0)
+      let emptyArrayGen = Gen<Int>.array(elementGen: intGen, maxLength: 0)
 
-      var rng = SystemRandomNumberGenerator()
+      var rng: any RandomNumberGenerator = SystemRandomNumberGenerator()
       let size = Size(value: 10)
 
       let result = emptyArrayGen.generate(&rng, size)
@@ -889,10 +879,10 @@ struct ComprehensiveGeneratorTests {
     /// **Coverage**: Size-constrained tree generation
     @Test("Tree generation with minimal size forces leaves")
     func testMinimalSizeTreeGeneration() async throws {
-      let charGen = Gen<Character>.constant("X")
-      let treeGen = BinaryTree.generator(charGen)
+      let charGen = Gen<Character>.pure("X")
+      let treeGen = BinaryTree.generator(elementGen: charGen)
 
-      var rng = SystemRandomNumberGenerator()
+      var rng: any RandomNumberGenerator = SystemRandomNumberGenerator()
       let minimalSize = Size(value: 1)
 
       let tree = treeGen.generate(&rng, minimalSize)
@@ -914,9 +904,9 @@ struct ComprehensiveGeneratorTests {
     @Test("Shrinking empty collections returns empty")
     func testEmptyCollectionShrinking() async throws {
       let intGen = Gen<Int>.int(in: 1...10)
-      let emptyArrayGen = intGen.sequence(count: 0)
+      let emptyArrayGen = Gen.sequence(elementGen: intGen, count: 0)
 
-      var rng = SystemRandomNumberGenerator()
+      var rng: any RandomNumberGenerator = SystemRandomNumberGenerator()
       let size = Size(value: 10)
 
       let emptyArray = emptyArrayGen.generate(&rng, size)

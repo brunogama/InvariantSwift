@@ -439,10 +439,13 @@ struct MathematicalLawTests {
     let evenProperty = Property<Int>(generator: Gen.int) { $0 % 2 == 0 }
     let conjoinedProperty = positiveProperty.and(evenProperty)
 
-    let result = PropertyChecker.check(conjoinedProperty, config: PropertyConfig(iterations: 200))
+    let result = runPropertySynchronously(
+      conjoinedProperty,
+      config: PropertyConfig(iterations: 200)
+    )
 
     switch result {
-    case .failure(let counterexample, _, let shrunk):
+    case .failure(let counterexample, _, let shrunk, _, _):
       // Counterexample should violate at least one property
       let (value1, value2) = counterexample
       let (shrunk1, shrunk2) = shrunk
@@ -479,10 +482,13 @@ struct MathematicalLawTests {
     let oddProperty = Property<Int>(generator: Gen.int) { $0 % 2 != 0 }
     let disjoinedProperty = negativeProperty.or(oddProperty)
 
-    let result = PropertyChecker.check(disjoinedProperty, config: PropertyConfig(iterations: 300))
+    let result = runPropertySynchronously(
+      disjoinedProperty,
+      config: PropertyConfig(iterations: 300)
+    )
 
     switch result {
-    case .failure(let counterexample, _, let shrunk):
+    case .failure(let counterexample, _, let shrunk, _, _):
       // For disjunction to fail, both properties must fail
       let (value1, value2) = counterexample
       let (shrunk1, shrunk2) = shrunk

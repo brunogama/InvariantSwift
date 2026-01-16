@@ -1,4 +1,4 @@
-# FunctionalTesting
+# InvariantSwift
 
 [![Swift](https://img.shields.io/badge/Swift-6.0-orange.svg)](https://swift.org)
 [![Platforms](https://img.shields.io/badge/Platforms-iOS%20|%20macOS%20|%20tvOS%20|%20watchOS%20|%20Linux-lightgrey.svg)](https://swift.org)
@@ -35,11 +35,11 @@ A comprehensive property-based testing framework for Swift, designed to help you
 
 ### Installation
 
-Add FunctionalTesting to your `Package.swift`:
+Add InvariantSwift to your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/your-org/FunctionalTesting", from: "1.0.0")
+    .package(url: "https://github.com/your-org/InvariantSwift", from: "1.0.0")
 ]
 ```
 
@@ -49,7 +49,7 @@ Then add it to your test target:
 .testTarget(
     name: "YourTests",
     dependencies: [
-        "FunctionalTesting"
+        "InvariantSwift"
     ]
 )
 ```
@@ -58,7 +58,7 @@ Then add it to your test target:
 
 ```swift
 import Testing
-import FunctionalTesting
+import InvariantSwift
 
 @Test("Array reverse property")
 func testArrayReverse() {
@@ -74,7 +74,7 @@ func testArrayReverse() {
 
 ```swift
 import Testing
-import FunctionalTesting
+import InvariantSwift
 
 @PropertyTest
 func testIntegerAddition(a: Int, b: Int) {
@@ -91,7 +91,7 @@ func testStringConcatenation(s1: String, s2: String) {
 
 ## Generators
 
-FunctionalTesting provides generators for all common Swift types:
+InvariantSwift provides generators for all common Swift types:
 
 ### Primitive Types
 ```swift
@@ -228,7 +228,7 @@ try checkProperty(property, config: config)
 
 ## Performance
 
-FunctionalTesting is designed for high performance:
+InvariantSwift is designed for high performance:
 
 - **10,000+ generations/second** for primitive types
 - **Linear scaling** with CPU cores for concurrent testing  
@@ -237,7 +237,7 @@ FunctionalTesting is designed for high performance:
 
 ## Documentation
 
-- [API Documentation](https://your-org.github.io/FunctionalTesting/documentation/functionaltesting/)
+- [API Documentation](https://your-org.github.io/InvariantSwift/documentation/invariantswift/)
 - [User Guide](docs/UserGuide.md)  
 - [Advanced Features](docs/AdvancedFeatures.md)
 - [Contributing Guide](CONTRIBUTING.md)
@@ -268,7 +268,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 ## Inspiration
 
-FunctionalTesting is inspired by:
+InvariantSwift is inspired by:
 
 - [QuickCheck](https://hackage.haskell.org/package/QuickCheck) (Haskell)
 - [Hypothesis](https://hypothesis.readthedocs.io/) (Python)
@@ -277,14 +277,14 @@ FunctionalTesting is inspired by:
 
 ## License
 
-FunctionalTesting is released under the MIT license. See [LICENSE](LICENSE) for details.
+InvariantSwift is released under the MIT license. See [LICENSE](LICENSE) for details.
 
 ## Support
 
-- GitHub Issues: [Report bugs or request features](https://github.com/your-org/FunctionalTesting/issues)
-- Discussions: [Ask questions and share ideas](https://github.com/your-org/FunctionalTesting/discussions)
-- Documentation: [Read the full documentation](https://your-org.github.io/FunctionalTesting/)
+- GitHub Issues: [Report bugs or request features](https://github.com/your-org/InvariantSwift/issues)
+- Discussions: [Ask questions and share ideas](https://github.com/your-org/InvariantSwift/discussions)
+- Documentation: [Read the full documentation](https://your-org.github.io/InvariantSwift/)
 
 ---
 
-Made with ❤️ by the FunctionalTesting team
+Made with passion by the InvariantSwift team

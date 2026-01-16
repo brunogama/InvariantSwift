@@ -18,7 +18,7 @@ public struct TestUtilities {
     file: StaticString = #file,
     line: UInt = #line
   ) -> PropertyResult<T> {
-    let result = PropertyChecker.check(property, config: config)
+    let result = runPropertySynchronously(property, config: config)
 
     // Validate expectation
     switch (result, expectation) {
@@ -93,7 +93,7 @@ public struct TestUtilities {
         "Expected \(iterations) iterations, got \(actualIterations)"
       )
 
-    case .failure(let counterexample, let iter, let shrunk):
+    case .failure(let counterexample, let iter, let shrunk, _, _):
       Issue.record(
         "Expected success but got failure: counterexample=\(counterexample), iterations=\(iter), shrunk=\(shrunk)"
       )
@@ -114,7 +114,7 @@ public struct TestUtilities {
     line: UInt = #line
   ) {
     switch result {
-    case .failure(let counterexample, let iterations, let shrunk):
+    case .failure(let counterexample, let iterations, let shrunk, _, _):
       #expect(iterations > 0, "Should have attempted at least one iteration")
       #expect(
         counterexamplePredicate(counterexample),
@@ -153,7 +153,7 @@ public struct TestUtilities {
     case .success(let iterations):
       Issue.record("Expected gaveUp but got success with \(iterations) iterations")
 
-    case .failure(let counterexample, let iterations, let shrunk):
+    case .failure(let counterexample, let iterations, let shrunk, _, _):
       Issue.record(
         "Expected gaveUp but got failure: counterexample=\(counterexample), iterations=\(iterations), shrunk=\(shrunk)"
       )
@@ -171,7 +171,7 @@ public struct TestUtilities {
     line: UInt = #line
   ) -> (result: PropertyResult<T>, duration: TimeInterval) {
     let startTime = CFAbsoluteTimeGetCurrent()
-    let result = PropertyChecker.check(property, config: config)
+    let result = runPropertySynchronously(property, config: config)
     let duration = CFAbsoluteTimeGetCurrent() - startTime
 
     #expect(
@@ -190,7 +190,7 @@ public struct TestUtilities {
     line: UInt = #line
   ) -> (result: PropertyResult<T>, memoryInfo: MemoryInfo) {
     let memoryBefore = getCurrentMemoryUsage()
-    let result = PropertyChecker.check(property, config: config)
+    let result = runPropertySynchronously(property, config: config)
     let memoryAfter = getCurrentMemoryUsage()
 
     let memoryInfo = MemoryInfo(
@@ -212,7 +212,7 @@ public struct TestUtilities {
     file: StaticString = #file,
     line: UInt = #line
   ) {
-    var rng: any RandomNumberGenerator = SeededRandomNumberGenerator(seed: 42)
+    var rng: any RandomNumberGenerator = SeedBasedRandomNumberGenerator(seed: Seed(value: 42))
     let size = Size(value: 10)
 
     for _ in 0..<samples {
@@ -232,7 +232,7 @@ public struct TestUtilities {
     file: StaticString = #file,
     line: UInt = #line
   ) {
-    var rng: any RandomNumberGenerator = SeededRandomNumberGenerator(seed: 123)
+    var rng: any RandomNumberGenerator = SeedBasedRandomNumberGenerator(seed: Seed(value: 123))
     let size = Size(value: 20)
 
     var uniqueValues: Set<T> = []
@@ -254,7 +254,7 @@ public struct TestUtilities {
     file: StaticString = #file,
     line: UInt = #line
   ) {
-    var rng: any RandomNumberGenerator = SeededRandomNumberGenerator(seed: 456)
+    var rng: any RandomNumberGenerator = SeedBasedRandomNumberGenerator(seed: Seed(value: 456))
     let size = Size(value: 50)
 
     for _ in 0..<samples {
@@ -282,7 +282,7 @@ public struct TestUtilities {
     var results: [PropertyResult<T>] = []
 
     for config in configurations {
-      let result = PropertyChecker.check(property, config: config)
+      let result = runPropertySynchronously(property, config: config)
       results.append(result)
     }
 
@@ -324,7 +324,7 @@ public struct TestUtilities {
     var results: [PropertyResult<T>] = []
 
     for _ in 0..<repetitions {
-      let result = PropertyChecker.check(property, config: config)
+      let result = runPropertySynchronously(property, config: config)
       results.append(result)
     }
 
@@ -390,7 +390,7 @@ public struct TestUtilities {
     let totalIterations = results.compactMap { result -> Int? in
       switch result {
       case .success(let iter): return iter
-      case .failure(_, let iter, _): return iter
+      case .failure(_, let iter, _, _, _): return iter
       case .gaveUp(_, let iter): return iter
       }
     }.reduce(0, +)
@@ -483,7 +483,7 @@ private enum PropertyTestUtils {
     case (.success(let iter1), .success(let iter2)):
       return iter1 == iter2
 
-    case (.failure(let ce1, let iter1, let sh1), .failure(let ce2, let iter2, let sh2)):
+    case (.failure(let ce1, let iter1, let sh1, _, _), .failure(let ce2, let iter2, let sh2, _, _)):
       return ce1 == ce2 && iter1 == iter2 && sh1 == sh2
 
     case (.gaveUp(let disc1, let iter1), .gaveUp(let disc2, let iter2)):

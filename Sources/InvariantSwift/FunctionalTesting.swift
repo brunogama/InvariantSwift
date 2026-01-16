@@ -19,7 +19,6 @@
 // - PropertyResult<T> for test execution results
 // - PropertyConfig for test configuration
 // - PropertyRunner for async property execution
-// - PropertyChecker for synchronous property execution
 // - SeedBasedRandomNumberGenerator for Seed-based RNG
 
 // MARK: Model-Based Testing

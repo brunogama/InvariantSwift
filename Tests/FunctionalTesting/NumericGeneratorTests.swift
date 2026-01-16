@@ -18,7 +18,7 @@ struct NumericGeneratorTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Unexpected failure with: \(counterexample)")
 
     case .gaveUp:
@@ -37,7 +37,7 @@ struct NumericGeneratorTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Unexpected failure with: \(counterexample)")
 
     case .gaveUp:
@@ -56,7 +56,7 @@ struct NumericGeneratorTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Unexpected failure with: \(counterexample)")
 
     case .gaveUp:
@@ -75,7 +75,7 @@ struct NumericGeneratorTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Unexpected failure with: \(counterexample)")
 
     case .gaveUp:
@@ -94,7 +94,7 @@ struct NumericGeneratorTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Unexpected failure with: \(counterexample)")
 
     case .gaveUp:
@@ -117,7 +117,7 @@ struct NumericGeneratorTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Int16 bounds check failed with: \(counterexample)")
 
     case .gaveUp:
@@ -159,7 +159,7 @@ struct NumericGeneratorTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Int32 bounds check failed with: \(counterexample)")
 
     case .gaveUp:
@@ -181,7 +181,7 @@ struct NumericGeneratorTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Int32 range test failed with: \(counterexample)")
 
     case .gaveUp:
@@ -202,7 +202,7 @@ struct NumericGeneratorTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Int64 bounds check failed with: \(counterexample)")
 
     case .gaveUp:
@@ -225,7 +225,7 @@ struct NumericGeneratorTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Int64 large value test failed with: \(counterexample)")
 
     case .gaveUp:
@@ -248,7 +248,7 @@ struct NumericGeneratorTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("UInt16 bounds check failed with: \(counterexample)")
 
     case .gaveUp:
@@ -292,7 +292,7 @@ struct NumericGeneratorTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("UInt32 bounds check failed with: \(counterexample)")
 
     case .gaveUp:
@@ -314,7 +314,7 @@ struct NumericGeneratorTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("UInt32 range test failed with: \(counterexample)")
 
     case .gaveUp:
@@ -335,7 +335,7 @@ struct NumericGeneratorTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("UInt64 bounds check failed with: \(counterexample)")
 
     case .gaveUp:
@@ -358,7 +358,7 @@ struct NumericGeneratorTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("UInt64 large value test failed with: \(counterexample)")
 
     case .gaveUp:
@@ -382,7 +382,7 @@ struct NumericGeneratorTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Float special values test failed with: \(counterexample)")
 
     case .gaveUp:
@@ -404,7 +404,7 @@ struct NumericGeneratorTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Double special values test failed with: \(counterexample)")
 
     case .gaveUp:
@@ -451,7 +451,7 @@ struct NumericGeneratorTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Decimal precision test failed with: \(counterexample)")
 
     case .gaveUp:
@@ -474,7 +474,7 @@ struct NumericGeneratorTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Decimal range test failed with: \(counterexample)")
 
     case .gaveUp:
@@ -503,7 +503,7 @@ struct NumericGeneratorTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("CGFloat platform test failed with: \(counterexample)")
 
     case .gaveUp:
@@ -527,7 +527,7 @@ struct NumericGeneratorTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("CGFloat precision test failed with: \(counterexample)")
 
     case .gaveUp:
@@ -549,7 +549,7 @@ struct NumericGeneratorTests {
       config: PropertyConfig(iterations: 100, maxShrinks: 50)
     )
 
-    if case .failure(let counterexample, _, let shrunk) = result {
+    if case .failure(let counterexample, _, let shrunk, _, _) = result {
       // Verify that shrinking moves toward zero
       #expect(
         abs(shrunk) <= abs(counterexample),
@@ -573,7 +573,7 @@ struct NumericGeneratorTests {
       config: PropertyConfig(iterations: 100, maxShrinks: 50)
     )
 
-    if case .failure(let counterexample, _, let shrunk) = result {
+    if case .failure(let counterexample, _, let shrunk, _, _) = result {
       // For finite values, shrinking should reduce magnitude
       if counterexample.isFinite && shrunk.isFinite {
         #expect(
@@ -599,7 +599,7 @@ struct NumericGeneratorTests {
       config: PropertyConfig(iterations: 100, maxShrinks: 50)
     )
 
-    if case .failure(let counterexample, _, let shrunk) = result {
+    if case .failure(let counterexample, _, let shrunk, _, _) = result {
       // For finite values, shrinking should reduce magnitude
       if counterexample.isFinite && shrunk.isFinite {
         #expect(
@@ -624,7 +624,7 @@ struct NumericGeneratorTests {
       config: PropertyConfig(iterations: 100, maxShrinks: 50)
     )
 
-    if case .failure(let counterexample, _, let shrunk) = result {
+    if case .failure(let counterexample, _, let shrunk, _, _) = result {
       // Verify that shrinking reduces the value toward zero
       #expect(
         shrunk <= counterexample,
@@ -647,7 +647,7 @@ struct NumericGeneratorTests {
       config: PropertyConfig(iterations: 10, maxShrinks: 20)
     )
 
-    if case .failure(let counterexample, _, let shrunk) = result {
+    if case .failure(let counterexample, _, let shrunk, _, _) = result {
       #expect(
         shrunk <= counterexample,
         "Int64 shrinking should reduce large values: original \(counterexample), shrunk \(shrunk)"
@@ -684,7 +684,7 @@ struct NumericGeneratorTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Int8 boundary test failed with: \(counterexample)")
 
     case .gaveUp:
@@ -710,7 +710,7 @@ struct NumericGeneratorTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("UInt32 overflow test failed with: \(counterexample)")
 
     case .gaveUp:
@@ -740,7 +740,7 @@ struct NumericGeneratorTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Float extreme value test failed with: \(counterexample)")
 
     case .gaveUp:
@@ -770,7 +770,7 @@ struct NumericGeneratorTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Double precision boundary test failed with: \(counterexample)")
 
     case .gaveUp:
@@ -796,7 +796,7 @@ struct NumericGeneratorTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Decimal boundary test failed with: \(counterexample)")
 
     case .gaveUp:
@@ -833,7 +833,7 @@ struct NumericGeneratorTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Numeric integration test failed with: \(counterexample)")
 
     case .gaveUp:

@@ -187,7 +187,7 @@ struct AutomatedCoverageTests {
       }
     )
 
-    let result = PropertyChecker.check(property, config: PropertyConfig(iterations: 10))
+    let result = runPropertySynchronously(property, config: PropertyConfig(iterations: 10))
     #expect(result.isSuccess)
 
     // Measure coverage after
@@ -259,7 +259,7 @@ struct AutomatedCoverageTests {
       return original == mapped  // Functor identity law
     }
 
-    let result = PropertyChecker.check(functorProperty, config: PropertyConfig(iterations: 20))
+    let result = runPropertySynchronously(functorProperty, config: PropertyConfig(iterations: 20))
     #expect(result.isSuccess, "Functor identity law should hold")
 
     // Verify this improved coverage of Generator.swift
@@ -292,7 +292,7 @@ struct CoverageTestUtilities {
     let runner = LLVMCoverageRunner()
 
     let beforeCoverage = try await runner.calculateCoverage()
-    let result = PropertyChecker.check(property, config: PropertyConfig(iterations: iterations))
+    let result = runPropertySynchronously(property, config: PropertyConfig(iterations: iterations))
     let afterCoverage = try await runner.calculateCoverage(forceRefresh: true)
 
     let improvement = afterCoverage.linePercentage - beforeCoverage.linePercentage

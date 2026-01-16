@@ -572,7 +572,7 @@ extension PropertyResult {
         )
       )
 
-    case .failure(let counterexample, let iterations, let shrunk):
+    case .failure(let counterexample, let iterations, let shrunk, let reason, let seed):
       let counterDoc =
         (counterexample as? PrettyPrintable)?.prettyDoc(config: config, depth: 0)
         ?? .text("\(counterexample)")
@@ -581,8 +581,10 @@ extension PropertyResult {
 
       return printer.render(
         Doc.concat([
-          .colored(.red, .styled(.bold, .text("✗ Property failed"))),
-          .concat(.text(" after "), .colored(.cyan, .text("\(iterations) iterations"))),
+          .colored(.red, .styled(.bold, .text("Property failed"))),
+          .text(" after "),
+          .colored(.cyan, .text("\(iterations) iterations")),
+          .text(" (\(reason))"),
           .line,
           .line,
           .colored(.red, .text("Counterexample:")),
@@ -593,6 +595,9 @@ extension PropertyResult {
           .colored(.yellow, .text("Minimal counterexample:")),
           .line,
           .indent(2, shrunkDoc),
+          .line,
+          .line,
+          .colored(.cyan, .text("Seed: \(seed.rawValue)")),
         ])
       )
 

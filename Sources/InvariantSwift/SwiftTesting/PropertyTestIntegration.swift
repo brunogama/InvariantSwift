@@ -181,18 +181,22 @@ public func checkProperty<T: Sendable>(
   config: PropertyConfig = .default,
   file: StaticString = #file,
   line: UInt = #line
-) throws {
-  let result = PropertyChecker.check(property, config: config)
+) async throws {
+  let runner = PropertyRunner(seed: config.seed)
+  let result = await runner.runProperty(property, config: config)
 
   switch result {
   case .success:
     break  // Test passes; no issue to record
 
-  case .failure(let counterexample, let iterations, let shrunk):
+  case .failure(let counterexample, let iterations, let shrunk, let reason, let seed):
+    let reproString = result.reproString?.description ?? "N/A"
     let message = """
-      Property failed after \(iterations) iterations.
+      Property failed after \(iterations) iterations (\(reason)).
       Counterexample: \(counterexample)
       Shrunk counterexample: \(shrunk)
+      Seed: \(seed.rawValue)
+      \(reproString)
       """
     Issue.record(Comment(stringLiteral: message))
 
@@ -301,11 +305,12 @@ public func checkPropertyAsync<T: Sendable>(
   case .success:
     break  // Test passes; no issue to record
 
-  case .failure(let counterexample, let iterations, let shrunk):
+  case .failure(let counterexample, let iterations, let shrunk, _, let seed):
     let message = """
       Property failed after \(iterations) iterations.
       Counterexample: \(counterexample)
       Shrunk counterexample: \(shrunk)
+      Reproduction seed: \(seed.rawValue)
       """
     Issue.record(Comment(stringLiteral: message))
 
@@ -435,7 +440,7 @@ public func convertPropertyResult<T>(_ result: PropertyResult<T>) -> PropertyTes
   case .success(let iterations):
     return .success(iterations: iterations)
 
-  case .failure(let counterexample, let iterations, let shrunk):
+  case .failure(let counterexample, let iterations, let shrunk, _, _):
     return .failure(
       counterexample: "\(counterexample)",
       shrunk: "\(shrunk)",

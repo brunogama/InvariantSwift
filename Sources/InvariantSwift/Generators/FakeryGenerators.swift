@@ -142,7 +142,7 @@ public struct FakeConfig: Sendable {
   }
 
   /// Shared configuration instance.
-  public nonisolated(unsafe) static var current = FakeConfig()
+  nonisolated(unsafe) public static var current = Self()
 }
 
 // MARK: - Gen Extension for Fake Namespace

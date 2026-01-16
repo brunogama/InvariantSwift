@@ -46,7 +46,7 @@ let package = Package(
       swiftSettings: [
         .unsafeFlags(
           [
-            "-enable-testing",
+            "-enable-testing"
           ],
           .when(configuration: .debug)
         )
@@ -65,7 +65,7 @@ let package = Package(
       swiftSettings: [
         .unsafeFlags(
           [
-            "-enable-testing",
+            "-enable-testing"
           ],
           .when(configuration: .debug)
         )
@@ -85,7 +85,7 @@ let package = Package(
       swiftSettings: [
         .unsafeFlags(
           [
-            "-enable-testing",
+            "-enable-testing"
           ],
           .when(configuration: .debug)
         )
@@ -123,7 +123,7 @@ let package = Package(
       swiftSettings: [
         .unsafeFlags(
           [
-            "-enable-testing",
+            "-enable-testing"
           ],
           .when(configuration: .debug)
         )
@@ -140,7 +140,7 @@ let package = Package(
       swiftSettings: [
         .unsafeFlags(
           [
-            "-enable-testing",
+            "-enable-testing"
           ],
           .when(configuration: .debug)
         )
@@ -172,7 +172,7 @@ let package = Package(
       swiftSettings: [
         .unsafeFlags(
           [
-            "-enable-testing",
+            "-enable-testing"
           ],
           .when(configuration: .debug)
         )

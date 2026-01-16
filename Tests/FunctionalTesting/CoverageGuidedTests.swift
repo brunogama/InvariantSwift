@@ -291,7 +291,13 @@ struct CoverageGuidedTests {
   @Test("PropertyResult Extension Methods")
   func propertyResultExtensions() {
     let successResult = PropertyResult<Int>.success(iterations: 10)
-    let failureResult = PropertyResult<Int>.failure(counterexample: 42, iterations: 5, shrunk: 1)
+    let failureResult = PropertyResult<Int>.failure(
+      counterexample: 42,
+      iterations: 5,
+      shrunk: 1,
+      reason: .predicateFailed,
+      seed: Seed(value: 12345)
+    )
     let gaveUpResult = PropertyResult<Int>.gaveUp(discarded: 10, iterations: 5)
 
     #expect(successResult.isSuccess == true)

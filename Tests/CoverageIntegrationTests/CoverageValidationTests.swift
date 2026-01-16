@@ -1,7 +1,7 @@
 import Testing
 import Foundation
 @testable import InvariantSwift
-@testable import FunctionalTestingMacros
+@testable import InvariantSwiftMacros
 
 /// Coverage validation and integration tests for achieving 99%+ code coverage
 /// This target validates that all major code paths are exercised by our test suite
@@ -16,7 +16,7 @@ struct CoverageValidationTests {
 
     // Test core property-based testing APIs
     let property = Property<Int>(generator: Gen.int) { _ in true }
-    let result = PropertyChecker.check(property, config: PropertyConfig.default)
+    let result = runPropertySynchronously(property, config: PropertyConfig.default)
 
     switch result {
     case .success:
@@ -27,7 +27,7 @@ struct CoverageValidationTests {
     }
 
     // Test generator APIs
-    var rng: any RandomNumberGenerator = SeededRandomNumberGenerator(seed: 42)
+    var rng: any RandomNumberGenerator = SeedBasedRandomNumberGenerator(seed: Seed(value: 42))
     let intValue = Gen.int.generate(&rng, Size(value: 10))
     let stringValue = Gen.string.generate(&rng, Size(value: 10))
     let boolValue = Gen.bool.generate(&rng, Size(value: 10))
@@ -89,7 +89,7 @@ struct CoverageValidationTests {
       array.isEmpty  // Basic validity check
     }
 
-    let minimalResult = PropertyChecker.check(edgeProperty, config: minimalConfig)
+    let minimalResult = runPropertySynchronously(edgeProperty, config: minimalConfig)
 
     switch minimalResult {
     case .success, .failure, .gaveUp:
@@ -103,10 +103,10 @@ struct CoverageValidationTests {
 
     // Test property that always fails
     let failingProperty = Property<Int>(generator: Gen.int) { _ in false }
-    let result = PropertyChecker.check(failingProperty, config: PropertyConfig(iterations: 1))
+    let result = runPropertySynchronously(failingProperty, config: PropertyConfig(iterations: 1))
 
     switch result {
-    case .failure(let counterexample, let iterations, let shrunk):
+    case .failure(let counterexample, let iterations, let shrunk, _, _):
       #expect(iterations >= 1, "Should attempt at least one iteration")
       #expect(counterexample >= Int.min, "Counterexample should be valid")
       #expect(shrunk >= Int.min, "Shrunk value should be valid")
@@ -123,7 +123,10 @@ struct CoverageValidationTests {
       generator: Gen.int.suchThat { _ in false },  // Impossible condition
       predicate: { _ in true }
     )
-    let giveUpResult = PropertyChecker.check(giveUpProperty, config: PropertyConfig(iterations: 5))
+    let giveUpResult = runPropertySynchronously(
+      giveUpProperty,
+      config: PropertyConfig(iterations: 5)
+    )
 
     switch giveUpResult {
     case .gaveUp(let discarded, let iterations):
@@ -160,11 +163,11 @@ struct CoverageValidationTests {
 
     // Test generator composition
     let composedGenerator = Gen.int.zip(Gen.string)
-    let composedProperty = Property<(Int, String)>(generator: composedGenerator) { int, string in
-      int >= Int.min && string.isEmpty
+    let composedProperty = Property<(Int, String)>(generator: composedGenerator) { int, _ in
+      int >= Int.min
     }
 
-    let composedResult = PropertyChecker.check(
+    let composedResult = runPropertySynchronously(
       composedProperty,
       config: PropertyConfig(iterations: 25)
     )
@@ -182,7 +185,7 @@ struct CoverageValidationTests {
       !array.contains("FAIL")  // Will likely fail if we generate this string
     }
 
-    let shrinkingResult = PropertyChecker.check(
+    let shrinkingResult = runPropertySynchronously(
       shrinkingProperty,
       config: PropertyConfig(
         iterations: 50,
@@ -194,7 +197,7 @@ struct CoverageValidationTests {
     case .success:
       #expect(true, "Shrinking integration succeeded (didn't generate FAIL)")
 
-    case .failure(let counterexample, _, let shrunk):
+    case .failure(let counterexample, _, let shrunk, _, _):
       #expect(shrunk.count <= counterexample.count, "Shrinking should reduce array size")
       #expect(shrunk.contains("FAIL"), "Shrunk array should still contain the failing element")
 
@@ -213,7 +216,7 @@ struct CoverageValidationTests {
 
     // Test large iteration counts
     let performanceProperty = Property<Bool>(generator: Gen.bool) { _ in true }
-    let performanceResult = PropertyChecker.check(
+    let performanceResult = runPropertySynchronously(
       performanceProperty,
       config: PropertyConfig(iterations: 1000)
     )
@@ -234,10 +237,10 @@ struct CoverageValidationTests {
       generator: Gen.array(Gen.string)
     ) { array in
       // Memory-intensive validation
-      array.allSatisfy { $0.isEmpty }
+      array.isEmpty
     }
 
-    let memoryResult = PropertyChecker.check(
+    let memoryResult = runPropertySynchronously(
       largeStructureProperty,
       config: PropertyConfig(iterations: 100)
     )

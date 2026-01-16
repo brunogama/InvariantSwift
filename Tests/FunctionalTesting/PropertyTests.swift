@@ -18,7 +18,7 @@ struct PropertyTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Property should pass for most ints, failed with: \(counterexample)")
 
     case .gaveUp:
@@ -41,7 +41,7 @@ struct PropertyTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Property with assumption failed with: \(counterexample)")
 
     case .gaveUp:
@@ -85,7 +85,7 @@ struct PropertyTests {
       // Might not fail if we don't generate values <= 50
       break
 
-    case .failure(let counterexample, let iterations, let shrunk):
+    case .failure(let counterexample, let iterations, let shrunk, _, _):
       #expect(counterexample > 0, "Counterexample should be in valid range")
       #expect(iterations > 0, "Should report positive iterations")
       #expect(shrunk <= counterexample, "Shrunk value should be <= original")
@@ -150,10 +150,10 @@ struct PropertyTests {
 
   // MARK: - SeededRandomNumberGenerator Tests
 
-  @Test("SeededRandomNumberGenerator behavior")
+  @Test("SeedBasedRandomNumberGenerator behavior")
   func seededRandomNumberGeneratorBehavior() async {
-    var rng1 = SeededRandomNumberGenerator(seed: 42)
-    var rng2 = SeededRandomNumberGenerator(seed: 42)
+    var rng1 = SeedBasedRandomNumberGenerator(seed: Seed(value: 42))
+    var rng2 = SeedBasedRandomNumberGenerator(seed: Seed(value: 42))
 
     // Same seed should produce same sequence
     let value1a = rng1.next()
@@ -166,7 +166,7 @@ struct PropertyTests {
     #expect(value1b == value2b, "Same seed should produce same second value")
 
     // Zero seed should be handled
-    var rngZero = SeededRandomNumberGenerator(seed: 0)
+    var rngZero = SeedBasedRandomNumberGenerator(seed: Seed(value: 0))
     let zeroValue = rngZero.next()
     #expect(zeroValue != 0, "Zero seed should not produce zero state")
   }
@@ -224,7 +224,7 @@ struct PropertyTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Property.check failed with: \(counterexample)")
 
     case .gaveUp:
@@ -248,7 +248,7 @@ struct PropertyTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Property.implies failed with: \(counterexample)")
 
     case .gaveUp:
@@ -271,7 +271,7 @@ struct PropertyTests {
 
     switch result {
     case .success: break  // Should succeed because implication with false assumption is always true
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Vacuous implication should not fail with: \(counterexample)")
 
     case .gaveUp:
@@ -295,7 +295,7 @@ struct PropertyTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Property and combinator failed with: \(counterexample)")
 
     case .gaveUp:
@@ -316,7 +316,7 @@ struct PropertyTests {
 
     switch result {
     case .success: break  // Should succeed because prop2 is always true
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Property or combinator failed with: \(counterexample)")
 
     case .gaveUp:
@@ -329,13 +329,13 @@ struct PropertyTests {
   @Test("PropertyChecker synchronous check")
   func propertyCheckerSynchronousCheck() async {
     let property = Property<Int>(generator: Gen.int) { $0 > Int.min }
-    let result = PropertyChecker.check(property, config: PropertyConfig(iterations: 20))
+    let result = runPropertySynchronously(property, config: PropertyConfig(iterations: 20))
 
     switch result {
     case .success(let iterations):
       #expect(iterations == 20, "Should complete all iterations")
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("PropertyChecker failed with: \(counterexample)")
 
     case .gaveUp:
@@ -348,8 +348,8 @@ struct PropertyTests {
     let property = Property<Int>(generator: Gen.int) { _ in true }
     let config = PropertyConfig(iterations: 15, seed: Seed(value: 777))
 
-    let result1 = PropertyChecker.check(property, config: config)
-    let result2 = PropertyChecker.check(property, config: config)
+    let result1 = runPropertySynchronously(property, config: config)
+    let result2 = runPropertySynchronously(property, config: config)
 
     // Both should succeed with same config
     switch (result1, result2) {
@@ -365,7 +365,7 @@ struct PropertyTests {
   func propertyCheckerShrinkingBehavior() async {
     // Property that fails for numbers >= 10
     let property = Property<Int>(generator: Gen.int(in: 0...50)) { $0 < 10 }
-    let result = PropertyChecker.check(
+    let result = runPropertySynchronously(
       property,
       config: PropertyConfig(iterations: 100, maxShrinks: 50)
     )
@@ -375,7 +375,7 @@ struct PropertyTests {
       // Might not generate values >= 10
       break
 
-    case .failure(let counterexample, let iterations, let shrunk):
+    case .failure(let counterexample, let iterations, let shrunk, _, _):
       #expect(counterexample >= 10, "Counterexample should be >= 10")
       #expect(shrunk >= 10, "Shrunk value should still fail the property")
       #expect(shrunk <= counterexample, "Shrunk should be <= original")
@@ -402,7 +402,7 @@ struct PropertyTests {
       // Might not generate 7
       break
 
-    case .failure(let original, _, let shrunk):
+    case .failure(let original, _, let shrunk, _, _):
       if original == 7 {
         // Original was already minimal
         #expect(shrunk == 7, "Shrunk should be 7 when original is 7")
@@ -428,7 +428,7 @@ struct PropertyTests {
     case .success:
       Issue.record("Property should fail")
 
-    case .failure(let original, _, let shrunk):
+    case .failure(let original, _, let shrunk, _, _):
       #expect(original >= 100, "Original should be in range")
       #expect(shrunk >= 100, "With limited shrinking, may not shrink much")
 
@@ -453,7 +453,7 @@ struct PropertyTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Size parameter test failed with array of size: \(counterexample.count)")
 
     case .gaveUp:
@@ -472,7 +472,7 @@ struct PropertyTests {
     case .success:
       Issue.record("Always failing property should not succeed")
 
-    case .failure(_, let iterations, _):
+    case .failure(_, let iterations, _, _, _):
       #expect(iterations == 1, "Should fail on first iteration")
 
     case .gaveUp:

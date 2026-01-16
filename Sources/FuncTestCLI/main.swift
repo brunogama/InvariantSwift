@@ -408,7 +408,7 @@ extension FuncTestCLI {
       passedTests += 1
       print("✅ PASSED (\(iterations) iterations)")
 
-    case .failure(let counterexample, let iterations, let shrunk):
+    case .failure(let counterexample, let iterations, let shrunk, _, _):
       failedTests += 1
       print("❌ FAILED after \(iterations) iterations")
       print("   Counterexample: \(counterexample)")
@@ -439,7 +439,7 @@ extension FuncTestCLI {
       passedTests += 1
       print("✅ PASSED (\(iterations) iterations)")
 
-    case .failure(let counterexample, let iterations, let shrunk):
+    case .failure(let counterexample, let iterations, let shrunk, _, _):
       failedTests += 1
       print("❌ FAILED after \(iterations) iterations")
       print("   Counterexample: \(counterexample)")
@@ -655,7 +655,7 @@ extension FuncTestCLI {
     case .success(let iterations):
       print("✅ \(propertyName) PASSED (\(iterations) iterations)")
 
-    case .failure(let counterexample, let iterations, let shrunk):
+    case .failure(let counterexample, let iterations, let shrunk, _, _):
       print("❌ \(propertyName) FAILED after \(iterations) iterations")
       print("   Counterexample: \(counterexample)")
       print("   Shrunk to: \(shrunk)")

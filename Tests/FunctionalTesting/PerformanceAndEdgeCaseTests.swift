@@ -14,7 +14,7 @@ struct PerformanceAndEdgeCaseTests {
     }
 
     let startTime = CFAbsoluteTimeGetCurrent()
-    let result = PropertyChecker.check(property, config: PropertyConfig(iterations: 50000))
+    let result = runPropertySynchronously(property, config: PropertyConfig(iterations: 50000))
     let duration = CFAbsoluteTimeGetCurrent() - startTime
 
     switch result {
@@ -53,7 +53,7 @@ struct PerformanceAndEdgeCaseTests {
     }
 
     let startTime = CFAbsoluteTimeGetCurrent()
-    let result = PropertyChecker.check(
+    let result = runPropertySynchronously(
       property,
       config: PropertyConfig(
         iterations: 100,
@@ -63,7 +63,7 @@ struct PerformanceAndEdgeCaseTests {
     let duration = CFAbsoluteTimeGetCurrent() - startTime
 
     switch result {
-    case .failure(let counterexample, _, let shrunk):
+    case .failure(let counterexample, _, let shrunk, _, _):
       #expect(duration < 5.0, "Shrinking should complete within 5 seconds: took \(duration)s")
       #expect(shrunk.count <= counterexample.count, "Shrunk result should be smaller")
 
@@ -95,7 +95,7 @@ struct PerformanceAndEdgeCaseTests {
       array.isEmpty
     }
 
-    let result = PropertyChecker.check(property, config: PropertyConfig(iterations: 50))
+    let result = runPropertySynchronously(property, config: PropertyConfig(iterations: 50))
 
     switch result {
     case .success(let iterations):
@@ -127,7 +127,7 @@ struct PerformanceAndEdgeCaseTests {
       str.isEmpty
     }
 
-    let result = PropertyChecker.check(property, config: PropertyConfig(iterations: 100))
+    let result = runPropertySynchronously(property, config: PropertyConfig(iterations: 100))
 
     switch result {
     case .success:
@@ -145,7 +145,7 @@ struct PerformanceAndEdgeCaseTests {
     let impossibleGenerator = Gen.int.suchThat { _ in false }
     let property = Property<Int>(generator: impossibleGenerator) { _ in true }
 
-    let result = PropertyChecker.check(property, config: PropertyConfig(iterations: 10))
+    let result = runPropertySynchronously(property, config: PropertyConfig(iterations: 10))
 
     switch result {
     case .gaveUp(let discarded, let iterations):
@@ -166,7 +166,7 @@ struct PerformanceAndEdgeCaseTests {
       value == 42
     }
 
-    let result = PropertyChecker.check(property, config: PropertyConfig(iterations: 100))
+    let result = runPropertySynchronously(property, config: PropertyConfig(iterations: 100))
 
     switch result {
     case .success(let iterations):
@@ -189,7 +189,7 @@ struct PerformanceAndEdgeCaseTests {
     }
 
     // Test with minimum iterations (size is handled internally)
-    let minSizeResult = PropertyChecker.check(
+    let minSizeResult = runPropertySynchronously(
       property,
       config: PropertyConfig(
         iterations: 10
@@ -197,7 +197,7 @@ struct PerformanceAndEdgeCaseTests {
     )
 
     // Test with large iterations to potentially get larger sizes
-    let maxSizeResult = PropertyChecker.check(
+    let maxSizeResult = runPropertySynchronously(
       property,
       config: PropertyConfig(
         iterations: 100
@@ -242,7 +242,7 @@ struct PerformanceAndEdgeCaseTests {
         && string2.isEmpty
     }
 
-    let result = PropertyChecker.check(property, config: PropertyConfig(iterations: 25))
+    let result = runPropertySynchronously(property, config: PropertyConfig(iterations: 25))
 
     switch result {
     case .success:
@@ -266,7 +266,7 @@ struct PerformanceAndEdgeCaseTests {
       value != 42  // Always fails
     }
 
-    let result = PropertyChecker.check(
+    let result = runPropertySynchronously(
       property,
       config: PropertyConfig(
         iterations: 10,
@@ -275,7 +275,7 @@ struct PerformanceAndEdgeCaseTests {
     )
 
     switch result {
-    case .failure(let counterexample, let iterations, let shrunk):
+    case .failure(let counterexample, let iterations, let shrunk, _, _):
       #expect(counterexample == 42, "Counterexample should be 42")
       #expect(shrunk == 42, "Shrunk value should remain 42 (no shrinking possible)")
       #expect(iterations >= 1, "Should attempt at least one iteration")
@@ -299,7 +299,7 @@ struct PerformanceAndEdgeCaseTests {
       value < 50  // Will fail for generated values, should shrink down
     }
 
-    let result = PropertyChecker.check(
+    let result = runPropertySynchronously(
       property,
       config: PropertyConfig(
         iterations: 20,
@@ -308,7 +308,7 @@ struct PerformanceAndEdgeCaseTests {
     )
 
     switch result {
-    case .failure(let counterexample, _, let shrunk):
+    case .failure(let counterexample, _, let shrunk, _, _):
       #expect(shrunk <= counterexample, "Shrunk value should be <= original")
       #expect(shrunk >= 50, "Shrunk value should still fail the property")
 
@@ -333,7 +333,7 @@ struct PerformanceAndEdgeCaseTests {
       value == 5  // Very specific failure condition
     }
 
-    let result = PropertyChecker.check(
+    let result = runPropertySynchronously(
       property,
       config: PropertyConfig(
         iterations: 30,
@@ -342,7 +342,7 @@ struct PerformanceAndEdgeCaseTests {
     )
 
     switch result {
-    case .failure(_, let iterations, let shrunk):
+    case .failure(_, let iterations, let shrunk, _, _):
       #expect(shrunk != 5, "Shrunk value should still fail (not equal to 5)")
       #expect(iterations > 0, "Should complete some iterations")
 
@@ -451,10 +451,10 @@ struct PerformanceAndEdgeCaseTests {
     let property = Property<Int>(generator: Gen.int) { _ in true }
 
     // Test with minimum iterations
-    let minResult = PropertyChecker.check(property, config: PropertyConfig(iterations: 1))
+    let minResult = runPropertySynchronously(property, config: PropertyConfig(iterations: 1))
 
     // Test with zero max shrinks
-    let zeroShrinksResult = PropertyChecker.check(
+    let zeroShrinksResult = runPropertySynchronously(
       property,
       config: PropertyConfig(
         iterations: 10,
@@ -463,7 +463,7 @@ struct PerformanceAndEdgeCaseTests {
     )
 
     // Test with maximum practical values
-    let maxResult = PropertyChecker.check(
+    let maxResult = runPropertySynchronously(
       property,
       config: PropertyConfig(
         iterations: 10000,
@@ -504,7 +504,7 @@ struct PerformanceAndEdgeCaseTests {
     for sizeValue in sizes {
       // Create a size-aware property test by varying iterations
       let adjustedIterations = min(max(5, sizeValue / 10), 50)
-      let result = PropertyChecker.check(
+      let result = runPropertySynchronously(
         property,
         config: PropertyConfig(
           iterations: adjustedIterations
@@ -544,13 +544,13 @@ struct PerformanceAndEdgeCaseTests {
       return !safeAdd.overflow && !safeMul.overflow || value == Int.min || value == Int.max
     }
 
-    let result = PropertyChecker.check(property, config: PropertyConfig(iterations: 100))
+    let result = runPropertySynchronously(property, config: PropertyConfig(iterations: 100))
 
     switch result {
     case .success:
       #expect(true, "Numeric overflow boundary test succeeded")
 
-    case .failure(let counterexample, _, let shrunk):
+    case .failure(let counterexample, _, let shrunk, _, _):
       #expect(true, "Numeric overflow test found edge case: \(counterexample) -> \(shrunk)")
 
     default:
@@ -569,7 +569,7 @@ struct PerformanceAndEdgeCaseTests {
       let property = Property<Int>(generator: Gen.pure(i)) { value in
         value == i
       }
-      let result = PropertyChecker.check(property, config: PropertyConfig(iterations: 1))
+      let result = runPropertySynchronously(property, config: PropertyConfig(iterations: 1))
       results.append(result)
     }
 
@@ -602,7 +602,7 @@ struct PerformanceAndEdgeCaseTests {
     }
 
     let startTime = CFAbsoluteTimeGetCurrent()
-    let result = PropertyChecker.check(property, config: PropertyConfig(iterations: 500))
+    let result = runPropertySynchronously(property, config: PropertyConfig(iterations: 500))
     let duration = CFAbsoluteTimeGetCurrent() - startTime
 
     switch result {

@@ -20,7 +20,7 @@ struct GeneratorCoreTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Gen.pure should always return 42, got: \(counterexample)")
 
     case .gaveUp:
@@ -42,7 +42,7 @@ struct GeneratorCoreTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Gen.oneOf should only produce 1, 2, or 3, got: \(counterexample)")
 
     case .gaveUp:
@@ -64,7 +64,7 @@ struct GeneratorCoreTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Gen.frequency should only produce 1 or 2, got: \(counterexample)")
 
     case .gaveUp:
@@ -87,7 +87,7 @@ struct GeneratorCoreTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Mapped generator should produce parseable strings, got: \(counterexample)")
 
     case .gaveUp:
@@ -112,7 +112,7 @@ struct GeneratorCoreTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("FlatMapped generator should produce prefixed strings, got: \(counterexample)")
 
     case .gaveUp:
@@ -136,7 +136,7 @@ struct GeneratorCoreTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Zip test failed with: \(counterexample)")
 
     case .gaveUp:
@@ -161,7 +161,7 @@ struct GeneratorCoreTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("SuchThat test failed - non-positive value: \(counterexample)")
 
     case .gaveUp:
@@ -188,7 +188,7 @@ struct GeneratorCoreTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Apply test failed with: \(counterexample)")
 
     case .gaveUp:
@@ -261,7 +261,7 @@ struct GeneratorCoreTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Complex composition test failed with: \(counterexample)")
 
     case .gaveUp:
@@ -299,7 +299,7 @@ struct GeneratorCoreTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Recursive composition test failed with list size: \(counterexample.count)")
 
     case .gaveUp:
@@ -324,7 +324,7 @@ struct GeneratorCoreTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Size parameter test failed with: \(counterexample)")
 
     case .gaveUp:

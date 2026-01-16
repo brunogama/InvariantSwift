@@ -383,14 +383,27 @@ extension PropertyEffect {
     return await executor.run(self)
   }
 
-  /// Map over the input type while preserving actor isolation
-  /// Note: This is a simplified implementation - proper contramap would transform the generator
-  public func contramap<B>(_ transform: @escaping @Sendable (B) -> A) -> PropertyEffect<B>
-  where B: Sendable {
-    // This requires a B generator, which we don't have from the A generator
-    // In practice, you'd provide a new generator for B
-    fatalError(
-      "contramap requires providing a generator for type B - use PropertyEffect<B>(generator:effect:) instead"
+  /// Create a new PropertyEffect with a different input type by providing both
+  /// a transform and a new generator for that input type.
+  ///
+  /// - Parameters:
+  ///   - generator: A generator for the new input type B
+  ///   - transform: A function to transform B values to A values
+  /// - Returns: A new PropertyEffect that generates B values and transforms them to A for testing
+  ///
+  /// - Note: Standard contramap requires only the transform, but since we need to generate
+  ///   values, a generator for B must also be provided.
+  public func contramapWith<B>(
+    generator newGenerator: Gen<B>,
+    _ transform: @escaping @Sendable (B) -> A
+  ) -> PropertyEffect<B> where B: Sendable {
+    PropertyEffect<B>(
+      generator: newGenerator,
+      effect: { b in
+        try await self.effect(transform(b))
+      },
+      actorIsolation: actorIsolation,
+      config: config
     )
   }
 

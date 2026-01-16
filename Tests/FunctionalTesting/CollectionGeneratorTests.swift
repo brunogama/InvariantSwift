@@ -18,7 +18,7 @@ struct CollectionGeneratorTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Unexpected failure with: \(counterexample)")
 
     case .gaveUp:
@@ -40,7 +40,7 @@ struct CollectionGeneratorTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Array size constraint failed with: \(counterexample.count) elements")
 
     case .gaveUp:
@@ -63,7 +63,7 @@ struct CollectionGeneratorTests {
       // Might not find 42, that's ok
       break
 
-    case .failure(let original, _, let shrunk):
+    case .failure(let original, _, let shrunk, _, _):
       // Test that shrinking worked
       #expect(shrunk.count <= original.count, "Shrunk array should be smaller or equal")
       if shrunk.contains(42) {
@@ -87,7 +87,7 @@ struct CollectionGeneratorTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("String array test failed with: \(counterexample)")
 
     case .gaveUp:
@@ -108,7 +108,7 @@ struct CollectionGeneratorTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Unexpected failure with: \(counterexample)")
 
     case .gaveUp:
@@ -131,7 +131,7 @@ struct CollectionGeneratorTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Set uniqueness test failed with: \(counterexample)")
 
     case .gaveUp:
@@ -154,7 +154,7 @@ struct CollectionGeneratorTests {
       // Might not find 25, that's ok
       break
 
-    case .failure(let original, _, let shrunk):
+    case .failure(let original, _, let shrunk, _, _):
       // Test that shrinking worked
       #expect(shrunk.count <= original.count, "Shrunk set should be smaller or equal")
       if shrunk.contains(25) {
@@ -178,7 +178,7 @@ struct CollectionGeneratorTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("String set test failed with: \(counterexample)")
 
     case .gaveUp:
@@ -201,7 +201,7 @@ struct CollectionGeneratorTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Unexpected failure with: \(counterexample)")
 
     case .gaveUp:
@@ -226,7 +226,7 @@ struct CollectionGeneratorTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Dictionary key uniqueness test failed with: \(counterexample)")
 
     case .gaveUp:
@@ -251,7 +251,7 @@ struct CollectionGeneratorTests {
       // Might not find 50, that's ok
       break
 
-    case .failure(let original, _, let shrunk):
+    case .failure(let original, _, let shrunk, _, _):
       // Test that shrinking worked
       #expect(shrunk.count <= original.count, "Shrunk dictionary should be smaller or equal")
       if shrunk.values.contains(50) {
@@ -277,7 +277,7 @@ struct CollectionGeneratorTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Complex dictionary test failed with: \(counterexample)")
 
     case .gaveUp:
@@ -298,7 +298,7 @@ struct CollectionGeneratorTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Unexpected failure with: \(counterexample)")
 
     case .gaveUp:
@@ -320,7 +320,7 @@ struct CollectionGeneratorTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Range validity test failed with: \(counterexample)")
 
     case .gaveUp:
@@ -342,7 +342,7 @@ struct CollectionGeneratorTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Range edge case test failed with range of size: \(counterexample.count)")
 
     case .gaveUp:
@@ -361,7 +361,7 @@ struct CollectionGeneratorTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Unexpected failure with: \(counterexample)")
 
     case .gaveUp:
@@ -383,7 +383,7 @@ struct CollectionGeneratorTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("ClosedRange validity test failed with: \(counterexample)")
 
     case .gaveUp:
@@ -404,7 +404,7 @@ struct CollectionGeneratorTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Unexpected failure with: \(counterexample)")
 
     case .gaveUp:
@@ -423,7 +423,7 @@ struct CollectionGeneratorTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Unexpected failure with: \(counterexample)")
 
     case .gaveUp:
@@ -444,7 +444,7 @@ struct CollectionGeneratorTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Unexpected failure with: \(counterexample)")
 
     case .gaveUp:
@@ -465,7 +465,7 @@ struct CollectionGeneratorTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Unexpected failure with: \(counterexample)")
 
     case .gaveUp:
@@ -488,7 +488,7 @@ struct CollectionGeneratorTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("ArraySlice properties test failed with: \(counterexample)")
 
     case .gaveUp:
@@ -512,7 +512,7 @@ struct CollectionGeneratorTests {
       // Might not find 75, that's ok
       break
 
-    case .failure(let original, _, let shrunk):
+    case .failure(let original, _, let shrunk, _, _):
       // Test that shrinking worked
       #expect(shrunk.count <= original.count, "Shrunk slice should be smaller or equal")
       if shrunk.contains(75) {
@@ -538,7 +538,7 @@ struct CollectionGeneratorTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Nested array test failed with: \(counterexample)")
 
     case .gaveUp:
@@ -559,7 +559,7 @@ struct CollectionGeneratorTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Mixed collection test failed with: \(counterexample)")
 
     case .gaveUp:
@@ -581,7 +581,7 @@ struct CollectionGeneratorTests {
     switch result {
     case .success: break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Size distribution test failed with: \(counterexample)")
 
     case .gaveUp:

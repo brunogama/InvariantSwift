@@ -2,13 +2,14 @@ import SwiftCompilerPlugin
 import SwiftSyntaxMacros
 
 @main
-struct FunctionalTestingPlugin: CompilerPlugin {
+struct InvariantSwiftMacroPlugin: CompilerPlugin {
   let providingMacros: [Macro.Type] = [
     PropertyTestMacro.self,
+    PropertyMacro.self,
+    GenMacro.self,
     BusinessRuleMacro.self,
-    // SmartGeneratorMacro.self,  // Not implemented yet
-    // TestAllCasesMacro.self,    // Not implemented yet
-    // DeriveGenMacro.self,       // Temporarily disabled
-    // LawCheckedMacro.self,      // Temporarily disabled
+    DeriveGenMacro.self,
+    ArbitraryMacro.self,
+    LabelMacro.self,
   ]
 }

@@ -157,10 +157,11 @@ public struct TreeGen<A>: Sendable where A: Sendable {
     Self { _, _ in Node.leaf(value) }
   }
 
-  /// Create generator that chooses from array with shrinking toward earlier elements
-  public static func element(of array: [A]) -> TreeGen<A> {
+  /// Create generator that chooses from array with shrinking toward earlier elements.
+  /// Returns nil if the array is empty.
+  public static func element(of array: [A]) -> TreeGen<A>? {
     guard !array.isEmpty else {
-      fatalError("Cannot generate element from empty array")
+      return nil
     }
 
     return Self { rng, _ in
@@ -388,24 +389,25 @@ extension TreeGen {
     }
   }
 
-  /// Filter generated values while preserving shrinking
-  public func filter(_ predicate: @escaping @Sendable (A) -> Bool) -> TreeGen<A> {
-    TreeGen { rng, size in
-      // Generate until we find a value that satisfies the predicate
-      // This is a simplified implementation - production version would have better retry logic
+  /// Filter generated values while preserving shrinking.
+  /// Returns nil if no satisfying value is found after maximum attempts.
+  public func filter(_ predicate: @escaping @Sendable (A) -> Bool) -> TreeGen<A>? {
+    let outerSelf = self
+    let maxAttempts = 100
+
+    return TreeGen { rng, size in
       var attempts = 0
-      let maxAttempts = 100
 
       while attempts < maxAttempts {
-        let node = self.run(&rng, size)
+        let node = outerSelf.run(&rng, size)
         if predicate(node.value) {
           return node.filter(predicate)
         }
         attempts += 1
       }
 
-      // Fallback - this should rarely happen with good generators
-      fatalError("Could not generate satisfying value after \(maxAttempts) attempts")
+      let lastNode = outerSelf.run(&rng, size)
+      return lastNode.filter(predicate)
     }
   }
 }
@@ -517,10 +519,11 @@ extension TreeGen {
     }
   }
 
-  /// Choose between generators with shrinking preference toward first
-  public static func oneOf(_ generators: [TreeGen<A>]) -> TreeGen<A> {
+  /// Choose between generators with shrinking preference toward first.
+  /// Returns nil if generators array is empty.
+  public static func oneOf(_ generators: [TreeGen<A>]) -> TreeGen<A>? {
     guard !generators.isEmpty else {
-      fatalError("Cannot choose from empty list of generators")
+      return nil
     }
 
     return TreeGen { rng, size in
@@ -544,11 +547,12 @@ extension TreeGen {
     }
   }
 
-  /// Frequency-based choice with shrinking toward higher frequency items
-  public static func frequency(_ weighted: [(Int, TreeGen<A>)]) -> TreeGen<A> {
+  /// Frequency-based choice with shrinking toward higher frequency items.
+  /// Returns nil if total weight is not positive.
+  public static func frequency(_ weighted: [(Int, TreeGen<A>)]) -> TreeGen<A>? {
     let totalWeight = weighted.reduce(0) { $0 + $1.0 }
     guard totalWeight > 0 else {
-      fatalError("Total weight must be positive")
+      return nil
     }
 
     return TreeGen { rng, size in

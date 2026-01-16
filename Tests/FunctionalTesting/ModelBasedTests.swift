@@ -256,12 +256,12 @@ struct ModelBasedTests {
     let config = ModelTestConfig(maxCommands: 5, iterations: 20)
 
     let property = Property.fromModel(model, config: config)
-    let result = PropertyChecker.check(property, config: PropertyConfig(iterations: 10))
+    let result = runPropertySynchronously(property, config: PropertyConfig(iterations: 10))
 
     switch result {
     case .success:
       break  // Integration successful
-    case .failure(let counterexample, let iterations, let shrunk):
+    case .failure(let counterexample, let iterations, let shrunk, _, _):
       Issue.record(
         "Model property failed: \(counterexample.count) commands, shrunk to \(shrunk.count) after \(iterations) iterations"
       )

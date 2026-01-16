@@ -1,5 +1,46 @@
 import Foundation
 
+/// Classifies how a property test failed.
+///
+/// `FailureReason` distinguishes between different failure modes, enabling better
+/// diagnostics and targeted fixes:
+/// - `.predicateFailed`: The property's predicate returned `false`
+/// - `.threwError`: The predicate threw an error during evaluation
+/// - `.timedOut`: The test exceeded the configured timeout
+///
+/// This classification is essential for debugging: a predicate failure suggests
+/// a logic bug, while a thrown error may indicate a precondition violation or
+/// unexpected edge case.
+///
+/// - See Also: ``PropertyResult``, ``PropertyConfig``
+public enum FailureReason: Sendable, Equatable, CustomStringConvertible {
+  /// The property's predicate returned `false`.
+  case predicateFailed
+
+  /// The predicate threw an error during evaluation.
+  ///
+  /// - Parameter error: String description of the thrown error
+  case threwError(String)
+
+  /// The test exceeded the configured timeout.
+  ///
+  /// - Parameter seconds: The timeout duration that was exceeded
+  case timedOut(seconds: Double)
+
+  public var description: String {
+    switch self {
+    case .predicateFailed:
+      return "predicate returned false"
+
+    case .threwError(let error):
+      return "threw error: \(error)"
+
+    case .timedOut(let seconds):
+      return "timed out after \(seconds)s"
+    }
+  }
+}
+
 /// Outcome of executing a property-based test.
 ///
 /// `PropertyResult<T>` represents the three possible outcomes when running a property test:
@@ -12,6 +53,8 @@ import Foundation
 /// - `counterexample`: The original failing input (as generated)
 /// - `shrunk`: The minimal counterexample (simplified to make debugging easier)
 /// - `iterations`: How many test cases were executed before failure
+/// - `reason`: Classification of failure type (predicate failed, threw, timed out)
+/// - `seed`: The seed used for deterministic reproduction
 ///
 /// **GaveUp**: The property testing framework discarded too many generated values
 /// (e.g., all generated inputs violated preconditions). This indicates the property
@@ -19,7 +62,7 @@ import Foundation
 ///
 /// - Cases:
 ///   - `success(iterations:)`: Property held for all iterations
-///   - `failure(counterexample:iterations:shrunk:)`: Property failed on this input
+///   - `failure(counterexample:iterations:shrunk:reason:seed:)`: Property failed on this input
 ///   - `gaveUp(discarded:iterations:)`: Too many inputs discarded due to assumptions
 ///
 /// - Example:
@@ -31,16 +74,17 @@ import Foundation
 ///
 ///   switch result {
 ///   case .success(let iterations):
-///       print("✓ Passed \(iterations) tests")
-///   case .failure(let counterexample, let iterations, let shrunk):
-///       print("✗ Failed after \(iterations) tests")
+///       print("Passed \(iterations) tests")
+///   case .failure(let counterexample, let iterations, let shrunk, let reason, let seed):
+///       print("Failed after \(iterations) tests (\(reason))")
 ///       print("Original: \(counterexample), Minimal: \(shrunk)")
+///       print("Reproduce with seed: \(seed.rawValue)")
 ///   case .gaveUp(let discarded, let iterations):
-///       print("? Gave up after discarding \(discarded) cases in \(iterations) attempts")
+///       print("Gave up after discarding \(discarded) cases in \(iterations) attempts")
 ///   }
 ///   ```
 ///
-/// - See Also: ``Property``, ``PropertyRunner``
+/// - See Also: ``Property``, ``PropertyRunner``, ``FailureReason``
 public enum PropertyResult<T>: Sendable where T: Sendable {
   /// Property held for all generated test cases.
   ///
@@ -54,7 +98,9 @@ public enum PropertyResult<T>: Sendable where T: Sendable {
   ///   - counterexample: The original failing input as generated
   ///   - iterations: Number of iterations before failure
   ///   - shrunk: The minimized failing input (typically simpler than counterexample)
-  case failure(counterexample: T, iterations: Int, shrunk: T)
+  ///   - reason: Classification of how the property failed
+  ///   - seed: The seed used for this test run (for reproduction)
+  case failure(counterexample: T, iterations: Int, shrunk: T, reason: FailureReason, seed: Seed)
 
   /// Property testing gave up due to too many discarded cases.
   ///
@@ -294,70 +340,6 @@ public struct PropertyConfig: Sendable {
   public static let `default` = Self()
 }
 
-/// Deterministic random number generator using a seed value for reproducible generation.
-///
-/// `SeededRandomNumberGenerator` wraps a simple linear congruential generator (LCG)
-/// providing deterministic randomness. Same seed always produces the same sequence,
-/// enabling reproducible test execution for debugging and regression testing.
-///
-/// **Not for security**: This generator is cryptographically insecure. Use `CryptoKit`
-/// or `SecureRandom` for security-sensitive applications.
-///
-/// **Implementation**: Uses a 64-bit linear congruential generator with:
-/// - Multiplier: 6364136223846793005
-/// - Increment: 1442695040888963407
-/// - Modulus: 2^64 (implicit via UInt64 overflow)
-///
-/// This provides good statistical properties for testing while being fast and simple.
-/// See [LCG](https://en.wikipedia.org/wiki/Linear_congruential_generator) for background.
-///
-/// **Usage in property testing**:
-/// - Reproducibility: Record seed from failing test, replay with same seed
-/// - Regression testing: Maintain suite of seeds that previously caused failures
-/// - Distributed testing: Give different seeds to different test workers
-///
-/// - Example:
-///   ```swift
-///   let seed: UInt64 = 12345
-///   var rng = SeededRandomNumberGenerator(seed: seed)
-///
-///   // Generate deterministic random values
-///   let random1 = Int.random(in: 0..<100, using: &rng)
-///   let random2 = Int.random(in: 0..<100, using: &rng)
-///
-///   // Same seed produces same sequence
-///   var rng2 = SeededRandomNumberGenerator(seed: seed)
-///   assert(Int.random(in: 0..<100, using: &rng2) == random1)
-///   ```
-///
-/// - See Also: ``Seed``, ``SeedBasedRandomNumberGenerator``
-public struct SeededRandomNumberGenerator: RandomNumberGenerator, Sendable {
-  private var state: UInt64
-
-  /// Initializes the generator with an explicit seed value.
-  ///
-  /// Creates a deterministic RNG producing the same sequence for the same seed.
-  /// Zero is converted to 1 internally to ensure proper PRNG behavior.
-  ///
-  /// - Parameters:
-  ///   - seed: Initial seed value. Zero is converted to 1.
-  public init(seed: UInt64) {
-    self.state = seed == 0 ? 1 : seed
-  }
-
-  /// Generates the next random 64-bit value.
-  ///
-  /// Advances internal state via linear congruential generation and returns
-  /// the new state. Same sequence of calls produces same values for same seed.
-  ///
-  /// - Returns: Next 64-bit random value
-  public mutating func next() -> UInt64 {
-    // Linear congruential generator (simple but effective for testing)
-    state = state &* 6_364_136_223_846_793_005 &+ 1_442_695_040_888_963_407
-    return state
-  }
-}
-
 /// Actor for thread-safe property test execution with shrinking support.
 ///
 /// `PropertyRunner` is the main entry point for executing property-based tests.
@@ -393,7 +375,7 @@ public struct SeededRandomNumberGenerator: RandomNumberGenerator, Sendable {
 ///   switch result {
 ///   case .success(let iterations):
 ///       print("✓ Passed \(iterations) tests")
-///   case .failure(let counterexample, let iterations, let shrunk):
+///   case .failure(let counterexample, let iterations, let shrunk, _, _):
 ///       print("✗ Failed: \(shrunk)")
 ///   case .gaveUp(let discarded, let iterations):
 ///       print("? Gave up after \(discarded) discards")
@@ -404,6 +386,7 @@ public struct SeededRandomNumberGenerator: RandomNumberGenerator, Sendable {
 @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
 public actor PropertyRunner {
   private var rng: any RandomNumberGenerator
+  private let seed: Seed
 
   /// Initializes a property runner with optional seed.
   ///
@@ -419,11 +402,9 @@ public actor PropertyRunner {
   ///   let randomRunner = PropertyRunner()
   ///   ```
   public init(seed: Seed? = nil) {
-    if let seed = seed {
-      self.rng = SeedBasedRandomNumberGenerator(seed: seed)
-    } else {
-      self.rng = SystemRandomNumberGenerator()
-    }
+    let actualSeed = seed ?? Seed.random
+    self.seed = actualSeed
+    self.rng = SeedBasedRandomNumberGenerator(seed: actualSeed)
   }
 
   /// Executes a property test with given configuration.
@@ -481,7 +462,9 @@ public actor PropertyRunner {
         return .failure(
           counterexample: testCase,
           iterations: iteration + 1,
-          shrunk: shrunkCase
+          shrunk: shrunkCase,
+          reason: .predicateFailed,
+          seed: seed
         )
       }
     }
@@ -569,68 +552,83 @@ extension Property {
   }
 }
 
-// MARK: - Synchronous Property Checking
+// MARK: - Synchronous Property Testing Helper
 
-/// Synchronous property checking for compatibility
-public struct PropertyChecker {
-  public static func check<T>(
-    _ property: Property<T>,
-    config: PropertyConfig = .default
-  ) -> PropertyResult<T> {
-    var rng: any RandomNumberGenerator
+/// Helper function to run a property test synchronously from synchronous contexts.
+///
+/// **Important**: This function is provided for compatibility with synchronous test contexts
+/// like performance benchmarks. For new code, prefer async/await patterns with `PropertyRunner`.
+///
+/// This creates a new runner, seeds it, and executes the property test synchronously.
+/// The result is guaranteed to be deterministic if a seed is provided.
+///
+/// - Parameters:
+///   - property: The property to test
+///   - config: Configuration for the test execution
+///
+/// - Returns: The result of running the property (success, failure, or gave up)
+///
+/// - Example:
+///   ```swift
+///   let property = Property(generator: Gen.int) { $0 >= 0 }
+///   let result = runPropertySynchronously(property, config: PropertyConfig(iterations: 100))
+///   ```
+///
+/// - See Also: ``PropertyRunner.runProperty(_:config:)`` for async variant
+public func runPropertySynchronously<T>(
+  _ property: Property<T>,
+  config: PropertyConfig = .default
+) -> PropertyResult<T> {
+  let actualSeed = config.seed ?? Seed.random
+  var rng: any RandomNumberGenerator = SeedBasedRandomNumberGenerator(seed: actualSeed)
 
-    if let seed = config.seed {
-      rng = SeedBasedRandomNumberGenerator(seed: seed)
+  for iteration in 0..<config.iterations {
+    let size = Size(value: min(iteration, 100))
+    let testCase = property.generator.generate(&rng, size)
+
+    if !property.predicate(testCase) {
+      let shrunkCase = shrinkFailureSynchronously(
+        testCase,
+        property: property,
+        maxShrinks: config.maxShrinks
+      )
+      return .failure(
+        counterexample: testCase,
+        iterations: iteration + 1,
+        shrunk: shrunkCase,
+        reason: .predicateFailed,
+        seed: actualSeed
+      )
+    }
+  }
+
+  return .success(iterations: config.iterations)
+}
+
+private func shrinkFailureSynchronously<T>(
+  _ failingCase: T,
+  property: Property<T>,
+  maxShrinks: Int
+) -> T {
+  var current = failingCase
+  var shrinkAttempts = 0
+
+  while shrinkAttempts < maxShrinks {
+    let candidates = property.generator.shrink.shrink(current)
+
+    let nextFailure = candidates.first { candidate in
+      !property.predicate(candidate)
+    }
+
+    if let nextFailure = nextFailure {
+      current = nextFailure
+      shrinkAttempts += 1
     } else {
-      rng = SystemRandomNumberGenerator()
+      break
     }
-
-    for iteration in 0..<config.iterations {
-      let size = Size(value: min(iteration, 100))
-      let testCase = property.generator.generate(&rng, size)
-
-      if !property.predicate(testCase) {
-        let shrunkCase = shrinkFailureSync(
-          testCase,
-          property: property,
-          maxShrinks: config.maxShrinks
-        )
-        return .failure(
-          counterexample: testCase,
-          iterations: iteration + 1,
-          shrunk: shrunkCase
-        )
-      }
-    }
-
-    return .success(iterations: config.iterations)
   }
 
-  private static func shrinkFailureSync<T>(
-    _ failingCase: T,
-    property: Property<T>,
-    maxShrinks: Int
-  ) -> T {
-    var current = failingCase
-    var shrinkAttempts = 0
-
-    while shrinkAttempts < maxShrinks {
-      let candidates = property.generator.shrink.shrink(current)
-
-      let nextFailure = candidates.first { candidate in
-        !property.predicate(candidate)
-      }
-
-      if let nextFailure = nextFailure {
-        current = nextFailure
-        shrinkAttempts += 1
-      } else {
-        break
-      }
-    }
-
-    return current
-  }
+  return current
 }
 
 // MARK: - Coverage-Guided Property Testing Extensions
@@ -748,6 +746,170 @@ extension PropertyResult {
 
     case .failure, .gaveUp:
       return false
+    }
+  }
+}
+
+// MARK: - Reproduction String
+
+/// A deterministic reproduction string for property test failures.
+///
+/// `ReproString` encapsulates all information needed to reproduce a failing property test:
+/// - The seed used for random generation
+/// - The iteration count where failure occurred
+/// - The configuration used (iterations, maxShrinks)
+/// - The minimal counterexample (shrunk value)
+/// - The failure reason
+///
+/// The string format is designed to be copy-pasteable from test output into code or CLI.
+///
+/// - Example:
+///   ```swift
+///   // From test output:
+///   // REPRO:seed=12345678,iter=42,shrunk="[1, 2]",reason=predicateFailed
+///
+///   // Parse and re-run:
+///   let repro = ReproString.parse("REPRO:seed=12345678,iter=42,shrunk=\"[1, 2]\",reason=predicateFailed")
+///   ```
+public struct ReproString: Sendable, Equatable, CustomStringConvertible {
+  public let seed: UInt64
+  public let iteration: Int
+  public let shrunkDescription: String
+  public let reason: FailureReason
+
+  public init(seed: UInt64, iteration: Int, shrunkDescription: String, reason: FailureReason) {
+    self.seed = seed
+    self.iteration = iteration
+    self.shrunkDescription = shrunkDescription
+    self.reason = reason
+  }
+
+  public var description: String {
+    let reasonStr: String
+    switch reason {
+    case .predicateFailed:
+      reasonStr = "predicateFailed"
+
+    case .threwError(let error):
+      reasonStr = "threwError(\(error))"
+
+    case .timedOut(let seconds):
+      reasonStr = "timedOut(\(seconds)s)"
+    }
+    return
+      "REPRO:seed=\(seed),iter=\(iteration),shrunk=\"\(shrunkDescription)\",reason=\(reasonStr)"
+  }
+
+  /// Parses a reproduction string back into its components.
+  ///
+  /// Format: `REPRO:seed=<uint64>,iter=<int>,shrunk="<description>",reason=<reason>`
+  ///
+  /// - Parameter string: The reproduction string to parse
+  /// - Returns: A `ReproString` if parsing succeeds, nil otherwise
+  public static func parse(_ string: String) -> Self? {
+    guard string.hasPrefix("REPRO:") else { return nil }
+
+    let content = String(string.dropFirst(6))
+    let parts = splitQuoteAware(content)
+
+    var seed: UInt64?
+    var iteration: Int?
+    var shrunk: String?
+    var reason: FailureReason = .predicateFailed
+
+    for part in parts {
+      let trimmed = part.trimmingCharacters(in: .whitespaces)
+      if trimmed.hasPrefix("seed=") {
+        seed = UInt64(String(trimmed.dropFirst(5)))
+      } else if trimmed.hasPrefix("iter=") {
+        iteration = Int(String(trimmed.dropFirst(5)))
+      } else if trimmed.hasPrefix("shrunk=\"") {
+        shrunk = parseShrunkValue(trimmed)
+      } else if trimmed.hasPrefix("reason=") {
+        reason = parseReason(String(trimmed.dropFirst(7)))
+      }
+    }
+
+    guard let parsedSeed = seed, let parsedIteration = iteration, let parsedShrunk = shrunk else {
+      return nil
+    }
+
+    return Self(
+      seed: parsedSeed,
+      iteration: parsedIteration,
+      shrunkDescription: parsedShrunk,
+      reason: reason
+    )
+  }
+
+  private static func splitQuoteAware(_ content: String) -> [String] {
+    var parts: [String] = []
+    var current = ""
+    var inQuotes = false
+
+    for char in content {
+      if char == "\"" {
+        inQuotes.toggle()
+        current.append(char)
+      } else if char == "," && !inQuotes {
+        parts.append(current)
+        current = ""
+      } else {
+        current.append(char)
+      }
+    }
+    if !current.isEmpty {
+      parts.append(current)
+    }
+    return parts
+  }
+
+  private static func parseShrunkValue(_ trimmed: String) -> String? {
+    if trimmed == "shrunk=\"\"" {
+      return ""
+    }
+    let startIndex = trimmed.index(trimmed.startIndex, offsetBy: 8)
+    guard let endQuote = trimmed.lastIndex(of: "\""), endQuote > startIndex else {
+      return nil
+    }
+    return String(trimmed[startIndex..<endQuote])
+  }
+
+  private static func parseReason(_ reasonStr: String) -> FailureReason {
+    if reasonStr == "predicateFailed" {
+      return .predicateFailed
+    }
+    if reasonStr.hasPrefix("threwError("), let errorEnd = reasonStr.lastIndex(of: ")") {
+      let errorStart = reasonStr.index(reasonStr.startIndex, offsetBy: 11)
+      return .threwError(String(reasonStr[errorStart..<errorEnd]))
+    }
+    if reasonStr.hasPrefix("timedOut("), let timeEnd = reasonStr.lastIndex(of: "s") {
+      let timeStart = reasonStr.index(reasonStr.startIndex, offsetBy: 9)
+      if let seconds = Double(String(reasonStr[timeStart..<timeEnd])) {
+        return .timedOut(seconds: seconds)
+      }
+    }
+    return .predicateFailed
+  }
+}
+
+extension PropertyResult {
+  /// Generates a deterministic reproduction string for failures.
+  ///
+  /// Returns nil for success or gaveUp results. For failures, returns a
+  /// `ReproString` that can be used to reproduce the exact failure.
+  public var reproString: ReproString? {
+    switch self {
+    case .success, .gaveUp:
+      return nil
+
+    case .failure(_, let iterations, let shrunk, let reason, let seed):
+      return ReproString(
+        seed: seed.rawValue,
+        iteration: iterations,
+        shrunkDescription: "\(shrunk)",
+        reason: reason
+      )
     }
   }
 }

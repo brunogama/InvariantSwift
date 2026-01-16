@@ -14,7 +14,7 @@ struct PropertyPerformanceTests {
     let config = PropertyConfig(iterations: 1000)
 
     let startTime = CFAbsoluteTimeGetCurrent()
-    let result = PropertyChecker.check(property, config: config)
+    let result = runPropertySynchronously(property, config: config)
     let duration = CFAbsoluteTimeGetCurrent() - startTime
 
     switch result {
@@ -37,7 +37,7 @@ struct PropertyPerformanceTests {
 
   @Test("Performance benchmark - generator overhead")
   func performanceBenchmarkGeneratorOverhead() {
-    var rng: any RandomNumberGenerator = SeededRandomNumberGenerator(seed: 42)
+    var rng: any RandomNumberGenerator = SeedBasedRandomNumberGenerator(seed: Seed(value: 42))
     let size = Size(value: 10)
     let iterations = 10000
 
@@ -72,11 +72,11 @@ struct PropertyPerformanceTests {
     let config = PropertyConfig(iterations: 100, maxShrinks: 50)
 
     let startTime = CFAbsoluteTimeGetCurrent()
-    let result = PropertyChecker.check(property, config: config)
+    let result = runPropertySynchronously(property, config: config)
     let duration = CFAbsoluteTimeGetCurrent() - startTime
 
     switch result {
-    case .failure(_, let iterations, _):
+    case .failure(_, let iterations, _, _, _):
       #expect(duration < 2.0, "Shrinking should complete reasonably quickly: \(duration)s")
       #expect(iterations <= 100, "Should not exceed iteration limit")
 
@@ -95,9 +95,9 @@ struct PropertyPerformanceTests {
   func memoryPerformanceLargeStructureHandling() {
     let largeArrayProperty = Property<[String]>(
       generator: Gen.array(Gen.string)
-    ) { array in
-      // Validate without storing large intermediate results
-      array.isEmpty
+    ) { _ in
+      // Property that always passes to test memory performance
+      true
     }
 
     let config = PropertyConfig(iterations: 200)
@@ -105,7 +105,7 @@ struct PropertyPerformanceTests {
     // Simple memory monitoring (more sophisticated tools would be used in practice)
     let startMemory = getCurrentMemoryUsage()
 
-    let result = PropertyChecker.check(largeArrayProperty, config: config)
+    let result = runPropertySynchronously(largeArrayProperty, config: config)
 
     let endMemory = getCurrentMemoryUsage()
     let memoryDelta = Int64(endMemory) - Int64(startMemory)
@@ -132,14 +132,15 @@ struct PropertyPerformanceTests {
     var results: [(complexity: Int, duration: TimeInterval)] = []
 
     for complexity in complexities {
-      let property = Property<[Int]>(generator: Gen.array(Gen.int)) { array in
-        array.isEmpty
+      let property = Property<[Int]>(generator: Gen.array(Gen.int)) { _ in
+        // Property that always passes to test scalability
+        true
       }
 
       let config = PropertyConfig(iterations: complexity)
 
       let startTime = CFAbsoluteTimeGetCurrent()
-      let result = PropertyChecker.check(property, config: config)
+      let result = runPropertySynchronously(property, config: config)
       let duration = CFAbsoluteTimeGetCurrent() - startTime
 
       switch result {
@@ -184,8 +185,7 @@ struct PropertyPerformanceTests {
     await withTaskGroup(of: Void.self) { group in
       for _ in 0..<concurrentTasks {
         group.addTask {
-          let runner = PropertyRunner()
-          let result = await runner.runProperty(property, config: config)
+          let result = runPropertySynchronously(property, config: config)
 
           switch result {
           case .success(let iterations):

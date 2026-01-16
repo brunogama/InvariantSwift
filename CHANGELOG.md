@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Remove fatalError calls from production code paths:
+  - PropertyEffect: Replace fatalError contramap with safe contramapWith method
+  - ShrinkTrees: Change element(), filter(), oneOf(), frequency() to return optional instead of crashing
+- Apply formatting and lint fixes across modified files
+
+### Changed
+- Property API enhanced with improved documentation and safer patterns
+
 ### Added
 - Property-based testing framework for Swift
 - Core generator system with integrated shrinking

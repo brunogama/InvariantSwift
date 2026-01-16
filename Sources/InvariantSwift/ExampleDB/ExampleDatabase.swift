@@ -402,12 +402,13 @@ extension PropertyRunner {
 
     for failure in existingFailures ?? [] {
       if !property.predicate(failure.minimal ?? failure.value) {
-        // Still failing, return immediately
         return (
           .failure(
             counterexample: failure.value,
             iterations: 0,
-            shrunk: failure.minimal ?? failure.value
+            shrunk: failure.minimal ?? failure.value,
+            reason: .predicateFailed,
+            seed: Seed(value: failure.seed)
           ),
           await database.getStats()
         )
@@ -419,13 +420,13 @@ extension PropertyRunner {
 
     // Store interesting results
     switch result {
-    case .failure(let counterexample, _, let shrunk):
+    case .failure(let counterexample, _, let shrunk, _, let seed):
       let entry = ExampleDatabase.CorpusEntry(
         value: counterexample,
-        seed: config.seed?.rawValue ?? 0,
+        seed: seed.rawValue,
         minimal: shrunk,
         discovered: Date(),
-        shrinkSteps: 0,  // TODO: Track actual shrink steps
+        shrinkSteps: 0,
         isFailure: true,
         priority: 100
       )

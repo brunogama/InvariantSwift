@@ -26,7 +26,7 @@ struct DogfoodPropertyTests {
     switch result {
     case .success:
       break  // Test passed
-    case .failure(let counterexample, let iterations, let shrunk):
+    case .failure(let counterexample, let iterations, let shrunk, _, _):
       Issue.record(
         "Functor identity law failed: \(counterexample) shrunk to \(shrunk) after \(iterations) iterations"
       )
@@ -56,7 +56,7 @@ struct DogfoodPropertyTests {
     case .success:
       break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Functor composition law failed with: \(counterexample)")
 
     case .gaveUp:
@@ -82,7 +82,7 @@ struct DogfoodPropertyTests {
     case .success:
       break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Applicative identity law failed with: \(counterexample)")
 
     case .gaveUp:
@@ -111,7 +111,7 @@ struct DogfoodPropertyTests {
     case .success:
       break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Monad left identity law failed with: \(counterexample)")
 
     case .gaveUp:
@@ -137,7 +137,7 @@ struct DogfoodPropertyTests {
     case .success:
       break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Monad right identity law failed with: \(counterexample)")
 
     case .gaveUp:
@@ -168,7 +168,7 @@ struct DogfoodPropertyTests {
     case .success:
       break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record(
         "Shrinking failed to reduce size: original \(counterexample.count), shrunk variants exist that don't follow rule"
       )
@@ -191,7 +191,7 @@ struct DogfoodPropertyTests {
     )
 
     switch result {
-    case .failure(let original, _, let shrunk):
+    case .failure(let original, _, let shrunk, _, _):
       // Verify that the shrunk counterexample also fails the property
       #expect(shrunk <= 0, "Shrunk value \(shrunk) should still fail the property (be <= 0)")
 
@@ -222,7 +222,7 @@ struct DogfoodPropertyTests {
     )
 
     switch result {
-    case .failure(_, _, let shrunk):
+    case .failure(_, _, let shrunk, _, _):
       // The shrunk array should be minimal - ideally just [42]
       #expect(shrunk.contains(42), "Shrunk counterexample should contain 42")
 
@@ -256,7 +256,7 @@ struct DogfoodPropertyTests {
     case .success:
       break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Reverse property failed unexpectedly with: \(counterexample)")
 
     case .gaveUp:
@@ -280,7 +280,7 @@ struct DogfoodPropertyTests {
     case .success:
       break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       Issue.record("Append property failed unexpectedly with: \(counterexample)")
 
     case .gaveUp:
@@ -301,7 +301,7 @@ struct DogfoodPropertyTests {
     )
 
     switch result {
-    case .failure(let counterexample, _, let shrunk):
+    case .failure(let counterexample, _, let shrunk, _, _):
       // Should find an odd number
       #expect(counterexample % 2 != 0, "Should find odd counterexample, got \(counterexample)")
       #expect(shrunk % 2 != 0, "Shrunk value should also be odd, got \(shrunk)")
@@ -355,7 +355,7 @@ struct DogfoodPropertyTests {
     case .success:
       break
 
-    case .failure(let counterexample, _, _):
+    case .failure(let counterexample, _, _, _, _):
       // If this fails, it might indicate size isn't properly controlling generation
       Issue.record("Size control test failed with array of size: \(counterexample.count)")
 
@@ -398,7 +398,7 @@ struct DogfoodPropertyTests {
     )
 
     switch result {
-    case .failure(_, _, let shrunk):
+    case .failure(_, _, let shrunk, _, _):
       // Test passes if shrinking terminated with a result
       #expect(shrunk >= 100, "Shrunk value \(shrunk) should still be in valid range")
 

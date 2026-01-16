@@ -442,9 +442,15 @@ private func analyzeCollection(_ type: TypeSyntax) -> (isCollection: Bool, eleme
     let typeName = identifierType.name.text
 
     if ["Array", "Set"].contains(typeName) && genericClause.arguments.count == 1 {
-      return (true, genericClause.arguments.first?.argument.as(TypeSyntax.self))
+      if let first = genericClause.arguments.first {
+        return (true, TypeSyntax(first.argument))
+      }
+      return (true, nil)
     } else if typeName == "Dictionary" && genericClause.arguments.count == 2 {
-      return (true, genericClause.arguments.last?.argument.as(TypeSyntax.self))
+      if let last = genericClause.arguments.last {
+        return (true, TypeSyntax(last.argument))
+      }
+      return (true, nil)
     }
   }
 
