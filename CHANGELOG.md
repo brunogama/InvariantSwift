@@ -36,6 +36,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * Master dependency graph showing task sequencing and critical path
   * 54 MVP tasks (Milestones 0-3: Naming, Core Generator, Swift Testing, @PropertyTest)
   * 70 extension tasks (Milestones 4-9: Process Isolation, CLI, Model-Based, Coverage-Guided, Invariant Mining)
+- Milestone 0: API Stabilization work begins
+  * API_AUDIT.md (503 lines) - Complete audit of 82 public symbols across 11 categories
+  * Identifies KEEP/RENAME/DEPRECATE status for all public APIs
+  * Naming inconsistencies documented and recommendations provided
+  * Usage patterns analyzed from test suite
+  * Forms foundation for M0.2 (Public API Design) and M0.5 (API renames)
 
 ### Changed
 - Remove swift-docs-generation pre-commit hook
