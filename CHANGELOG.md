@@ -30,6 +30,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * QUICKSTART.md (158 lines) - 10-minute quick start guide
   * README_IMPROVEMENTS.md (359 lines) - README improvement analysis
   * .claude/commands/tools/onboarding.md - Onboarding analysis template
+- Comprehensive roadmap task breakdown:
+  * ROADMAP_TASK_BREAKDOWN.md (124 granular sub-tasks across 9 milestones)
+  * Complete task metadata: IDs, titles, objectives, acceptance criteria, dependencies, effort estimates, file references
+  * Master dependency graph showing task sequencing and critical path
+  * 54 MVP tasks (Milestones 0-3: Naming, Core Generator, Swift Testing, @PropertyTest)
+  * 70 extension tasks (Milestones 4-9: Process Isolation, CLI, Model-Based, Coverage-Guided, Invariant Mining)
 
 ### Changed
 - Remove swift-docs-generation pre-commit hook
