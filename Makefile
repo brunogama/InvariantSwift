@@ -1,4 +1,4 @@
-# FunctionalTesting Makefile
+# InvariantSwift Makefile
 
 .PHONY: test-linux test-macos test-ios test-swift test-tvos format test-all clean
 
@@ -15,15 +15,15 @@ test-linux:
 test-macos:
 	set -o pipefail && \
 	xcodebuild test \
-		-scheme FunctionalTesting \
+		-scheme InvariantSwift \
 		-destination platform="macOS" \
 		| xcbeautify
 
-# Test on iOS Simulator  
+# Test on iOS Simulator
 test-ios:
 	set -o pipefail && \
 	xcodebuild test \
-		-scheme FunctionalTesting \
+		-scheme InvariantSwift \
 		-destination platform="iOS Simulator,name=iPhone 15 Pro,OS=latest" \
 		| xcbeautify
 
@@ -45,15 +45,15 @@ test-swift:
 test-tvos:
 	set -o pipefail && \
 	xcodebuild test \
-		-scheme FunctionalTesting \
+		-scheme InvariantSwift \
 		-destination platform="tvOS Simulator,name=Apple TV 4K (3rd generation),OS=latest" \
 		| xcbeautify
 
-# Test on watchOS Simulator  
+# Test on watchOS Simulator
 test-watchos:
 	set -o pipefail && \
 	xcodebuild test \
-		-scheme FunctionalTesting \
+		-scheme InvariantSwift \
 		-destination platform="watchOS Simulator,name=Apple Watch Series 9 (45mm),OS=latest" \
 		| xcbeautify
 
@@ -73,7 +73,10 @@ clean:
 
 # Generate documentation
 docs:
-	swift package generate-documentation
+	@echo "Generating documentation..."
+	@which docc > /dev/null 2>&1 && \
+	docc convert Sources/InvariantSwift/FunctionalTesting.docc || \
+	echo "Note: docc command not found. Install with: brew install apple/swift-packages/swift-docc"
 
 # Run linting
 lint:
@@ -93,16 +96,16 @@ setup:
 coverage:
 	swift test --enable-code-coverage
 	xcrun llvm-cov export -format="lcov" \
-		.build/debug/FunctionalTestingPackageTests.xctest/Contents/MacOS/FunctionalTestingPackageTests \
+		.build/debug/InvariantSwiftTests.xctest/Contents/MacOS/InvariantSwiftTests \
 		-instr-profile .build/debug/codecov/default.profdata > coverage.lcov
 
 # Help target
 help:
-	@echo "FunctionalTesting Makefile"
+	@echo "InvariantSwift Makefile"
 	@echo ""
 	@echo "Available targets:"
 	@echo "  test-linux    - Test on Linux using Docker"
-	@echo "  test-macos    - Test on macOS"  
+	@echo "  test-macos    - Test on macOS"
 	@echo "  test-ios      - Test on iOS Simulator"
 	@echo "  test-swift    - Test with Swift Package Manager"
 	@echo "  test-tvos     - Test on tvOS Simulator"
@@ -117,3 +120,25 @@ help:
 	@echo "  setup         - Install development dependencies"
 	@echo "  coverage      - Generate coverage report"
 	@echo "  help          - Show this help message"
+
+# Generate DocC static site for GitHub Pages
+docs-all:
+	@echo "Generating DocC static documentation..."
+	@rm -rf ./docs
+	@which docc > /dev/null 2>&1 && \
+	docc convert Sources/InvariantSwift/FunctionalTesting.docc \
+		--output-path ./docs \
+		--hosting-base-path InvariantSwift \
+		--transform-for-static-hosting || \
+	(echo "Note: docc command not found. Using xcodebuild approach..."; \
+	xcodebuild docbuild \
+		-scheme InvariantSwift \
+		-derivedDataPath .build/docc-build && \
+	cp -r .build/docc-build/Build/Products/Release/InvariantSwift.doccarchive ./docs || \
+	echo "⚠️  Documentation generation requires xcodebuild or docc command.")
+	@if [ -d "./docs" ]; then \
+		echo "✅ Documentation generated in ./docs/"; \
+		echo "📖 Preview locally: open ./docs/index.html"; \
+	else \
+		echo "⚠️  Documentation generation skipped (docc/xcodebuild not available)"; \
+	fi
