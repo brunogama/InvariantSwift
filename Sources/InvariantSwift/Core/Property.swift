@@ -1,23 +1,178 @@
 import Foundation
 
-/// Result of running a property test
+/// Outcome of executing a property-based test.
+///
+/// `PropertyResult<T>` represents the three possible outcomes when running a property test:
+/// success, failure with a minimal counterexample, or giving up due to too many discarded cases.
+///
+/// **Success**: The property held for all generated test cases. Confidence in the property
+/// increases with more iterations.
+///
+/// **Failure**: The property failed on some generated input. The result includes:
+/// - `counterexample`: The original failing input (as generated)
+/// - `shrunk`: The minimal counterexample (simplified to make debugging easier)
+/// - `iterations`: How many test cases were executed before failure
+///
+/// **GaveUp**: The property testing framework discarded too many generated values
+/// (e.g., all generated inputs violated preconditions). This indicates the property
+/// cannot be adequately tested with the current generator and assumptions.
+///
+/// - Cases:
+///   - `success(iterations:)`: Property held for all iterations
+///   - `failure(counterexample:iterations:shrunk:)`: Property failed on this input
+///   - `gaveUp(discarded:iterations:)`: Too many inputs discarded due to assumptions
+///
+/// - Example:
+///   ```swift
+///   let gen = Gen<Int> { rng, size in Int.random(in: 0..<100, using: &rng) }
+///   let property = Property(generator: gen) { n in n >= 0 }
+///
+///   let result = /* run property */
+///
+///   switch result {
+///   case .success(let iterations):
+///       print("✓ Passed \(iterations) tests")
+///   case .failure(let counterexample, let iterations, let shrunk):
+///       print("✗ Failed after \(iterations) tests")
+///       print("Original: \(counterexample), Minimal: \(shrunk)")
+///   case .gaveUp(let discarded, let iterations):
+///       print("? Gave up after discarding \(discarded) cases in \(iterations) attempts")
+///   }
+///   ```
+///
+/// - See Also: ``Property``, ``PropertyRunner``
 public enum PropertyResult<T>: Sendable where T: Sendable {
+  /// Property held for all generated test cases.
+  ///
+  /// - Parameters:
+  ///   - iterations: Number of test cases successfully checked
   case success(iterations: Int)
+
+  /// Property failed on a generated input.
+  ///
+  /// - Parameters:
+  ///   - counterexample: The original failing input as generated
+  ///   - iterations: Number of iterations before failure
+  ///   - shrunk: The minimized failing input (typically simpler than counterexample)
   case failure(counterexample: T, iterations: Int, shrunk: T)
+
+  /// Property testing gave up due to too many discarded cases.
+  ///
+  /// - Parameters:
+  ///   - discarded: Number of generated inputs rejected by the property's assumption
+  ///   - iterations: Total number of generation attempts
   case gaveUp(discarded: Int, iterations: Int)
 }
 
-/// Property represents a testable proposition over generated values
+/// A testable proposition over generated values of type T.
+///
+/// `Property<T>` combines a generator with a predicate to form a property:
+/// "For all generated values of type T, this predicate holds."
+///
+/// The property is the fundamental abstraction in property-based testing. Rather than
+/// writing individual test cases, you specify a property that should hold universally.
+/// The property tester generates many examples and checks the property against each.
+///
+/// Key concepts:
+/// - **Generator**: Produces random test values via `Gen<T>`
+/// - **Predicate**: Boolean function checking the property on each value
+/// - **Assumption** (optional): Filter for valid test cases (e.g., "only test non-empty arrays")
+/// - **Shrinking**: Automatically minimizes counterexamples for easier debugging
+///
+/// When a property fails, the test framework reports:
+/// - The failing input (counterexample)
+/// - The minimal failing input (shrunk) for easier debugging
+/// - The number of iterations before failure
+///
+/// A property succeeds if the predicate returns true for all generated test cases.
+/// It fails if the predicate returns false on any generated value.
+///
+/// - Example:
+///   ```swift
+///   // Property: "Arrays reverse twice give back the original"
+///   let arrayGen = Gen.array(Gen<Int> { rng, _ in Int.random(in: 0..<100, using: &rng) })
+///
+///   let reverseProperty = Property(generator: arrayGen) { array in
+///       array.reversed().reversed() == array
+///   }
+///
+///   // Property with assumption: "Non-empty arrays"
+///   let headProperty = Property(
+///       generator: arrayGen,
+///       assumption: { !$0.isEmpty },
+///       predicate: { array in
+///           array.first == array.reversed().last
+///       }
+///   )
+///   ```
+///
+/// - See Also: ``PropertyRunner``, ``PropertyResult``, ``Gen``
 public struct Property<T>: @unchecked Sendable {
+  /// The generator producing test values for this property.
   public let generator: Gen<T>
+  /// The predicate that should hold for all generated values.
   public let predicate: (T) -> Bool
 
+  /// Initializes a property with a generator and predicate.
+  ///
+  /// Creates a property representing: "For all T generated by generator, predicate(T) holds."
+  ///
+  /// This is the fundamental form of a property. For properties with preconditions
+  /// (assumptions), use the convenience initializer that accepts an `assumption` parameter.
+  ///
+  /// - Parameters:
+  ///   - generator: Source of test values
+  ///   - predicate: Function checking the property. Must be deterministic and free of side effects.
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let gen = Gen<Int> { rng, size in Int.random(in: 0..<100, using: &rng) }
+  ///
+  ///   let property = Property(generator: gen) { n in
+  ///       n >= 0 && n < 100
+  ///   }
+  ///   ```
+  ///
+  /// - See Also: ``init(generator:assumption:predicate:)``
   public init(generator: Gen<T>, predicate: @escaping (T) -> Bool) {
     self.generator = generator
     self.predicate = predicate
   }
 
-  /// Convenience initializer for properties with assumptions
+  /// Initializes a property with a generator, assumption, and predicate.
+  ///
+  /// Creates a property with a precondition (assumption). Only test cases satisfying
+  /// the assumption are checked against the predicate. This is the preferred way to
+  /// express properties with constraints.
+  ///
+  /// The assumption filters the generated values. Values failing the assumption are
+  /// discarded and don't count toward the required number of successful tests.
+  /// If too many values are discarded (default: >90%), the property gives up.
+  ///
+  /// **Important**: Use assumptions sparingly. If you find yourself discarding >50%
+  /// of generated values, consider implementing a custom generator that produces
+  /// only valid values instead.
+  ///
+  /// - Parameters:
+  ///   - generator: Source of test values
+  ///   - assumption: Filter determining which generated values are valid. Default: accepts all values.
+  ///   - predicate: Function checking the property on valid values
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let arrayGen = Gen.array(Gen.pure(0))
+  ///
+  ///   // Test properties only on non-empty arrays
+  ///   let property = Property(
+  ///       generator: arrayGen,
+  ///       assumption: { !$0.isEmpty },
+  ///       predicate: { array in
+  ///           array.first! >= 0
+  ///       }
+  ///   )
+  ///   ```
+  ///
+  /// - See Also: ``init(generator:predicate:)``
   public init(
     generator: Gen<T>,
     assumption: @escaping (T) -> Bool = { _ in true },
@@ -28,13 +183,98 @@ public struct Property<T>: @unchecked Sendable {
   }
 }
 
-/// Configuration for property testing
+/// Configuration parameters controlling property test execution.
+///
+/// `PropertyConfig` specifies how property tests run:
+/// - How many test cases to generate (`iterations`)
+/// - How much effort to spend minimizing failures (`maxShrinks`)
+/// - When to give up on generating valid inputs (`maxDiscarded`)
+/// - Optional seed for reproducible test runs
+///
+/// Default configuration (100 iterations, 1000 shrink attempts) balances:
+/// - **Coverage**: 100 iterations usually find bugs in well-written code
+/// - **Performance**: Reasonable runtime for CI/CD pipelines
+/// - **Debugging**: 1000 shrink attempts minimize counterexamples nicely
+///
+/// Adjust configuration based on your needs:
+/// - **Quick sanity check**: Use fewer iterations (10-20)
+/// - **Thorough testing**: Use more iterations (1000+)
+/// - **Flaky tests**: Fix or skip them, don't increase iterations
+/// - **Hard-to-minimize failures**: Increase maxShrinks
+///
+/// **Precondition handling**: When a generator's assumption filters out values,
+/// discarded counts increase. If discarded > maxDiscarded, the property "gives up"
+/// to avoid infinite loops. This typically indicates the assumption is too restrictive.
+///
+/// - Example:
+///   ```swift
+///   let quickConfig = PropertyConfig(iterations: 10)
+///   let thoroughConfig = PropertyConfig(iterations: 10000, maxShrinks: 5000)
+///   let reproducibleConfig = PropertyConfig(seed: Seed(value: 42))
+///   ```
+///
+/// - See Also: ``Property``, ``PropertyRunner``
 public struct PropertyConfig: Sendable {
+  /// Number of test cases to generate and check.
+  ///
+  /// Typical ranges:
+  /// - 10-50: Quick sanity checks
+  /// - 100: Default, good for most properties
+  /// - 1000+: Thorough testing or difficult properties
+  ///
+  /// More iterations increase confidence but take longer.
   public let iterations: Int
+
+  /// Maximum shrinking attempts when a property fails.
+  ///
+  /// Shrinking tries to find the simplest input that still fails the property.
+  /// More attempts may find smaller counterexamples but take longer.
+  ///
+  /// Typical ranges:
+  /// - 0: Disable shrinking (return original failing input)
+  /// - 100-500: Fast, minimal shrinking
+  /// - 1000: Default, usually finds very minimal examples
+  /// - 5000+: Aggressive, for properties that are hard to shrink
   public let maxShrinks: Int
+
+  /// Maximum generated values to discard before giving up.
+  ///
+  /// When a property has assumptions (via `assumption` parameter),
+  /// generated values violating the assumption are discarded. If too many
+  /// are discarded, the property tester gives up.
+  ///
+  /// High discardRate (>90%) indicates a misconfigured generator or
+  /// assumption. Consider using dependent generation instead.
   public let maxDiscarded: Int
+
+  /// Optional seed for reproducible test runs.
+  ///
+  /// When set, the test uses this seed for its random number generator,
+  /// ensuring identical test runs. Useful for:
+  /// - Reproducing failing tests
+  /// - Regression testing
+  /// - Deterministic testing in CI/CD
+  ///
+  /// When nil, uses system randomness (different each run).
   public let seed: Seed?
 
+  /// Initializes a property testing configuration.
+  ///
+  /// - Parameters:
+  ///   - iterations: Number of test cases (default: 100). Clamped to at least 1.
+  ///   - maxShrinks: Maximum shrink attempts (default: 1000). Clamped to at least 0.
+  ///   - maxDiscarded: Maximum discarded cases (default: 1000). Clamped to at least 0.
+  ///   - seed: Optional seed for reproducibility. Default: nil (system randomness).
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let config = PropertyConfig(
+  ///       iterations: 500,
+  ///       maxShrinks: 2000,
+  ///       maxDiscarded: 500,
+  ///       seed: Seed(value: 42)
+  ///   )
+  ///   ```
   public init(
     iterations: Int = 100,
     maxShrinks: Int = 1000,
@@ -47,17 +287,70 @@ public struct PropertyConfig: Sendable {
     self.seed = seed
   }
 
+  /// Default configuration: 100 iterations, 1000 shrinks, 1000 max discarded.
+  ///
+  /// A balanced default suitable for most properties. Adjust if needed for
+  /// your specific testing requirements.
   public static let `default` = Self()
 }
 
-/// Thread-safe random number generator wrapper
+/// Deterministic random number generator using a seed value for reproducible generation.
+///
+/// `SeededRandomNumberGenerator` wraps a simple linear congruential generator (LCG)
+/// providing deterministic randomness. Same seed always produces the same sequence,
+/// enabling reproducible test execution for debugging and regression testing.
+///
+/// **Not for security**: This generator is cryptographically insecure. Use `CryptoKit`
+/// or `SecureRandom` for security-sensitive applications.
+///
+/// **Implementation**: Uses a 64-bit linear congruential generator with:
+/// - Multiplier: 6364136223846793005
+/// - Increment: 1442695040888963407
+/// - Modulus: 2^64 (implicit via UInt64 overflow)
+///
+/// This provides good statistical properties for testing while being fast and simple.
+/// See [LCG](https://en.wikipedia.org/wiki/Linear_congruential_generator) for background.
+///
+/// **Usage in property testing**:
+/// - Reproducibility: Record seed from failing test, replay with same seed
+/// - Regression testing: Maintain suite of seeds that previously caused failures
+/// - Distributed testing: Give different seeds to different test workers
+///
+/// - Example:
+///   ```swift
+///   let seed: UInt64 = 12345
+///   var rng = SeededRandomNumberGenerator(seed: seed)
+///
+///   // Generate deterministic random values
+///   let random1 = Int.random(in: 0..<100, using: &rng)
+///   let random2 = Int.random(in: 0..<100, using: &rng)
+///
+///   // Same seed produces same sequence
+///   var rng2 = SeededRandomNumberGenerator(seed: seed)
+///   assert(Int.random(in: 0..<100, using: &rng2) == random1)
+///   ```
+///
+/// - See Also: ``Seed``, ``SeedBasedRandomNumberGenerator``
 public struct SeededRandomNumberGenerator: RandomNumberGenerator, Sendable {
   private var state: UInt64
 
+  /// Initializes the generator with an explicit seed value.
+  ///
+  /// Creates a deterministic RNG producing the same sequence for the same seed.
+  /// Zero is converted to 1 internally to ensure proper PRNG behavior.
+  ///
+  /// - Parameters:
+  ///   - seed: Initial seed value. Zero is converted to 1.
   public init(seed: UInt64) {
     self.state = seed == 0 ? 1 : seed
   }
 
+  /// Generates the next random 64-bit value.
+  ///
+  /// Advances internal state via linear congruential generation and returns
+  /// the new state. Same sequence of calls produces same values for same seed.
+  ///
+  /// - Returns: Next 64-bit random value
   public mutating func next() -> UInt64 {
     // Linear congruential generator (simple but effective for testing)
     state = state &* 6_364_136_223_846_793_005 &+ 1_442_695_040_888_963_407
@@ -65,11 +358,66 @@ public struct SeededRandomNumberGenerator: RandomNumberGenerator, Sendable {
   }
 }
 
-/// Actor for thread-safe property testing execution
+/// Actor for thread-safe property test execution with shrinking support.
+///
+/// `PropertyRunner` is the main entry point for executing property-based tests.
+/// It coordinates:
+/// - Generating test values via the property's generator
+/// - Checking the property's predicate on each value
+/// - Shrinking when failures occur to find minimal counterexamples
+///
+/// Actor isolation ensures thread-safe execution. Property tests can run
+/// concurrently on different actors without data races.
+///
+/// **Workflow**:
+/// 1. Initialize runner with optional seed
+/// 2. Create a property with generator and predicate
+/// 3. Call `runProperty` with the property and configuration
+/// 4. Interpret the `PropertyResult` (success, failure, or gaveUp)
+///
+/// **Seeding**:
+/// - With seed: All test runs are identical (deterministic)
+/// - Without seed: Uses system randomness (different each run)
+///
+/// Deterministic execution is useful for:
+/// - Reproducing test failures for debugging
+/// - Regression testing with specific seeds
+/// - Distributed testing by seed ranges
+///
+/// - Example:
+///   ```swift
+///   let runner = PropertyRunner()
+///   let property = Property(generator: Gen.pure(5)) { n in n > 0 }
+///
+///   let result = await runner.runProperty(property)
+///   switch result {
+///   case .success(let iterations):
+///       print("✓ Passed \(iterations) tests")
+///   case .failure(let counterexample, let iterations, let shrunk):
+///       print("✗ Failed: \(shrunk)")
+///   case .gaveUp(let discarded, let iterations):
+///       print("? Gave up after \(discarded) discards")
+///   }
+///   ```
+///
+/// - See Also: ``Property``, ``PropertyConfig``, ``PropertyResult``
 @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
 public actor PropertyRunner {
   private var rng: any RandomNumberGenerator
 
+  /// Initializes a property runner with optional seed.
+  ///
+  /// Creates a runner for executing properties. The optional seed determines
+  /// whether test execution is deterministic (with seed) or random (without).
+  ///
+  /// - Parameters:
+  ///   - seed: Optional seed for deterministic execution. If nil, uses system randomness.
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let deterministicRunner = PropertyRunner(seed: Seed(value: 42))
+  ///   let randomRunner = PropertyRunner()
+  ///   ```
   public init(seed: Seed? = nil) {
     if let seed = seed {
       self.rng = SeedBasedRandomNumberGenerator(seed: seed)
@@ -78,7 +426,42 @@ public actor PropertyRunner {
     }
   }
 
-  /// Run a property test with the given configuration
+  /// Executes a property test with given configuration.
+  ///
+  /// Runs the property on generated test cases and reports the outcome:
+  /// - `.success` if the property holds for all iterations
+  /// - `.failure` with minimal counterexample if property fails
+  /// - `.gaveUp` if too many generated values violate assumptions
+  ///
+  /// **Execution process**:
+  /// 1. For each iteration (up to config.iterations):
+  ///    - Generate a test value using the property's generator
+  ///    - Check the predicate on the generated value
+  ///    - If predicate fails, begin shrinking the counterexample
+  /// 2. Return result (success, failure with shrunk counterexample, or gave up)
+  ///
+  /// **Shrinking**: When a property fails, the runner uses the generator's
+  /// shrinking strategy to find the minimal failing input. This typically
+  /// produces much simpler counterexamples, making debugging easier.
+  ///
+  /// - Parameters:
+  ///   - property: The property to test
+  ///   - config: Configuration controlling iterations and shrinking. Default: `PropertyConfig.default`
+  ///
+  /// - Returns: Result indicating success, failure with counterexample, or giving up
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let runner = PropertyRunner()
+  ///   let gen = Gen.array(Gen<Int> { rng, size in Int.random(in: 0..<100, using: &rng) })
+  ///   let property = Property(generator: gen) { array in
+  ///       array.sorted() == array.sorted().sorted()
+  ///   }
+  ///
+  ///   let result = await runner.runProperty(property, config: PropertyConfig(iterations: 100))
+  ///   ```
+  ///
+  /// - See Also: ``PropertyConfig``, ``PropertyResult``
   public func runProperty<T>(
     _ property: Property<T>,
     config: PropertyConfig = .default

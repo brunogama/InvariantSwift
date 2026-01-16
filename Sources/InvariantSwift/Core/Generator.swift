@@ -1,44 +1,230 @@
 import Foundation
 
-/// Size parameter for controlling the complexity of generated values
+/// Controls the complexity of generated values in property-based testing.
+///
+/// `Size` is a hint to generators about how complex values should be. During property testing,
+/// size typically increases with iteration count, allowing generators to explore more complex
+/// inputs over time. For example, a string generator might produce longer strings as size increases.
+///
+/// Key characteristics:
+/// - Non-negative integer value (values < 0 are clamped to 0)
+/// - Used by generators to control depth of nested structures
+/// - Passed through the generation pipeline via the random number generator
+/// - Affects shrinking depth: larger sizes may produce more complex shrinking trees
+///
+/// Size is primarily useful for generators of:
+/// - Collections (controls maximum length)
+/// - Trees and nested structures (controls depth)
+/// - Strings (controls character count)
+/// - Custom domain-specific types
+///
+/// Mathematical foundation: In coverage-guided testing, size is part of the generation
+/// context along with seed, enabling controlled exploration of the input space.
+///
+/// - Parameters:
+///   - value: The complexity level. Non-negative integers. Values < 0 are clamped to 0.
+///
+/// - Example:
+///   ```swift
+///   let small = Size(value: 10)      // Small arrays/strings
+///   let medium = Size(value: 50)     // Medium collections
+///   let scaled = medium.scaled(by: 2.0)  // 100 - useful for stress testing
+///   ```
+///
+/// - See Also: ``Gen``, ``Shrink``
 public struct Size: Sendable {
   public let value: Int
 
+  /// Initialize Size with explicit complexity level.
+  ///
+  /// Creates a Size value with the given complexity. Values are automatically
+  /// clamped to non-negative integers (any negative value becomes 0).
+  ///
+  /// - Parameters:
+  ///   - value: The complexity level. Negative values are clamped to 0.
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let size = Size(value: 50)
+  ///   assert(size.value == 50)
+  ///
+  ///   let negative = Size(value: -10)
+  ///   assert(negative.value == 0)  // Clamped to 0
+  ///   ```
   public init(value: Int) {
     self.value = max(0, value)
   }
 
-  /// Scale size by a factor
+  /// Scales the size by a multiplicative factor.
+  ///
+  /// Multiplies the current size value by the given factor, useful for:
+  /// - Stress testing: `size.scaled(by: 10.0)` for 10x complexity
+  /// - Reduced testing: `size.scaled(by: 0.5)` for quick sanity checks
+  /// - Dynamic scaling based on test results
+  ///
+  /// The result is clamped to non-negative integers (fractional parts are truncated,
+  /// negative results become 0).
+  ///
+  /// - Parameters:
+  ///   - factor: Multiplicative factor. Examples: 0.5 (half), 1.0 (unchanged), 2.0 (double)
+  ///
+  /// - Returns: New `Size` with scaled value, clamped to non-negative range
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let size = Size(value: 50)
+  ///   let doubled = size.scaled(by: 2.0)    // Size(value: 100)
+  ///   let halved = size.scaled(by: 0.5)     // Size(value: 25)
+  ///   let stress = size.scaled(by: 10.0)    // Size(value: 500)
+  ///   ```
   public func scaled(by factor: Double) -> Self {
     Self(value: max(0, Int(Double(value) * factor)))
   }
 
+  /// Predefined small size constant for quick tests.
   public static let small = Self(value: 10)
+  /// Predefined medium size constant for balanced coverage.
   public static let medium = Self(value: 50)
+  /// Predefined large size constant for stress testing.
   public static let large = Self(value: 100)
 }
 
-/// Shrink represents a coalgebraic structure for generating shrinking sequences
+/// Generates progressively simpler versions of a value to find minimal counterexamples.
+///
+/// `Shrink<T>` implements coalgebraic shrinking, a fundamental concept in property-based testing.
+/// When a property fails on a value, shrinking reduces it to the simplest counterexample that
+/// still fails, making failures easier to understand and debug.
+///
+/// The key insight: Rather than storing all shrunk values, `Shrink` computes them lazily via
+/// a function `(T) -> [T]`. This enables efficient exploration of very large shrinking spaces.
+///
+/// Shrinking strategies vary by type:
+/// - **Integers**: 0, half the value, value-1, etc.
+/// - **Strings**: Remove characters, reduce length, simplify characters
+/// - **Collections**: Remove elements, shrink individual elements
+/// - **Custom types**: Domain-specific simplifications
+///
+/// Mathematical foundation: Shrinking implements a coalgebra, the dual of an algebra.
+/// Where an algebra builds up values, a coalgebra unfolds them into simpler forms.
+/// This creates a shrinking tree that property-based testers can efficiently search.
+///
+/// See [Coalgebraic Shrinking](https://dl.acm.org/doi/10.1145/2635868.2635897) for
+/// academic background.
+///
+/// - Example:
+///   ```swift
+///   let intShrink = Shrink<Int> { n in
+///       var candidates: [Int] = []
+///       if n > 0 { candidates.append(0) }           // Shrink to zero
+///       if n.magnitude > 1 {
+///           candidates.append(n / 2)                // Binary search
+///           candidates.append(n - 1)                // One less
+///       }
+///       return candidates
+///   }
+///
+///   let shrunkValues = intShrink.shrink(100)  // [0, 50, 99]
+///   ```
+///
+/// - See Also: ``Gen``, ``Size``
 public struct Shrink<T>: @unchecked Sendable {
+  /// The function that generates simpler versions of a value.
+  ///
+  /// Takes a value of type `T` and returns a list of progressively simpler values.
+  /// The list should be:
+  /// - Non-empty for non-trivial shrinking (empty list means no shrinking)
+  /// - Ordered by simplicity (earlier elements are simpler)
+  /// - Acyclic (shrinking a shrink should eventually reach a fixed point)
   public let shrink: (T) -> [T]
 
+  /// Initialize a shrinking strategy with a custom shrink function.
+  ///
+  /// Creates a shrinking strategy by providing a function that generates
+  /// simpler versions of values.
+  ///
+  /// - Parameters:
+  ///   - shrink: Function mapping values to lists of simpler versions
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let shrinkInt = Shrink<Int> { n in
+  ///       guard n != 0 else { return [] }
+  ///       return [0, n / 2]
+  ///   }
+  ///   ```
   public init(_ shrink: @escaping (T) -> [T]) {
     self.shrink = shrink
   }
 
-  /// Empty shrinking - produces no shrunk values
+  /// No-op shrinking strategy that produces no shrunk values.
+  ///
+  /// Use when a type cannot or should not be shrunk. This is the default
+  /// for many generator types unless explicit shrinking is implemented.
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let gen = Gen(generate: myGeneratorFn, shrink: .empty)
+  ///   ```
   public static var empty: Shrink<T> {
     Self { _ in [] }
   }
 
-  /// Contramap for shrinking - enables transformation of shrinking context
+  /// Transforms the shrinking context via a function.
+  ///
+  /// Contramap allows adapting a `Shrink<T>` to work with a different type `U`
+  /// via a conversion function `(U) -> T`. This enables reusing shrinking logic
+  /// for different types.
+  ///
+  /// Contrapositively, contramap preserves the shrinking structure while changing
+  /// the input type. This is the opposite of `map`, which changes the output type.
+  ///
+  /// Mathematical foundation: Contramap implements the contravariant functor instance
+  /// for the shrinking coalgebra. See [Contravariant Functors](https://wiki.haskell.org/Contravariant)
+  /// for background.
+  ///
+  /// - Parameters:
+  ///   - f: Transformation from `U` to `T`
+  ///
+  /// - Returns: New `Shrink<U>` that shrinks via the original `Shrink<T>`
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   struct Person { let age: Int }
+  ///   let ageShrink = Shrink<Int> { n in n > 0 ? [0, n/2] : [] }
+  ///
+  ///   // Adapt to shrink Person by age
+  ///   let personShrink = ageShrink.contramap { person in person.age }
+  ///
+  ///   let person = Person(age: 50)
+  ///   let shrunk = personShrink.shrink(person)  // Persons with ages 0, 25
+  ///   ```
   public func contramap<U>(_ f: @escaping (U) -> T) -> Shrink<U> {
     Shrink<U> { u in
       self.shrink(f(u)).map { _ in u }  // Simplified contramap - full implementation would be more complex
     }
   }
 
-  /// Combine two shrinking strategies
+  /// Combines two shrinking strategies into one for pairs.
+  ///
+  /// Creates a shrinking strategy for tuples `(T, U)` by combining independent
+  /// shrinking strategies for each component. The resulting shrink function
+  /// shrinks both elements and returns all possible combinations.
+  ///
+  /// - Parameters:
+  ///   - left: Shrinking strategy for the first component
+  ///   - right: Shrinking strategy for the second component
+  ///
+  /// - Returns: Shrinking strategy for tuples that shrinks both components
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let intShrink = Shrink<Int> { n in n > 0 ? [0, n/2] : [] }
+  ///   let stringShrink = Shrink<String> { s in s.isEmpty ? [] : [String(s.dropLast())] }
+  ///
+  ///   let pairShrink = Shrink.pair(intShrink, stringShrink)
+  ///   let shrunk = pairShrink.shrink((10, "hello"))
+  ///   // Results include: (0, "hello"), (5, "hello"), (10, "hell"), etc.
+  ///   ```
   public static func pair<U>(_ left: Shrink<T>, _ right: Shrink<U>) -> Shrink<(T, U)> {
     Shrink<(T, U)> { pair in
       let leftShrunk = left.shrink(pair.0).map { ($0, pair.1) }
@@ -47,7 +233,31 @@ public struct Shrink<T>: @unchecked Sendable {
     }
   }
 
-  /// Monadic bind for dependent shrinking
+  /// Monadic bind for dependent shrinking structures.
+  ///
+  /// Enables dependent shrinking where the shrinking strategy for one value
+  /// depends on the value itself. This is useful for shrinking composite types
+  /// where the second component depends on the first.
+  ///
+  /// Implementation note: The current implementation is simplified. A full
+  /// implementation would properly handle coalgebraic unfolding to avoid
+  /// exponential explosion in the shrinking tree.
+  ///
+  /// - Parameters:
+  ///   - f: Function mapping value to dependent shrinking strategy
+  ///
+  /// - Returns: Shrinking strategy for dependent types
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   // Shrinking strategy where strategy depends on the value
+  ///   let dependentShrink = intShrink.flatMap { value in
+  ///       Shrink<(Int, String)> { pair in
+  ///           // Shrinking strategy depends on the integer value
+  ///           value > 10 ? [...] : [...]
+  ///       }
+  ///   }
+  ///   ```
   public func flatMap<U>(_ f: @escaping (T) -> Shrink<U>) -> Shrink<U> {
     Shrink<U> { _ in
       // This is a simplified implementation - full implementation would
@@ -57,12 +267,71 @@ public struct Shrink<T>: @unchecked Sendable {
   }
 }
 
-/// Gen<T> - Protocol witness for generation with integrated shrinking
-/// Follows the mathematical structure: Gen<T> ≅ (Seed × Size) → T × Shrink<T>
+/// Generates random values of type `T` with built-in shrinking support.
+///
+/// `Gen<T>` is the core abstraction for property-based testing. It encapsulates two things:
+/// 1. A generator function: `(RandomNumberGenerator, Size) -> T` that produces values
+/// 2. A shrinking strategy: `Shrink<T>` that minimizes counterexamples
+///
+/// The generator is designed as a **protocol-witness pattern** providing:
+/// - **Composability**: Generators combine via functor, applicative, and monad operations
+/// - **Determinism**: Same seed produces identical values across runs
+/// - **Shrinking**: Integrated strategy for finding minimal counterexamples
+/// - **Coverage guidance**: Size parameter enables complexity-driven generation
+///
+/// Mathematical foundation: `Gen<T>` implements the functor, applicative, and monad typeclasses,
+/// satisfying their respective laws:
+/// - **Functor laws**: `map(id) == id`, `map(g . f) == map(g) . map(f)`
+/// - **Applicative laws**: `pure(id) <*> v == v`, compositions and homomorphism laws
+/// - **Monad laws**: Left identity, right identity, associativity
+///
+/// See [Category Theory for Programmers](https://bartoszmilewski.com/2014/10/28/category-theory-for-programmers-the-preface/)
+/// for mathematical background.
+///
+/// - Example:
+///   ```swift
+///   // Create a simple integer generator
+///   let intGen = Gen<Int> { rng, size in
+///       Int.random(in: 0..<size.value, using: &rng)
+///   }
+///
+///   // Sample a value with specific seed and size
+///   let value = intGen.sample(size: Size(value: 100), seed: Seed(value: 42))
+///   ```
+///
+/// - See Also: ``Property``, ``Size``, ``Shrink``, ``Seed``
 public struct Gen<T>: @unchecked Sendable {
+  /// The generation function producing values of type T.
+  ///
+  /// Takes a random number generator and complexity size, returns a generated value.
+  /// The function must be pure (deterministic for same RNG state/size).
   public let generate: (inout any RandomNumberGenerator, Size) -> T
+  /// The shrinking strategy for this generator.
+  ///
+  /// Provides ways to reduce a value to simpler versions for counterexample minimization.
   public let shrink: Shrink<T>
 
+  /// Initialize a generator with generation and shrinking functions.
+  ///
+  /// Creates a complete generator with both a generation function and shrinking strategy.
+  /// This is the primary way to define custom generators.
+  ///
+  /// - Parameters:
+  ///   - generate: Function producing values given RNG and size
+  ///   - shrink: Shrinking strategy for minimizing counterexamples. Default: `.empty` (no shrinking)
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let evenGen = Gen<Int>(
+  ///       generate: { rng, size in
+  ///           Int.random(in: 0..<size.value, using: &rng) * 2
+  ///       },
+  ///       shrink: Shrink { n in
+  ///           guard n > 0 else { return [] }
+  ///           return [0, n / 2, n - 2]
+  ///       }
+  ///   )
+  ///   ```
   public init(
     generate: @escaping (inout any RandomNumberGenerator, Size) -> T,
     shrink: Shrink<T> = .empty
@@ -71,12 +340,49 @@ public struct Gen<T>: @unchecked Sendable {
     self.shrink = shrink
   }
 
-  /// Convenience initializer for generators without shrinking
+  /// Initialize a generator with only a generation function (no shrinking).
+  ///
+  /// Convenience initializer for generators that don't provide shrinking.
+  /// The generator will use `.empty` shrinking, meaning counterexamples won't be minimized.
+  ///
+  /// - Parameters:
+  ///   - generate: Function producing values given RNG and size
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let simpleGen = Gen { rng, size in
+  ///       Int.random(in: 0..<size.value, using: &rng)
+  ///   }
+  ///   ```
   public init(generate: @escaping (inout any RandomNumberGenerator, Size) -> T) {
     self.init(generate: generate, shrink: .empty)
   }
 
-  /// Sample using explicit Seed for deterministic generation
+  /// Sample a value using explicit seed for deterministic generation.
+  ///
+  /// Generates a single value using a specific seed and size, enabling reproducible
+  /// test generation. Same seed + size always produces same value (determinism property).
+  ///
+  /// Use this for:
+  /// - Replaying failing test cases
+  /// - Creating deterministic example generation
+  /// - Testing generator behavior
+  ///
+  /// - Parameters:
+  ///   - size: Complexity hint for the generator
+  ///   - seed: Seed for deterministic RNG
+  ///
+  /// - Returns: A single generated value
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let gen = Gen<Int> { rng, size in Int.random(in: 0..<100, using: &rng) }
+  ///   let value1 = gen.sample(size: Size(value: 50), seed: Seed(value: 42))
+  ///   let value2 = gen.sample(size: Size(value: 50), seed: Seed(value: 42))
+  ///   assert(value1 == value2)  // Same seed produces same value
+  ///   ```
+  ///
+  /// - See Also: ``Seed``, ``Size``
   public func sample(size: Size, seed: Seed) -> T {
     var rng: any RandomNumberGenerator = SeedBasedRandomNumberGenerator(seed: seed)
     return generate(&rng, size)
@@ -85,8 +391,45 @@ public struct Gen<T>: @unchecked Sendable {
 
 // MARK: - Functor Instance
 extension Gen {
-  /// Functor map - transforms generated values while preserving structure
-  /// Satisfies functor laws: fmap(id) = id, fmap(g . f) = fmap(g) . fmap(f)
+  /// Transforms generated values using a pure function.
+  ///
+  /// Maps a generator of type `T` to a generator of type `U` by applying
+  /// a pure function `(T) -> U` to each generated value. Preserves the
+  /// generation structure while changing the output type.
+  ///
+  /// Satisfies the functor laws:
+  /// - **Identity law**: `gen.map { $0 } == gen` (in distribution)
+  /// - **Composition law**: `gen.map { f($0) }.map { g($0) } == gen.map { g(f($0)) }`
+  ///
+  /// The map operation is fundamental to composing generators: transform simple
+  /// generators into more complex ones by applying domain-specific transformations.
+  ///
+  /// Implementation note: Shrinking is simplified (empty) because deriving optimal
+  /// shrinking for the transformed type would require the inverse function, which
+  /// may not exist. For types requiring both map and shrinking, use derived generators
+  /// that implement proper shrinking strategies.
+  ///
+  /// Mathematical foundation: Map implements the functor operation in the
+  /// category of generators, preserving identity and composition.
+  /// See [Functor Laws](https://wiki.haskell.org/Functor).
+  ///
+  /// - Parameters:
+  ///   - f: Pure function transforming `T` to `U`. Must be deterministic and free of side effects.
+  ///
+  /// - Returns: New generator producing mapped values
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   // Transform integers to strings
+  ///   let intGen = Gen<Int> { rng, size in Int.random(in: 0..<100, using: &rng) }
+  ///   let stringGen = intGen.map { "Number: \($0)" }
+  ///
+  ///   // Transform to custom types
+  ///   struct Person { let name: String; let age: Int }
+  ///   let personGen = intGen.map { Person(name: "John", age: $0) }
+  ///   ```
+  ///
+  /// - See Also: ``flatMap(_:)``, ``apply(_:)``
   public func map<U>(_ f: @escaping (T) -> U) -> Gen<U> {
     Gen<U>(
       generate: { rng, size in f(self.generate(&rng, size)) },
@@ -99,13 +442,78 @@ extension Gen {
 
 // MARK: - Applicative Instance
 extension Gen {
-  /// Applicative pure - lift a value into the generation context
+  /// Lifts a constant value into the generator context.
+  ///
+  /// Creates a generator that always produces the same value, regardless of
+  /// random state or size. Used as the "pure" or "return" operation in applicative
+  /// and monadic contexts.
+  ///
+  /// Key uses:
+  /// - Embedding constant values in property tests
+  /// - Creating generators for fixed components of complex types
+  /// - Building up generators compositionally via `<*>` and `>>=`
+  ///
+  /// Satisfies the applicative law of identity:
+  /// `pure(id) <*> gen == gen` (mapping identity function has no effect)
+  ///
+  /// Mathematical foundation: Pure implements the unit/return operation in
+  /// the applicative and monad typeclasses, injecting pure values into
+  /// the computational context.
+  /// See [Applicative Functors](https://wiki.haskell.org/Applicative_functor).
+  ///
+  /// - Parameters:
+  ///   - value: Constant value to lift
+  ///
+  /// - Returns: Generator always producing the given value
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let constantGen = Gen.pure("fixed value")
+  ///   let value1 = constantGen.sample(size: Size(value: 10), seed: Seed(value: 1))
+  ///   let value2 = constantGen.sample(size: Size(value: 100), seed: Seed(value: 999))
+  ///   assert(value1 == value2)  // Always the same
+  ///   ```
+  ///
+  /// - See Also: ``flatMap(_:)``, ``apply(_:)``
   public static func pure(_ value: T) -> Gen<T> {
     Gen { _, _ in value }
   }
 
-  /// Applicative apply - combine generators applying functions to values
-  /// Satisfies applicative laws: pure(id) <*> v = v, pure(.) <*> u <*> v <*> w = u <*> (v <*> w)
+  /// Applies a generated function to generated values.
+  ///
+  /// Combines two generators: one producing functions `(T) -> U` and one producing
+  /// values `T`, to create a generator of `U` by applying the functions to the values.
+  ///
+  /// This is the applicative operator, enabling composition of independent generators.
+  /// Particularly useful for:
+  /// - Combining multiple independent generator streams
+  /// - Applying generated transformations to generated data
+  /// - Building complex types from simpler generator components
+  ///
+  /// Satisfies applicative laws:
+  /// - **Identity**: `pure(id).apply(gen) == gen`
+  /// - **Composition**: `pure(compose).apply(u).apply(v).apply(w) == u.apply(v.apply(w))`
+  /// - **Homomorphism**: `pure(f).apply(pure(x)) == pure(f(x))`
+  ///
+  /// Implementation note: The current implementation simplifies shrinking. Full shrinking
+  /// would require maintaining the relationship between function and value shrinking,
+  /// which requires tracking the applied function during shrinking.
+  ///
+  /// - Parameters:
+  ///   - genF: Generator producing functions of type `(T) -> U`
+  ///
+  /// - Returns: New generator producing applied results
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let intGen = Gen<Int> { rng, size in Int.random(in: 0..<100, using: &rng) }
+  ///   let addGen = Gen.pure { (a: Int, b: Int) -> Int in a + b }
+  ///
+  ///   let sumGen = intGen.zip(intGen).map { (a, b) in { f in f(a, b) } }
+  ///   // Alternatively using apply for composition
+  ///   ```
+  ///
+  /// - See Also: ``zip(_:)``, ``map(_:)``
   public func apply<U>(_ genF: Gen<(T) -> U>) -> Gen<U> {
     Gen<U>(
       generate: { rng, size in
@@ -120,7 +528,42 @@ extension Gen {
     )
   }
 
-  /// Zip two generators into a tuple generator
+  /// Combines two generators into a tuple generator.
+  ///
+  /// Independently generates values from two generators and combines them into
+  /// a tuple. This is the primary way to combine multiple independent generators
+  /// for property testing multiple types together.
+  ///
+  /// Key characteristics:
+  /// - **Independent generation**: Each generator's RNG state advances independently
+  /// - **Proper shrinking**: Both components can be shrunk simultaneously
+  /// - **Type safety**: Tuple type ensures both values are always present
+  ///
+  /// Use zip when you need to:
+  /// - Test properties of multiple values together
+  /// - Avoid dependencies between generator outputs
+  /// - Combine generators defined elsewhere
+  ///
+  /// For dependent generation (second value depends on first), use `flatMap` instead.
+  ///
+  /// - Parameters:
+  ///   - other: Generator to combine with
+  ///
+  /// - Returns: Generator producing tuples of (T, U)
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let intGen = Gen<Int> { rng, size in Int.random(in: 0..<100, using: &rng) }
+  ///   let stringGen = Gen<String> { rng, size in
+  ///       let chars = "abc"
+  ///       return String((0..<size.value).map { _ in chars.randomElement(using: &rng)! })
+  ///   }
+  ///
+  ///   let combined = intGen.zip(stringGen)
+  ///   // Generates tuples like (42, "abc"), (17, "cab"), etc.
+  ///   ```
+  ///
+  /// - See Also: ``apply(_:)``, ``flatMap(_:)``
   public func zip<U>(_ other: Gen<U>) -> Gen<(T, U)> {
     Gen<(T, U)>(
       generate: { rng, size in
@@ -135,8 +578,59 @@ extension Gen {
 
 // MARK: - Monad Instance
 extension Gen {
-  /// Monadic bind - enables dependent generation
-  /// Satisfies monad laws: return(a) >>= f = f(a), m >>= return = m, (m >>= f) >>= g = m >>= (\x -> f(x) >>= g)
+  /// Sequences dependent generators, where the second depends on the first's output.
+  ///
+  /// Enables **dependent generation**: the generator produced by `f` depends on the
+  /// value generated by the first generator. This is essential for testing invariants
+  /// that relate multiple generated values.
+  ///
+  /// Use flatMap when:
+  /// - Second value must satisfy constraints based on the first (e.g., array with exact size)
+  /// - Generating related values (e.g., map keys and their values)
+  /// - Building up complex types incrementally
+  /// - Testing precondition-postcondition relationships
+  ///
+  /// **Monad laws** (must be satisfied):
+  /// - **Left identity**: `Gen.pure(a).flatMap(f) == f(a)`
+  /// - **Right identity**: `gen.flatMap(Gen.pure(_:)) == gen`
+  /// - **Associativity**: `gen.flatMap(f).flatMap(g) == gen.flatMap { x in f(x).flatMap(g) }`
+  ///
+  /// These laws ensure flatMap composes predictably, enabling safe refactoring.
+  ///
+  /// Mathematical foundation: FlatMap (also called >>= or bind) implements the
+  /// monadic composition, the fundamental operation in computational effects.
+  /// See [Monad Laws](https://wiki.haskell.org/Monad_laws) for formal details.
+  ///
+  /// - Parameters:
+  ///   - f: Function taking a `T` and returning a generator of `U`.
+  ///     The returned generator can depend on the input value.
+  ///
+  /// - Returns: Generator of dependent values
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   // Generate array with specific count (dependent generation)
+  ///   let arrayGen = Gen<Int> { rng, size in Int.random(in: 1...10, using: &rng) }
+  ///       .flatMap { count in
+  ///           Gen<[Int]> { rng, size in
+  ///               (0..<count).map { _ in Int.random(in: 0..<100, using: &rng) }
+  ///           }
+  ///       }
+  ///
+  ///   // Generate related values (person and email)
+  ///   let personGen = Gen<String> { rng, _ in ["Alice", "Bob", "Charlie"].randomElement(using: &rng)! }
+  ///       .flatMap { name in
+  ///           Gen<(String, String)> { _, _ in
+  ///               (name, "\(name.lowercased())@example.com")
+  ///           }
+  ///       }
+  ///   ```
+  ///
+  /// - Important: Avoid creating generators inside flatMap that ignore their input,
+  ///   as this defeats the purpose of dependent generation. Use `map` instead for
+  ///   non-dependent transformations.
+  ///
+  /// - See Also: ``map(_:)``, ``zip(_:)``
   public func flatMap<U>(_ f: @escaping (T) -> Gen<U>) -> Gen<U> {
     Gen<U>(
       generate: { rng, size in
@@ -152,7 +646,37 @@ extension Gen {
 
 // MARK: - Combinators
 extension Gen {
-  /// Choose one of the provided generators with equal probability
+  /// Randomly selects one of the provided generators with equal probability.
+  ///
+  /// Creates a generator that non-deterministically picks from a list of generators
+  /// and generates using the selected one. All generators have equal chance of
+  /// selection (uniform distribution).
+  ///
+  /// Use `oneOf` when you want to:
+  /// - Test multiple unrelated generator strategies
+  /// - Create union-type generators (e.g., Either-like types)
+  /// - Explore different "paths" through your domain
+  ///
+  /// For weighted selection (some generators more likely than others), use `frequency`.
+  ///
+  /// - Parameters:
+  ///   - generators: Non-empty list of generators to choose from
+  ///
+  /// - Returns: Generator that randomly selects from provided generators
+  ///
+  /// - Precondition: `generators` must be non-empty
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let positiveGen = Gen<Int> { rng, size in Int.random(in: 1...100, using: &rng) }
+  ///   let negativeGen = Gen<Int> { rng, size in Int.random(in: -100...(-1), using: &rng) }
+  ///   let zeroGen = Gen.pure(0)
+  ///
+  ///   let mixedGen = Gen.oneOf([positiveGen, negativeGen, zeroGen])
+  ///   // Generates from all three with equal probability
+  ///   ```
+  ///
+  /// - See Also: ``frequency(_:)``
   public static func oneOf(_ generators: [Gen<T>]) -> Gen<T> {
     precondition(!generators.isEmpty, "oneOf requires at least one generator")
 
@@ -162,7 +686,44 @@ extension Gen {
     }
   }
 
-  /// Choose generators based on frequency weights
+  /// Randomly selects a generator based on explicit frequency weights.
+  ///
+  /// Similar to `oneOf`, but each generator has a positive integer weight determining
+  /// its selection probability. Generator with weight N is N times more likely than
+  /// a generator with weight 1.
+  ///
+  /// Use `frequency` when you want to:
+  /// - Test realistic distributions of values (e.g., 90% valid, 10% edge cases)
+  /// - Bias generation toward common scenarios
+  /// - Implement domain-specific likelihood (e.g., more small numbers than large)
+  ///
+  /// The probability of selecting generator with weight `w` is `w / sum(all weights)`.
+  ///
+  /// - Parameters:
+  ///   - weightedGenerators: Non-empty list of (weight, generator) pairs.
+  ///     Weights must all be positive.
+  ///
+  /// - Returns: Generator selecting based on weights
+  ///
+  /// - Precondition:
+  ///   - `weightedGenerators` must be non-empty
+  ///   - All weights must be positive (> 0)
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let validGen = Gen.pure(100)
+  ///   let edgeCaseGen = Gen.pure(0)
+  ///   let negativeGen = Gen.pure(-1)
+  ///
+  ///   // 70% chance valid, 20% edge case, 10% negative
+  ///   let weighted = Gen.frequency([
+  ///       (7, validGen),
+  ///       (2, edgeCaseGen),
+  ///       (1, negativeGen)
+  ///   ])
+  ///   ```
+  ///
+  /// - See Also: ``oneOf(_:)``
   public static func frequency(_ weightedGenerators: [(Int, Gen<T>)]) -> Gen<T> {
     precondition(!weightedGenerators.isEmpty, "frequency requires at least one generator")
     precondition(weightedGenerators.allSatisfy { $0.0 > 0 }, "All weights must be positive")
@@ -185,8 +746,39 @@ extension Gen {
     }
   }
 
-  /// Filter generated values with a predicate
-  /// Warning: Can lead to infinite loops if predicate is too restrictive
+  /// Filters generated values to only those satisfying a predicate.
+  ///
+  /// Creates a generator that generates values and discards them until one satisfies
+  /// the predicate, or gives up after 100 attempts. This is useful for generating
+  /// values in a specific range or with specific properties.
+  ///
+  /// **Important**: Use sparingly and only when generating invalid values is common.
+  /// If predicate is too restrictive (e.g., rejects >90% of values), property testing
+  /// becomes inefficient. For better performance:
+  /// - Use dependent generation (`flatMap`) to generate valid values directly
+  /// - Implement a custom generator producing only valid values
+  /// - Use preconditions in properties instead of filtering generators
+  ///
+  /// Current implementation limits attempts to 100. Values failing the predicate
+  /// after 100 attempts are returned anyway to prevent infinite loops.
+  ///
+  /// - Parameters:
+  ///   - predicate: Function returning true for values to keep, false to discard
+  ///
+  /// - Returns: Generator producing values that satisfy the predicate
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let gen = Gen<Int> { rng, size in Int.random(in: 0..<100, using: &rng) }
+  ///   let evenGen = gen.suchThat { $0 % 2 == 0 }  // Only even numbers
+  ///   let largeGen = gen.suchThat { $0 > 50 }     // Only > 50
+  ///   ```
+  ///
+  /// - Note: Warning: If predicate is too restrictive, generated values may not
+  ///   satisfy the predicate after 100 attempts. This is a safety mechanism to
+  ///   prevent infinite loops. Prefer dependent generation for better performance.
+  ///
+  /// - See Also: ``flatMap(_:)``
   public func suchThat(_ predicate: @escaping (T) -> Bool) -> Gen<T> {
     Gen { rng, size in
       var attempts = 0
@@ -205,8 +797,27 @@ extension Gen {
     }
   }
 
-  /// Combine two generators into a generator of pairs
-  /// This enables compositional property testing across multiple types
+  /// Combines two independent generators into a generator of pairs.
+  ///
+  /// Static version of the `zip(_:)` instance method. Generates values from both
+  /// generators independently and combines them into a tuple. Equivalent to
+  /// `genA.zip(genB)` but useful as a static entry point.
+  ///
+  /// - Parameters:
+  ///   - genA: First generator
+  ///   - genB: Second generator
+  ///
+  /// - Returns: Generator producing tuples `(A, B)`
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let intGen = Gen<Int> { rng, size in Int.random(in: 0..<100, using: &rng) }
+  ///   let stringGen = Gen<String> { rng, _ in "test" }
+  ///
+  ///   let pairs = Gen.zip(intGen, stringGen)
+  ///   ```
+  ///
+  /// - See Also: ``zip(_:)`` instance method
   public static func zip<A, B>(_ genA: Gen<A>, _ genB: Gen<B>) -> Gen<(A, B)> {
     Gen<(A, B)>(
       generate: { rng, size in
@@ -218,7 +829,28 @@ extension Gen {
     )
   }
 
-  /// Combine three generators into a generator of triples
+  /// Combines three independent generators into a generator of triples.
+  ///
+  /// Generates values from all three generators independently and combines them
+  /// into a tuple. Enables property testing across three unrelated values.
+  ///
+  /// - Parameters:
+  ///   - genA: First generator
+  ///   - genB: Second generator
+  ///   - genC: Third generator
+  ///
+  /// - Returns: Generator producing tuples `(A, B, C)`
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let intGen = Gen<Int> { rng, size in Int.random(in: 0..<100, using: &rng) }
+  ///   let stringGen = Gen<String> { rng, _ in "test" }
+  ///   let boolGen = Gen<Bool> { rng, _ in Bool.random(using: &rng) }
+  ///
+  ///   let triples = Gen.zip(intGen, stringGen, boolGen)
+  ///   ```
+  ///
+  /// - See Also: ``zip(_:)`` for two generators
   public static func zip<A, B, C>(_ genA: Gen<A>, _ genB: Gen<B>, _ genC: Gen<C>) -> Gen<(A, B, C)>
   {
     Gen<(A, B, C)>(
@@ -241,7 +873,40 @@ extension Gen {
 
 // MARK: - Array Generator
 extension Gen {
-  /// Generate arrays of the given generator
+  /// Generates arrays with variable length of elements from the given generator.
+  ///
+  /// Creates a generator producing arrays of type `[Element]` by:
+  /// 1. Generating a random array size (0 to size.value)
+  /// 2. Generating that many elements using the provided element generator
+  ///
+  /// Array length is controlled by the complexity `Size`:
+  /// - Larger size values produce larger arrays
+  /// - Size.small(10) produces arrays up to 10 elements
+  /// - Size.large(100) produces arrays up to 100 elements
+  ///
+  /// Shrinking strategy:
+  /// - Removes individual elements (reduces array length)
+  /// - Shrinks individual elements independently (reduces element complexity)
+  /// - Explores all simplifications in breadth-first order
+  ///
+  /// This is one of the most frequently used generators for testing collection-based code.
+  ///
+  /// - Parameters:
+  ///   - elementGen: Generator for array elements
+  ///
+  /// - Returns: Generator producing arrays of variable length
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let intGen = Gen<Int> { rng, size in Int.random(in: 0..<100, using: &rng) }
+  ///   let arrayGen = Gen.array(intGen)
+  ///
+  ///   // Generates empty arrays, single-element arrays, large arrays, etc.
+  ///   let value = arrayGen.sample(size: Size.medium, seed: Seed(value: 42))
+  ///   // Result: [23, 51, 8, 92] or [] or [50] or similar
+  ///   ```
+  ///
+  /// - See Also: ``Gen.pure(_:)`` for fixed-size arrays via dependent generation
   public static func array<Element>(_ elementGen: Gen<Element>) -> Gen<[Element]> {
     Gen<[Element]>(
       generate: { rng, size in

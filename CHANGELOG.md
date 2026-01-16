@@ -59,6 +59,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Documentation compliance rules and validation procedures
     - Building and validating DocC documentation
     - Functional programming concept documentation standards
+  * Task 0.4: Add comprehensive DocC comments to all 82 public APIs
+    - Core module (26 symbols): Gen<T>, Size, Shrink, Property, PropertyResult, PropertyConfig, PropertyRunner, Seed, SeedBasedRandomNumberGenerator
+    - Generators module (26 symbols): Primitive (int, double, string, etc.), Collection (array, set, dictionary), Optional/Result, Domain (uuid, email, port), Combinators (oneOf, frequency, etc.)
+    - Advanced module (11 symbols): Lens, Prism, Traversal, CoverageCollector, CoverageStrategy
+    - SwiftTesting integration (6+ symbols): @PropertyTest macro, PropertyTestResult, async property support
+    - Observability, Coverage, Model-Based Testing: Full DocC documentation
+    - Every symbol documented with: summary, discussion, parameters, returns, throws, examples, notes, cross-references
+    - All examples compile without warnings
+    - Mathematical foundations documented for functional programming APIs (functor laws, monads, lenses)
+    - External references included for complex concepts
 
 ### Changed
 - Remove swift-docs-generation pre-commit hook

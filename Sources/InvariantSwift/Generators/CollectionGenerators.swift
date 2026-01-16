@@ -3,7 +3,58 @@ import Foundation
 // MARK: - Array Generators
 
 extension Gen where T == [Any] {
-  /// Generate arrays of any element type with comprehensive edge cases
+  /// Generate arrays of values from a given element generator.
+  ///
+  /// Produces arrays with variable length (0 to size parameter) where each element is generated
+  /// using the provided generator. This is a fundamental collection combinator supporting dependent generation.
+  ///
+  /// **Generation Strategy:**
+  /// - Size: 0 to min(size.value, 100) elements (bounded to prevent memory issues)
+  /// - For small sizes (≤3): Includes empty array edge case
+  /// - Elements: Generated using provided elementGen at appropriate size
+  /// - Size distribution: Geometric with element budget of `size/count`
+  ///
+  /// **Shrinking Strategy:**
+  /// Progressive simplification toward empty array:
+  /// 1. Shrinks to empty array (simplest collection)
+  /// 2. Removes elements one by one
+  /// 3. Shrinks individual elements recursively
+  /// 4. Shrinks by halving length (binary search for minimal failing case)
+  ///
+  /// **Edge Cases:**
+  /// - Empty arrays are common for size ≤ 3
+  /// - Large arrays (100+) are capped to prevent resource exhaustion
+  /// - Element shrinking is properly composed with array structure shrinking
+  ///
+  /// **Mathematical Properties:**
+  /// - **Functor**: `array(g.map(f)) = array(g).map { $0.map(f) }`
+  /// - **Monadic composition**: Proper size distribution across element budget
+  /// - **Commutativity**: Element generation order doesn't matter
+  ///
+  /// **Performance:**
+  /// - Generation: O(n) where n = number of elements
+  /// - Shrinking: O(n²) worst case (all removals × recursion)
+  /// - Memory: O(n × sizeof(T))
+  ///
+  /// - Parameter elementGen: Generator for individual array elements
+  ///
+  /// - Returns: Generator producing [Element] with built-in shrinking
+  ///
+  /// - Note: For fixed-length arrays, use ``Gen.sequence(elementGen:count:)``.
+  ///   For controlled length ranges, use ``Gen.sequence(elementGen:length:)``.
+  ///   For Sets, use ``Gen.set(_:)``. For Dictionaries, use ``Gen.dictionary(_:_:)``.
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let intGen = Gen<Int>.int(in: 0...100)
+  ///   let arrayGen = Gen<Int>.array(intGen)
+  ///
+  ///   let property = Property(generator: arrayGen) { array in
+  ///       #expect(array.allSatisfy { $0 >= 0 && $0 <= 100 })
+  ///   }
+  ///   ```
+  ///
+  /// - See Also: ``Gen.set(_:)``, ``Gen.dictionary(_:_:)``, ``Gen.sequence(elementGen:count:)``
   public static func array<Element>(_ elementGen: Gen<Element>) -> Gen<[Element]> {
     Gen<[Element]>(
       generate: { rng, size in
@@ -60,7 +111,59 @@ extension Gen where T == [Any] {
 // MARK: - Set Generators
 
 extension Gen where T == Set<AnyHashable> {
-  /// Generate sets with comprehensive coverage
+  /// Generate sets of hashable values from a given element generator.
+  ///
+  /// Produces sets with variable cardinality (0 to size parameter) where each element is generated
+  /// using the provided generator. Handles hash collisions by over-generating and filtering duplicates.
+  ///
+  /// **Generation Strategy:**
+  /// - Target cardinality: 0 to min(size.value, 50) elements
+  /// - Over-generation: Generates 2×target + 10 candidates to account for collisions
+  /// - For small sizes (≤3): Includes empty set edge case
+  /// - Stops early when target cardinality is reached
+  ///
+  /// **Shrinking Strategy:**
+  /// Progressive simplification toward empty set:
+  /// 1. Shrinks to empty set (simplest collection)
+  /// 2. Removes elements one by one
+  /// 3. Shrinks individual elements recursively
+  /// 4. Does not shrink by halving (set order is undefined)
+  ///
+  /// **Edge Cases:**
+  /// - Empty sets are common for size ≤ 3
+  /// - Hash collisions cause over-generation (automatic, transparent)
+  /// - Set with identical elements is still of cardinality 1 (deduplication works correctly)
+  /// - Elements are not in any particular order
+  ///
+  /// **Mathematical Properties:**
+  /// - **Set Semantics**: Duplicates are automatically removed
+  /// - **Membership**: Element membership is determined by Hashable conformance
+  /// - **Uniqueness**: All generated elements are distinct (set cardinality = generation count - collisions)
+  ///
+  /// **Performance:**
+  /// - Generation: O(n × hash + n²) worst case if hash collisions
+  /// - Shrinking: O(n²)
+  /// - Memory: O(n × sizeof(T))
+  ///
+  /// - Parameter elementGen: Generator for individual set elements (must be Hashable)
+  ///
+  /// - Returns: Generator producing Set<Element> with built-in shrinking
+  ///
+  /// - Note: Element must conform to Hashable. Elements are unordered; use ``Gen.array(_:)`` if order matters.
+  ///   For dictionaries, use ``Gen.dictionary(_:_:)``. Hash quality affects generation efficiency.
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let intGen = Gen<Int>.int(in: 0...100)
+  ///   let setGen = Gen<Set<Int>>.set(intGen)
+  ///
+  ///   let property = Property(generator: setGen) { set in
+  ///       #expect(set.allSatisfy { $0 >= 0 && $0 <= 100 })
+  ///       #expect(set.count <= 100)  // No duplicates
+  ///   }
+  ///   ```
+  ///
+  /// - See Also: ``Gen.array(_:)``, ``Gen.dictionary(_:_:)``, ``Hashable``
   public static func set<Element: Hashable>(_ elementGen: Gen<Element>) -> Gen<Set<Element>> {
     Gen<Set<Element>>(
       generate: { rng, size in
@@ -123,7 +226,64 @@ extension Gen where T == Set<AnyHashable> {
 // MARK: - Dictionary Generators
 
 extension Gen where T == [AnyHashable: Any] {
-  /// Generate dictionaries with comprehensive coverage
+  /// Generate dictionaries with key-value pairs from provided generators.
+  ///
+  /// Produces dictionaries with variable count (0 to size parameter) where keys and values are generated
+  /// independently. Handles key collisions by over-generating and filtering to target cardinality.
+  ///
+  /// **Generation Strategy:**
+  /// - Target count: 0 to min(size.value, 50) key-value pairs
+  /// - Over-generation: Generates 2×target + 10 candidates to account for collisions
+  /// - For small sizes (≤3): Includes empty dictionary edge case
+  /// - Stops early when target count is reached
+  /// - Key collisions replace previous values (standard dictionary semantics)
+  ///
+  /// **Shrinking Strategy:**
+  /// Progressive simplification toward empty dictionary:
+  /// 1. Shrinks to empty dictionary (simplest collection)
+  /// 2. Removes key-value pairs one by one
+  /// 3. Shrinks keys recursively
+  /// 4. Shrinks values recursively
+  ///
+  /// **Edge Cases:**
+  /// - Empty dictionaries are common for size ≤ 3
+  /// - Key collisions cause value replacement (last value wins)
+  /// - Over-generation handles hash collisions transparently
+  /// - Dictionary size = number of unique keys (not generation attempts)
+  ///
+  /// **Mathematical Properties:**
+  /// - **Key Uniqueness**: Each key appears at most once
+  /// - **Value Independence**: Values are generated independently of keys
+  /// - **Collision Handling**: Over-generation ensures target cardinality is reached
+  /// - **Order Independence**: Dictionary iteration order is unspecified
+  ///
+  /// **Performance:**
+  /// - Generation: O(n × (hash + value_gen)) where n = target count
+  /// - Shrinking: O(n² × (key_shrink + value_shrink))
+  /// - Memory: O(n × (sizeof(Key) + sizeof(Value)))
+  ///
+  /// - Parameters:
+  ///   - keyGen: Generator for dictionary keys (must be Hashable)
+  ///   - valueGen: Generator for dictionary values
+  ///
+  /// - Returns: Generator producing [Key: Value] with built-in shrinking
+  ///
+  /// - Note: Keys must conform to Hashable. Keys are unordered by default.
+  ///   For arrays with order preservation, use ``Gen.array(_:)`` with tuples.
+  ///   For custom ordering, compose with sorting functions.
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let keyGen = Gen<String>.string
+  ///   let valueGen = Gen<Int>.int(in: 0...100)
+  ///   let dictGen = Gen<[String: Int]>.dictionary(keyGen, valueGen)
+  ///
+  ///   let property = Property(generator: dictGen) { dict in
+  ///       #expect(dict.allSatisfy { _, value in value >= 0 && value <= 100 })
+  ///   }
+  ///   ```
+  ///
+  /// - See Also: ``Gen.array(_:)``, ``Gen.set(_:)``, ``Hashable``
   public static func dictionary<Key: Hashable, Value>(
     _ keyGen: Gen<Key>,
     _ valueGen: Gen<Value>
@@ -198,7 +358,50 @@ extension Gen where T == [AnyHashable: Any] {
 // MARK: - Range Generators
 
 extension Gen where T == Range<Int> {
-  /// Generate Range<Int> with comprehensive edge cases
+  /// Generate Range<Int> with half-open intervals and comprehensive edge cases.
+  ///
+  /// Produces ranges covering empty, single-element, and multi-element intervals.
+  /// Ranges follow half-open semantics: [start, end) includes start but excludes end.
+  ///
+  /// **Generation Strategy:**
+  /// - Start: Random in range [-maxRange...maxRange]
+  /// - Length: Random in range [0...min(size.value, 100)]
+  /// - End: Calculated as start + length
+  /// - For small sizes (≤5): Includes edge cases (empty, single, negative)
+  ///
+  /// **Shrinking Strategy:**
+  /// Progressive simplification:
+  /// 1. Shrinks to empty range (lowerBound..<lowerBound)
+  /// 2. Shrinks bounds toward zero
+  /// 3. Shrinks by reducing length
+  ///
+  /// **Edge Cases:**
+  /// - Empty ranges: 0..<0, 1..<1, etc.
+  /// - Single-element ranges: 0..<1
+  /// - Negative ranges: -5..<-1
+  /// - Ranges near overflow: Int.max-1..<Int.max
+  ///
+  /// **Use Cases:**
+  /// - Testing range-based iteration
+  /// - Loop bound generation
+  /// - Subarray slicing
+  /// - Range validation logic
+  ///
+  /// - Returns: Generator producing Range<Int> with built-in shrinking
+  ///
+  /// - Note: For closed ranges, use ``Gen.intClosedRange``. For partial ranges, use
+  ///   ``Gen.intPartialRangeFrom``, ``Gen.intPartialRangeUpTo``, or ``Gen.intPartialRangeThrough``.
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let gen = Gen<Range<Int>>.intRange
+  ///   let property = Property(generator: gen) { range in
+  ///       #expect(range.lowerBound <= range.upperBound)
+  ///       #expect(range.count == range.upperBound - range.lowerBound)
+  ///   }
+  ///   ```
+  ///
+  /// - See Also: ``Gen.intClosedRange``, ``Gen.intPartialRangeFrom``, ``Gen.intPartialRangeUpTo``, ``Gen.intPartialRangeThrough``
   public static var intRange: Gen<Range<Int>> {
     Gen<Range<Int>>(
       generate: { rng, size in
@@ -251,7 +454,49 @@ extension Gen where T == Range<Int> {
 }
 
 extension Gen where T == ClosedRange<Int> {
-  /// Generate ClosedRange<Int> with comprehensive edge cases
+  /// Generate ClosedRange<Int> with closed intervals and comprehensive edge cases.
+  ///
+  /// Produces ranges covering single-element through multi-element closed intervals.
+  /// Ranges follow closed semantics: [start...end] includes both start and end.
+  ///
+  /// **Generation Strategy:**
+  /// - Start: Random in range [-maxRange...maxRange]
+  /// - Length: Random in range [0...min(size.value, 100)]
+  /// - End: Calculated as start + length
+  /// - For small sizes (≤5): Includes edge cases (single element, extremes)
+  ///
+  /// **Shrinking Strategy:**
+  /// Progressive simplification:
+  /// 1. Shrinks to single-element ranges (lowerBound...lowerBound, upperBound...upperBound)
+  /// 2. Shrinks bounds toward zero
+  /// 3. Shrinks by reducing length
+  ///
+  /// **Edge Cases:**
+  /// - Single-element ranges: 0...0, 1...1, -1...-1
+  /// - Ranges at extremes: Int.min...Int.min, Int.max...Int.max
+  /// - Negative ranges: -5...(-1)
+  ///
+  /// **Use Cases:**
+  /// - Testing closed range iterations
+  /// - Subscript bound generation
+  /// - Enumeration boundaries
+  /// - Constraint testing
+  ///
+  /// - Returns: Generator producing ClosedRange<Int> with built-in shrinking
+  ///
+  /// - Note: For half-open ranges, use ``Gen.intRange``. For partial ranges, use
+  ///   ``Gen.intPartialRangeFrom``, ``Gen.intPartialRangeUpTo``, or ``Gen.intPartialRangeThrough``.
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let gen = Gen<ClosedRange<Int>>.intClosedRange
+  ///   let property = Property(generator: gen) { range in
+  ///       #expect(range.lowerBound <= range.upperBound)
+  ///       #expect(range.contains(range.lowerBound) && range.contains(range.upperBound))
+  ///   }
+  ///   ```
+  ///
+  /// - See Also: ``Gen.intRange``, ``Gen.intPartialRangeFrom``, ``Gen.intPartialRangeUpTo``, ``Gen.intPartialRangeThrough``
   public static var intClosedRange: Gen<ClosedRange<Int>> {
     Gen<ClosedRange<Int>>(
       generate: { rng, size in
@@ -307,7 +552,49 @@ extension Gen where T == ClosedRange<Int> {
 // MARK: - Partial Range Generators
 
 extension Gen where T == PartialRangeFrom<Int> {
-  /// Generate PartialRangeFrom<Int>
+  /// Generate PartialRangeFrom<Int> (half-infinite starting ranges).
+  ///
+  /// Produces ranges of the form `start...` (infinity) representing all integers from start onward.
+  /// Particularly useful for testing unbounded iteration and slice operations.
+  ///
+  /// **Generation Strategy:**
+  /// - Start: Random in range [-maxRange...maxRange]
+  /// - For small sizes (≤5): Includes edge cases (0, negative, extremes)
+  /// - Unbounded: No upper limit (extends to infinity conceptually)
+  ///
+  /// **Shrinking Strategy:**
+  /// Progressive simplification:
+  /// 1. Shrinks toward 0 (simplest start point)
+  /// 2. Shrinks by halving the start value
+  /// 3. Shrinks by decrementing
+  ///
+  /// **Edge Cases:**
+  /// - Starting from 0: 0...
+  /// - Starting from 1: 1...
+  /// - Negative start: -1...
+  /// - Int.min: Int.min...
+  ///
+  /// **Use Cases:**
+  /// - Testing unbounded iteration
+  /// - Slice operations from index onward
+  /// - Range-based filtering
+  /// - Constraint testing on lower bounds
+  ///
+  /// - Returns: Generator producing PartialRangeFrom<Int> with built-in shrinking
+  ///
+  /// - Note: Represents ranges like `5...` meaning 5 to infinity. Use ``Gen.intPartialRangeUpTo``
+  ///   for upper-bounded ranges (..<end) or ``Gen.intPartialRangeThrough`` for (...end).
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let gen = Gen<PartialRangeFrom<Int>>.intPartialRangeFrom
+  ///   let property = Property(generator: gen) { range in
+  ///       #expect(range.contains(range.lowerBound))
+  ///       #expect(range.contains(Int.max))
+  ///   }
+  ///   ```
+  ///
+  /// - See Also: ``Gen.intRange``, ``Gen.intClosedRange``, ``Gen.intPartialRangeUpTo``, ``Gen.intPartialRangeThrough``
   public static var intPartialRangeFrom: Gen<PartialRangeFrom<Int>> {
     Gen<PartialRangeFrom<Int>>(
       generate: { rng, size in
@@ -356,7 +643,49 @@ extension Gen where T == PartialRangeFrom<Int> {
 }
 
 extension Gen where T == PartialRangeUpTo<Int> {
-  /// Generate PartialRangeUpTo<Int>
+  /// Generate PartialRangeUpTo<Int> (half-infinite upper-bounded ranges).
+  ///
+  /// Produces ranges of the form `..<end` representing all integers from negative infinity up to (but not including) end.
+  /// Useful for testing upper-bounded iteration and array slicing.
+  ///
+  /// **Generation Strategy:**
+  /// - End: Random in range [-maxRange...maxRange]
+  /// - For small sizes (≤5): Includes edge cases (0, negative, extremes)
+  /// - Unbounded below: No lower limit (extends to negative infinity conceptually)
+  ///
+  /// **Shrinking Strategy:**
+  /// Progressive simplification:
+  /// 1. Shrinks toward 0 (simplest end point)
+  /// 2. Shrinks by halving the end value
+  /// 3. Shrinks by decrementing
+  ///
+  /// **Edge Cases:**
+  /// - Ending at 0: ..<0
+  /// - Ending at 1: ..<1
+  /// - Negative end: ..< (-1)
+  /// - Int.max: ..< Int.max
+  ///
+  /// **Use Cases:**
+  /// - Testing upper-bounded iteration
+  /// - Array slicing from beginning
+  /// - Prefix operations
+  /// - Upper bound constraint testing
+  ///
+  /// - Returns: Generator producing PartialRangeUpTo<Int> with built-in shrinking
+  ///
+  /// - Note: Represents ranges like `..<10` meaning all integers less than 10. Use ``Gen.intPartialRangeFrom``
+  ///   for lower-bounded ranges (start...) or ``Gen.intPartialRangeThrough`` for (...end).
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let gen = Gen<PartialRangeUpTo<Int>>.intPartialRangeUpTo
+  ///   let property = Property(generator: gen) { range in
+  ///       #expect(range.contains(Int.min))
+  ///       #expect(!range.contains(range.upperBound))
+  ///   }
+  ///   ```
+  ///
+  /// - See Also: ``Gen.intRange``, ``Gen.intClosedRange``, ``Gen.intPartialRangeFrom``, ``Gen.intPartialRangeThrough``
   public static var intPartialRangeUpTo: Gen<PartialRangeUpTo<Int>> {
     Gen<PartialRangeUpTo<Int>>(
       generate: { rng, size in
@@ -405,7 +734,50 @@ extension Gen where T == PartialRangeUpTo<Int> {
 }
 
 extension Gen where T == PartialRangeThrough<Int> {
-  /// Generate PartialRangeThrough<Int>
+  /// Generate PartialRangeThrough<Int> (half-infinite closed upper-bounded ranges).
+  ///
+  /// Produces ranges of the form `...end` representing all integers from negative infinity through end (inclusive).
+  /// Useful for testing closed upper-bounded iteration and subscript operations.
+  ///
+  /// **Generation Strategy:**
+  /// - End: Random in range [-maxRange...maxRange]
+  /// - For small sizes (≤5): Includes edge cases (0, negative, extremes)
+  /// - Unbounded below: No lower limit (extends to negative infinity conceptually)
+  ///
+  /// **Shrinking Strategy:**
+  /// Progressive simplification:
+  /// 1. Shrinks toward 0 (simplest end point)
+  /// 2. Shrinks by halving the end value
+  /// 3. Shrinks by decrementing
+  ///
+  /// **Edge Cases:**
+  /// - Ending at 0: ...0
+  /// - Ending at 1: ...1
+  /// - Negative end: ...(-1)
+  /// - Int.max: ...Int.max (includes all integers)
+  ///
+  /// **Use Cases:**
+  /// - Testing closed upper-bounded iteration
+  /// - Inclusive subscript bounds
+  /// - Through enumeration
+  /// - Closed upper bound constraint testing
+  ///
+  /// - Returns: Generator producing PartialRangeThrough<Int> with built-in shrinking
+  ///
+  /// - Note: Represents ranges like `...10` meaning all integers up to and including 10.
+  ///   Use ``Gen.intPartialRangeFrom`` for lower-bounded ranges (start...)
+  ///   or ``Gen.intPartialRangeUpTo`` for (..<end) upper-bounded ranges.
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let gen = Gen<PartialRangeThrough<Int>>.intPartialRangeThrough
+  ///   let property = Property(generator: gen) { range in
+  ///       #expect(range.contains(Int.min))
+  ///       #expect(range.contains(range.upperBound))
+  ///   }
+  ///   ```
+  ///
+  /// - See Also: ``Gen.intRange``, ``Gen.intClosedRange``, ``Gen.intPartialRangeFrom``, ``Gen.intPartialRangeUpTo``
   public static var intPartialRangeThrough: Gen<PartialRangeThrough<Int>> {
     Gen<PartialRangeThrough<Int>>(
       generate: { rng, size in
@@ -456,7 +828,57 @@ extension Gen where T == PartialRangeThrough<Int> {
 // MARK: - ArraySlice Generators
 
 extension Gen where T == ArraySlice<Any> {
-  /// Generate ArraySlice with comprehensive coverage
+  /// Generate array slices (subarray views) with comprehensive coverage.
+  ///
+  /// Produces array slices representing views into arrays. Each slice is generated by first creating
+  /// a full array, then selecting a random contiguous subsequence. Slices preserve original indices.
+  ///
+  /// **Generation Strategy:**
+  /// - Base array: Generated using ``Gen.array(_:)`` logic
+  /// - Slice bounds: Random start and end indices within base array
+  /// - Contiguous: All slices are contiguous subsequences
+  /// - Empty arrays: Result in empty slices
+  ///
+  /// **Shrinking Strategy:**
+  /// Derived from array shrinking:
+  /// 1. Shrinks base array (via array shrinking)
+  /// 2. Converts shrunk arrays back to slices
+  /// 3. Preserves slice semantics during shrinking
+  ///
+  /// **Edge Cases:**
+  /// - Empty slices: From empty array or slice bounds
+  /// - Full array as slice: Entire array selected as slice
+  /// - Single-element slices: startIndex..<startIndex + 1
+  /// - Preserves original indices (not zero-based like arrays)
+  ///
+  /// **Mathematical Properties:**
+  /// - **Isomorphic to Arrays**: Slice shrinking isomorphic to array shrinking
+  /// - **Contiguity**: Always represents contiguous subsequence
+  /// - **Index Preservation**: Original indices preserved from base array
+  ///
+  /// **Performance:**
+  /// - Generation: O(n) where n = array length
+  /// - Shrinking: O(n²) (inherited from array shrinking)
+  /// - Memory: O(n) (view into base array, not copied in Swift)
+  ///
+  /// - Parameter elementGen: Generator for base array elements
+  ///
+  /// - Returns: Generator producing ArraySlice<Element> with built-in shrinking
+  ///
+  /// - Note: ArraySlice is a view type; generation includes underlying array.
+  ///   For collections, use ``Gen.array(_:)`` instead. For fixed-size slices, use custom generator.
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let intGen = Gen<Int>.int(in: 0...100)
+  ///   let sliceGen = Gen<ArraySlice<Int>>.arraySlice(intGen)
+  ///
+  ///   let property = Property(generator: sliceGen) { slice in
+  ///       #expect(slice.allSatisfy { $0 >= 0 && $0 <= 100 })
+  ///   }
+  ///   ```
+  ///
+  /// - See Also: ``Gen.array(_:)``, ``ArraySlice``
   public static func arraySlice<Element>(_ elementGen: Gen<Element>) -> Gen<ArraySlice<Element>> {
     Gen<ArraySlice<Element>>(
       generate: { rng, size in

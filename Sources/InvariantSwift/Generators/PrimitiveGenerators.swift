@@ -3,7 +3,42 @@ import Foundation
 // MARK: - Primitive Type Generators
 
 extension Gen where T == Int {
-  /// Generate integers with edge cases and shrinking
+  /// Generate integers across the full Int range with comprehensive edge cases.
+  ///
+  /// This generator produces random integers from the full Int range (-2^63 to 2^63-1 on 64-bit systems)
+  /// with built-in shrinking support. The generator includes special handling for edge cases like zero,
+  /// Int.min, and Int.max to ensure thorough coverage of boundary conditions.
+  ///
+  /// **Generation Strategy:**
+  /// - For small sizes (≤ 5): Biases toward edge cases (0, 1, -1, Int.min, Int.max)
+  /// - For larger sizes: Generates random values in bounded ranges to prevent overflow
+  /// - Edge cases are included probabilistically (50% chance when size ≤ 5)
+  ///
+  /// **Shrinking Strategy:**
+  /// The shrinking sequence prioritizes simplification toward zero:
+  /// 1. Shrinks to 0 first (simplest integer)
+  /// 2. Shrinks by binary division (n/2) while preserving sign
+  /// 3. Shrinks by decrementing toward zero
+  ///
+  /// **Mathematical Properties:**
+  /// - **Identity**: Shrinking terminates at 0 for all integers
+  /// - **Commutativity**: Shrinking paths converge (multiple paths may reach same value)
+  /// - **Distribution**: Uniform across bounded range, edge cases biased
+  ///
+  /// - Returns: Generator producing Int values with built-in shrinking
+  ///
+  /// - Note: Size parameter affects range bounds. Default range grows with size up to ±(Int.max/2)
+  ///   to prevent overflow during generation.
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let gen = Gen<Int>.int
+  ///   let property = Property(generator: gen) { value in
+  ///       #expect(value >= Int.min && value <= Int.max)
+  ///   }
+  ///   ```
+  ///
+  /// - See Also: ``Gen.int(in:)``, ``Gen.positive``, ``Gen.negative``
   public static var int: Gen<Int> {
     Gen<Int>(
       generate: { rng, size in
@@ -46,7 +81,43 @@ extension Gen where T == Int {
     )
   }
 
-  /// Generate integers within a specific range
+  /// Generate integers within a specific closed range with boundary-aware shrinking.
+  ///
+  /// Produces random integers constrained to a closed range [lower...upper], with intelligent
+  /// shrinking that respects the bounds. This is the primary way to generate bounded integers.
+  ///
+  /// **Generation Strategy:**
+  /// - Uniform random distribution within the specified range
+  /// - Size parameter is ignored (range determines bounds)
+  /// - All values guaranteed to satisfy: lower ≤ value ≤ upper
+  ///
+  /// **Shrinking Strategy:**
+  /// Shrinks toward the lower bound of the range:
+  /// 1. Shrinks directly to lower bound if possible
+  /// 2. Shrinks by binary division toward lower bound
+  /// 3. Shrinks by decrementing toward lower bound
+  ///
+  /// **Edge Cases:**
+  /// - Empty ranges will compile but generate invalid results (use with care)
+  /// - Single-element ranges return that element every time
+  /// - Large ranges (> 1 billion) will have reasonable performance
+  ///
+  /// - Parameters:
+  ///   - range: Closed range defining lower and upper bounds (inclusive)
+  ///
+  /// - Returns: Generator producing integers within the specified range
+  ///
+  /// - Precondition: range.lowerBound ≤ range.upperBound
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let gen = Gen<Int>.int(in: 1...100)
+  ///   let property = Property(generator: gen) { value in
+  ///       #expect(value >= 1 && value <= 100)
+  ///   }
+  ///   ```
+  ///
+  /// - See Also: ``Gen.int``, ``Gen.positive``, ``Gen.negative``, ``Gen.percentage``, ``Gen.port``
   public static func int(in range: ClosedRange<Int>) -> Gen<Int> {
     Gen<Int>(
       generate: { rng, _ in
@@ -81,7 +152,39 @@ extension Gen where T == Int {
 }
 
 extension Gen where T == Bool {
-  /// Generate booleans with equal probability
+  /// Generate Boolean values with equal probability (50% true, 50% false).
+  ///
+  /// Produces random Boolean values with uniform distribution. Size parameter is ignored.
+  /// This is the primary way to generate arbitrary Boolean test cases.
+  ///
+  /// **Generation Strategy:**
+  /// - Uniform 50/50 distribution between true and false
+  /// - Size parameter does not affect generation
+  /// - Deterministic given a seed for reproducibility
+  ///
+  /// **Shrinking Strategy:**
+  /// - false is considered simpler than true
+  /// - true shrinks to false
+  /// - false shrinks to empty sequence (already minimal)
+  ///
+  /// **Use Cases:**
+  /// - Flag testing and conditional logic
+  /// - Optional feature switches
+  /// - Boolean invariant verification
+  /// - Exhaustive coverage of conditional branches
+  ///
+  /// - Returns: Generator producing Bool values (true or false)
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let gen = Gen<Bool>.bool
+  ///   let property = Property(generator: gen) { flag in
+  ///       // Property should hold for both true and false
+  ///       #expect(testLogic(flag))
+  ///   }
+  ///   ```
+  ///
+  /// - See Also: ``Gen.int(in:)``, ``Gen.element(of:)``
   public static var bool: Gen<Bool> {
     Gen<Bool>(
       generate: { rng, _ in
@@ -96,7 +199,49 @@ extension Gen where T == Bool {
 }
 
 extension Gen where T == Double {
-  /// Generate doubles with edge cases
+  /// Generate Double floating-point values including special values (infinity, NaN).
+  ///
+  /// Produces random Double values with comprehensive coverage of the IEEE 754 floating-point spec,
+  /// including edge cases like infinity, negative infinity, and NaN. This generator is essential
+  /// for thorough testing of numerical code.
+  ///
+  /// **Generation Strategy:**
+  /// - For small sizes (≤ 5): Biases toward edge cases (0.0, 1.0, -1.0, infinity, -infinity, NaN)
+  /// - For larger sizes: Generates values in range [-size...size]
+  /// - Edge cases included probabilistically (50% chance when size ≤ 5)
+  ///
+  /// **Special Values Handled:**
+  /// - Infinity (positive and negative)
+  /// - NaN (not-a-number) - note: NaN != NaN in IEEE 754
+  /// - Subnormal numbers (very small values near zero)
+  /// - Zero (both positive and negative, though equivalent)
+  ///
+  /// **Shrinking Strategy:**
+  /// Special values shrink to simple values (0.0, 1.0, -1.0):
+  /// 1. Infinity/NaN shrink to [0.0, 1.0, -1.0]
+  /// 2. Regular values shrink toward 0.0
+  /// 3. Values > 1.0 shrink by binary division, then to 1.0
+  /// 4. Values < -1.0 shrink similarly but preserve sign
+  ///
+  /// **Precision Considerations:**
+  /// - Floating-point comparisons in properties should use tolerance (e.g., abs(a - b) < 1e-10)
+  /// - NaN comparisons require special handling: use `value.isNaN` instead of `==`
+  /// - Precision may vary between platforms and optimization levels
+  ///
+  /// - Returns: Generator producing Double values with built-in shrinking
+  ///
+  /// - Important: Properties using Double should account for floating-point precision.
+  ///   Avoid exact equality checks; use tolerance-based comparisons instead.
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let gen = Gen<Double>.double
+  ///   let property = Property(generator: gen) { value in
+  ///       #expect(!value.isNaN || value == Double.nan)  // NaN special case
+  ///   }
+  ///   ```
+  ///
+  /// - See Also: ``Gen.double(in:)``, ``Gen.float``, ``Gen.probability``
   public static var double: Gen<Double> {
     Gen<Double>(
       generate: { rng, size in
@@ -144,7 +289,41 @@ extension Gen where T == Double {
     )
   }
 
-  /// Generate doubles within a specific range
+  /// Generate Double values within a specific closed range with tolerance-aware shrinking.
+  ///
+  /// Produces random Double values constrained to a closed range, essential for numeric properties
+  /// with bounded constraints. Shrinking respects bounds and floating-point precision.
+  ///
+  /// **Generation Strategy:**
+  /// - Uniform random distribution within [lower...upper]
+  /// - Size parameter is ignored (range determines bounds)
+  /// - All values guaranteed to satisfy: lower ≤ value ≤ upper
+  ///
+  /// **Shrinking Strategy:**
+  /// Shrinks toward lower bound while respecting floating-point precision:
+  /// 1. Shrinks to lower bound directly
+  /// 2. Shrinks by binary division toward lower bound
+  /// 3. Uses 0.001 tolerance for precision-safe comparisons
+  ///
+  /// **Floating-Point Considerations:**
+  /// - Uses 0.001 tolerance threshold to avoid precision issues
+  /// - May not reach exact bounds due to floating-point representation
+  /// - Subnormal numbers (very close to zero) handled safely
+  ///
+  /// - Parameters:
+  ///   - range: Closed range defining lower and upper bounds (inclusive)
+  ///
+  /// - Returns: Generator producing Double values within the specified range
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let gen = Gen<Double>.double(in: 0.0...100.0)
+  ///   let property = Property(generator: gen) { value in
+  ///       #expect(value >= 0.0 && value <= 100.0)
+  ///   }
+  ///   ```
+  ///
+  /// - See Also: ``Gen.double``, ``Gen.probability``, ``Gen.float(in:)``
   public static func double(in range: ClosedRange<Double>) -> Gen<Double> {
     Gen<Double>(
       generate: { rng, _ in
@@ -176,7 +355,49 @@ extension Gen where T == Double {
 // Note: Float generator is defined in NumericGenerators.swift to avoid conflicts
 
 extension Gen where T == String {
-  /// Generate strings with various lengths and character sets
+  /// Generate arbitrary strings with variable length from alphanumeric characters.
+  ///
+  /// Produces random strings from the character set [a-zA-Z0-9 ] with variable length
+  /// determined by the size parameter. This is the primary way to generate arbitrary string inputs.
+  ///
+  /// **Generation Strategy:**
+  /// - Character set: lowercase, uppercase, digits, and space (63 characters)
+  /// - Length: 0 to size parameter (uniform distribution)
+  /// - Default size 10 produces strings typically 0-10 characters
+  ///
+  /// **Shrinking Strategy:**
+  /// Shrinks strings toward empty string (simplest):
+  /// 1. Shrinks to empty string ""
+  /// 2. Removes first character
+  /// 3. Removes last character
+  /// 4. Removes middle character
+  ///
+  /// **Character Set:**
+  /// - Lowercase: a-z (26 characters)
+  /// - Uppercase: A-Z (26 characters)
+  /// - Digits: 0-9 (10 characters)
+  /// - Space: " " (1 character)
+  /// - Total: 63 possible characters
+  ///
+  /// **Use Cases:**
+  /// - General string properties and invariants
+  /// - Text processing and parsing tests
+  /// - String validation and normalization
+  ///
+  /// - Returns: Generator producing String values with built-in shrinking
+  ///
+  /// - Note: For specific character sets (e.g., only ASCII letters), use ``Gen.asciiString``
+  ///   or custom generators with `map` composition.
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let gen = Gen<String>.string
+  ///   let property = Property(generator: gen) { str in
+  ///       #expect(str.allSatisfy { $0.isLetter || $0.isNumber || $0 == " " })
+  ///   }
+  ///   ```
+  ///
+  /// - See Also: ``Gen.asciiString``, ``Gen.printableString``, ``Gen.ascii``
   public static var string: Gen<String> {
     Gen<String>(
       generate: { rng, size in
@@ -217,7 +438,49 @@ extension Gen where T == String {
     )
   }
 
-  /// Generate ASCII strings
+  /// Generate ASCII strings with printable ASCII characters.
+  ///
+  /// Produces random strings from the printable ASCII character set (space through tilde, codes 32-126)
+  /// with variable length determined by the size parameter. This is suitable for testing text processing
+  /// and parsing functionality.
+  ///
+  /// **Character Set:**
+  /// - Range: ASCII 32 (space) through ASCII 126 (tilde)
+  /// - Includes: Spaces, punctuation, letters, digits
+  /// - Excludes: Control characters and non-ASCII Unicode
+  ///
+  /// **Generation Strategy:**
+  /// - Length: 0 to size parameter (uniform distribution)
+  /// - Character selection: Uniform from printable ASCII range
+  /// - Default size 10 produces strings typically 0-10 characters
+  ///
+  /// **Shrinking Strategy:**
+  /// Shrinks strings toward empty string (simplest):
+  /// 1. Shrinks to empty string ""
+  /// 2. Removes first character
+  /// 3. Removes last character
+  /// 4. Removes middle character
+  ///
+  /// **Use Cases:**
+  /// - Testing ASCII-only text processing
+  /// - Network protocol message generation
+  /// - Command-line argument testing
+  /// - Legacy ASCII-only systems
+  ///
+  /// - Returns: Generator producing ASCII String values with built-in shrinking
+  ///
+  /// - Note: For Unicode strings including emoji and international characters, use ``Gen.string``
+  ///   or ``Gen.unicodeString``. For specific character sets, use custom generators with map composition.
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let gen = Gen<String>.asciiString
+  ///   let property = Property(generator: gen) { str in
+  ///       #expect(str.allSatisfy { $0.asciiValue != nil })
+  ///   }
+  ///   ```
+  ///
+  /// - See Also: ``Gen.string``, ``Gen.letter``, ``Gen.digit``
   public static var asciiString: Gen<String> {
     Gen<String>(
       generate: { rng, size in
@@ -237,7 +500,42 @@ extension Gen where T == String {
 }
 
 extension Gen where T == UUID {
-  /// Generate UUIDs
+  /// Generate random Universally Unique Identifiers (UUIDs).
+  ///
+  /// Produces random version 4 UUIDs suitable for testing systems that depend on unique identifiers.
+  /// Each generated UUID is cryptographically random and has negligible probability of collision.
+  ///
+  /// **UUID Generation:**
+  /// - Type: Version 4 (random)
+  /// - Format: Standard 8-4-4-4-12 hexadecimal format
+  /// - Probability of collision: Vanishingly small (see birthday paradox)
+  ///
+  /// **Shrinking Strategy:**
+  /// UUIDs do not shrink meaningfully. Each UUID is equally minimal; shrinking returns an empty sequence.
+  /// This is appropriate because UUIDs are identifiers, not quantitative values with meaningful ordering.
+  ///
+  /// **Use Cases:**
+  /// - Testing unique identifier requirements
+  /// - Database record ID generation
+  /// - Request tracing and correlation IDs
+  /// - Testing uniqueness constraints
+  /// - Stream processing event IDs
+  ///
+  /// - Returns: Generator producing random UUID values with no shrinking
+  ///
+  /// - Note: Each generation creates a new UUID; size parameter is ignored.
+  ///   Suitable for any scale of testing since collisions are astronomically rare.
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let gen = Gen<UUID>.uuid
+  ///   let property = Property(generator: gen) { uuid in
+  ///       #expect(uuid.uuidString.count == 36)  // Standard format length
+  ///       #expect(uuid.uuidString.split(separator: "-").count == 5)
+  ///   }
+  ///   ```
+  ///
+  /// - See Also: ``Gen.string``, ``Gen.int(in:)``
   public static var uuid: Gen<UUID> {
     Gen<UUID>(
       generate: { _, _ in UUID() },
@@ -249,7 +547,48 @@ extension Gen where T == UUID {
 // MARK: - Character Generators
 
 extension Gen where T == Character {
-  /// Generate alphabetic characters
+  /// Generate alphabetic characters from a-z and A-Z.
+  ///
+  /// Produces random letters from the English alphabet, both lowercase and uppercase,
+  /// with uniform probability distribution. Size parameter is ignored.
+  ///
+  /// **Character Set:**
+  /// - Lowercase: a-z (26 characters)
+  /// - Uppercase: A-Z (26 characters)
+  /// - Total: 52 possible characters
+  /// - No accents, diacritics, or non-ASCII letters
+  ///
+  /// **Generation Strategy:**
+  /// - Uniform distribution across all 52 letters
+  /// - Size parameter does not affect generation
+  /// - Each invocation produces exactly one character
+  ///
+  /// **Shrinking Strategy:**
+  /// Shrinks toward 'a' (first letter alphabetically):
+  /// 1. Any letter shrinks to 'a' (simplest)
+  /// 2. 'a' shrinks to empty sequence (already minimal)
+  ///
+  /// **Use Cases:**
+  /// - Testing string parsing with letter validation
+  /// - Identifier and variable name generation
+  /// - Testing case sensitivity
+  /// - Building blocks for word/string generators
+  ///
+  /// - Returns: Generator producing Character values (a-zA-Z) with built-in shrinking
+  ///
+  /// - Note: For Unicode letters including accents and international characters, use custom generators.
+  ///   For digits, use ``Gen.digit``. For mixed alphanumeric, compose with ``Gen.or(_:_:)``.
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let gen = Gen<Character>.letter
+  ///   let property = Property(generator: gen) { char in
+  ///       #expect(char.isLetter)
+  ///       #expect((char >= "a" && char <= "z") || (char >= "A" && char <= "Z"))
+  ///   }
+  ///   ```
+  ///
+  /// - See Also: ``Gen.lowercase``, ``Gen.digit``, ``Gen.string``
   public static var letter: Gen<Character> {
     Gen<Character>(
       generate: { rng, _ in
@@ -266,7 +605,47 @@ extension Gen where T == Character {
     )
   }
 
-  /// Generate lowercase letters
+  /// Generate lowercase letters from a-z.
+  ///
+  /// Produces random lowercase letters from the English alphabet with uniform probability.
+  /// Size parameter is ignored. This is a specialized version of ``Gen.letter`` that excludes uppercase.
+  ///
+  /// **Character Set:**
+  /// - Range: a-z (26 characters)
+  /// - All lowercase English letters
+  /// - No uppercase, digits, or special characters
+  ///
+  /// **Generation Strategy:**
+  /// - Uniform distribution across 26 letters
+  /// - Size parameter does not affect generation
+  /// - Each invocation produces exactly one character
+  ///
+  /// **Shrinking Strategy:**
+  /// Shrinks toward 'a':
+  /// 1. Any letter shrinks to 'a'
+  /// 2. 'a' shrinks to empty sequence (already minimal)
+  ///
+  /// **Use Cases:**
+  /// - Testing case-sensitive text processing
+  /// - Lowercase identifier generation
+  /// - Testing case-sensitive comparisons
+  /// - Building lowercase words or slugs
+  ///
+  /// - Returns: Generator producing lowercase Character values (a-z) with built-in shrinking
+  ///
+  /// - Note: For uppercase letters, use custom compositions. For Unicode lowercase, use custom generators.
+  ///   For mixed case, compose multiple generators with ``Gen.or(_:_:)``.
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let gen = Gen<Character>.lowercase
+  ///   let property = Property(generator: gen) { char in
+  ///       #expect(char.isLowercase)
+  ///       #expect(char >= "a" && char <= "z")
+  ///   }
+  ///   ```
+  ///
+  /// - See Also: ``Gen.letter``, ``Gen.digit``
   public static var lowercase: Gen<Character> {
     Gen<Character>(
       generate: { rng, _ in
@@ -282,7 +661,49 @@ extension Gen where T == Character {
     )
   }
 
-  /// Generate digits
+  /// Generate digit characters from 0-9.
+  ///
+  /// Produces random decimal digit characters with uniform probability distribution.
+  /// Size parameter is ignored. Each character represents a single decimal digit.
+  ///
+  /// **Character Set:**
+  /// - Range: 0-9 (10 characters)
+  /// - ASCII codes: 48-57
+  /// - No letters, special characters, or negative sign
+  ///
+  /// **Generation Strategy:**
+  /// - Uniform distribution across 10 digits
+  /// - Size parameter does not affect generation
+  /// - Each invocation produces exactly one character
+  ///
+  /// **Shrinking Strategy:**
+  /// Shrinks toward '0':
+  /// 1. Any digit shrinks to '0'
+  /// 2. '0' shrinks to empty sequence (already minimal)
+  ///
+  /// **Use Cases:**
+  /// - Testing numeric string parsing
+  /// - Phone number generation
+  /// - PIN and numeric code testing
+  /// - Digit-only field validation
+  /// - Building numeric strings or passwords
+  ///
+  /// - Returns: Generator producing digit Character values (0-9) with built-in shrinking
+  ///
+  /// - Note: For actual numbers, use ``Gen.int``, ``Gen.double``, etc.
+  ///   For mixed alphanumeric, compose with ``Gen.letter`` using ``Gen.or(_:_:)``.
+  ///   For hexadecimal digits, create a custom generator from "0-9a-f".
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let gen = Gen<Character>.digit
+  ///   let property = Property(generator: gen) { char in
+  ///       #expect(char.isNumber)
+  ///       #expect(char >= "0" && char <= "9")
+  ///   }
+  ///   ```
+  ///
+  /// - See Also: ``Gen.letter``, ``Gen.int``, ``Gen.string``
   public static var digit: Gen<Character> {
     Gen<Character>(
       generate: { rng, _ in
