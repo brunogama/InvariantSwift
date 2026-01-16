@@ -45,6 +45,13 @@ Welcome to the InvariantSwift architecture documentation suite. This directory c
 - Team assignment templates
 - Maintenance checklist
 
+### Sharded Sections Directory
+- **Directory**: `sections/` (18 individual markdown files)
+- **Purpose**: Pre-split architecture document for easy team distribution
+- **Content**: Each of the 17 major sections in separate files
+- **Index**: `sections/index.md` - Navigation hub for all sharded sections
+- **Access**: Start with `sections/index.md` to browse individual sections
+
 ## 🎯 Quick Navigation
 
 ### By Role
@@ -211,5 +218,8 @@ A: See Section 1 for authors and reviewers
 
 **Files in this directory**:
 - `README.md` - This file (documentation index and navigation)
-- `InvariantSwift-architecture.md` - Full architecture document (37 KB)
+- `InvariantSwift-architecture.md` - Full architecture document (37 KB, 1,080 lines)
 - `SHARDING-GUIDE.md` - Instructions for splitting sections (8.5 KB)
+- `sections/` - Pre-sharded architecture sections (17 markdown files + index.md)
+  - `sections/index.md` - Navigation hub for sharded sections
+  - `sections/01-overview.md` through `sections/17-appendix.md` - Individual sections

@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * InvariantSwift-architecture.md (37 KB, 18 sections, 13 diagrams, 6 ADRs)
   * SHARDING-GUIDE.md for team-distributed ownership
   * README.md navigation hub for documentation suite
+  * sections/ directory with pre-sharded architecture sections (17 files + index)
 
 ### Changed
 - Remove swift-docs-generation pre-commit hook
