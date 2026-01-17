@@ -8,12 +8,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Comprehensive documentation suite:
+  * API_REFERENCE.md - Complete reference for all public types
+  * COOKBOOK.md - Practical recipes for common testing scenarios
+  * GENERATORS.md - Generator primitives, collections, and combinators
+  * SHRINKING.md - Automatic counterexample minimization guide
+  * ADVANCED.md - Coverage-guided, model-based, DICE, SMT features
+  * PRETTY_PRINTING.md - Diff-based assertions documentation
+  * Updated QUICKSTART.md with step-by-step tutorials
+- Diff-based assertions for Swift Testing integration:
+  * `expectNoDifference()` - Detailed diff output on equality failure
+  * `expectDifference()` - Assert value changes as expected (sync and async)
+  * `DiffFormat` struct with `.default` (ASCII) and `.proportional` (Unicode)
+  * `ObjectTracker` for cycle detection in reference types
+  * `StructuredDiff.collapsed()` for collection diff summary
 - Per-field shrinking for @Arbitrary macro - each struct field shrinks independently
 - `Shrink.automatic` static property for default no-op shrinking strategy
 - `Shrink.towards(_:)` static function for target-based shrinking
 - `GeneratorInference.inferShrink(for:)` for deriving shrink from generator type
 
 ### Fixed
+- Fix plugin deprecation warnings for Swift 6.0 URL APIs (.path -> .url, .directory -> .directoryURL)
 - Remove fatalError calls from production code paths:
   - PropertyEffect: Replace fatalError contramap with safe contramapWith method
   - ShrinkTrees: Change element(), filter(), oneOf(), frequency() to return optional instead of crashing

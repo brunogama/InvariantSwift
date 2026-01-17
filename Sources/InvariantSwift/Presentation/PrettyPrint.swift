@@ -22,6 +22,155 @@ import Foundation
 /// - [Leijen's PPrint Library](https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=d31e8e0605edbe89a7d6b8cc7c7f95ab73b9c3e4)
 /// - [Tree-sitter for Syntax Highlighting](https://tree-sitter.github.io/tree-sitter/)
 
+// MARK: - Object Tracking for Cycle Detection
+
+/// Tracks object references to detect cycles during pretty-printing.
+///
+/// When printing class instances or reference types, circular references can cause
+/// infinite recursion. `ObjectTracker` detects these cycles and displays them as
+/// back-references (e.g., "↩︎ (see #1)") instead of recursing infinitely.
+///
+/// **Thread Safety:** Designed to be passed by `inout` through the print call stack.
+/// Not shared across concurrent operations.
+///
+/// **Performance:** O(1) lookup and insertion using `ObjectIdentifier` hashing.
+public struct ObjectTracker: Sendable {
+  /// Maps object identifiers to their assigned reference IDs
+  private var idMapping: [ObjectIdentifier: Int] = [:]
+
+  /// Set of objects currently being visited (for cycle detection)
+  private var visitedIDs: Set<ObjectIdentifier> = []
+
+  /// Next available reference ID
+  private var nextID: Int = 1
+
+  /// Initialize an empty object tracker
+  public init() {}
+
+  /// Result of visiting an object
+  public enum VisitResult: Sendable {
+    /// First time visiting this object; assigned the given ID
+    case firstVisit(assignedID: Int)
+    /// Object was already visited; this is a cycle back to the given ID
+    case cycleDetected(referenceID: Int)
+  }
+
+  /// Begin visiting an object. Returns whether this is a first visit or a cycle.
+  ///
+  /// - Parameter object: The object to visit
+  /// - Returns: `.firstVisit` with assigned ID, or `.cycleDetected` with existing ID
+  public mutating func beginVisit(_ object: AnyObject) -> VisitResult {
+    let id = ObjectIdentifier(object)
+
+    // Check if we're currently visiting this object (cycle)
+    if visitedIDs.contains(id) {
+      let refID = idMapping[id] ?? 0
+      return .cycleDetected(referenceID: refID)
+    }
+
+    // First visit - assign an ID and mark as visiting
+    visitedIDs.insert(id)
+    let assignedID = nextID
+    idMapping[id] = assignedID
+    nextID += 1
+    return .firstVisit(assignedID: assignedID)
+  }
+
+  /// End visiting an object. Call this after fully printing the object.
+  ///
+  /// - Parameter object: The object that was being visited
+  public mutating func endVisit(_ object: AnyObject) {
+    let id = ObjectIdentifier(object)
+    visitedIDs.remove(id)
+  }
+
+  /// Check if an object has been seen before (without starting a visit)
+  ///
+  /// - Parameter object: The object to check
+  /// - Returns: The reference ID if seen before, nil otherwise
+  public func referenceID(for object: AnyObject) -> Int? {
+    idMapping[ObjectIdentifier(object)]
+  }
+
+  /// Format a cycle reference marker
+  ///
+  /// - Parameter referenceID: The ID of the referenced object
+  /// - Returns: A formatted string like "↩︎ (see #1)"
+  public static func cycleMarker(referenceID: Int) -> String {
+    "↩︎ (see #\(referenceID))"
+  }
+
+  /// Format an object ID marker for first occurrence
+  ///
+  /// - Parameter assignedID: The assigned ID
+  /// - Returns: A formatted string like "#1"
+  public static func idMarker(assignedID: Int) -> String {
+    "#\(assignedID)"
+  }
+}
+
+// MARK: - Diff Format
+
+/// Format options for diff output.
+///
+/// Controls the visual markers used to indicate additions, removals, and unchanged lines
+/// in diff output. Two presets are provided:
+/// - `.default`: ASCII characters for terminal compatibility
+/// - `.proportional`: Unicode characters for better Xcode/IDE display
+///
+/// **Example Output (default):**
+/// ```
+/// - age: 30
+/// + age: 31
+/// ```
+///
+/// **Example Output (proportional):**
+/// ```
+/// − age: 30
+/// + age: 31
+/// ```
+public struct DiffFormat: Sendable, Equatable {
+  /// Marker for removed/old values (e.g., "-" or "−")
+  public let first: String
+
+  /// Marker for added/new values (e.g., "+")
+  public let second: String
+
+  /// Marker for unchanged values (space or figure space)
+  public let unchanged: String
+
+  /// Initialize a custom diff format
+  ///
+  /// - Parameters:
+  ///   - first: Marker for removed values
+  ///   - second: Marker for added values
+  ///   - unchanged: Marker for unchanged values
+  public init(first: String, second: String, unchanged: String) {
+    self.first = first
+    self.second = second
+    self.unchanged = unchanged
+  }
+
+  /// Default ASCII format for terminal output
+  ///
+  /// Uses `-` for removals, `+` for additions, and space for unchanged.
+  public static let `default` = Self(
+    first: "-",
+    second: "+",
+    unchanged: " "
+  )
+
+  /// Proportional Unicode format for Xcode/IDE output
+  ///
+  /// Uses Unicode minus sign (U+2212) for removals, `+` for additions,
+  /// and figure space (U+2007) for unchanged to maintain alignment.
+  public static let proportional = Self(
+    first: "\u{2212}",  // MINUS SIGN
+    second: "+",
+    unchanged: "\u{2007}"  // FIGURE SPACE
+  )
+}
+
 // MARK: - Core Pretty-Printing Types
 
 /// **Document representation for pretty-printing**
@@ -221,7 +370,11 @@ extension Dictionary: PrettyPrintable where Key: PrettyPrintable, Value: PrettyP
       return .text("{}")
     }
 
-    let pairs = prefix(config.maxLength).map { key, value in
+    // Sort keys by string representation for deterministic output
+    let sortedPairs = map { (key: $0.key, value: $0.value) }
+      .sorted { "\($0.key)" < "\($1.key)" }
+
+    let pairs = sortedPairs.prefix(config.maxLength).map { key, value in
       Doc.concat(
         key.prettyDoc(config: config, depth: depth + 1),
         .concat(.text(": "), value.prettyDoc(config: config, depth: depth + 1))
@@ -230,7 +383,10 @@ extension Dictionary: PrettyPrintable where Key: PrettyPrintable, Value: PrettyP
 
     let truncated = count > config.maxLength
     let docs =
-      pairs + (truncated ? [.colored(.gray, .text("... \(count - config.maxLength) more"))] : [])
+      Array(pairs)
+      + (truncated
+        ? [.colored(.gray, .text("... \(count - config.maxLength) more"))]
+        : [])
 
     return .group(
       .concat(
@@ -317,6 +473,38 @@ public indirect enum StructuredDiff: Sendable {
   case removed(String)
   case nested(key: String, diff: Self)
   case collection([Self])
+  case collapsed(unchangedCount: Int)
+
+  /// Render the diff to a string with the given format
+  public func render(format: DiffFormat = .default, indent: Int = 0) -> String {
+    let indentStr = String(repeating: "  ", count: indent)
+
+    switch self {
+    case .unchanged(let value):
+      return "\(indentStr)\(format.unchanged) \(value)"
+
+    case .changed(let old, let new):
+      return """
+        \(indentStr)\(format.first) \(old)
+        \(indentStr)\(format.second) \(new)
+        """
+
+    case .added(let value):
+      return "\(indentStr)\(format.second) \(value)"
+
+    case .removed(let value):
+      return "\(indentStr)\(format.first) \(value)"
+
+    case .nested(let key, let diff):
+      return "\(indentStr)\(key):\n\(diff.render(format: format, indent: indent + 1))"
+
+    case .collection(let diffs):
+      return diffs.map { $0.render(format: format, indent: indent) }.joined(separator: "\n")
+
+    case .collapsed(let count):
+      return "\(indentStr)\(format.unchanged) ... (\(count) unchanged)"
+    }
+  }
 }
 
 /// **Protocol for types that can be diffed**
@@ -341,7 +529,57 @@ extension String: Diffable {
 
 extension Array: Diffable where Element: Diffable & Equatable {
   public func diff(other: [Element]) -> StructuredDiff {
-    let diffs = zip(self, other).map { $0.diff(other: $1) }
+    diff(other: other, collapseUnchanged: true, collapseThreshold: 2)
+  }
+
+  public func diff(
+    other: [Element],
+    collapseUnchanged: Bool,
+    collapseThreshold: Int = 2
+  ) -> StructuredDiff {
+    var diffs: [StructuredDiff] = []
+    var unchangedRun: [StructuredDiff] = []
+
+    func flushUnchanged() {
+      guard !unchangedRun.isEmpty else { return }
+      if collapseUnchanged && unchangedRun.count > collapseThreshold {
+        diffs.append(.collapsed(unchangedCount: unchangedRun.count))
+      } else {
+        diffs.append(contentsOf: unchangedRun)
+      }
+      unchangedRun.removeAll()
+    }
+
+    let maxIndex = Swift.max(count, other.count)
+    for i in 0..<maxIndex {
+      let hasOld = i < count
+      let hasNew = i < other.count
+
+      switch (hasOld, hasNew) {
+      case (true, true):
+        let oldElem = self[i]
+        let newElem = other[i]
+        if oldElem == newElem {
+          unchangedRun.append(.unchanged("\(oldElem)"))
+        } else {
+          flushUnchanged()
+          diffs.append(oldElem.diff(other: newElem))
+        }
+
+      case (true, false):
+        flushUnchanged()
+        diffs.append(.removed("\(self[i])"))
+
+      case (false, true):
+        flushUnchanged()
+        diffs.append(.added("\(other[i])"))
+
+      case (false, false):
+        break
+      }
+    }
+
+    flushUnchanged()
     return .collection(diffs)
   }
 }
@@ -375,20 +613,56 @@ public struct PrettyPrinter: Sendable {
   ///   - title: Title for the diff
   ///   - old: Original value
   ///   - new: New value
+  ///   - format: Diff format to use (default: `.default`)
   /// - Returns: Formatted diff string
   public func diff<T: PrettyPrintable & Diffable>(
     title: String,
     old: T,
-    new: T
+    new: T,
+    format: DiffFormat = .default
   ) -> String {
+    let structuredDiff = old.diff(other: new)
+    let diffBody = structuredDiff.render(format: format, indent: 1)
+
     let diffDoc = Doc.concat([
       .styled(.bold, .text("Diff: \(title)")),
       .line,
-      .colored(.red, .text("- ")),
-      old.prettyDoc(config: config, depth: 0),
+      .text(diffBody),
       .line,
-      .colored(.green, .text("+ ")),
-      new.prettyDoc(config: config, depth: 0),
+      .line,
+      .colored(.gray, .text("(First: \(format.first), Second: \(format.second))")),
+    ])
+
+    return render(diffDoc)
+  }
+
+  /// **Create a diff visualization for any Equatable types**
+  /// - Parameters:
+  ///   - title: Title for the diff
+  ///   - old: Original value
+  ///   - new: New value
+  ///   - format: Diff format to use (default: `.default`)
+  /// - Returns: Formatted diff string, or nil if values are equal
+  public func diffAny<T: Equatable>(
+    title: String,
+    old: T,
+    new: T,
+    format: DiffFormat = .default
+  ) -> String? {
+    guard old != new else { return nil }
+
+    let oldStr = (old as? PrettyPrintable).map { print($0) } ?? "\(old)"
+    let newStr = (new as? PrettyPrintable).map { print($0) } ?? "\(new)"
+
+    let diffDoc = Doc.concat([
+      .styled(.bold, .text("Diff: \(title)")),
+      .line,
+      .colored(.red, .text("\(format.first) \(oldStr)")),
+      .line,
+      .colored(.green, .text("\(format.second) \(newStr)")),
+      .line,
+      .line,
+      .colored(.gray, .text("(First: \(format.first), Second: \(format.second))")),
     ])
 
     return render(diffDoc)
@@ -543,13 +817,15 @@ public func prettyPrint<T: PrettyPrintable>(_ value: T) -> String {
 ///   - title: Title for the diff
 ///   - old: Original value
 ///   - new: New value
+///   - format: Diff format (default: `.default`)
 /// - Returns: Diff visualization
 public func prettyDiff<T: PrettyPrintable & Diffable>(
   _ title: String,
   old: T,
-  new: T
+  new: T,
+  format: DiffFormat = .default
 ) -> String {
-  PrettyPrinter().diff(title: title, old: old, new: new)
+  PrettyPrinter().diff(title: title, old: old, new: new, format: format)
 }
 
 // MARK: - Integration with Property Testing

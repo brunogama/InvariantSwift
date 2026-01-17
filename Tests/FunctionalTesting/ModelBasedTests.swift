@@ -170,20 +170,21 @@ struct ModelBasedTests {
       )
 
       // Shrunk sequence should still fail
-      let shrunkResult = await ModelTestRunner.checkModel(
-        model,
-        config: ModelTestConfig(maxCommands: shrunk.count, iterations: 1)
-      )
-
-      switch shrunkResult {
-      case .failure:
-        break  // Good, shrunk sequence still fails
-      case .success:
-        Issue.record("Shrunk sequence should still fail the model")
-
-      case .gaveUp:
-        break  // May give up due to reduced size
+      // Shrunk sequence should still fail
+      var state = model.initialState
+      var invariantViolated = false
+      for command in shrunk {
+        if !command.precondition(state: state) {
+          break  // Precondition violation is also a failure mode, but we target invariant here
+        }
+        state = command.apply(state: state)
+        if !model.invariant(state: state) {
+          invariantViolated = true
+          break
+        }
       }
+
+      #expect(invariantViolated, "Shrunk sequence should still violate the invariant")
 
     case .gaveUp:
       break  // May give up due to precondition violations

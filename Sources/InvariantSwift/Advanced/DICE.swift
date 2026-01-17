@@ -572,6 +572,7 @@ public struct InterleavingTrace: Sendable {
 // MARK: - Custom Task Executor
 
 /// Custom task executor for deterministic scheduling
+@available(macOS 15.0, iOS 18.0, tvOS 18.0, watchOS 11.0, *)
 public final class DeterministicTaskExecutor: TaskExecutor, @unchecked Sendable {
   private let scheduler: DeterministicScheduler
 
@@ -589,6 +590,7 @@ public final class DeterministicTaskExecutor: TaskExecutor, @unchecked Sendable 
 // MARK: - Deterministic Scheduler
 
 /// Deterministic scheduler with complete control
+@available(macOS 15.0, iOS 18.0, tvOS 18.0, watchOS 11.0, *)
 @globalActor
 public actor DeterministicScheduler {
   public static let shared = DeterministicScheduler()
@@ -734,6 +736,7 @@ public actor DeterministicScheduler {
 
 // MARK: - Public API
 
+@available(macOS 15.0, iOS 18.0, tvOS 18.0, watchOS 11.0, *)
 extension DeterministicScheduler {
 
   /// Run a property test with deterministic scheduling

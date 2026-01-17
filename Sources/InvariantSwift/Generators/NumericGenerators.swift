@@ -16,7 +16,7 @@ extension Gen where T == Int8 {
           }
         }
 
-        let range = min(Int8(size.value), Int8.max / 2)
+        let range = min(Int8(clamping: size.value), Int8.max / 2)
         return Int8.random(in: -range...range, using: &rng)
       },
       shrink: Shrink { n in
@@ -47,7 +47,7 @@ extension Gen where T == Int16 {
           }
         }
 
-        let range = min(Int16(size.value * 100), Int16.max / 2)
+        let range = min(Int16(clamping: size.value * 100), Int16.max / 2)
         return Int16.random(in: -range...range, using: &rng)
       },
       shrink: Shrink { n in
@@ -78,7 +78,7 @@ extension Gen where T == Int32 {
           }
         }
 
-        let range = min(Int32(size.value * 1000), Int32.max / 2)
+        let range = min(Int32(clamping: size.value * 1000), Int32.max / 2)
         return Int32.random(in: -range...range, using: &rng)
       },
       shrink: Shrink { n in
@@ -109,7 +109,7 @@ extension Gen where T == Int64 {
           }
         }
 
-        let range = min(Int64(size.value * 10000), Int64.max / 2)
+        let range = min(Int64(clamping: size.value * 10000), Int64.max / 2)
         return Int64.random(in: -range...range, using: &rng)
       },
       shrink: Shrink { n in
@@ -142,7 +142,7 @@ extension Gen where T == UInt {
           }
         }
 
-        let range = min(UInt(size.value * 10), UInt.max / 2)
+        let range = min(UInt(size.value) * 10, UInt.max / 2)
         return UInt.random(in: 0...range, using: &rng)
       },
       shrink: Shrink { n in
@@ -173,7 +173,7 @@ extension Gen where T == UInt8 {
           }
         }
 
-        let range = min(UInt8(size.value), UInt8.max / 2)
+        let range = min(UInt8(clamping: size.value), UInt8.max / 2)
         return UInt8.random(in: 0...range, using: &rng)
       },
       shrink: Shrink { n in
@@ -204,7 +204,7 @@ extension Gen where T == UInt16 {
           }
         }
 
-        let range = min(UInt16(size.value * 100), UInt16.max / 2)
+        let range = min(UInt16(clamping: size.value * 100), UInt16.max / 2)
         return UInt16.random(in: 0...range, using: &rng)
       },
       shrink: Shrink { n in
@@ -235,7 +235,7 @@ extension Gen where T == UInt32 {
           }
         }
 
-        let range = min(UInt32(size.value * 1000), UInt32.max / 2)
+        let range = min(UInt32(clamping: size.value * 1000), UInt32.max / 2)
         return UInt32.random(in: 0...range, using: &rng)
       },
       shrink: Shrink { n in
@@ -266,7 +266,7 @@ extension Gen where T == UInt64 {
           }
         }
 
-        let range = min(UInt64(size.value * 10000), UInt64.max / 2)
+        let range = min(UInt64(clamping: size.value * 10000), UInt64.max / 2)
         return UInt64.random(in: 0...range, using: &rng)
       },
       shrink: Shrink { n in

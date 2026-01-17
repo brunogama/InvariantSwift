@@ -186,13 +186,13 @@ struct FinalCoverageValidationTests {
     let stringShrinks = stringShrink.shrink("hello world")
     let arrayShrinks = arrayShrink.shrink([1, 2, 3, 4, 5])
 
-    #expect(intShrinks.isEmpty, "Int shrinking should produce non-negative count of candidates")
+    #expect(!intShrinks.isEmpty, "Int shrinking should produce non-negative count of candidates")
     #expect(
-      doubleShrinks.isEmpty,
+      !doubleShrinks.isEmpty,
       "Double shrinking should produce non-negative count of candidates"
     )
     #expect(
-      boolShrinks.isEmpty,
+      !boolShrinks.isEmpty,
       "Bool shrinking should produce non-negative count of candidates"
     )
     #expect(
@@ -200,7 +200,7 @@ struct FinalCoverageValidationTests {
       "String shrinking should produce non-negative count of candidates"
     )
     #expect(
-      arrayShrinks.isEmpty,
+      !arrayShrinks.isEmpty,
       "Array shrinking should produce non-negative count of candidates"
     )
   }
@@ -666,7 +666,7 @@ struct FinalCoverageValidationTests {
 
       #expect(intValue >= Int.min, "Size-Generator integration should work for size \(size.value)")
       #expect(
-        arrayValue.isEmpty,
+        arrayValue.isEmpty == (size.value == 0),
         "Size-Collection integration should work for size \(size.value)"
       )
     }
@@ -834,13 +834,13 @@ struct FinalCoverageValidationTests {
     let arrayShrinkDuration = CFAbsoluteTimeGetCurrent() - arrayShrinkTime
 
     #expect(intShrinkDuration < 0.1, "Int shrinking should be fast: \(intShrinkDuration)s")
-    #expect(intShrinks.isEmpty, "Int should produce valid shrink candidates")
+    #expect(!intShrinks.isEmpty, "Int should produce valid shrink candidates")
 
     #expect(stringShrinkDuration < 0.1, "String shrinking should be fast: \(stringShrinkDuration)s")
     #expect(stringShrinks.isEmpty, "String should produce valid shrink candidates")
 
     #expect(arrayShrinkDuration < 0.1, "Array shrinking should be fast: \(arrayShrinkDuration)s")
-    #expect(arrayShrinks.isEmpty, "Array should produce valid shrink candidates")
+    #expect(!arrayShrinks.isEmpty, "Array should produce valid shrink candidates")
 
     // 4. Memory Usage Validation
     let memoryTestProperty = Property<[String]>(

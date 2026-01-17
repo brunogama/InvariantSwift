@@ -5,11 +5,11 @@ import CompilerPluginSupport
 let package = Package(
   name: "InvariantSwift",
   platforms: [
-    .iOS(.v18),
-    .macOS(.v15),
-    .tvOS(.v18),
-    .watchOS(.v11),
-    .macCatalyst(.v18),
+    .iOS(.v17),
+    .macOS(.v14),
+    .tvOS(.v17),
+    .watchOS(.v10),
+    .macCatalyst(.v17),
   ],
   products: [
     .library(
@@ -17,12 +17,12 @@ let package = Package(
       targets: ["InvariantSwift"]
     ),
     .executable(
-      name: "functest",
+      name: "FuncTestCLI",
       targets: ["FuncTestCLI"]
     ),
     .plugin(
-      name: "FuncTestPlugin",
-      targets: ["FuncTestPlugin"]
+      name: "InvariantSwiftPlugin",
+      targets: ["InvariantSwiftPlugin"]
     ),
   ],
   dependencies: [
@@ -94,10 +94,10 @@ let package = Package(
 
     /// Swift Package Manager Plugin
     .plugin(
-      name: "FuncTestPlugin",
+      name: "InvariantSwiftPlugin",
       capability: .command(
         intent: .custom(
-          verb: "functest",
+          verb: "invariant",
           description: "Run property-based tests with advanced features"
         ),
         permissions: [
@@ -111,7 +111,7 @@ let package = Package(
       dependencies: [
         "FuncTestCLI"
       ],
-      path: "Plugins/FuncTestPlugin"
+      path: "Plugins/InvariantSwiftPlugin"
     ),
 
     // MARK: - Test Targets
@@ -120,6 +120,7 @@ let package = Package(
       name: "FunctionalTesting",
       dependencies: ["InvariantSwift"],
       path: "Tests/FunctionalTesting",
+      exclude: ["FakeryGeneratorsTests.swift.disabled"],
       swiftSettings: [
         .unsafeFlags(
           [

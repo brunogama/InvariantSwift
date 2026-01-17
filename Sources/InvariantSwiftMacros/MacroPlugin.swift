@@ -11,5 +11,7 @@ struct InvariantSwiftMacroPlugin: CompilerPlugin {
     DeriveGenMacro.self,
     ArbitraryMacro.self,
     LabelMacro.self,
+    StateMachineMacro.self,
+    CommandMacro.self,
   ]
 }

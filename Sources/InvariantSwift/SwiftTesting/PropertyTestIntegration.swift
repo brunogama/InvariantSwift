@@ -191,10 +191,31 @@ public func checkProperty<T: Sendable>(
 
   case .failure(let counterexample, let iterations, let shrunk, let reason, let seed):
     let reproString = result.reproString?.description ?? "N/A"
+    let printer = PrettyPrinter(config: .testOutput)
+
+    let counterexampleStr: String
+    if let printable = counterexample as? PrettyPrintable {
+      counterexampleStr = printer.print(printable)
+    } else {
+      counterexampleStr = "\(counterexample)"
+    }
+
+    let shrunkStr: String
+    if let printable = shrunk as? PrettyPrintable {
+      shrunkStr = printer.print(printable)
+    } else {
+      shrunkStr = "\(shrunk)"
+    }
+
     let message = """
       Property failed after \(iterations) iterations (\(reason)).
-      Counterexample: \(counterexample)
-      Shrunk counterexample: \(shrunk)
+
+      Counterexample:
+        \(counterexampleStr)
+
+      Shrunk counterexample:
+        \(shrunkStr)
+
       Seed: \(seed.rawValue)
       \(reproString)
       """
@@ -306,10 +327,31 @@ public func checkPropertyAsync<T: Sendable>(
     break  // Test passes; no issue to record
 
   case .failure(let counterexample, let iterations, let shrunk, _, let seed):
+    let printer = PrettyPrinter(config: .testOutput)
+
+    let counterexampleStr: String
+    if let printable = counterexample as? PrettyPrintable {
+      counterexampleStr = printer.print(printable)
+    } else {
+      counterexampleStr = "\(counterexample)"
+    }
+
+    let shrunkStr: String
+    if let printable = shrunk as? PrettyPrintable {
+      shrunkStr = printer.print(printable)
+    } else {
+      shrunkStr = "\(shrunk)"
+    }
+
     let message = """
       Property failed after \(iterations) iterations.
-      Counterexample: \(counterexample)
-      Shrunk counterexample: \(shrunk)
+
+      Counterexample:
+        \(counterexampleStr)
+
+      Shrunk counterexample:
+        \(shrunkStr)
+
       Reproduction seed: \(seed.rawValue)
       """
     Issue.record(Comment(stringLiteral: message))

@@ -78,7 +78,10 @@ public struct Size: Sendable {
   ///   let stress = size.scaled(by: 10.0)    // Size(value: 500)
   ///   ```
   public func scaled(by factor: Double) -> Self {
-    Self(value: max(0, Int(Double(value) * factor)))
+    guard factor.isFinite else { return Self(value: 0) }
+    let scaled = Double(value) * factor
+    guard scaled.isFinite else { return Self(value: Int.max) }
+    return Self(value: max(0, Int(scaled)))
   }
 
   /// Predefined small size constant for quick tests.

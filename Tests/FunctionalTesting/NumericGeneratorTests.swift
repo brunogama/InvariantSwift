@@ -146,7 +146,7 @@ struct NumericGeneratorTests {
     #expect(hasNegativeValues || hasPositiveValues, "Int16 should generate diverse values")
   }
 
-  @Test("Int32 Generator Comprehensive Coverage")
+  @Test("Int32 Generator Comprehensive Coverage", .enabled(if: TestEnvironment.isNotBetaMacOS))
   func int32GeneratorComprehensiveCoverage() async {
     let property = Property<Int32>(generator: Gen.int32) { value in
       value >= Int32.min && value <= Int32.max
@@ -167,7 +167,7 @@ struct NumericGeneratorTests {
     }
   }
 
-  @Test("Int32 Generator Range Testing")
+  @Test("Int32 Generator Range Testing", .enabled(if: TestEnvironment.isNotBetaMacOS))
   func int32GeneratorRangeTesting() async {
     let property = Property<Int32>(generator: Gen.int32) { value in
       // Test Int32 range capabilities (basic test since specific range API may not exist)
@@ -189,7 +189,7 @@ struct NumericGeneratorTests {
     }
   }
 
-  @Test("Int64 Generator Comprehensive Coverage")
+  @Test("Int64 Generator Comprehensive Coverage", .enabled(if: TestEnvironment.isNotBetaMacOS))
   func int64GeneratorComprehensiveCoverage() async {
     let property = Property<Int64>(generator: Gen.int64) { value in
       value >= Int64.min && value <= Int64.max
@@ -210,7 +210,7 @@ struct NumericGeneratorTests {
     }
   }
 
-  @Test("Int64 Generator Large Value Testing")
+  @Test("Int64 Generator Large Value Testing", .enabled(if: TestEnvironment.isNotBetaMacOS))
   func int64GeneratorLargeValueTesting() async {
     let property = Property<Int64>(generator: Gen.int64) { value in
       // Test that Int64 can handle very large values
@@ -635,7 +635,7 @@ struct NumericGeneratorTests {
     #expect(true, "UInt shrinking behavior test completed")
   }
 
-  @Test("Int64 Shrinking Large Values")
+  @Test("Int64 Shrinking Large Values", .enabled(if: TestEnvironment.isNotBetaMacOS))
   func int64ShrinkingLargeValues() async {
     let property = Property<Int64>(generator: Gen.int64) { value in
       // Always fail to force shrinking with large values

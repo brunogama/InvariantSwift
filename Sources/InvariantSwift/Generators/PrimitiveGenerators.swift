@@ -50,7 +50,9 @@ extension Gen where T == Int {
           }
         }
 
-        let range = min(size.value * 10, Int.max / 2)
+        // Safely calculate range, preventing overflow
+        let limit = Int.max / 2
+        let range = size.value > limit / 10 ? limit : size.value * 10
         return Int.random(in: -range...range, using: &rng)
       },
       shrink: Shrink { n in
