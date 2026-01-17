@@ -304,6 +304,16 @@ public struct PropertyConfig: Sendable {
   /// When nil, uses system randomness (different each run).
   public let seed: Seed?
 
+  /// Enables verbose output during test execution.
+  ///
+  /// When true, prints progress information during test runs:
+  /// - Iteration count updates
+  /// - Generated test case summaries
+  /// - Shrinking progress
+  ///
+  /// Useful for debugging slow tests or understanding test behavior.
+  public let verbose: Bool
+
   /// Initializes a property testing configuration.
   ///
   /// - Parameters:
@@ -311,6 +321,7 @@ public struct PropertyConfig: Sendable {
   ///   - maxShrinks: Maximum shrink attempts (default: 1000). Clamped to at least 0.
   ///   - maxDiscarded: Maximum discarded cases (default: 1000). Clamped to at least 0.
   ///   - seed: Optional seed for reproducibility. Default: nil (system randomness).
+  ///   - verbose: Enable verbose output. Default: false.
   ///
   /// - Example:
   ///   ```swift
@@ -325,12 +336,14 @@ public struct PropertyConfig: Sendable {
     iterations: Int = 100,
     maxShrinks: Int = 1000,
     maxDiscarded: Int = 1000,
-    seed: Seed? = nil
+    seed: Seed? = nil,
+    verbose: Bool = false
   ) {
     self.iterations = max(1, iterations)
     self.maxShrinks = max(0, maxShrinks)
     self.maxDiscarded = max(0, maxDiscarded)
     self.seed = seed
+    self.verbose = verbose
   }
 
   /// Default configuration: 100 iterations, 1000 shrinks, 1000 max discarded.
@@ -603,6 +616,15 @@ public func runPropertySynchronously<T>(
   }
 
   return .success(iterations: config.iterations)
+}
+
+@available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
+public func runPropertyAsync<T: Sendable>(
+  _ property: Property<T>,
+  config: PropertyConfig = .default
+) async -> PropertyResult<T> {
+  let runner = PropertyRunner(seed: config.seed)
+  return await runner.runProperty(property, config: config)
 }
 
 private func shrinkFailureSynchronously<T>(

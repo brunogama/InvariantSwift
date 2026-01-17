@@ -413,11 +413,18 @@ enum ArbitraryCodeGen {
     config: ArbitraryConfig
   ) -> ExprSyntax {
 
-    if case .towards(let expr) = config.shrinkStrategy {
+    switch config.shrinkStrategy {
+    case .towards(let expr):
       return buildTowardsShrink(targetExpr: expr)
+    case .toEmpty:
+      return buildToEmptyShrink(typeName: typeName, fields: fields)
+    case .dropFields:
+      return buildDropFieldsShrink(typeName: typeName, fields: fields)
+    case .custom(let expr):
+      return buildCustomShrink(closure: expr)
+    case .automatic, .none:
+      return buildAutomaticShrink(typeName: typeName, fields: fields)
     }
-
-    return buildAutomaticShrink(typeName: typeName, fields: fields)
   }
 
   private static func buildTowardsShrink(targetExpr: ExprSyntax) -> ExprSyntax {
@@ -448,6 +455,82 @@ enum ArbitraryCodeGen {
     }
 
     return buildPerFieldShrink(typeName: typeName, fields: fields)
+  }
+
+  private static func buildToEmptyShrink(
+    typeName: String,
+    fields: [AnalyzedField]
+  ) -> ExprSyntax {
+    let emptyValues = fields.map { field -> LabeledExprSyntax in
+      let emptyExpr = buildEmptyValue(for: field.type)
+      return LabeledExprSyntax(
+        label: .identifier(field.name),
+        colon: .colonToken(),
+        expression: emptyExpr
+      )
+    }
+
+    let emptyInstance = FunctionCallExprSyntax(
+      calledExpression: DeclReferenceExprSyntax(baseName: .identifier(typeName)),
+      leftParen: .leftParenToken(),
+      arguments: LabeledExprListSyntax(emptyValues),
+      rightParen: .rightParenToken()
+    )
+
+    return buildTowardsShrink(targetExpr: ExprSyntax(emptyInstance))
+  }
+
+  private static func buildEmptyValue(for type: TypeSyntax) -> ExprSyntax {
+    let typeName = type.trimmedDescription
+
+    if typeName.contains("Int") || typeName.contains("Double") || typeName.contains("Float") {
+      return ExprSyntax(IntegerLiteralExprSyntax(literal: .integerLiteral("0")))
+    }
+    if typeName == "String" {
+      return ExprSyntax(StringLiteralExprSyntax(content: ""))
+    }
+    if typeName == "Bool" {
+      return ExprSyntax(BooleanLiteralExprSyntax(booleanLiteral: false))
+    }
+    if typeName.hasPrefix("[") || typeName.hasPrefix("Array") {
+      return ExprSyntax(ArrayExprSyntax(elements: ArrayElementListSyntax {}))
+    }
+    if typeName.hasPrefix("Set") {
+      return ExprSyntax(ArrayExprSyntax(elements: ArrayElementListSyntax {}))
+    }
+    if typeName.hasSuffix("?") || typeName.hasPrefix("Optional") {
+      return ExprSyntax(NilLiteralExprSyntax())
+    }
+    return ExprSyntax(NilLiteralExprSyntax())
+  }
+
+  private static func buildDropFieldsShrink(
+    typeName: String,
+    fields: [AnalyzedField]
+  ) -> ExprSyntax {
+    let optionalFields = fields.filter { field in
+      let typeName = field.type.trimmedDescription
+      return typeName.hasSuffix("?") || typeName.hasPrefix("Optional")
+    }
+
+    if optionalFields.isEmpty {
+      return buildAutomaticShrink(typeName: typeName, fields: fields)
+    }
+
+    return buildPerFieldShrink(typeName: typeName, fields: fields)
+  }
+
+  private static func buildCustomShrink(closure: ExprSyntax) -> ExprSyntax {
+    ExprSyntax(
+      FunctionCallExprSyntax(
+        calledExpression: DeclReferenceExprSyntax(baseName: .identifier("Shrink")),
+        leftParen: .leftParenToken(),
+        arguments: LabeledExprListSyntax {
+          LabeledExprSyntax(expression: closure)
+        },
+        rightParen: .rightParenToken()
+      )
+    )
   }
 
   private static func buildPerFieldShrink(
@@ -701,10 +784,130 @@ enum ArbitraryCodeGen {
   }
 
   private static func buildConstrainedGenerator(constraint: String) -> ExprSyntax {
-    ExprSyntax(
+    let trimmed = constraint.trimmingCharacters(in: .whitespaces)
+
+    if trimmed == "nonEmpty" {
+      return buildNonEmptyGenerator()
+    }
+
+    if let range = parseClosedRange(trimmed) {
+      return buildRangedIntGenerator(lower: range.lower, upper: range.upper)
+    }
+
+    if let range = parseHalfOpenRange(trimmed) {
+      return buildRangedIntGenerator(lower: range.lower, upper: range.upper, isClosed: false)
+    }
+
+    return ExprSyntax(
       MemberAccessExprSyntax(
-        base: DeclReferenceExprSyntax(baseName: .identifier("Gen")),
+        base: GenericSpecializationExprSyntax(
+          expression: DeclReferenceExprSyntax(baseName: .identifier("Gen")),
+          genericArgumentClause: GenericArgumentClauseSyntax {
+            GenericArgumentSyntax(argument: IdentifierTypeSyntax(name: .identifier("Int")))
+          }
+        ),
         declName: DeclReferenceExprSyntax(baseName: .identifier("int"))
+      )
+    )
+  }
+
+  private static func parseClosedRange(_ str: String) -> (lower: String, upper: String)? {
+    let parts = str.components(separatedBy: "...")
+    guard parts.count == 2 else { return nil }
+    let lower = parts[0].trimmingCharacters(in: .whitespaces)
+    let upper = parts[1].trimmingCharacters(in: .whitespaces)
+    guard !lower.isEmpty, !upper.isEmpty else { return nil }
+    return (lower, upper)
+  }
+
+  private static func parseHalfOpenRange(_ str: String) -> (lower: String, upper: String)? {
+    let parts = str.components(separatedBy: "..<")
+    guard parts.count == 2 else { return nil }
+    let lower = parts[0].trimmingCharacters(in: .whitespaces)
+    let upper = parts[1].trimmingCharacters(in: .whitespaces)
+    guard !lower.isEmpty, !upper.isEmpty else { return nil }
+    return (lower, upper)
+  }
+
+  private static func buildRangedIntGenerator(
+    lower: String,
+    upper: String,
+    isClosed: Bool = true
+  ) -> ExprSyntax {
+    let rangeOperator = isClosed ? "..." : "..<"
+    let rangeExpr = SequenceExprSyntax {
+      IntegerLiteralExprSyntax(literal: .integerLiteral(lower))
+      BinaryOperatorExprSyntax(operator: .binaryOperator(rangeOperator))
+      IntegerLiteralExprSyntax(literal: .integerLiteral(upper))
+    }
+
+    return ExprSyntax(
+      FunctionCallExprSyntax(
+        calledExpression: MemberAccessExprSyntax(
+          base: GenericSpecializationExprSyntax(
+            expression: DeclReferenceExprSyntax(baseName: .identifier("Gen")),
+            genericArgumentClause: GenericArgumentClauseSyntax {
+              GenericArgumentSyntax(argument: IdentifierTypeSyntax(name: .identifier("Int")))
+            }
+          ),
+          declName: DeclReferenceExprSyntax(baseName: .identifier("int"))
+        ),
+        leftParen: .leftParenToken(),
+        arguments: LabeledExprListSyntax {
+          LabeledExprSyntax(
+            label: .identifier("in"),
+            colon: .colonToken(),
+            expression: ExprSyntax(rangeExpr)
+          )
+        },
+        rightParen: .rightParenToken()
+      )
+    )
+  }
+
+  private static func buildNonEmptyGenerator() -> ExprSyntax {
+    let baseGen = ExprSyntax(
+      MemberAccessExprSyntax(
+        base: GenericSpecializationExprSyntax(
+          expression: DeclReferenceExprSyntax(baseName: .identifier("Gen")),
+          genericArgumentClause: GenericArgumentClauseSyntax {
+            GenericArgumentSyntax(argument: IdentifierTypeSyntax(name: .identifier("String")))
+          }
+        ),
+        declName: DeclReferenceExprSyntax(baseName: .identifier("string"))
+      )
+    )
+
+    let predicateClosure = ClosureExprSyntax(
+      signature: ClosureSignatureSyntax(
+        parameterClause: .simpleInput(
+          ClosureShorthandParameterListSyntax {
+            ClosureShorthandParameterSyntax(name: .identifier("s"))
+          }
+        )
+      ),
+      statements: CodeBlockItemListSyntax {
+        PrefixOperatorExprSyntax(
+          operator: .prefixOperator("!"),
+          expression: MemberAccessExprSyntax(
+            base: DeclReferenceExprSyntax(baseName: .identifier("s")),
+            declName: DeclReferenceExprSyntax(baseName: .identifier("isEmpty"))
+          )
+        )
+      }
+    )
+
+    return ExprSyntax(
+      FunctionCallExprSyntax(
+        calledExpression: MemberAccessExprSyntax(
+          base: baseGen,
+          declName: DeclReferenceExprSyntax(baseName: .identifier("suchThat"))
+        ),
+        leftParen: .leftParenToken(),
+        arguments: LabeledExprListSyntax {
+          LabeledExprSyntax(expression: ExprSyntax(predicateClosure))
+        },
+        rightParen: .rightParenToken()
       )
     )
   }

@@ -575,13 +575,21 @@ InvariantSwift is optimized for high-throughput testing:
 
 ---
 
+## Acknowledgments
+
+This project incorporates substantial work from [Point-Free](https://www.pointfree.co/), whose open-source Swift libraries have been instrumental in building InvariantSwift. In particular:
+
+- **[swift-custom-dump](https://github.com/pointfreeco/swift-custom-dump)** - The diff-based assertions and pretty-printing system
+- **[swift-gen](https://github.com/pointfreeco/swift-gen)** - Core generator concepts and functional composition patterns
+
+We are grateful to [Brandon Williams](https://github.com/mbrandonw) and [Stephen Celis](https://github.com/stephencelis) for their excellent work on property-based testing foundations in Swift.
+
 ## Inspiration
 
-InvariantSwift builds on ideas from:
+InvariantSwift also builds on ideas from:
 
 - [QuickCheck](https://hackage.haskell.org/package/QuickCheck) (Haskell) - The original property-based testing library
 - [Hypothesis](https://hypothesis.readthedocs.io/) (Python) - Coverage-guided testing
-- [swift-custom-dump](https://github.com/pointfreeco/swift-custom-dump) - Diff-based assertions
 - [Hedgehog](https://hedgehog.qa/) - Integrated shrinking
 
 ---

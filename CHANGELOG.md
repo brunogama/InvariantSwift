@@ -8,6 +8,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Async property support in @Property macro:
+  * Detects async functions and generates `async throws` test methods
+  * Uses `runPropertyAsync()` for async property execution
+  * New `runPropertyAsync<T: Sendable>()` runtime function
+- Constraint parsing for @Arbitrary macro:
+  * Range constraints: `"0...120"` generates `Gen<Int>.int(in: 0...120)`
+  * Half-open ranges: `"..<100"` supported
+  * `"nonEmpty"` constraint generates `.suchThat { !$0.isEmpty }`
+- New shrink strategies for @Arbitrary macro:
+  * `.toEmpty` - shrinks to empty/zero values (0, "", [], nil)
+  * `.dropFields` - prioritizes shrinking optional fields first
+  * `.custom(closure)` - allows custom shrink closures
+- Verbose mode for PropertyConfig:
+  * `verbose: Bool` parameter for detailed test output
+  * Macro extracts and passes verbose flag to generated code
+- Improved failure messages with contextual tips:
+  * Clearer section labels ("Original failing input", "Shrunk to minimal case")
+  * Added "Tip: Re-run with this seed to reproduce the failure"
+
+### Tests
+- Added async property macro tests
+- Added constraint parsing tests for @Arbitrary macro
+
+### Changed
+- PropertyConfig now includes verbose parameter with default false
+
 - Comprehensive documentation suite:
   * API_REFERENCE.md - Complete reference for all public types
   * COOKBOOK.md - Practical recipes for common testing scenarios

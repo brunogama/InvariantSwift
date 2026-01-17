@@ -520,4 +520,88 @@ final class ArbitraryMacroTests: XCTestCase {
       macros: testMacros
     )
   }
+
+  func testStructWithRangeConstraint() {
+    assertMacroExpansion(
+      """
+      @Arbitrary(constraints: ["age": "0...120"])
+      struct Person {
+          let name: String
+          let age: Int
+      }
+      """,
+      expandedSource: """
+        struct Person {
+            let name: String
+            let age: Int
+
+            public static var arbitrary: Gen<Person> {
+                Gen.zip(Gen<String>.string, Gen<Int>.int(in: 0 ... 120)).map {
+                    Person(name: $0, age: $1)
+                }
+            }
+
+            public static var shrink: Shrink<Person> {
+                Shrink { value in
+                    var results: [Person] = []
+                    for shrunkName in Gen<String>.string.shrink.shrink(value.name) {
+                        results.append(Person(name: shrunkName, age: value.age))
+                    }
+                    for shrunkAge in Gen<Int>.int.shrink.shrink(value.age) {
+                        results.append(Person(name: value.name, age: shrunkAge))
+                    }
+                    return results
+                }
+            }
+        }
+
+        extension Person: Generatable {
+        }
+        """,
+      macros: testMacros
+    )
+  }
+
+  func testStructWithNonEmptyConstraint() {
+    assertMacroExpansion(
+      """
+      @Arbitrary(constraints: ["name": "nonEmpty"])
+      struct User {
+          let name: String
+          let age: Int
+      }
+      """,
+      expandedSource: """
+        struct User {
+            let name: String
+            let age: Int
+
+            public static var arbitrary: Gen<User> {
+                Gen.zip(Gen<String>.string.suchThat({ s in
+                            !s.isEmpty
+                        }), Gen<Int>.int).map {
+                    User(name: $0, age: $1)
+                }
+            }
+
+            public static var shrink: Shrink<User> {
+                Shrink { value in
+                    var results: [User] = []
+                    for shrunkName in Gen<String>.string.shrink.shrink(value.name) {
+                        results.append(User(name: shrunkName, age: value.age))
+                    }
+                    for shrunkAge in Gen<Int>.int.shrink.shrink(value.age) {
+                        results.append(User(name: value.name, age: shrunkAge))
+                    }
+                    return results
+                }
+            }
+        }
+
+        extension User: Generatable {
+        }
+        """,
+      macros: testMacros
+    )
+  }
 }

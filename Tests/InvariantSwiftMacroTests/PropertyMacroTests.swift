@@ -727,6 +727,121 @@ struct FunctionNamingTests {
   }
 }
 
+// MARK: - Async Property Tests
+
+struct AsyncPropertyMacroTests {
+
+  @Test("Async function detection generates async test")
+  func asyncFunctionGeneratesAsyncTest() throws {
+    let helper = MacroTestCase()
+    let originalSource = """
+      @PropertyTest("Async property test")
+      func testAsyncProperty(x: Int) async -> Bool {
+          return x >= Int.min
+      }
+      """
+
+    let expectedExpansion = """
+      @PropertyTest("Async property test")
+      func testAsyncProperty(x: Int) async -> Bool {
+          return x >= Int.min
+      }
+
+      @Test("Async property test")
+      public func testAsyncProperty_Property() async throws {
+          let generator = Gen.int
+          let property = Property(generator: generator) { (x: Int) in
+              return x >= Int.min
+          }
+
+          let runner = PropertyRunner(seed: nil)
+          let result = await runner.runProperty(property, config: PropertyConfig(
+              iterations: 100,
+              maxShrinks: 1000,
+              seed: nil
+          ))
+
+          switch result {
+          case .success:
+              break
+
+          case .failure(let counterexample, let iterations, let shrunk, _, _):
+              throw PropertyTestFailure(
+                  message: "Property 'Async property test' failed after \\\\(iterations) iterations.\\\\nCounterexample: \\\\(counterexample)\\\\nShrunk: \\\\(shrunk)",
+                  counterexample: counterexample,
+                  shrunk: shrunk,
+                  iterations: iterations
+              )
+
+          case .gaveUp(let discarded, let iterations):
+              throw PropertyTestGaveUp(
+                  message: "Property 'Async property test' gave up after discarding \\\\(discarded) cases in \\\\(iterations) iterations",
+                  discarded: discarded,
+                  iterations: iterations
+              )
+          }
+      }
+      """
+
+    helper.assertPropertyTestExpansion(originalSource, expectedExpansion)
+  }
+
+  @Test("Sync function generates sync test")
+  func syncFunctionGeneratesSyncTest() throws {
+    let helper = MacroTestCase()
+    let originalSource = """
+      @PropertyTest("Sync property test")
+      func testSyncProperty(x: Int) -> Bool {
+          return x >= Int.min
+      }
+      """
+
+    let expectedExpansion = """
+      @PropertyTest("Sync property test")
+      func testSyncProperty(x: Int) -> Bool {
+          return x >= Int.min
+      }
+
+      @Test("Sync property test")
+      public func testSyncProperty_Property() throws {
+          let generator = Gen.int
+          let property = Property(generator: generator) { (x: Int) in
+              return x >= Int.min
+          }
+
+          let runner = PropertyRunner(seed: nil)
+          let result = runner.runProperty(property, config: PropertyConfig(
+              iterations: 100,
+              maxShrinks: 1000,
+              seed: nil
+          ))
+
+          switch result {
+          case .success:
+              break
+
+          case .failure(let counterexample, let iterations, let shrunk, _, _):
+              throw PropertyTestFailure(
+                  message: "Property 'Sync property test' failed",
+                  counterexample: counterexample,
+                  shrunk: shrunk,
+                  iterations: iterations
+              )
+
+          case .gaveUp(let discarded, let iterations):
+              throw PropertyTestGaveUp(
+                  message: "Property 'Sync property test' gave up",
+                  discarded: discarded,
+                  iterations: iterations
+              )
+          }
+      }
+      """
+
+    helper.assertPropertyTestExpansion(originalSource, expectedExpansion)
+  }
+}
+
 // MARK: - Macro Error Path Tests (Task 3)
 
 struct MacroErrorTests {
