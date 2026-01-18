@@ -821,3 +821,80 @@ public macro Reproduce(
 public macro Reproduce(
   input: String
 ) = #externalMacro(module: "InvariantSwiftMacros", type: "ReproduceMacro")
+
+// MARK: - @DifferentialTest Macro Declaration
+
+/// Compare two implementations for equivalence across random inputs.
+///
+/// `@DifferentialTest` is used to verify that a reference implementation
+/// and a candidate implementation produce the same outputs for the same inputs.
+/// This is invaluable for:
+/// - Refactoring: Verify the new code behaves identically to the old
+/// - Optimization: Ensure faster implementation matches the correct one
+/// - Migration: Confirm API v2 matches API v1 behavior
+///
+/// **Basic Usage:**
+/// ```swift
+/// @DifferentialTest(
+///     reference: OldSort.sort,
+///     candidate: NewSort.sort
+/// )
+/// func testSortMigration(array: [Int]) { }
+/// ```
+///
+/// **With Custom Comparison:**
+/// ```swift
+/// @DifferentialTest(
+///     reference: oldCalculation,
+///     candidate: optimizedCalculation,
+///     comparing: { abs($0 - $1) < 0.0001 }
+/// )
+/// func testFloatingPoint(values: [Double]) { }
+/// ```
+///
+/// **With Error Behavior:**
+/// ```swift
+/// @DifferentialTest(
+///     reference: strictValidator,
+///     candidate: lenientValidator,
+///     errorBehavior: .candidateMaySucceedMore
+/// )
+/// func testValidatorMigration(input: String) { }
+/// ```
+///
+/// When a divergence is found, the macro reports:
+/// - The input that caused the divergence
+/// - The reference output
+/// - The candidate output
+/// - A diff of the two outputs
+///
+/// - Parameters:
+///   - reference: The reference (known-correct) implementation
+///   - candidate: The candidate (new/optimized) implementation
+///   - comparing: Optional custom comparison closure (default uses Equatable)
+///   - errorBehavior: How to handle throwing behavior (default: bothThrowOrBothSucceed)
+@attached(peer)
+public macro DifferentialTest<Input, Output: Equatable>(
+  reference: (Input) throws -> Output,
+  candidate: (Input) throws -> Output,
+  comparing: ((Output, Output) -> Bool)? = nil,
+  errorBehavior: ErrorBehavior = .bothThrowOrBothSucceed
+) = #externalMacro(module: "InvariantSwiftMacros", type: "DifferentialTestMacro")
+
+/// Async variant of @DifferentialTest for comparing async implementations.
+///
+/// **Usage:**
+/// ```swift
+/// @DifferentialTest(
+///     reference: { try await APIV1.fetch($0) },
+///     candidate: { try await APIV2.fetch($0) }
+/// )
+/// func testAPIUpgrade(request: Request) async { }
+/// ```
+@attached(peer)
+public macro DifferentialTest<Input, Output: Equatable>(
+  reference: (Input) async throws -> Output,
+  candidate: (Input) async throws -> Output,
+  comparing: ((Output, Output) -> Bool)? = nil,
+  errorBehavior: ErrorBehavior = .bothThrowOrBothSucceed
+) = #externalMacro(module: "InvariantSwiftMacros", type: "DifferentialTestMacro")
