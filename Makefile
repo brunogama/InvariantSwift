@@ -1,6 +1,6 @@
 # InvariantSwift Makefile
 
-.PHONY: test-linux test-macos test-ios test-swift test-tvos format test-all clean
+.PHONY: test-linux test-macos test-ios test-swift test-safe test-tvos format test-all clean
 
 # Test on Linux using Docker
 test-linux:
@@ -40,6 +40,12 @@ test-TVOS:
 # Test with Swift Package Manager
 test-swift:
 	swift test | xcbeautify
+
+# Test with SIGTRAP crash handling (for macOS beta SDK)
+# Use this when running on pre-release macOS SDKs that have known ABI issues
+test-safe:
+	@echo "🛡️  Running tests with SIGTRAP crash protection..."
+	python3 sigtrap_capture.py InvariantSwift --verbose
 
 # Test on tvOS Simulator
 test-tvos:
@@ -108,6 +114,7 @@ help:
 	@echo "  test-macos    - Test on macOS"
 	@echo "  test-ios      - Test on iOS Simulator"
 	@echo "  test-swift    - Test with Swift Package Manager"
+	@echo "  test-safe     - Test with SIGTRAP crash handling (beta SDK)"
 	@echo "  test-tvos     - Test on tvOS Simulator"
 	@echo "  test-watchos  - Test on watchOS Simulator"
 	@echo "  test-all      - Run all platform tests"
