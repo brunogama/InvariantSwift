@@ -16,7 +16,7 @@ repos:
 
   - id: swift-sheriff
     name: 🤠 Linting Swift code...
-    entry: bash -c 'swiftlint --config .swiftlint.yml --fix -- "$@"'
+    entry: bash -c 'swiftlint lint --fix --config .swiftlint.yml "$@" && swiftlint lint --strict --config .swiftlint.yml "$@"' --
     language: system
     files: \.swift$
     pass_filenames: true
