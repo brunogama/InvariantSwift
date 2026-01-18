@@ -1,0 +1,386 @@
+// MARK: - ISP-0009: Test Generator
+// Template-based property test code generation.
+
+import Foundation
+
+// MARK: - Test Generator
+
+/// Generates property test code from type information.
+public struct TestGenerator: Sendable {
+
+  /// Configuration for test generation
+  public let config: GhostwriterConfig
+
+  public init(config: GhostwriterConfig) {
+    self.config = config
+  }
+
+  // MARK: - Main Generation
+
+  /// Generate all tests for a type.
+  public func generateTests(for typeInfo: TypeInfo) -> [GeneratedTest] {
+    var tests: [GeneratedTest] = []
+
+    let patterns =
+      config.patterns.isEmpty
+      ? typeInfo.applicablePatterns
+      : typeInfo.applicablePatterns.filter { config.patterns.contains($0) }
+
+    for pattern in patterns {
+      if let test = generateTest(for: typeInfo, pattern: pattern) {
+        tests.append(test)
+      }
+    }
+
+    return tests
+  }
+
+  /// Generate a single test for a pattern.
+  public func generateTest(for typeInfo: TypeInfo, pattern: TestPattern) -> GeneratedTest? {
+    let code: String
+
+    switch pattern {
+    case .codableRoundtrip:
+      code = generateCodableRoundtrip(for: typeInfo)
+    case .equatableReflexive:
+      code = generateEquatableReflexive(for: typeInfo)
+    case .equatableSymmetric:
+      code = generateEquatableSymmetric(for: typeInfo)
+    case .equatableTransitive:
+      code = generateEquatableTransitive(for: typeInfo)
+    case .hashableConsistency:
+      code = generateHashableConsistency(for: typeInfo)
+    case .comparableIrreflexive:
+      code = generateComparableIrreflexive(for: typeInfo)
+    case .comparableAsymmetric:
+      code = generateComparableAsymmetric(for: typeInfo)
+    case .comparableTransitive:
+      code = generateComparableTransitive(for: typeInfo)
+    case .comparableTrichotomy:
+      code = generateComparableTrichotomy(for: typeInfo)
+    case .idempotent:
+      code = generateIdempotent(for: typeInfo)
+    case .inverseFunctions:
+      code = generateInverseFunctions(for: typeInfo)
+    case .collectionCount:
+      code = generateCollectionCount(for: typeInfo)
+    case .collectionIndices:
+      code = generateCollectionIndices(for: typeInfo)
+    }
+
+    let testName = "\(config.testPrefix)\(typeInfo.name)_\(pattern.rawValue)"
+
+    return GeneratedTest(
+      name: testName,
+      sourceFile: typeInfo.sourceFile,
+      sourceLine: typeInfo.line,
+      typeName: typeInfo.name,
+      pattern: pattern.rawValue,
+      code: code
+    )
+  }
+
+  // MARK: - Codable Tests
+
+  private func generateCodableRoundtrip(for typeInfo: TypeInfo) -> String {
+    let typeName = typeInfo.name
+    return """
+      /// Codable roundtrip: encoding and decoding preserves value.
+      /// Pattern: \(TestPattern.codableRoundtrip.description)
+      @PropertyTest
+      func \(config.testPrefix)\(typeName)_codableRoundtrip(value: \(typeName)) throws {
+        let encoder = JSONEncoder()
+        let decoder = JSONDecoder()
+        
+        let encoded = try encoder.encode(value)
+        let decoded = try decoder.decode(\(typeName).self, from: encoded)
+        
+        #expect(decoded == value, "Codable roundtrip should preserve value")
+      }
+      """
+  }
+
+  // MARK: - Equatable Tests
+
+  private func generateEquatableReflexive(for typeInfo: TypeInfo) -> String {
+    let typeName = typeInfo.name
+    return """
+      /// Equatable reflexivity: x == x for all x.
+      /// Pattern: \(TestPattern.equatableReflexive.description)
+      @PropertyTest
+      func \(config.testPrefix)\(typeName)_equatableReflexive(value: \(typeName)) {
+        #expect(value == value, "Reflexivity: x == x")
+      }
+      """
+  }
+
+  private func generateEquatableSymmetric(for typeInfo: TypeInfo) -> String {
+    let typeName = typeInfo.name
+    return """
+      /// Equatable symmetry: x == y implies y == x.
+      /// Pattern: \(TestPattern.equatableSymmetric.description)
+      @PropertyTest
+      func \(config.testPrefix)\(typeName)_equatableSymmetric(a: \(typeName), b: \(typeName)) {
+        if a == b {
+          #expect(b == a, "Symmetry: a == b implies b == a")
+        }
+      }
+      """
+  }
+
+  private func generateEquatableTransitive(for typeInfo: TypeInfo) -> String {
+    let typeName = typeInfo.name
+    return """
+      /// Equatable transitivity: x == y && y == z implies x == z.
+      /// Pattern: \(TestPattern.equatableTransitive.description)
+      @PropertyTest
+      func \(config.testPrefix)\(typeName)_equatableTransitive(
+        a: \(typeName),
+        b: \(typeName),
+        c: \(typeName)
+      ) {
+        if a == b && b == c {
+          #expect(a == c, "Transitivity: a == b && b == c implies a == c")
+        }
+      }
+      """
+  }
+
+  // MARK: - Hashable Tests
+
+  private func generateHashableConsistency(for typeInfo: TypeInfo) -> String {
+    let typeName = typeInfo.name
+    return """
+      /// Hashable consistency: equal values must have equal hash values.
+      /// Pattern: \(TestPattern.hashableConsistency.description)
+      @PropertyTest
+      func \(config.testPrefix)\(typeName)_hashableConsistency(a: \(typeName), b: \(typeName)) {
+        if a == b {
+          #expect(
+            a.hashValue == b.hashValue,
+            "Equal values must have equal hash values"
+          )
+        }
+      }
+      """
+  }
+
+  // MARK: - Comparable Tests
+
+  private func generateComparableIrreflexive(for typeInfo: TypeInfo) -> String {
+    let typeName = typeInfo.name
+    return """
+      /// Comparable irreflexivity: !(x < x) for all x.
+      /// Pattern: \(TestPattern.comparableIrreflexive.description)
+      @PropertyTest
+      func \(config.testPrefix)\(typeName)_comparableIrreflexive(value: \(typeName)) {
+        #expect(!(value < value), "Irreflexivity: !(x < x)")
+      }
+      """
+  }
+
+  private func generateComparableAsymmetric(for typeInfo: TypeInfo) -> String {
+    let typeName = typeInfo.name
+    return """
+      /// Comparable asymmetry: x < y implies !(y < x).
+      /// Pattern: \(TestPattern.comparableAsymmetric.description)
+      @PropertyTest
+      func \(config.testPrefix)\(typeName)_comparableAsymmetric(a: \(typeName), b: \(typeName)) {
+        if a < b {
+          #expect(!(b < a), "Asymmetry: a < b implies !(b < a)")
+        }
+      }
+      """
+  }
+
+  private func generateComparableTransitive(for typeInfo: TypeInfo) -> String {
+    let typeName = typeInfo.name
+    return """
+      /// Comparable transitivity: x < y && y < z implies x < z.
+      /// Pattern: \(TestPattern.comparableTransitive.description)
+      @PropertyTest
+      func \(config.testPrefix)\(typeName)_comparableTransitive(
+        a: \(typeName),
+        b: \(typeName),
+        c: \(typeName)
+      ) {
+        if a < b && b < c {
+          #expect(a < c, "Transitivity: a < b && b < c implies a < c")
+        }
+      }
+      """
+  }
+
+  private func generateComparableTrichotomy(for typeInfo: TypeInfo) -> String {
+    let typeName = typeInfo.name
+    return """
+      /// Comparable trichotomy: exactly one of <, ==, > holds.
+      /// Pattern: \(TestPattern.comparableTrichotomy.description)
+      @PropertyTest
+      func \(config.testPrefix)\(typeName)_comparableTrichotomy(a: \(typeName), b: \(typeName)) {
+        let isLess = a < b
+        let isEqual = a == b
+        let isGreater = b < a
+        let exactlyOne = [isLess, isEqual, isGreater].filter { $0 }.count == 1
+        #expect(exactlyOne, "Trichotomy: exactly one of <, ==, > holds")
+      }
+      """
+  }
+
+  // MARK: - Idempotent Tests
+
+  private func generateIdempotent(for typeInfo: TypeInfo) -> String {
+    // Find an idempotent-looking method
+    guard let method = typeInfo.methods.first(where: { $0.looksIdempotent }) else {
+      return "// No idempotent method found for \(typeInfo.name)"
+    }
+
+    let typeName = typeInfo.name
+    let methodName = method.name
+
+    if method.isMutating {
+      return """
+        /// Idempotent: applying \(methodName) twice equals applying once.
+        /// Pattern: \(TestPattern.idempotent.description)
+        @PropertyTest
+        func \(config.testPrefix)\(typeName)_\(methodName)_idempotent(value: \(typeName)) {
+          var once = value
+          once.\(methodName)()
+          
+          var twice = once
+          twice.\(methodName)()
+          
+          #expect(once == twice, "\(methodName) should be idempotent")
+        }
+        """
+    } else {
+      return """
+        /// Idempotent: applying \(methodName) twice equals applying once.
+        /// Pattern: \(TestPattern.idempotent.description)
+        @PropertyTest
+        func \(config.testPrefix)\(typeName)_\(methodName)_idempotent(value: \(typeName)) {
+          let once = value.\(methodName)()
+          let twice = once.\(methodName)()
+          #expect(once == twice, "\(methodName) should be idempotent")
+        }
+        """
+    }
+  }
+
+  // MARK: - Inverse Function Tests
+
+  private func generateInverseFunctions(for typeInfo: TypeInfo) -> String {
+    let encoder = typeInfo.methods.first { $0.looksLikeEncoder }
+    let decoder = typeInfo.methods.first { $0.looksLikeDecoder }
+
+    guard let enc = encoder, let dec = decoder else {
+      return "// No inverse function pair found for \(typeInfo.name)"
+    }
+
+    let typeName = typeInfo.name
+    let throwsKeyword = (enc.isThrowing || dec.isThrowing) ? "throws " : ""
+    let tryKeyword = (enc.isThrowing || dec.isThrowing) ? "try " : ""
+
+    return """
+      /// Inverse functions: \(dec.name)(\(enc.name)(x)) == x.
+      /// Pattern: \(TestPattern.inverseFunctions.description)
+      @PropertyTest
+      func \(config.testPrefix)\(typeName)_\(enc.name)\(dec.name.capitalized)Roundtrip(
+        value: \(typeName)
+      ) \(throwsKeyword){
+        let encoded = \(tryKeyword)value.\(enc.name)()
+        let decoded = \(tryKeyword)\(typeName).\(dec.name)(encoded)
+        #expect(decoded == value, "\(dec.name)(\(enc.name)(x)) should equal x")
+      }
+      """
+  }
+
+  // MARK: - Collection Tests
+
+  private func generateCollectionCount(for typeInfo: TypeInfo) -> String {
+    let typeName = typeInfo.name
+    return """
+      /// Collection count matches iteration count.
+      /// Pattern: \(TestPattern.collectionCount.description)
+      @PropertyTest
+      func \(config.testPrefix)\(typeName)_countMatchesIteration(collection: \(typeName)) {
+        var iterationCount = 0
+        for _ in collection {
+          iterationCount += 1
+        }
+        #expect(
+          iterationCount == collection.count,
+          "Iteration count should match count property"
+        )
+      }
+      """
+  }
+
+  private func generateCollectionIndices(for typeInfo: TypeInfo) -> String {
+    let typeName = typeInfo.name
+    return """
+      /// Collection indices are all valid.
+      /// Pattern: \(TestPattern.collectionIndices.description)
+      @PropertyTest
+      func \(config.testPrefix)\(typeName)_indicesValid(collection: \(typeName)) {
+        for index in collection.indices {
+          // Accessing should not crash
+          _ = collection[index]
+        }
+        #expect(Bool(true), "All indices should be valid")
+      }
+      """
+  }
+
+  // MARK: - File Generation
+
+  /// Generate a complete test file for a source file's types.
+  public func generateTestFile(for sourceFile: SourceFileInfo) -> String {
+    var lines: [String] = []
+
+    // File header
+    lines.append("// Generated by InvariantSwift Ghostwriter")
+    lines.append("// Source: \(sourceFile.path)")
+    lines.append("// Generated: \(ISO8601DateFormatter().string(from: Date()))")
+    lines.append("//")
+    lines.append("// DO NOT EDIT - Regenerate with: functest ghostwrite")
+    lines.append("")
+    lines.append("import Testing")
+    lines.append("import Foundation")
+    lines.append("@testable import InvariantSwift")
+    lines.append("")
+
+    // Add any additional imports from source file
+    for importStmt in sourceFile.imports where !["Foundation", "Swift"].contains(importStmt) {
+      lines.append("import \(importStmt)")
+    }
+    lines.append("")
+
+    // Generate test struct
+    let fileName = URL(fileURLWithPath: sourceFile.path).deletingPathExtension().lastPathComponent
+    lines.append("@Suite(\"\(fileName) Property Tests\")")
+    lines.append("struct \(fileName)\(config.testSuffix) {")
+    lines.append("")
+
+    // Generate tests for each testable type
+    for typeInfo in sourceFile.testableTypes {
+      lines.append("  // MARK: - \(typeInfo.name) Tests")
+      lines.append("")
+
+      let tests = generateTests(for: typeInfo)
+      for test in tests {
+        // Indent the test code
+        let indentedCode = test.code.split(separator: "\n").map { "  \($0)" }.joined(
+          separator: "\n"
+        )
+        lines.append(indentedCode)
+        lines.append("")
+      }
+    }
+
+    lines.append("}")
+    lines.append("")
+
+    return lines.joined(separator: "\n")
+  }
+}

@@ -50,6 +50,9 @@ struct FuncTestCLI {
     case "version":
       printVersion()
 
+    case "ghostwrite":
+      await runGhostwriter(args: Array(args.dropFirst(2)))
+
     case "help", "--help", "-h":
       printHelp()
 
@@ -141,6 +144,15 @@ extension FuncTestCLI {
     }
 
     print("\nGoodbye! 👋")
+  }
+
+  /// Run the Ghostwriter to generate property tests automatically
+  static func runGhostwriter(args: [String]) async {
+    print("✨ FuncTest: Ghostwriter - Automatic Test Generation")
+    print("=" * 50)
+
+    let config = parseGhostwriterConfig(from: args)
+    await executeGhostwriter(config: config)
   }
 }
 
@@ -363,6 +375,94 @@ extension FuncTestCLI {
       sizes: sizes,
       outputPath: outputPath,
       compareBaseline: compareBaseline
+    )
+  }
+
+  static func parseGhostwriterConfig(from args: [String]) -> GhostwriterConfig {
+    var sources: [String] = []
+    var outputDirectory = "Tests/Generated/"
+    var patterns: [TestPattern] = []
+    var excludePatterns: [String] = []
+    var dryRun = false
+    var verbose = false
+    var force = false
+
+    var i = 0
+    while i < args.count {
+      let arg = args[i]
+
+      switch arg {
+      case "--source", "-s":
+        if i + 1 < args.count {
+          sources.append(args[i + 1])
+          i += 1
+        }
+
+      case "--module", "-m":
+        if i + 1 < args.count {
+          sources.append("Sources/\(args[i + 1])")
+          i += 1
+        }
+
+      case "--output", "-o":
+        if i + 1 < args.count {
+          outputDirectory = args[i + 1]
+          i += 1
+        }
+
+      case "--patterns", "-p":
+        if i + 1 < args.count {
+          let patternStrings = args[i + 1].split(separator: ",").map(String.init)
+          for str in patternStrings {
+            if let pattern = TestPattern(rawValue: str.trimmingCharacters(in: .whitespaces)) {
+              patterns.append(pattern)
+            }
+          }
+          i += 1
+        }
+
+      case "--exclude", "-e":
+        if i + 1 < args.count {
+          excludePatterns.append(args[i + 1])
+          i += 1
+        }
+
+      case "--dry-run":
+        dryRun = true
+
+      case "--verbose", "-v":
+        verbose = true
+
+      case "--force", "-f":
+        force = true
+
+      case "--help", "-h":
+        printGhostwriterHelp()
+        exit(0)
+
+      default:
+        // Treat as source if it looks like a path
+        if arg.hasSuffix(".swift") || !arg.hasPrefix("-") {
+          sources.append(arg)
+        }
+      }
+
+      i += 1
+    }
+
+    // Default to current directory if no sources specified
+    if sources.isEmpty {
+      sources = ["Sources/"]
+    }
+
+    return GhostwriterConfig(
+      sources: sources,
+      outputDirectory: outputDirectory,
+      patterns: patterns,
+      excludePatterns: excludePatterns,
+      dryRun: dryRun,
+      verbose: verbose,
+      force: force
     )
   }
 }
@@ -673,11 +773,10 @@ extension FuncTestCLI {
     print("📋 Listing corpus entries...")
 
     do {
-      let database = try await ExampleDatabase()
-      let stats = await database.getStats()
+      let database = try await CorpusDatabase()
+      let stats = try await database.getStatistics()
 
       print("Total entries: \(stats.totalEntries)")
-      print("Failures: \(stats.failureCount)")
       print("Unique properties: \(stats.uniqueProperties)")
 
       if let oldest = stats.oldestEntry, let newest = stats.newestEntry {
@@ -694,28 +793,21 @@ extension FuncTestCLI {
 
   static func clearCorpus() async {
     print("🗑️ Clearing corpus...")
-
-    do {
-      let database = try await ExampleDatabase()
-      try await database.clearAll()
-      print("✅ Corpus cleared successfully")
-    } catch {
-      print("❌ Failed to clear corpus: \(error)")
-    }
+    // Note: clearAll() method not yet implemented on CorpusDatabase
+    print("⚠️  Clear corpus not yet implemented")
   }
 
   static func showCorpusStats() async {
     print("📊 Corpus Statistics:")
 
     do {
-      let database = try await ExampleDatabase()
-      let stats = await database.getStats()
+      let database = try await CorpusDatabase()
+      let stats = try await database.getStatistics()
 
       print("   • Total Entries: \(stats.totalEntries)")
-      print("   • Failure Cases: \(stats.failureCount)")
       print("   • Unique Properties: \(stats.uniqueProperties)")
       print(
-        "   • Storage Size: \(ByteCountFormatter.string(fromByteCount: stats.totalSize, countStyle: .file))"
+        "   • Database Size: \(ByteCountFormatter.string(fromByteCount: stats.databaseSize, countStyle: .file))"
       )
 
       if let oldest = stats.oldestEntry {
@@ -879,6 +971,101 @@ extension FuncTestCLI {
     }
   }
 
+  static func executeGhostwriter(config: GhostwriterConfig) async {
+    if config.verbose {
+      print("📋 Configuration:")
+      print("   • Sources: \(config.sources.joined(separator: ", "))")
+      print("   • Output: \(config.outputDirectory)")
+      print(
+        "   • Patterns: \(config.patterns.isEmpty ? "all" : config.patterns.map(\.rawValue).joined(separator: ", "))"
+      )
+      print("   • Dry Run: \(config.dryRun)")
+      print()
+    }
+
+    let ghostwriter = Ghostwriter(config: config)
+
+    do {
+      let result = try await ghostwriter.run()
+
+      print("\n" + "=" * 50)
+      print("📊 Ghostwriter Summary:")
+      print("   • Files Analyzed: \(result.analyzedFiles.count)")
+      print("   • Types Discovered: \(result.discoveredTypes.count)")
+      print("   • Tests Generated: \(result.generatedTests.count)")
+
+      if !result.errors.isEmpty {
+        print("   • Errors: \(result.errors.count)")
+        for error in result.errors {
+          print("     ⚠️  \(error)")
+        }
+      }
+
+      if config.dryRun {
+        print("\n📝 Dry run complete. No files were written.")
+      } else if result.generatedTests.isEmpty {
+        print("\n⚠️  No tests generated. Make sure types conform to testable protocols.")
+      } else {
+        print("\n✅ Tests generated successfully!")
+        print("   Output: \(config.outputDirectory)")
+      }
+
+      // Show sample generated tests if verbose
+      if config.verbose && !result.generatedTests.isEmpty {
+        print("\n📋 Generated Tests:")
+        for test in result.generatedTests.prefix(5) {
+          print("   • \(test.name) (\(test.typeName), \(test.pattern))")
+        }
+        if result.generatedTests.count > 5 {
+          print("   ... and \(result.generatedTests.count - 5) more")
+        }
+      }
+
+    } catch {
+      print("❌ Ghostwriter failed: \(error)")
+      exit(1)
+    }
+  }
+
+  static func printGhostwriterHelp() {
+    print(
+      """
+      Ghostwriter - Automatic Property Test Generation
+
+      USAGE:
+          functest ghostwrite [options] [sources...]
+
+      OPTIONS:
+          --source, -s <path>     Source file or directory to analyze
+          --module, -m <name>     Module name (looks in Sources/<name>)
+          --output, -o <path>     Output directory (default: Tests/Generated/)
+          --patterns, -p <list>   Comma-separated patterns to generate
+          --exclude, -e <pattern> Exclude files matching pattern
+          --dry-run               Preview without writing files
+          --verbose, -v           Enable verbose output
+          --force, -f             Force regeneration
+          --help, -h              Show this help
+
+      PATTERNS:
+          codable_roundtrip       Codable encode/decode roundtrip
+          equatable_reflexive     Equatable: x == x
+          equatable_symmetric     Equatable: x == y implies y == x
+          equatable_transitive    Equatable: transitive equality
+          hashable_consistency    Hashable: equal values have equal hashes
+          comparable_irreflexive  Comparable: !(x < x)
+          comparable_asymmetric   Comparable: x < y implies !(y < x)
+          comparable_transitive   Comparable: transitive ordering
+          comparable_trichotomy   Comparable: exactly one of <, ==, >
+
+      EXAMPLES:
+          functest ghostwrite Sources/Models/User.swift
+          functest ghostwrite --module MyApp --verbose
+          functest ghostwrite --source Sources/ --dry-run
+          functest ghostwrite --patterns codable_roundtrip,equatable_reflexive
+      """
+    )
+  }
+
   static func printVersion() {
     print("FuncTest CLI v1.0.0")
     print("Advanced Property-Based Testing for Swift")
@@ -899,6 +1086,7 @@ extension FuncTestCLI {
           corpus      Manage example corpus
           benchmark   Run performance benchmarks
           interactive Start interactive mode
+          ghostwrite  Generate property tests automatically
           version     Show version information
           help        Show this help message
 
