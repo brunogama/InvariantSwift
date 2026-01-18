@@ -898,3 +898,108 @@ public macro DifferentialTest<Input, Output: Equatable>(
   comparing: ((Output, Output) -> Bool)? = nil,
   errorBehavior: ErrorBehavior = .bothThrowOrBothSucceed
 ) = #externalMacro(module: "InvariantSwiftMacros", type: "DifferentialTestMacro")
+
+// MARK: - @Contract Macro Declaration
+
+/// Marks a protocol as having behavioral contracts.
+///
+/// Use `@Contract` to define behavioral specifications for protocols.
+/// Combined with `@Precondition`, `@Postcondition`, and `@Invariant`,
+/// this enables automatic test generation for any conforming type.
+///
+/// **Basic Usage:**
+/// ```swift
+/// @Contract
+/// protocol Stack {
+///     associatedtype Element
+///
+///     @Precondition { !$0.isEmpty }
+///     @Postcondition { $0.count == old($0.count) - 1 }
+///     mutating func pop() -> Element?
+///
+///     @Postcondition { $0.count == old($0.count) + 1 }
+///     mutating func push(_ element: Element)
+///
+///     @Invariant { $0.isEmpty == ($0.count == 0) }
+/// }
+/// ```
+///
+/// **Testing a Conforming Type:**
+/// ```swift
+/// @TestContract(Stack.self)
+/// struct ArrayStackTests {
+///     typealias SUT = ArrayStack<Int>
+/// }
+/// ```
+///
+/// Contracts express:
+/// - **Preconditions**: What must be true before a method executes
+/// - **Postconditions**: What must be true after a method executes
+/// - **Invariants**: What must always be true for all states
+@attached(extension, conformances: ContractProtocol)
+@attached(member, names: arbitrary)
+public macro Contract() =
+  #externalMacro(
+    module: "InvariantSwiftMacros",
+    type: "ContractMacro"
+  )
+
+/// Generates property tests for a protocol contract.
+///
+/// Apply `@TestContract` to a test struct to automatically generate
+/// property-based tests that verify the implementation satisfies
+/// all contract specifications.
+///
+/// **Usage:**
+/// ```swift
+/// @TestContract(Stack.self, operations: 100)
+/// struct ArrayStackTests {
+///     typealias SUT = ArrayStack<Int>
+/// }
+/// ```
+///
+/// This generates tests for:
+/// - Each invariant holds after every operation
+/// - Each precondition is checked before operations
+/// - Each postcondition holds after operations
+/// - Algebraic laws (if defined with `@Law`)
+///
+/// - Parameters:
+///   - protocol: The contract protocol to test
+///   - operations: Number of operations per test case (default: 100)
+///   - examples: Number of test cases to run (default: 100)
+@attached(member, names: arbitrary)
+public macro TestContract<P: ContractProtocol>(
+  _ protocol: P.Type,
+  operations: Int = 100,
+  examples: Int = 100
+) = #externalMacro(module: "InvariantSwiftMacros", type: "TestContractMacro")
+
+/// Defines an algebraic law that implementations must satisfy.
+///
+/// Use `@Law` to express mathematical properties that the type
+/// must obey, such as identity, associativity, or commutativity.
+///
+/// **Usage:**
+/// ```swift
+/// @Contract
+/// protocol Monoid {
+///     static var identity: Self { get }
+///     func combine(with other: Self) -> Self
+///
+///     @Law
+///     static func leftIdentity(x: Self) -> Bool where Self: Equatable {
+///         identity.combine(with: x) == x
+///     }
+///
+///     @Law
+///     static func associativity(x: Self, y: Self, z: Self) -> Bool
+///         where Self: Equatable
+///     {
+///         x.combine(with: y).combine(with: z) ==
+///             x.combine(with: y.combine(with: z))
+///     }
+/// }
+/// ```
+@attached(peer)
+public macro Law() = #externalMacro(module: "InvariantSwiftMacros", type: "LawMacro")
