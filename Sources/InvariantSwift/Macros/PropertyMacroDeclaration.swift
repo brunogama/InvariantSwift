@@ -757,3 +757,67 @@ public macro Precondition(
 /// - Note: Invariants should be pure and not mutate state.
 @attached(peer)
 public macro Invariant() = #externalMacro(module: "InvariantSwiftMacros", type: "InvariantMacro")
+
+// MARK: - @Reproduce Macro Declaration
+
+/// Replay a specific failing example deterministically.
+///
+/// Use `@Reproduce` alongside `@PropertyTest` to fix the generation parameters
+/// for exact reproduction of a failure. This is useful for debugging, regression
+/// testing, and sharing failures with teammates.
+///
+/// **With Seed and Size:**
+/// ```swift
+/// @PropertyTest
+/// @Reproduce(seed: 0xDEADBEEF, size: 42)
+/// func testSorting(array: [Int]) {
+///     // Will generate exact same array every time
+/// }
+/// ```
+///
+/// **With Shrink Path:**
+/// ```swift
+/// @PropertyTest
+/// @Reproduce(seed: 12345, size: 50, path: "0:1:3:0:2")
+/// func testComplex(data: ComplexStruct) {
+///     // Replays the minimal shrunk example
+/// }
+/// ```
+///
+/// When a test fails, InvariantSwift outputs the exact `@Reproduce` annotation
+/// to add for debugging:
+/// ```
+/// ❌ Property failed: testSorting
+/// To reproduce this exact failure, add:
+///     @Reproduce(seed: 0xDEADBEEF, size: 42, path: "0:1:3")
+/// ```
+///
+/// - Parameters:
+///   - seed: The random seed to use for generation
+///   - size: Optional fixed size for generation
+///   - path: Optional shrink path as colon-separated integers (e.g., "0:1:3")
+@attached(peer)
+public macro Reproduce(
+  seed: UInt64,
+  size: Int? = nil,
+  path: String? = nil
+) = #externalMacro(module: "InvariantSwiftMacros", type: "ReproduceMacro")
+
+/// Replay from serialized input directly.
+///
+/// Use when you want to replay with exact input data rather than regenerating.
+///
+/// **Usage:**
+/// ```swift
+/// @PropertyTest
+/// @Reproduce(input: "eyJuYW1lIjoiSm9obiIsImFnZSI6MzB9")
+/// func testUser(user: User) {
+///     // Uses exact serialized User struct
+/// }
+/// ```
+///
+/// - Parameter input: Base64-encoded Codable input data
+@attached(peer)
+public macro Reproduce(
+  input: String
+) = #externalMacro(module: "InvariantSwiftMacros", type: "ReproduceMacro")
