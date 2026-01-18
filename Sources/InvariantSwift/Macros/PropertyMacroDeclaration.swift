@@ -1070,3 +1070,97 @@ public macro StructuredInput() =
     module: "InvariantSwiftMacros",
     type: "StructuredInputMacro"
   )
+
+// MARK: - #target Macro Declaration
+
+/// Records a metric to optimize during targeted property testing.
+///
+/// Use `#target` to guide the property test framework toward interesting
+/// inputs by recording values that should be maximized (or minimized).
+/// The framework uses these metrics to bias future input generation
+/// toward regions that produce higher target values.
+///
+/// **Basic Usage - Maximize a metric:**
+/// ```swift
+/// @PropertyTest
+/// func testOptimizer(program: Program) {
+///     let optimized = optimize(program)
+///
+///     // Guide generation toward complex programs
+///     #target(program.instructionCount, label: "instructions")
+///     #target(program.nestingDepth, label: "depth")
+///
+///     #expect(equivalent(program, optimized))
+/// }
+/// ```
+///
+/// **Targeting a Specific Value:**
+/// ```swift
+/// @PropertyTest
+/// func testBoundary(array: [Int]) {
+///     // Try to find arrays with exactly 100 elements
+///     #target(array.count, toward: 100, label: "count")
+///
+///     let sorted = array.sorted()
+///     #expect(sorted.isSorted)
+/// }
+/// ```
+///
+/// **Multiple Targets:**
+/// ```swift
+/// @PropertyTest
+/// func testCompiler(source: SourceFile) {
+///     let result = compile(source)
+///
+///     #target(source.lineCount, label: "lines")
+///     #target(source.functionCount, label: "functions")
+///     #target(result.warnings.count, label: "warnings")
+///
+///     #expect(result.isValid)
+/// }
+/// ```
+///
+/// ## How It Works
+///
+/// 1. **Run Phase**: Execute test, record target values via `#target`
+/// 2. **Score Phase**: Compute how "interesting" the input was
+/// 3. **Feedback Phase**: Adjust generation to favor higher-scoring inputs
+/// 4. **Iterate**: Repeat, climbing toward interesting inputs
+///
+/// ## When to Use
+///
+/// - Testing compilers/optimizers: target AST size, optimization count
+/// - Performance edge cases: target collision count, chain length
+/// - Parser stress testing: target nesting depth, edge case count
+/// - Numerical algorithms: target condition number (ill-conditioned = harder)
+/// - State machine exploration: target states visited
+///
+/// - Parameters:
+///   - value: The metric value to optimize (higher is better by default)
+///   - label: Optional label to identify this target in reports
+///   - toward: Optional goal value (minimizes distance instead of maximizing)
+@freestanding(expression)
+public macro target<T: Numeric & Comparable>(
+  _ value: T,
+  label: String? = nil
+) = #externalMacro(module: "InvariantSwiftMacros", type: "TargetMacro")
+
+/// Records a metric to minimize distance toward a specific goal.
+///
+/// Use this variant when you want to find inputs that reach a specific target
+/// value rather than maximizing unboundedly.
+///
+/// **Usage:**
+/// ```swift
+/// @PropertyTest
+/// func testBoundary(array: [Int]) {
+///     // Try to find arrays with exactly 100 elements
+///     #target(array.count, toward: 100, label: "count")
+/// }
+/// ```
+@freestanding(expression)
+public macro target<T: Numeric>(
+  _ value: T,
+  toward goal: T,
+  label: String? = nil
+) = #externalMacro(module: "InvariantSwiftMacros", type: "TargetMacro")
