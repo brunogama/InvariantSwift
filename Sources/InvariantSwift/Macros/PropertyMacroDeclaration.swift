@@ -1003,3 +1003,70 @@ public macro TestContract<P: ContractProtocol>(
 /// ```
 @attached(peer)
 public macro Law() = #externalMacro(module: "InvariantSwiftMacros", type: "LawMacro")
+
+// MARK: - @Fuzzable Macro Declaration
+
+/// Makes a function available for LibFuzzer integration.
+///
+/// Use `@Fuzzable` to bridge property testing with industrial fuzzing.
+/// The macro generates an `LLVMFuzzerTestOneInput` entry point that
+/// LibFuzzer can call with mutated byte sequences.
+///
+/// **Basic Usage:**
+/// ```swift
+/// @Fuzzable(maxLength: 1024)
+/// func parseProtobuf(_ data: Data) throws -> Message {
+///     try Message(serializedData: data)
+/// }
+/// ```
+///
+/// **With Fuzzing Mode:**
+/// ```swift
+/// @Fuzzable(
+///     maxLength: 4096,
+///     mode: .hybrid(propertyIterations: 1000, fuzzRuns: 100_000)
+/// )
+/// func parseJSON(_ data: Data) throws -> JSON { ... }
+/// ```
+///
+/// **With Sanitizers:**
+/// ```swift
+/// @Fuzzable(sanitizers: [.address, .undefined])
+/// func processUntrustedInput(_ data: Data) throws { ... }
+/// ```
+///
+/// The function must accept `Data` as its first parameter. Additional
+/// parameters can be added but will use default values during fuzzing.
+///
+/// - Parameters:
+///   - maxLength: Maximum input length in bytes (default: 4096)
+///   - timeout: Execution timeout per input (default: 30 seconds)
+///   - corpusDir: Optional directory for corpus storage
+///   - mode: Fuzzing mode (default: propertyTest)
+///   - sanitizers: Compiler sanitizers to enable
+@attached(peer, names: arbitrary)
+public macro Fuzzable(
+  maxLength: Int = 4096,
+  timeout: Duration = .seconds(30),
+  corpusDir: String? = nil
+) = #externalMacro(module: "InvariantSwiftMacros", type: "FuzzableMacro")
+
+/// Marks a fuzzable function as taking structured input.
+///
+/// When applied alongside `@Fuzzable`, this generates a custom mutator
+/// that understands the type structure for more effective fuzzing.
+///
+/// **Usage:**
+/// ```swift
+/// @Fuzzable
+/// @StructuredInput
+/// func processUser(_ user: User) throws {
+///     // Custom mutator generated that mutates User fields
+/// }
+/// ```
+@attached(peer)
+public macro StructuredInput() =
+  #externalMacro(
+    module: "InvariantSwiftMacros",
+    type: "StructuredInputMacro"
+  )

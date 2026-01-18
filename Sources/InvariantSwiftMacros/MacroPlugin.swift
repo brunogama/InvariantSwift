@@ -26,5 +26,7 @@ struct InvariantSwiftMacroPlugin: CompilerPlugin {
     ContractMacro.self,
     TestContractMacro.self,
     LawMacro.self,
+    FuzzableMacro.self,
+    StructuredInputMacro.self,
   ]
 }
