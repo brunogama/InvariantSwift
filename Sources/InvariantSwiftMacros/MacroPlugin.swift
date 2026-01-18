@@ -16,5 +16,10 @@ struct InvariantSwiftMacroPlugin: CompilerPlugin {
     AsyncPropertyTestMacro.self,
     DrawMacro.self,
     CompositeMacro.self,
+    RuleBasedTestMacro.self,
+    RuleMacro.self,
+    PreconditionMacro.self,
+    InvariantMacro.self,
+    BundleMacro.self,
   ]
 }

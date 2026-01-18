@@ -13,6 +13,7 @@ excluded:
 - .swiftpm
 - Package.swift
 - ${PWD}/.build
+- Sources/InvariantSwiftMacros/RuleBasedTestMacro  # AST builders are inherently verbose
 
 # Enabled rules beyond default
 opt_in_rules:

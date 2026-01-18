@@ -1,3 +1,4 @@
+// swiftlint:disable file_length
 import Foundation
 
 // MARK: - @Property Macro Declaration
@@ -580,3 +581,179 @@ public macro draw<T: Generatable>(
   _ type: T.Type,
   _ constraint: GeneratorConstraint<T>
 ) -> T = #externalMacro(module: "InvariantSwiftMacros", type: "DrawMacro")
+
+// MARK: - @RuleBasedTest Macro Declaration (ISP-0003)
+
+/// Marks a struct as a rule-based state machine test.
+///
+/// `@RuleBasedTest` transforms a struct with `@Rule`, `@Bundle`, and `@Invariant`
+/// annotations into a runnable state machine test. Rules define valid operations,
+/// bundles accumulate values, and invariants are checked after each step.
+///
+/// **Basic Usage:**
+/// ```swift
+/// @RuleBasedTest
+/// struct CounterSpec {
+///     var expected = 0
+///     let counter = Counter()
+///
+///     @Rule
+///     mutating func increment() {
+///         counter.increment()
+///         expected += 1
+///     }
+///
+///     @Rule
+///     @Precondition { $0.expected > 0 }
+///     mutating func decrement() {
+///         counter.decrement()
+///         expected -= 1
+///     }
+///
+///     @Invariant
+///     func valueMatches() -> Bool {
+///         counter.value == expected
+///     }
+/// }
+/// ```
+///
+/// **With Bundles:**
+/// ```swift
+/// @RuleBasedTest
+/// struct DatabaseSpec {
+///     @Bundle var keys: [String]
+///     @Bundle var values: [Data]
+///
+///     @Rule(into: \.keys)
+///     func generateKey() -> String { ... }
+///
+///     @Rule
+///     @Precondition { !$0.keys.isEmpty }
+///     func write(key: KeyRef, value: ValueRef) { ... }
+/// }
+/// ```
+///
+/// - Parameters:
+///   - maxSteps: Maximum steps per example (default: 100)
+///   - maxExamples: Maximum examples to run (default: 100)
+///
+/// - See Also: ``Rule``, ``Bundle``, ``Invariant``, ``Precondition``
+@attached(member, names: named(rules), named(invariants), named(bundles), named(runTest))
+@attached(extension, conformances: RuleBasedStateMachine)
+public macro RuleBasedTest(
+  maxSteps: Int = 100,
+  maxExamples: Int = 100
+) = #externalMacro(module: "InvariantSwiftMacros", type: "RuleBasedTestMacro")
+
+// MARK: - @Rule Macro Declaration
+
+/// Marks a method as a rule that can be executed in a state machine test.
+///
+/// Rules are the operations that the test runner can execute. Each rule can have
+/// a weight (higher = more likely to be selected) and optionally produce values
+/// into a bundle.
+///
+/// **Basic Rule:**
+/// ```swift
+/// @Rule
+/// mutating func increment() {
+///     counter.increment()
+/// }
+/// ```
+///
+/// **Weighted Rule:**
+/// ```swift
+/// @Rule(weight: 3)  // 3x more likely than default
+/// mutating func commonOperation() { }
+/// ```
+///
+/// **Rule with Bundle Output:**
+/// ```swift
+/// @Rule(into: \.users)
+/// func createUser() -> User {
+///     let user = User(...)
+///     database.insert(user)
+///     return user
+/// }
+/// ```
+///
+/// - Parameters:
+///   - into: Optional bundle keypath for storing returned values
+///   - weight: Selection weight (default: 1)
+///
+/// - See Also: ``RuleBasedTest``, ``Precondition``
+@attached(peer)
+public macro Rule(
+  into bundle: AnyKeyPath? = nil,
+  weight: Int = 1
+) = #externalMacro(module: "InvariantSwiftMacros", type: "RuleMacro")
+
+// MARK: - @Bundle Macro Declaration
+
+/// Marks a property as a bundle that accumulates values across rules.
+///
+/// Bundles are collections that grow as rules produce values. Rules can then
+/// draw from bundles using `BundleRef<T>` parameters to ensure they always
+/// reference valid, previously-generated values.
+///
+/// **Usage:**
+/// ```swift
+/// @Bundle var users: [User]
+/// @Bundle var keys: [String]
+/// @Bundle var posts: [Post]
+/// ```
+@attached(accessor)
+public macro Bundle() = #externalMacro(module: "InvariantSwiftMacros", type: "BundleMacro")
+
+// MARK: - @Precondition Macro Declaration
+
+/// Adds a precondition that must be true for a rule to be considered.
+///
+/// When selecting the next rule to execute, only rules whose preconditions
+/// are satisfied are considered. This ensures valid operation sequences.
+///
+/// **Usage:**
+/// ```swift
+/// @Rule
+/// @Precondition { $0.users.count > 0 }
+/// func deleteUser(user: UserRef) {
+///     database.delete(user.value.id)
+/// }
+///
+/// @Rule
+/// @Precondition { !$0.keys.isEmpty && !$0.values.isEmpty }
+/// func write(key: KeyRef, value: ValueRef) { ... }
+/// ```
+///
+/// - Parameter check: Closure that takes the current state and returns true if valid
+@attached(peer)
+public macro Precondition(
+  _ check: @escaping (Any) -> Bool
+) = #externalMacro(module: "InvariantSwiftMacros", type: "PreconditionMacro")
+
+// MARK: - @Invariant Macro Declaration
+
+/// Marks a method as an invariant that is checked after every rule execution.
+///
+/// Invariants are properties that must always hold. After each rule executes,
+/// all invariants are checked. If any returns false, the test fails and the
+/// step sequence is shrunk to find the minimal failing sequence.
+///
+/// **Usage:**
+/// ```swift
+/// @Invariant
+/// func modelMatchesDatabase() -> Bool {
+///     model.allSatisfy { key, value in
+///         database.read(key: key) == value
+///     }
+/// }
+///
+/// @Invariant
+/// func counterIsNonNegative() -> Bool {
+///     counter.value >= 0
+/// }
+/// ```
+///
+/// - Note: Invariants should be pure and not mutate state.
+@attached(peer)
+public macro Invariant() = #externalMacro(module: "InvariantSwiftMacros", type: "InvariantMacro")
