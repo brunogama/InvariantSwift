@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `docs/QUICKSTART.md` - 10-minute quick start guide for new developers
 - **PropertyResult Enhancements** (Phase 1):
   * `isGaveUp` computed property for consistency with `isSuccess`/`isFailure`
   * `iterationCount` computed property to extract iteration count from any result case
