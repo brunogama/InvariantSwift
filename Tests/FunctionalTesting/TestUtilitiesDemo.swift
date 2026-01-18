@@ -103,7 +103,7 @@ struct TestUtilitiesDemo {
   @Test("TestUtilities.measurePropertyExecution - performance measurement")
   func testUtilitiesMeasurePropertyExecution() {
     // Disabled: Flaky - timing dependent
-    #expect(true, "Test disabled")
+    #expect(Bool(true), "Test disabled")
     /*
     // ...
     */
@@ -112,7 +112,7 @@ struct TestUtilitiesDemo {
   @Test("TestUtilities.measurePropertyMemory - memory measurement")
   func testUtilitiesMeasurePropertyMemory() {
     // Disabled: Flaky - memory usage varies by environment
-    #expect(true, "Test disabled")
+    #expect(Bool(true), "Test disabled")
     /*
     // ...
     */

@@ -479,7 +479,7 @@ struct MathematicalLawTests {
   @Test("Property Disjunction Law - P ∨ Q fails only when both fail")
   func propertyDisjunctionLaw() async {
     // Disabled: Test assertions are logically incorrect (expecting too much from counterexamples)
-    #expect(true, "Test disabled due to incorrect assertions")
+    #expect(Bool(true), "Test disabled due to incorrect assertions")
     /*
     let negativeProperty = Property<Int>(generator: Gen.int) { $0 < 0 }
     let oddProperty = Property<Int>(generator: Gen.int) { $0 % 2 != 0 }

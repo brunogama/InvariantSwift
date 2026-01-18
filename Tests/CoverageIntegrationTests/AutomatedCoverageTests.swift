@@ -35,7 +35,7 @@ struct AutomatedCoverageTests {
   @Test("Verify comprehensive branch coverage")
   func verifyBranchCoverage() async throws {
     // Disabled: Test executable not found in this environment
-    #expect(true, "Test disabled due to missing executable")
+    #expect(Bool(true), "Test disabled due to missing executable")
     /*
     let runner = LLVMCoverageRunner()
     let coverage = try await runner.calculateCoverage()
@@ -247,7 +247,7 @@ struct AutomatedCoverageTests {
   @Test("Mathematical law coverage verification")
   func mathematicalLawCoverageVerification() async throws {
     // Disabled: Test executable not found in this environment
-    #expect(true, "Test disabled due to missing executable")
+    #expect(Bool(true), "Test disabled due to missing executable")
     /*
     // This test ensures our mathematical laws (functor, applicative, monad)
     // have comprehensive coverage through property-based testing

@@ -15,7 +15,7 @@ struct ErrorPathCoverageTests {
     // let emptyGenerators: [Gen<Int>] = []
     // let property = Property<Int>(generator: Gen.oneOf(emptyGenerators)) { _ in true }
     // ...
-    #expect(true, "Test disabled to prevent crash")
+    #expect(Bool(true), "Test disabled to prevent crash")
 
     // This should be handled gracefully (likely create a generator that always fails)
     // let property = Property<Int>(generator: Gen.oneOf(emptyGenerators)) { _ in true }
@@ -26,7 +26,7 @@ struct ErrorPathCoverageTests {
     //   Issue.record("Empty oneOf should not succeed")
 
     // case .failure, .gaveUp:
-    //   #expect(true, "Empty oneOf should fail or give up gracefully")
+    //   #expect(Bool(true), "Empty oneOf should fail or give up gracefully")
     // }
   }
 
@@ -36,7 +36,7 @@ struct ErrorPathCoverageTests {
     // let emptyFrequencies: [(Int, Gen<String>)] = []
     // let property = Property<String>(generator: Gen.frequency(emptyFrequencies)) { _ in true }
     // ...
-    #expect(true, "Test disabled to prevent crash")
+    #expect(Bool(true), "Test disabled to prevent crash")
   }
 
   @Test("Gen.frequency with zero or negative weights")
@@ -44,7 +44,7 @@ struct ErrorPathCoverageTests {
     // Disabled: Gen.frequency with zero/negative weights triggers a fatal precondition failure.
     // let invalidWeights = ...
     // ...
-    #expect(true, "Test disabled to prevent crash")
+    #expect(Bool(true), "Test disabled to prevent crash")
   }
 
   @Test("Gen.frequency with all zero weights")
@@ -52,13 +52,13 @@ struct ErrorPathCoverageTests {
     // Disabled: Gen.frequency with all zero weights triggers a fatal precondition failure.
     // let allZeroWeights = ...
     // ...
-    #expect(true, "Test disabled to prevent crash")
+    #expect(Bool(true), "Test disabled to prevent crash")
   }
 
   @Test("Generator suchThat with impossible condition")
   func generatorSuchThatImpossibleCondition() {
     // Disabled: Test incorrectly returns success instead of gaveUp
-    #expect(true, "Test disabled")
+    #expect(Bool(true), "Test disabled")
     /*
     // Test suchThat with condition that can never be satisfied
     let impossibleGen = Gen.int(in: 1...10).suchThat { _ in false }
@@ -88,7 +88,7 @@ struct ErrorPathCoverageTests {
   @Test("Generator suchThat with very rare condition")
   func generatorSuchThatVeryRareCondition() {
     // Disabled: Flaky - requires many retries
-    #expect(true, "Test disabled")
+    #expect(Bool(true), "Test disabled")
     /*
     // Test suchThat with extremely rare condition
     let rareGen = Gen.int(in: 1...10000).suchThat { $0 == 7777 }
@@ -106,7 +106,7 @@ struct ErrorPathCoverageTests {
     
     switch result {
     case .success:
-      #expect(true, "Rare condition found successfully")
+      #expect(Bool(true), "Rare condition found successfully")
     
     case .gaveUp(let discarded, _):
       #expect(discarded > 0, "Should discard many attempts for rare condition")
@@ -148,13 +148,13 @@ struct ErrorPathCoverageTests {
 
     switch result {
     case .success:
-      #expect(true, "Extreme generator handled successfully")
+      #expect(Bool(true), "Extreme generator handled successfully")
 
     case .failure(let counterexample, _, let shrunk, _, _):
       #expect(abs(shrunk) <= abs(counterexample), "Shrinking should reduce magnitude")
 
     case .gaveUp:
-      #expect(true, "Extreme generator may give up")
+      #expect(Bool(true), "Extreme generator may give up")
     }
   }
 
@@ -175,7 +175,7 @@ struct ErrorPathCoverageTests {
 
     switch result {
     case .success:
-      #expect(true, "Property with comprehensive Double handling succeeded")
+      #expect(Bool(true), "Property with comprehensive Double handling succeeded")
 
     case .failure(let counterexample, _, _, _, _):
       Issue.record("Property should handle all Double cases, failed with: \(counterexample)")
@@ -281,10 +281,10 @@ struct ErrorPathCoverageTests {
       #expect(shrunk.count <= counterexample.count, "Shrunk should be smaller or equal")
 
     case .success:
-      #expect(true, "Property succeeded (no arrays contained 1)")
+      #expect(Bool(true), "Property succeeded (no arrays contained 1)")
 
     case .gaveUp:
-      #expect(true, "Expensive shrinking may cause give up")
+      #expect(Bool(true), "Expensive shrinking may cause give up")
     }
   }
 
@@ -334,7 +334,7 @@ struct ErrorPathCoverageTests {
 
     switch result {
     case .success:
-      #expect(true, "Property succeeded despite high discard rate")
+      #expect(Bool(true), "Property succeeded despite high discard rate")
 
     case .gaveUp(let discarded, let iterations):
       #expect(discarded <= mismatchedConfig.maxDiscarded + 10, "Should respect maxDiscarded limit")
@@ -516,7 +516,7 @@ struct ErrorPathCoverageTests {
 
     switch result {
     case .success:
-      #expect(true, "Array generator should handle empty arrays")
+      #expect(Bool(true), "Array generator should handle empty arrays")
 
     case .failure(let counterexample, _, _, _, _):
       Issue.record("Array property failed with: \(counterexample)")
@@ -544,7 +544,7 @@ struct ErrorPathCoverageTests {
 
     switch result {
     case .success:
-      #expect(true, "Array property succeeded")
+      #expect(Bool(true), "Array property succeeded")
 
     case .failure(let counterexample, _, let shrunk, _, _):
       #expect(shrunk.count <= counterexample.count, "Shrunk array should be smaller or equal")
@@ -553,7 +553,7 @@ struct ErrorPathCoverageTests {
       }
 
     case .gaveUp:
-      #expect(true, "Array generator may give up during shrinking")
+      #expect(Bool(true), "Array generator may give up during shrinking")
     }
   }
 }

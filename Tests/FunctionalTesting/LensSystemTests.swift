@@ -3,15 +3,6 @@ import Foundation
 @testable import InvariantSwift
 
 /// Tests for the lens system integration with FunctionalTesting configuration objects
-///
-/// **SKIPPED**: These tests require full implementation of lens system integration with
-/// PropertyConfig, ConfigTemplate, ConfigBuilder, and generic Prism/Traversal static methods.
-/// These features are planned but not yet implemented. Tests are disabled to allow
-/// compilation and testing of core functionality.
-///
-/// To re-enable: Implement PropertyConfig lens extensions, ConfigTemplate, ConfigBuilder,
-/// and complete Prism/Traversal static factory methods with proper generic handling.
-/*
 @Suite("Lens System Integration Tests")
 struct LensSystemTests {
 
@@ -31,7 +22,7 @@ struct LensSystemTests {
     #expect(updated.maxShrinks == config.maxShrinks)  // Other fields unchanged
 
     let withSeed = PropertyConfig.seed.set(Seed(value: 42), config)
-    #expect(withSeed.seed?.value == 42)
+    #expect(withSeed.seed?.rawValue == 42)
   }
 
   @Test("PropertyConfig lens over operations")
@@ -92,11 +83,11 @@ struct LensSystemTests {
 
     // Test setting value
     let newSeed = Seed.seedValue.set(200, seed)
-    #expect(newSeed.value == 200)
+    #expect(newSeed.rawValue == 200)
 
     // Test increment utility
     let incremented = Seed.increment(by: 50)(seed)
-    #expect(incremented.value == 150)
+    #expect(incremented.rawValue == 150)
   }
 
   @Test("Function composition with lenses")
@@ -147,7 +138,7 @@ struct LensSystemTests {
     // Test debug template with seed
     let debugConfig = ConfigTemplate.debug(seed: 12345)
     #expect(debugConfig.iterations == 10)
-    #expect(debugConfig.seed?.value == 12345)
+    #expect(debugConfig.seed?.rawValue == 12345)
   }
 
   @Test("Prism operations with Optional")
@@ -155,7 +146,11 @@ struct LensSystemTests {
     let optionalValue: Int? = 42
     let nilValue: Int? = nil
 
-    let somePrism: Prism<Int?, Int> = Prism.some()
+    // Prism for Optional's Some case
+    let somePrism = Prism<Int?, Int>(
+      preview: { $0 },
+      review: { $0 }
+    )
 
     // Test preview (extract value)
     #expect(somePrism.preview(optionalValue) == 42)
@@ -170,8 +165,27 @@ struct LensSystemTests {
     let successResult: Result<Int, Error> = .success(42)
     let failureResult: Result<Int, Error> = .failure(NSError(domain: "test", code: 1))
 
-    let successPrism: Prism<Result<Int, Error>, Int> = Prism.success()
-    let failurePrism: Prism<Result<Int, Error>, Error> = Prism.failure()
+    // Prism for Result's success case
+    let successPrism = Prism<Result<Int, Error>, Int>(
+      preview: { result in
+        switch result {
+        case .success(let value): return value
+        case .failure: return nil
+        }
+      },
+      review: { .success($0) }
+    )
+
+    // Prism for Result's failure case
+    let failurePrism = Prism<Result<Int, Error>, Error>(
+      preview: { result in
+        switch result {
+        case .success: return nil
+        case .failure(let error): return error
+        }
+      },
+      review: { .failure($0) }
+    )
 
     // Test success prism
     #expect(successPrism.preview(successResult) == 42)
@@ -185,7 +199,14 @@ struct LensSystemTests {
   @Test("Traversal operations with arrays")
   func traversalOperationsWithArrays() async {
     let numbers = [1, 2, 3, 4, 5]
-    let arrayTraversal: Traversal<[Int], Int> = Traversal.each()
+
+    // Traversal for array elements
+    let arrayTraversal = Traversal<[Int], Int>(
+      over: { transform in
+        { array in array.map(transform) }
+      },
+      toListOf: { $0 }
+    )
 
     // Test extracting all values
     let allValues = arrayTraversal.toListOf(numbers)
@@ -203,7 +224,14 @@ struct LensSystemTests {
   @Test("Traversal operations with dictionaries")
   func traversalOperationsWithDictionaries() async {
     let dict = ["a": 1, "b": 2, "c": 3]
-    let valuesTraversal: Traversal<[String: Int], Int> = Traversal.values()
+
+    // Traversal for dictionary values
+    let valuesTraversal = Traversal<[String: Int], Int>(
+      over: { transform in
+        { dict in dict.mapValues(transform) }
+      },
+      toListOf: { dict in Array(dict.values) }
+    )
 
     // Test extracting all values
     let allValues = Set(valuesTraversal.toListOf(dict))
@@ -215,4 +243,3 @@ struct LensSystemTests {
     #expect(doubled == expectedDoubled)
   }
 }
-*/

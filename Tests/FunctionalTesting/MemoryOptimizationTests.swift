@@ -97,9 +97,6 @@ struct MemoryOptimizationTests {
 
   // MARK: - Boolean Algebra Law Verification Tests
 
-  /// SKIPPED: These tests require Property.tautology() and Property.contradiction() static methods
-  /// which are not yet implemented in the current API. They will be re-enabled when these methods are added.
-  /*
   @Test("Boolean algebra identity laws hold with optimized properties")
   func testBooleanAlgebraIdentityLaws() async throws {
     // Given: A property and identity elements
@@ -107,45 +104,44 @@ struct MemoryOptimizationTests {
     let property = Property(generator: generator, predicate: { $0 > 0 })
     let tautology = Property.tautology(generator)
     let contradiction = Property.contradiction(generator)
-  
+
     // When: Applying identity laws
     let pAndTrue = property.and(tautology)
     let pOrFalse = property.or(contradiction)
-  
+
     // Then: Identity laws should hold
     let runner = PropertyRunner()
     let pResult = await runner.runProperty(property)
     let pAndTrueResult = await runner.runProperty(pAndTrue)
     let pOrFalseResult = await runner.runProperty(pOrFalse)
-  
+
     #expect(pResult.isSuccess)
     #expect(pAndTrueResult.isSuccess)  // p ∧ ⊤ = p (when p is true)
     #expect(pOrFalseResult.isSuccess)  // p ∨ ⊥ = p
   }
-  
+
   @Test("Boolean algebra complement laws hold with optimized properties")
   func testBooleanAlgebraComplementLaws() async throws {
     // Given: A property and its negation
     let generator = Gen.pure(42)
     let property = Property(generator: generator, predicate: { $0 > 100 })
     let negation = property.negation()
-  
+
     // When: Applying complement operations
     let pAndNotP = property.and(negation)
     let pOrNotP = property.or(negation)
-  
+
     // Then: Complement laws should hold
     let runner = PropertyRunner()
     let pAndNotPResult = await runner.runProperty(pAndNotP)
     let pOrNotPResult = await runner.runProperty(pOrNotP)
-  
+
     // p ∧ ¬p = ⊥ (should fail)
     #expect(!pAndNotPResult.isSuccess)
-  
+
     // p ∨ ¬p = ⊤ (should succeed)
     #expect(pOrNotPResult.isSuccess)
   }
-  */
 
   // MARK: - Performance Tests
 
@@ -179,7 +175,7 @@ struct MemoryOptimizationTests {
   @Test("Concurrent property testing maintains memory safety")
   func testConcurrentMemorySafety() async throws {
     // Disabled: this test causes Signal 5 crashes in the test runner
-    #expect(true, "Test disabled to prevent crash")
+    #expect(Bool(true), "Test disabled to prevent crash")
     /*
     // Given: Multiple properties for concurrent testing
     let properties = (0..<10).map { i in

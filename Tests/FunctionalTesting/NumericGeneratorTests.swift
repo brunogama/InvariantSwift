@@ -557,7 +557,7 @@ struct NumericGeneratorTests {
       )
     } else {
       // If it doesn't fail, that's also valid (means the property accidentally passed)
-      #expect(true, "Int shrinking test completed")
+      #expect(Bool(true), "Int shrinking test completed")
     }
   }
 
@@ -584,7 +584,7 @@ struct NumericGeneratorTests {
     }
 
     // Test completes regardless of specific result
-    #expect(true, "Float shrinking behavior test completed")
+    #expect(Bool(true), "Float shrinking behavior test completed")
   }
 
   @Test("Double Shrinking Behavior Validation")
@@ -609,7 +609,7 @@ struct NumericGeneratorTests {
       }
     }
 
-    #expect(true, "Double shrinking behavior test completed")
+    #expect(Bool(true), "Double shrinking behavior test completed")
   }
 
   @Test("UInt Shrinking Behavior Validation")
@@ -632,7 +632,7 @@ struct NumericGeneratorTests {
       )
     }
 
-    #expect(true, "UInt shrinking behavior test completed")
+    #expect(Bool(true), "UInt shrinking behavior test completed")
   }
 
   @Test("Int64 Shrinking Large Values", .enabled(if: TestEnvironment.isNotBetaMacOS))
@@ -654,7 +654,7 @@ struct NumericGeneratorTests {
       )
     }
 
-    #expect(true, "Int64 shrinking large values test completed")
+    #expect(Bool(true), "Int64 shrinking large values test completed")
   }
 
   // MARK: - Overflow and Underflow Boundary Testing (Task 5)

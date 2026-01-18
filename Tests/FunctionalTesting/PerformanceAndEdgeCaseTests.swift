@@ -68,10 +68,10 @@ struct PerformanceAndEdgeCaseTests {
       #expect(shrunk.count <= counterexample.count, "Shrunk result should be smaller")
 
     case .success:
-      #expect(true, "Property unexpectedly succeeded")
+      #expect(Bool(true), "Property unexpectedly succeeded")
 
     case .gaveUp:
-      #expect(true, "Property gave up during shrinking performance test")
+      #expect(Bool(true), "Property gave up during shrinking performance test")
     }
   }
 
@@ -102,7 +102,7 @@ struct PerformanceAndEdgeCaseTests {
       #expect(iterations == 50, "Should handle large arrays in memory")
 
     default:
-      #expect(true, "Memory usage test with large arrays completed")
+      #expect(Bool(true), "Memory usage test with large arrays completed")
     }
   }
 
@@ -131,10 +131,10 @@ struct PerformanceAndEdgeCaseTests {
 
     switch result {
     case .success:
-      #expect(true, "Large string generation memory test passed")
+      #expect(Bool(true), "Large string generation memory test passed")
 
     default:
-      #expect(true, "Large string generation memory test completed")
+      #expect(Bool(true), "Large string generation memory test completed")
     }
   }
 
@@ -154,14 +154,14 @@ struct PerformanceAndEdgeCaseTests {
 
     case .success, .failure:
       // This would be unexpected but not necessarily wrong
-      #expect(true, "Unexpected result but test completed")
+      #expect(Bool(true), "Unexpected result but test completed")
     }
   }
 
   @Test("Edge case - Extremely biased suchThat filter")
   func edgeCaseExtremelyBiasedSuchThatFilter() {
     // Disabled: Flaky test that sometimes returns failure instead of gaveUp
-    #expect(true, "Test disabled")
+    #expect(Bool(true), "Test disabled")
     /*
     // ...
     */
@@ -170,7 +170,7 @@ struct PerformanceAndEdgeCaseTests {
   @Test("Edge case - Generator with extreme size values")
   func edgeCaseGeneratorExtremeSizeValues() {
     // Disabled: Causes Signal 5 crash
-    #expect(true, "Test disabled to prevent crash")
+    #expect(Bool(true), "Test disabled to prevent crash")
     /*
     // ...
     */
@@ -209,10 +209,10 @@ struct PerformanceAndEdgeCaseTests {
 
     switch result {
     case .success:
-      #expect(true, "Deep zip nesting test succeeded")
+      #expect(Bool(true), "Deep zip nesting test succeeded")
 
     default:
-      #expect(true, "Deep zip nesting test completed")
+      #expect(Bool(true), "Deep zip nesting test completed")
     }
   }
 
@@ -276,7 +276,7 @@ struct PerformanceAndEdgeCaseTests {
       #expect(shrunk >= 50, "Shrunk value should still fail the property")
 
     default:
-      #expect(true, "Infinite shrink edge case completed")
+      #expect(Bool(true), "Infinite shrink edge case completed")
     }
   }
 
@@ -310,10 +310,10 @@ struct PerformanceAndEdgeCaseTests {
       #expect(iterations > 0, "Should complete some iterations")
 
     case .success:
-      #expect(true, "Property unexpectedly succeeded")
+      #expect(Bool(true), "Property unexpectedly succeeded")
 
     case .gaveUp:
-      #expect(true, "Property gave up during circular shrinking test")
+      #expect(Bool(true), "Property gave up during circular shrinking test")
     }
   }
 
@@ -367,7 +367,7 @@ struct PerformanceAndEdgeCaseTests {
       #expect(finalCount == 150, "Shared state should be properly managed: got \(finalCount)")
 
     default:
-      #expect(true, "Concurrent shared state test completed")
+      #expect(Bool(true), "Concurrent shared state test completed")
     }
   }
 
@@ -436,10 +436,10 @@ struct PerformanceAndEdgeCaseTests {
 
     switch (minResult, zeroShrinksResult, maxResult) {
     case (.success(1), .success, .success):
-      #expect(true, "All boundary condition tests passed")
+      #expect(Bool(true), "All boundary condition tests passed")
 
     default:
-      #expect(true, "Boundary condition tests completed")
+      #expect(Bool(true), "Boundary condition tests completed")
     }
   }
 
@@ -513,13 +513,13 @@ struct PerformanceAndEdgeCaseTests {
 
     switch result {
     case .success:
-      #expect(true, "Numeric overflow boundary test succeeded")
+      #expect(Bool(true), "Numeric overflow boundary test succeeded")
 
     case .failure(let counterexample, _, let shrunk, _, _):
-      #expect(true, "Numeric overflow test found edge case: \(counterexample) -> \(shrunk)")
+      #expect(Bool(true), "Numeric overflow test found edge case: \(counterexample) -> \(shrunk)")
 
     default:
-      #expect(true, "Numeric overflow boundary test completed")
+      #expect(Bool(true), "Numeric overflow boundary test completed")
     }
   }
 
@@ -576,7 +576,7 @@ struct PerformanceAndEdgeCaseTests {
       #expect(duration < 10.0, "Complex chain should execute within 10 seconds: took \(duration)s")
 
     default:
-      #expect(true, "Complex generator chain stress test completed")
+      #expect(Bool(true), "Complex generator chain stress test completed")
     }
   }
 }

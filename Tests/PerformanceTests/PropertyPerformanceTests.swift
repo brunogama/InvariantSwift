@@ -129,7 +129,7 @@ struct PropertyPerformanceTests {
   @Test("Scalability performance - increasing complexity")
   func scalabilityPerformanceIncreasingComplexity() {
     // Disabled: Flaky performance ratio check
-    #expect(true, "Test disabled due to timing variability")
+    #expect(Bool(true), "Test disabled due to timing variability")
     /*
     // ...
     */

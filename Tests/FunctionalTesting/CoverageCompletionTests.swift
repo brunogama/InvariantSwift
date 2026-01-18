@@ -44,7 +44,7 @@ struct CoverageCompletionTests {
   @Test("Generator error recovery with extreme inputs")
   func generatorErrorRecoveryExtremeInputs() throws {
     // Disabled: Causes Signal 5 crash
-    #expect(true, "Test disabled")
+    #expect(Bool(true), "Test disabled")
     /*
     // ...
     */

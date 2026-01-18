@@ -198,7 +198,7 @@ struct ComprehensiveGeneratorTests {
     @Test("Traverse distributes size across elements")
     func traverseDistributesSizeAcrossElements() async throws {
       // Disabled: Causes Signal 5 crash
-      #expect(true, "Test disabled")
+      #expect(Bool(true), "Test disabled")
       /*
       let largeCollection = Array(1...20)
       let transform: (Int) -> Gen<Int> = { value in Gen<Int>.pure(value) }
