@@ -66,6 +66,24 @@ public struct TestGenerator: Sendable {
       code = generateCollectionCount(for: typeInfo)
     case .collectionIndices:
       code = generateCollectionIndices(for: typeInfo)
+    case .identifiableStability:
+      code = generateIdentifiableStability(for: typeInfo)
+    case .rawRepresentableRoundtrip:
+      code = generateRawRepresentableRoundtrip(for: typeInfo)
+    case .numericAdditiveIdentity:
+      code = generateNumericAdditiveIdentity(for: typeInfo)
+    case .numericCommutativity:
+      code = generateNumericCommutativity(for: typeInfo)
+    case .numericAssociativity:
+      code = generateNumericAssociativity(for: typeInfo)
+    case .additiveArithmeticZero:
+      code = generateAdditiveArithmeticZero(for: typeInfo)
+    case .collectionBounds:
+      code = generateCollectionBounds(for: typeInfo)
+    case .sequenceIteration:
+      code = generateSequenceIteration(for: typeInfo)
+    case .bidirectionalSymmetry:
+      code = generateBidirectionalSymmetry(for: typeInfo)
     }
 
     let testName = "\(config.testPrefix)\(typeInfo.name)_\(pattern.rawValue)"
@@ -328,6 +346,145 @@ public struct TestGenerator: Sendable {
           _ = collection[index]
         }
         #expect(Bool(true), "All indices should be valid")
+      }
+      """
+  }
+
+  private func generateCollectionBounds(for typeInfo: TypeInfo) -> String {
+    let typeName = typeInfo.name
+    return """
+      /// Collection startIndex/endIndex consistency.
+      /// Pattern: \(TestPattern.collectionBounds.description)
+      @PropertyTest
+      func \(config.testPrefix)\(typeName)_collectionBounds(collection: \(typeName)) {
+        if collection.isEmpty {
+          #expect(collection.startIndex == collection.endIndex, "Empty collection: startIndex == endIndex")
+        } else {
+          #expect(collection.startIndex < collection.endIndex, "Non-empty collection: startIndex < endIndex")
+        }
+      }
+      """
+  }
+
+  // MARK: - Identifiable Tests
+
+  private func generateIdentifiableStability(for typeInfo: TypeInfo) -> String {
+    let typeName = typeInfo.name
+    return """
+      /// Identifiable: id is stable across accesses.
+      /// Pattern: \(TestPattern.identifiableStability.description)
+      @PropertyTest
+      func \(config.testPrefix)\(typeName)_identifiableStability(value: \(typeName)) {
+        let id1 = value.id
+        let id2 = value.id
+        #expect(id1 == id2, "Identifiable: id should be stable across accesses")
+      }
+      """
+  }
+
+  // MARK: - RawRepresentable Tests
+
+  private func generateRawRepresentableRoundtrip(for typeInfo: TypeInfo) -> String {
+    let typeName = typeInfo.name
+    return """
+      /// RawRepresentable roundtrip: init(rawValue:) → rawValue == original.
+      /// Pattern: \(TestPattern.rawRepresentableRoundtrip.description)
+      @PropertyTest
+      func \(config.testPrefix)\(typeName)_rawRepresentableRoundtrip(value: \(typeName)) {
+        let raw = value.rawValue
+        let recreated = \(typeName)(rawValue: raw)
+        #expect(recreated == value, "RawRepresentable roundtrip should preserve value")
+      }
+      """
+  }
+
+  // MARK: - Numeric Tests
+
+  private func generateNumericAdditiveIdentity(for typeInfo: TypeInfo) -> String {
+    let typeName = typeInfo.name
+    return """
+      /// Numeric additive identity: x + 0 == x.
+      /// Pattern: \(TestPattern.numericAdditiveIdentity.description)
+      @PropertyTest
+      func \(config.testPrefix)\(typeName)_additiveIdentity(value: \(typeName)) {
+        #expect(value + .zero == value, "Additive identity: x + 0 == x")
+        #expect(\(typeName).zero + value == value, "Additive identity: 0 + x == x")
+      }
+      """
+  }
+
+  private func generateNumericCommutativity(for typeInfo: TypeInfo) -> String {
+    let typeName = typeInfo.name
+    return """
+      /// Numeric commutativity: a + b == b + a.
+      /// Pattern: \(TestPattern.numericCommutativity.description)
+      @PropertyTest
+      func \(config.testPrefix)\(typeName)_commutativity(a: \(typeName), b: \(typeName)) {
+        #expect(a + b == b + a, "Commutativity: a + b == b + a")
+      }
+      """
+  }
+
+  private func generateNumericAssociativity(for typeInfo: TypeInfo) -> String {
+    let typeName = typeInfo.name
+    return """
+      /// Numeric associativity: (a + b) + c == a + (b + c).
+      /// Pattern: \(TestPattern.numericAssociativity.description)
+      @PropertyTest
+      func \(config.testPrefix)\(typeName)_associativity(a: \(typeName), b: \(typeName), c: \(typeName)) {
+        #expect((a + b) + c == a + (b + c), "Associativity: (a + b) + c == a + (b + c)")
+      }
+      """
+  }
+
+  private func generateAdditiveArithmeticZero(for typeInfo: TypeInfo) -> String {
+    let typeName = typeInfo.name
+    return """
+      /// AdditiveArithmetic zero identity.
+      /// Pattern: \(TestPattern.additiveArithmeticZero.description)
+      @PropertyTest
+      func \(config.testPrefix)\(typeName)_zeroIdentity(value: \(typeName)) {
+        #expect(value - value == .zero, "x - x == 0")
+        #expect(value + .zero == value, "x + 0 == x")
+      }
+      """
+  }
+
+  // MARK: - Sequence Tests
+
+  private func generateSequenceIteration(for typeInfo: TypeInfo) -> String {
+    let typeName = typeInfo.name
+    return """
+      /// Sequence iteration is consistent.
+      /// Pattern: \(TestPattern.sequenceIteration.description)
+      @PropertyTest
+      func \(config.testPrefix)\(typeName)_sequenceIteration(sequence: \(typeName)) {
+        // Iterate twice and compare results
+        let array1 = Array(sequence)
+        let array2 = Array(sequence)
+        #expect(array1 == array2, "Sequence iteration should be consistent")
+      }
+      """
+  }
+
+  // MARK: - BidirectionalCollection Tests
+
+  private func generateBidirectionalSymmetry(for typeInfo: TypeInfo) -> String {
+    let typeName = typeInfo.name
+    return """
+      /// BidirectionalCollection index symmetry.
+      /// Pattern: \(TestPattern.bidirectionalSymmetry.description)
+      @PropertyTest
+      func \(config.testPrefix)\(typeName)_bidirectionalSymmetry(collection: \(typeName)) {
+        for index in collection.indices {
+          if index != collection.endIndex {
+            let next = collection.index(after: index)
+            if next != collection.endIndex {
+              let back = collection.index(before: next)
+              #expect(back == index, "index(before: index(after: i)) == i")
+            }
+          }
+        }
       }
       """
   }

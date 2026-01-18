@@ -46,6 +46,35 @@ public enum TestPattern: String, CaseIterable, Sendable {
   /// Collection indices are valid
   case collectionIndices = "collection_indices"
 
+  // MARK: - New Protocol Patterns
+
+  /// Identifiable: id is stable across accesses
+  case identifiableStability = "identifiable_stability"
+
+  /// RawRepresentable roundtrip: init(rawValue:) → rawValue == original
+  case rawRepresentableRoundtrip = "raw_representable_roundtrip"
+
+  /// Numeric additive identity: x + 0 == x
+  case numericAdditiveIdentity = "numeric_additive_identity"
+
+  /// Numeric commutativity: a + b == b + a
+  case numericCommutativity = "numeric_commutativity"
+
+  /// Numeric associativity: (a + b) + c == a + (b + c)
+  case numericAssociativity = "numeric_associativity"
+
+  /// AdditiveArithmetic zero identity
+  case additiveArithmeticZero = "additive_arithmetic_zero"
+
+  /// Collection startIndex/endIndex consistency
+  case collectionBounds = "collection_bounds"
+
+  /// Sequence iteration count matches expected
+  case sequenceIteration = "sequence_iteration"
+
+  /// BidirectionalCollection index symmetry
+  case bidirectionalSymmetry = "bidirectional_symmetry"
+
   /// Human-readable description of the pattern
   public var description: String {
     switch self {
@@ -75,6 +104,24 @@ public enum TestPattern: String, CaseIterable, Sendable {
       return "Collection count matches iteration count"
     case .collectionIndices:
       return "Collection indices are all valid"
+    case .identifiableStability:
+      return "Identifiable: id is stable across accesses"
+    case .rawRepresentableRoundtrip:
+      return "RawRepresentable: init(rawValue:) roundtrip"
+    case .numericAdditiveIdentity:
+      return "Numeric: x + 0 == x (additive identity)"
+    case .numericCommutativity:
+      return "Numeric: a + b == b + a (commutativity)"
+    case .numericAssociativity:
+      return "Numeric: (a + b) + c == a + (b + c) (associativity)"
+    case .additiveArithmeticZero:
+      return "AdditiveArithmetic: zero identity"
+    case .collectionBounds:
+      return "Collection: startIndex/endIndex consistency"
+    case .sequenceIteration:
+      return "Sequence: iteration is consistent"
+    case .bidirectionalSymmetry:
+      return "BidirectionalCollection: index(before:after:) symmetry"
     }
   }
 
@@ -86,6 +133,16 @@ public enum TestPattern: String, CaseIterable, Sendable {
   /// Patterns that apply to Comparable types
   public static var comparableLaws: [TestPattern] {
     [.comparableIrreflexive, .comparableAsymmetric, .comparableTransitive, .comparableTrichotomy]
+  }
+
+  /// Patterns that apply to Numeric types
+  public static var numericLaws: [TestPattern] {
+    [.numericAdditiveIdentity, .numericCommutativity, .numericAssociativity]
+  }
+
+  /// Patterns that apply to Collection types
+  public static var collectionLaws: [TestPattern] {
+    [.collectionCount, .collectionIndices, .collectionBounds]
   }
 }
 

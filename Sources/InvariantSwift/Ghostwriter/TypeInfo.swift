@@ -14,9 +14,18 @@ public enum ProtocolConformance: String, CaseIterable, Sendable {
   case hashable = "Hashable"
   case comparable = "Comparable"
   case collection = "Collection"
+  case bidirectionalCollection = "BidirectionalCollection"
+  case randomAccessCollection = "RandomAccessCollection"
+  case rangeReplaceableCollection = "RangeReplaceableCollection"
+  case mutableCollection = "MutableCollection"
   case sequence = "Sequence"
   case identifiable = "Identifiable"
   case rawRepresentable = "RawRepresentable"
+  case numeric = "Numeric"
+  case signedNumeric = "SignedNumeric"
+  case additiveArithmetic = "AdditiveArithmetic"
+  case strideable = "Strideable"
+  case sendable = "Sendable"
 
   /// Test patterns applicable to this protocol
   public var applicablePatterns: [TestPattern] {
@@ -34,13 +43,31 @@ public enum ProtocolConformance: String, CaseIterable, Sendable {
     case .comparable:
       return TestPattern.comparableLaws
     case .collection:
-      return [.collectionCount, .collectionIndices]
+      return TestPattern.collectionLaws
+    case .bidirectionalCollection:
+      return TestPattern.collectionLaws + [.bidirectionalSymmetry]
+    case .randomAccessCollection:
+      return TestPattern.collectionLaws
+    case .rangeReplaceableCollection:
+      return TestPattern.collectionLaws
+    case .mutableCollection:
+      return TestPattern.collectionLaws
     case .sequence:
-      return []
+      return [.sequenceIteration]
     case .identifiable:
-      return []
+      return [.identifiableStability]
     case .rawRepresentable:
-      return [.codableRoundtrip]
+      return [.rawRepresentableRoundtrip]
+    case .numeric:
+      return TestPattern.numericLaws
+    case .signedNumeric:
+      return TestPattern.numericLaws
+    case .additiveArithmetic:
+      return [.additiveArithmeticZero, .numericCommutativity, .numericAssociativity]
+    case .strideable:
+      return []
+    case .sendable:
+      return []  // Sendable is checked by compiler
     }
   }
 }
