@@ -29,20 +29,23 @@ The Swift Testing framework is available at compile time (via Xcode toolchain) b
 
 ## Workarounds and Alternatives
 
-### Option 1: Use SPM Plugin Instead of CLI (Recommended)
+### Option 1: Use GhostwriterPlugin (Recommended) ✅
 
-Instead of running `FuncTestCLI` directly, use the SPM plugin command:
+Use the standalone Ghostwriter SPM plugin instead of the CLI:
 
 ```bash
-# Use the plugin instead of CLI
-swift package plugin invariantswift ghostwrite Sources/
+# Generate tests for a source directory
+swift package --allow-writing-to-package-directory ghostwrite Sources/Models/
 
-# Or via the make target
-make plugin-ghostwrite SOURCE=Sources/
+# Preview without writing (dry run)
+swift package --allow-writing-to-package-directory ghostwrite --dry-run --verbose
+
+# Show help
+swift package --allow-writing-to-package-directory ghostwrite --help
 ```
 
-**Pros:** Works with current SDK, integrated into build system
-**Cons:** Requires SPM project context
+**Pros:** Works with current SDK, no Testing framework dependency at runtime
+**Cons:** Requires `--allow-writing-to-package-directory` flag
 
 ### Option 2: Run with DYLD_FRAMEWORK_PATH
 
