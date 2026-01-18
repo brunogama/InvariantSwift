@@ -220,29 +220,126 @@ public enum PasswordStrength: Sendable {
 
 /// Domain-specific faker types for specialized data.
 public enum DomainFaker: Sendable {
-  // Healthcare
+  // MARK: - Healthcare
   case medicalCondition
   case drugName
   case bloodType
   case allergy
 
-  // E-commerce
+  // MARK: - E-commerce
   case productName
   case productCategory
   case sku
   case price(currency: String = "USD", min: Double = 0.01, max: Double = 1000.0)
   case review
+  case rating
 
-  // Social
+  // MARK: - Social
   case hashtag
   case mention
   case tweetText
   case postContent
 
-  // Technical
+  // MARK: - Technical
   case httpMethod
   case httpStatusCode
   case semanticVersion
   case gitCommitHash
   case branchName
+  case apiKey
+  case jwtToken
+  case oauthToken
+
+  // MARK: - Vehicles
+  case licensePlate
+  case vin
+  case carMake
+  case carModel
+  case fuelType
+
+  // MARK: - Entertainment
+  case movieTitle
+  case tvShowTitle
+  case actorName
+  case director
+  case movieGenre
+  case imdbId
+  case songTitle
+  case artistName
+  case albumName
+  case musicGenre
+  case bookTitle
+  case authorName
+  case publisher
+  case bookGenre
+
+  // MARK: - Food
+  case dishName
+  case ingredient
+  case cuisine
+  case restaurantName
+  case beverageName
+
+  // MARK: - Sports
+  case sportName
+  case teamName
+  case playerName
+  case leagueName
+  case stadiumName
+
+  // MARK: - Education
+  case universityName
+  case courseName
+  case degree
+  case major
+  case gpa
+
+  // MARK: - Gaming
+  case gameTitle
+  case gamePlatform
+  case gameGenre
+  case playerTag
+  case achievementName
+
+  // MARK: - Crypto
+  case ethereumAddress
+  case tokenName
+  case transactionHash
+  case walletName
+
+  // MARK: - Travel
+  case airlineName
+  case airportCode
+  case flightNumber
+  case hotelName
+  case destinationCity
+
+  // MARK: - Banking
+  case accountNumber
+  case routingNumber
+  case transactionType
+  case bankName
+
+  // MARK: - Apple Platform
+  case bundleId
+  case appName
+  case appVersion
+  case deviceName
+  case iosVersion
+  case screenResolution
+  case apnsToken
+  case productId
+  case subscriptionPeriod
+
+  // MARK: - Database/Cloud
+  case tableName
+  case columnName
+  case mongoObjectId
+  case s3BucketName
+  case awsRegion
+
+  // MARK: - Logging
+  case logLevel
+  case traceId
+  case correlationId
 }
