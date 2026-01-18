@@ -1,8 +1,24 @@
-/// Example Database for Corpus Management
+/// Corpus Database for Property-Based Testing
 ///
-/// Persistent corpus with replay capabilities for maintaining test case databases
-/// across runs. Stores minimal counterexamples, interesting inputs, and execution
-/// metadata to improve test generation over time.
+/// A persistent SQLite-backed database for storing and managing test examples,
+/// counterexamples, and interesting inputs discovered during property-based testing.
+///
+/// **Capabilities:**
+/// - Regression testing with previously found failures
+/// - Corpus-based fuzzing with interesting inputs
+/// - Cross-run learning and optimization
+/// - Minimized counterexample caching
+/// - Automatic corpus management and pruning
+///
+/// **Architecture:**
+/// - Actor-based for thread-safe concurrent access
+/// - SQLite backend with WAL mode for performance
+/// - Integration with coverage-guided generation
+///
+/// **References:**
+/// - [AFL Technical Details](https://lcamtuf.coredump.cx/afl/technical_details.txt)
+/// - [LibFuzzer Corpus](https://llvm.org/docs/LibFuzzer.html#corpus)
+/// - [Hypothesis Database](https://hypothesis.readthedocs.io/en/latest/database.html)
 
 import Foundation
 import SQLite3
@@ -10,7 +26,7 @@ import SQLite3
 // MARK: - Core Types
 
 /// Unique key for identifying test cases in the corpus
-public struct ExampleKey: Sendable, Hashable, Codable, CustomStringConvertible {
+public struct CorpusKey: Sendable, Hashable, Codable, CustomStringConvertible {
   public let propertyHash: String
   public let generatorFingerprint: String
   public let inputTypeSignature: String
@@ -174,10 +190,10 @@ public struct CorpusStatistics: Sendable {
   }
 }
 
-// MARK: - Example Database Implementation
+// MARK: - Corpus Database Implementation
 
-/// Persistent example database with SQLite backend
-public actor SQLiteExampleDatabase {
+/// Persistent corpus database with SQLite backend
+public actor CorpusDatabase {
   private let dbPath: URL
   private var db: OpaquePointer?
   private let encoder = JSONEncoder()
@@ -185,7 +201,7 @@ public actor SQLiteExampleDatabase {
   private var isInitialized = false
 
   public init(path: URL? = nil) async throws {
-    let dbPath = path ?? ExampleDatabase.defaultDatabasePath()
+    let dbPath = path ?? CorpusDatabase.defaultDatabasePath
     self.dbPath = dbPath
 
     // Configure JSON encoder/decoder
@@ -203,7 +219,7 @@ public actor SQLiteExampleDatabase {
   /// Default database path in user's cache directory
   public static var defaultDatabasePath: URL {
     let cacheDir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
-    return cacheDir.appendingPathComponent("FunctionalTesting")
+    return cacheDir.appendingPathComponent("InvariantSwift")
       .appendingPathComponent("corpus.db")
   }
 
@@ -216,7 +232,7 @@ public actor SQLiteExampleDatabase {
     // Open database
     let flags = SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE | SQLITE_OPEN_FULLMUTEX
     guard sqlite3_open_v2(dbPath.path, &db, flags, nil) == SQLITE_OK else {
-      throw DatabaseError.openFailed(String(cString: sqlite3_errmsg(db)))
+      throw CorpusDatabaseError.openFailed(String(cString: sqlite3_errmsg(db)))
     }
 
     // Create tables
@@ -271,18 +287,18 @@ public actor SQLiteExampleDatabase {
     defer { sqlite3_finalize(statement) }
 
     guard sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK else {
-      throw DatabaseError.prepareFailed(String(cString: sqlite3_errmsg(db)))
+      throw CorpusDatabaseError.prepareFailed(String(cString: sqlite3_errmsg(db)))
     }
 
     guard sqlite3_step(statement) == SQLITE_DONE else {
-      throw DatabaseError.executionFailed(String(cString: sqlite3_errmsg(db)))
+      throw CorpusDatabaseError.executionFailed(String(cString: sqlite3_errmsg(db)))
     }
   }
 
-  /// Store example in the corpus
-  public func put<A: Codable>(_ key: ExampleKey, _ entry: CorpusEntry<A>) async throws {
+  /// Store entry in the corpus
+  public func put<A: Codable>(_ key: CorpusKey, _ entry: CorpusEntry<A>) async throws {
     guard isInitialized else {
-      throw DatabaseError.notInitialized
+      throw CorpusDatabaseError.notInitialized
     }
 
     let sql = """
@@ -297,7 +313,7 @@ public actor SQLiteExampleDatabase {
     defer { sqlite3_finalize(statement) }
 
     guard sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK else {
-      throw DatabaseError.prepareFailed(String(cString: sqlite3_errmsg(db)))
+      throw CorpusDatabaseError.prepareFailed(String(cString: sqlite3_errmsg(db)))
     }
 
     let minimalData = try encoder.encode(entry.minimal)
@@ -326,18 +342,18 @@ public actor SQLiteExampleDatabase {
     sqlite3_bind_double(statement, 13, entry.priority)
 
     guard sqlite3_step(statement) == SQLITE_DONE else {
-      throw DatabaseError.executionFailed(String(cString: sqlite3_errmsg(db)))
+      throw CorpusDatabaseError.executionFailed(String(cString: sqlite3_errmsg(db)))
     }
   }
 
-  /// Retrieve examples from the corpus
+  /// Retrieve entries from the corpus
   public func get<A: Codable>(
-    _ key: ExampleKey,
+    _ key: CorpusKey,
     as type: A.Type,
     query: CorpusQuery = CorpusQuery()
   ) async throws -> [CorpusEntry<A>] {
     guard isInitialized else {
-      throw DatabaseError.notInitialized
+      throw CorpusDatabaseError.notInitialized
     }
 
     var sql = """
@@ -366,7 +382,7 @@ public actor SQLiteExampleDatabase {
     defer { sqlite3_finalize(statement) }
 
     guard sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK else {
-      throw DatabaseError.prepareFailed(String(cString: sqlite3_errmsg(db)))
+      throw CorpusDatabaseError.prepareFailed(String(cString: sqlite3_errmsg(db)))
     }
 
     for (index, param) in parameters.enumerated() {
@@ -381,7 +397,7 @@ public actor SQLiteExampleDatabase {
         sqlite3_bind_double(statement, Int32(index + 1), doubleValue)
 
       default:
-        throw DatabaseError.invalidParameter
+        throw CorpusDatabaseError.invalidParameter
       }
     }
 
@@ -439,10 +455,10 @@ public actor SQLiteExampleDatabase {
     return results
   }
 
-  /// Promote interesting examples to higher priority
-  public func promoteInteresting(_ key: ExampleKey) async throws {
+  /// Promote interesting entries to higher priority
+  public func promoteInteresting(_ key: CorpusKey) async throws {
     guard isInitialized else {
-      throw DatabaseError.notInitialized
+      throw CorpusDatabaseError.notInitialized
     }
 
     let sql = """
@@ -456,7 +472,7 @@ public actor SQLiteExampleDatabase {
     defer { sqlite3_finalize(statement) }
 
     guard sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK else {
-      throw DatabaseError.prepareFailed(String(cString: sqlite3_errmsg(db)))
+      throw CorpusDatabaseError.prepareFailed(String(cString: sqlite3_errmsg(db)))
     }
 
     sqlite3_bind_text(statement, 1, key.propertyHash, -1, nil)
@@ -464,14 +480,14 @@ public actor SQLiteExampleDatabase {
     sqlite3_bind_text(statement, 3, key.inputTypeSignature, -1, nil)
 
     guard sqlite3_step(statement) == SQLITE_DONE else {
-      throw DatabaseError.executionFailed(String(cString: sqlite3_errmsg(db)))
+      throw CorpusDatabaseError.executionFailed(String(cString: sqlite3_errmsg(db)))
     }
   }
 
   /// Get corpus statistics
   public func getStatistics() async throws -> CorpusStatistics {
     guard isInitialized else {
-      throw DatabaseError.notInitialized
+      throw CorpusDatabaseError.notInitialized
     }
 
     // Total entries
@@ -519,7 +535,7 @@ public actor SQLiteExampleDatabase {
   /// Clean up old entries based on retention policy
   public func cleanup(retentionDays: Int = 30, maxEntries: Int = 100000) async throws {
     guard isInitialized else {
-      throw DatabaseError.notInitialized
+      throw CorpusDatabaseError.notInitialized
     }
 
     let cutoffDate = Date().addingTimeInterval(-Double(retentionDays * 24 * 60 * 60))
@@ -560,7 +576,7 @@ public actor SQLiteExampleDatabase {
     defer { sqlite3_finalize(statement) }
 
     guard sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK else {
-      throw DatabaseError.prepareFailed(String(cString: sqlite3_errmsg(db)))
+      throw CorpusDatabaseError.prepareFailed(String(cString: sqlite3_errmsg(db)))
     }
 
     for (index, param) in parameters.enumerated() {
@@ -579,7 +595,7 @@ public actor SQLiteExampleDatabase {
     defer { sqlite3_finalize(statement) }
 
     guard sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK else {
-      throw DatabaseError.prepareFailed(String(cString: sqlite3_errmsg(db)))
+      throw CorpusDatabaseError.prepareFailed(String(cString: sqlite3_errmsg(db)))
     }
 
     for (index, param) in parameters.enumerated() {
@@ -598,7 +614,7 @@ public actor SQLiteExampleDatabase {
     defer { sqlite3_finalize(statement) }
 
     guard sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK else {
-      throw DatabaseError.prepareFailed(String(cString: sqlite3_errmsg(db)))
+      throw CorpusDatabaseError.prepareFailed(String(cString: sqlite3_errmsg(db)))
     }
 
     for (index, param) in parameters.enumerated() {
@@ -617,7 +633,7 @@ public actor SQLiteExampleDatabase {
 
 // MARK: - Error Types
 
-public enum DatabaseError: Error, Sendable {
+public enum CorpusDatabaseError: Error, Sendable {
   case notInitialized
   case openFailed(String)
   case prepareFailed(String)
@@ -627,13 +643,13 @@ public enum DatabaseError: Error, Sendable {
   case decodingFailed
 }
 
-// MARK: - Corpus Integration Extensions
+// MARK: - Generator Integration
 
 extension Gen {
   /// Create generator that replays from corpus first, then generates new values
   public func withCorpusReplay(
-    database: ExampleDatabase,
-    key: ExampleKey,
+    database: CorpusDatabase,
+    key: CorpusKey,
     replayProbability: Double = 0.3
   ) -> Gen<T> where T: Codable {
     Gen<T> { rng, size in
@@ -644,11 +660,13 @@ extension Gen {
   }
 }
 
+// MARK: - Property Integration
+
 extension Property {
   /// Run property with automatic corpus recording
   public func withCorpusRecording(
-    database: ExampleDatabase,
-    key: ExampleKey,
+    database: CorpusDatabase,
+    key: CorpusKey,
     recordInteresting: Bool = true
   ) -> Property<T> where T: Codable {
     Property<T>(generator: self.generator) { input in
@@ -658,3 +676,106 @@ extension Property {
     }
   }
 }
+
+// MARK: - PropertyRunner Integration
+
+extension PropertyRunner {
+  /// Run property test with corpus database integration
+  ///
+  /// Replays existing failures first, then runs the property test,
+  /// and stores any new failures or interesting cases in the corpus.
+  ///
+  /// - Parameters:
+  ///   - property: The property to test
+  ///   - config: Test configuration
+  ///   - database: Corpus database for persistence
+  ///   - key: Corpus key for this property
+  /// - Returns: Test result and corpus statistics
+  public func runWithCorpus<T>(
+    _ property: Property<T>,
+    config: PropertyConfig = .default,
+    database: CorpusDatabase,
+    key: CorpusKey
+  ) async -> (PropertyResult<T>, CorpusStatistics) where T: Codable & Sendable {
+    // First, replay any existing failures
+    let existingFailures = try? await database.get(key, as: T.self, query: .counterexamples)
+
+    for failure in existingFailures ?? [] {
+      if !property.predicate(failure.minimal) {
+        let stats = try? await database.getStatistics()
+        return (
+          .failure(
+            counterexample: failure.minimal,
+            iterations: 0,
+            shrunk: failure.minimal,
+            reason: .predicateFailed,
+            seed: Seed(value: failure.seed)
+          ),
+          stats
+            ?? CorpusStatistics(
+              totalEntries: 0,
+              entriesByClassification: [:],
+              oldestEntry: nil,
+              newestEntry: nil,
+              averageShrinkSteps: 0,
+              databaseSize: 0,
+              uniqueProperties: 0
+            )
+        )
+      }
+    }
+
+    // Run normal property test
+    let result = runProperty(property, config: config)
+
+    // Store interesting results
+    switch result {
+    case .failure(let counterexample, _, let shrunk, _, let seed):
+      let entry = CorpusEntry(
+        seed: seed.rawValue,
+        minimal: shrunk,
+        original: counterexample,
+        shrinkSteps: 0,
+        classification: .counterexample,
+        priority: EntryClassification.counterexample.priorityWeight
+      )
+      try? await database.put(key, entry)
+
+    case .success, .gaveUp:
+      break
+    }
+
+    let stats = try? await database.getStatistics()
+    return (
+      result,
+      stats
+        ?? CorpusStatistics(
+          totalEntries: 0,
+          entriesByClassification: [:],
+          oldestEntry: nil,
+          newestEntry: nil,
+          averageShrinkSteps: 0,
+          databaseSize: 0,
+          uniqueProperties: 0
+        )
+    )
+  }
+}
+
+// MARK: - Type Aliases for Migration
+
+/// Legacy type alias for backward compatibility
+@available(*, deprecated, renamed: "CorpusKey")
+public typealias ExampleKey = CorpusKey
+
+/// Legacy type alias for backward compatibility
+@available(*, deprecated, renamed: "CorpusDatabase")
+public typealias ExampleDatabase = CorpusDatabase
+
+/// Legacy type alias for backward compatibility
+@available(*, deprecated, renamed: "CorpusDatabase")
+public typealias SQLiteExampleDatabase = CorpusDatabase
+
+/// Legacy type alias for backward compatibility
+@available(*, deprecated, renamed: "CorpusDatabaseError")
+public typealias DatabaseError = CorpusDatabaseError

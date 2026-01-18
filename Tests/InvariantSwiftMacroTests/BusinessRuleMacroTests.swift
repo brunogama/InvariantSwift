@@ -34,10 +34,8 @@ final class BusinessRuleMacroTests: XCTestCase {
             switch result {
             case .success:
                 break
-
             case .failure(counterexample: let counterexample, iterations: let iterations, shrunk: let shrunk, _: _, _: _):
                 throw BusinessRuleViolation(rule: "Age must be at least 18", counterexample: String(describing: counterexample), shrunk: String(describing: shrunk), iterations: iterations, businessImpact: "Business rule validation failed - this may indicate a logical error in business constraints")
-
             case .gaveUp(discarded: let discarded, iterations: let iterations):
                 throw BusinessRuleGaveUp(rule: "Age must be at least 18", discarded: discarded, iterations: iterations, suggestion: "Consider relaxing generator constraints or providing more specific generators")
             }
@@ -71,10 +69,8 @@ final class BusinessRuleMacroTests: XCTestCase {
             switch result {
             case .success:
                 break
-
             case .failure(counterexample: let counterexample, iterations: let iterations, shrunk: let shrunk, _: _, _: _):
                 throw BusinessRuleViolation(rule: "Discount cannot exceed price", counterexample: String(describing: counterexample), shrunk: String(describing: shrunk), iterations: iterations, businessImpact: "Business rule validation failed - this may indicate a logical error in business constraints")
-
             case .gaveUp(discarded: let discarded, iterations: let iterations):
                 throw BusinessRuleGaveUp(rule: "Discount cannot exceed price", discarded: discarded, iterations: iterations, suggestion: "Consider relaxing generator constraints or providing more specific generators")
             }
@@ -108,10 +104,8 @@ final class BusinessRuleMacroTests: XCTestCase {
             switch result {
             case .success:
                 break
-
             case .failure(counterexample: let counterexample, iterations: let iterations, shrunk: let shrunk, _: _, _: _):
                 throw BusinessRuleViolation(rule: "Amount must be positive", counterexample: String(describing: counterexample), shrunk: String(describing: shrunk), iterations: iterations, businessImpact: "Business rule validation failed - this may indicate a logical error in business constraints")
-
             case .gaveUp(discarded: let discarded, iterations: let iterations):
                 throw BusinessRuleGaveUp(rule: "Amount must be positive", discarded: discarded, iterations: iterations, suggestion: "Consider relaxing generator constraints or providing more specific generators")
             }
@@ -217,10 +211,8 @@ final class BusinessRuleMacroTests: XCTestCase {
             switch result {
             case .success:
                 break
-
             case .failure(counterexample: let counterexample, iterations: let iterations, shrunk: let shrunk, _: _, _: _):
                 throw BusinessRuleViolation(rule: "Email must be valid format", counterexample: String(describing: counterexample), shrunk: String(describing: shrunk), iterations: iterations, businessImpact: "Business rule validation failed - this may indicate a logical error in business constraints")
-
             case .gaveUp(discarded: let discarded, iterations: let iterations):
                 throw BusinessRuleGaveUp(rule: "Email must be valid format", discarded: discarded, iterations: iterations, suggestion: "Consider relaxing generator constraints or providing more specific generators")
             }

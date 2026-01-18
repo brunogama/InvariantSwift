@@ -58,7 +58,7 @@ import Foundation
 /// Int               → Gen.int             // Integer generation with edge cases
 /// Bool              → Gen.bool            // Boolean generation
 /// [T]               → Gen.array(T.gen)    // Array generation
-/// CustomType        → CustomType.smartGen // Uses @SmartGenerator if available
+/// CustomType        → CustomType.arbitrary // Uses @Arbitrary conformance
 /// ```
 ///
 /// **Configuration Options:**

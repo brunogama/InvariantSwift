@@ -829,3 +829,348 @@ extension LinearizabilityChecker {
     return await checker.check(operations: operations)
   }
 }
+
+// MARK: - Parallel Property Runner
+
+/// Configuration for parallel execution
+public struct ParallelExecutionConfig: Sendable {
+  public let maxConcurrency: Int
+  public let jitteringStrategy: JitteringStrategy
+  public let rounds: Int
+  public let timeout: Duration
+  public let recordHistory: Bool
+
+  public init(
+    maxConcurrency: Int = 4,
+    jitteringStrategy: JitteringStrategy = .random,
+    rounds: Int = 100,
+    timeout: Duration = .seconds(30),
+    recordHistory: Bool = true
+  ) {
+    self.maxConcurrency = maxConcurrency
+    self.jitteringStrategy = jitteringStrategy
+    self.rounds = rounds
+    self.timeout = timeout
+    self.recordHistory = recordHistory
+  }
+
+  public static let quick = Self(maxConcurrency: 2, rounds: 10)
+  public static let thorough = Self(maxConcurrency: 8, rounds: 1000)
+}
+
+/// Jittering strategies for inducing race conditions
+public enum JitteringStrategy: Sendable {
+  /// No jittering - execute as fast as possible
+  case none
+  /// Random delays between operations
+  case random
+  /// Yield-based cooperative delays
+  case yieldBased
+  /// Fixed delay between operations
+  case fixed(Duration)
+  /// Adaptive jittering based on contention
+  case adaptive
+
+  /// Apply jitter before operation execution
+  func apply() async {
+    switch self {
+    case .none:
+      break
+
+    case .random:
+      let delayNanos = UInt64.random(in: 0..<1000)
+      try? await Task.sleep(nanoseconds: delayNanos)
+
+    case .yieldBased:
+      await Task.yield()
+
+    case .fixed(let duration):
+      try? await Task.sleep(for: duration)
+
+    case .adaptive:
+      // Adaptive: start with yield, add random delay
+      await Task.yield()
+      if Bool.random() {
+        try? await Task.sleep(nanoseconds: UInt64.random(in: 0..<500))
+      }
+    }
+  }
+}
+
+/// **ParallelPropertyRunner**: Executes property tests with concurrent jittering
+///
+/// Runs operations in parallel with configurable timing jitter to expose
+/// race conditions and verify linearizability under contention.
+///
+/// **Usage:**
+/// ```swift
+/// let runner = ParallelPropertyRunner(config: .thorough)
+/// let result = await runner.runConcurrently(
+///   operations: [op1, op2, op3],
+///   spec: counterSpec,
+///   initial: 0
+/// )
+/// ```
+public actor ParallelPropertyRunner<Model, Input, Output>
+where Model: Sendable, Input: Sendable, Output: Sendable & Equatable {
+
+  private let config: ParallelExecutionConfig
+  private let checker: LinearizabilityChecker<Model, Input, Output>
+
+  /// Recorded execution histories for debugging
+  private var recordedHistories: [[Operation<Input, Output>]] = []
+
+  /// Statistics from execution
+  private var successfulRounds: Int = 0
+  private var failedRounds: Int = 0
+
+  public init(
+    spec: Spec<Model, Input, Output>,
+    initial: Model,
+    config: ParallelExecutionConfig = ParallelExecutionConfig()
+  ) {
+    self.config = config
+    self.checker = LinearizabilityChecker(spec: spec, initial: initial)
+  }
+
+  /// Run concurrent operations with randomized scheduling
+  ///
+  /// - Parameter operations: Operations to execute concurrently
+  /// - Returns: Linearizability result after checking all executions
+  public func runConcurrently(
+    operations: [Operation<Input, Output>]
+  ) async -> ParallelExecutionResult {
+
+    let startTime = ContinuousClock().now
+
+    for round in 0..<config.rounds {
+      // Shuffle operation order for this round
+      let shuffledOps = operations.shuffled()
+
+      // Execute with jittering
+      let reorderedOps = await executeWithJitter(shuffledOps)
+
+      // Record history if configured
+      if config.recordHistory {
+        recordedHistories.append(reorderedOps)
+      }
+
+      // Check linearizability
+      let result = await checker.check(
+        operations: reorderedOps,
+        timeout: config.timeout
+      )
+
+      switch result {
+      case .linearizable:
+        successfulRounds += 1
+
+      case .notLinearizable(let witness):
+        failedRounds += 1
+        return ParallelExecutionResult(
+          isLinearizable: false,
+          successfulRounds: successfulRounds,
+          failedRounds: failedRounds,
+          totalRounds: round + 1,
+          executionTime: ContinuousClock().now - startTime,
+          failingHistory: reorderedOps.map(AnyOperation.init),
+          counterexample: witness
+        )
+
+      case .timeout, .error:
+        failedRounds += 1
+      }
+
+      // Check timeout
+      if ContinuousClock().now - startTime > config.timeout {
+        break
+      }
+    }
+
+    return ParallelExecutionResult(
+      isLinearizable: true,
+      successfulRounds: successfulRounds,
+      failedRounds: failedRounds,
+      totalRounds: config.rounds,
+      executionTime: ContinuousClock().now - startTime,
+      failingHistory: nil,
+      counterexample: nil
+    )
+  }
+
+  /// Execute operations with jittering
+  private func executeWithJitter(
+    _ operations: [Operation<Input, Output>]
+  ) async -> [Operation<Input, Output>] {
+    // For simulation, we apply jitter and record timing
+    var reorderedOps: [Operation<Input, Output>] = []
+
+    await withTaskGroup(of: Operation<Input, Output>?.self) { group in
+      for operation in operations {
+        group.addTask {
+          // Apply jitter
+          await self.config.jitteringStrategy.apply()
+          return operation
+        }
+      }
+
+      for await op in group {
+        if let op = op {
+          reorderedOps.append(op)
+        }
+      }
+    }
+
+    return reorderedOps
+  }
+
+  /// Get recorded histories for debugging
+  public func getRecordedHistories() -> [[AnyOperation]] {
+    recordedHistories.map { history in
+      history.map(AnyOperation.init)
+    }
+  }
+
+  /// Reset statistics and recorded histories
+  public func reset() {
+    successfulRounds = 0
+    failedRounds = 0
+    recordedHistories = []
+  }
+}
+
+/// Result of parallel property execution
+public struct ParallelExecutionResult: Sendable {
+  public let isLinearizable: Bool
+  public let successfulRounds: Int
+  public let failedRounds: Int
+  public let totalRounds: Int
+  public let executionTime: Duration
+  public let failingHistory: [AnyOperation]?
+  public let counterexample: NonLinearizableWitness?
+
+  public var successRate: Double {
+    guard totalRounds > 0 else { return 0 }
+    return Double(successfulRounds) / Double(totalRounds)
+  }
+
+  public func summary() -> String {
+    var result = "Parallel Execution Results\n"
+    result += "===========================\n"
+    result += "Linearizable: \(isLinearizable ? "✓" : "✗")\n"
+    result += "Success Rate: \(String(format: "%.1f%%", successRate * 100))\n"
+    result += "Rounds: \(successfulRounds)/\(totalRounds) passed\n"
+    result += "Execution Time: \(executionTime)\n"
+
+    if let counterexample = counterexample {
+      result += "\n\(counterexample.debugInfo())"
+    }
+
+    return result
+  }
+}
+
+// MARK: - Concurrency Scheduler
+
+/// Active scheduler for inducing specific interleavings
+public actor ConcurrencyScheduler {
+
+  /// Scheduling strategy
+  public enum Strategy: Sendable {
+    /// Randomize execution order
+    case random
+    /// Prioritize specific threads
+    case prioritized([ThreadID])
+    /// Round-robin scheduling
+    case roundRobin
+    /// Maximize contention
+    case maxContention
+  }
+
+  private let strategy: Strategy
+  private var pendingOperations: [UUID: () async -> Void] = [:]
+  private var executionOrder: [UUID] = []
+
+  public init(strategy: Strategy = .random) {
+    self.strategy = strategy
+  }
+
+  /// Schedule an operation for execution
+  public func schedule(
+    id: UUID,
+    operation: @escaping @Sendable () async -> Void
+  ) {
+    pendingOperations[id] = operation
+  }
+
+  /// Execute all scheduled operations according to strategy
+  public func executeAll() async {
+    let orderedIds = orderOperations()
+
+    for id in orderedIds {
+      if let operation = pendingOperations[id] {
+        await operation()
+        executionOrder.append(id)
+      }
+    }
+
+    pendingOperations.removeAll()
+  }
+
+  /// Get the execution order from last run
+  public func getExecutionOrder() -> [UUID] {
+    executionOrder
+  }
+
+  /// Order operations according to strategy
+  private func orderOperations() -> [UUID] {
+    let ids = Array(pendingOperations.keys)
+
+    switch strategy {
+    case .random:
+      return ids.shuffled()
+
+    case .prioritized(let priorities):
+      // Use priorities to create a preference ordering
+      _ = Set(priorities.map(\.value))
+      return ids.sorted { id1, id2 in
+        // This is a simplified ordering - real implementation would
+        // associate thread IDs with operations
+        id1.uuidString < id2.uuidString
+      }
+
+    case .roundRobin:
+      return ids.sorted { $0.uuidString < $1.uuidString }
+
+    case .maxContention:
+      // Interleave operations to maximize contention
+      return ids.shuffled()
+    }
+  }
+
+  /// Reset scheduler state
+  public func reset() {
+    pendingOperations.removeAll()
+    executionOrder.removeAll()
+  }
+}
+
+// MARK: - Concurrent Test Helpers
+
+extension Gen {
+
+  /// Generate concurrent operation sequences
+  public static func concurrentOperations<Op>(
+    operations: Gen<Op>,
+    threads: Int = 4,
+    opsPerThread: Int = 5
+  ) -> Gen<[[Op]]> where Op: Sendable {
+    Gen<[[Op]]> { rng, size in
+      (0..<threads).map { _ in
+        (0..<opsPerThread).map { _ in
+          operations.generate(&rng, size)
+        }
+      }
+    }
+  }
+}

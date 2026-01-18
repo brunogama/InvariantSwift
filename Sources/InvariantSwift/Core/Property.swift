@@ -314,6 +314,33 @@ public struct PropertyConfig: Sendable {
   /// Useful for debugging slow tests or understanding test behavior.
   public let verbose: Bool
 
+  /// Timeout per iteration in seconds.
+  ///
+  /// When set, each iteration must complete within this time limit.
+  /// Iterations exceeding the timeout are treated as failures with
+  /// `FailureReason.timedOut`.
+  ///
+  /// When nil, no timeout is enforced.
+  public let timeout: TimeInterval?
+
+  /// Verbosity level for structured output control.
+  ///
+  /// Provides more granular control than the `verbose` boolean:
+  /// - `.silent`: No output
+  /// - `.normal`: Only failures and summary
+  /// - `.verbose`: All progress information
+  public let verbosity: Verbosity
+
+  /// Verbosity level for property test output.
+  public enum Verbosity: Sendable {
+    /// No output during test execution.
+    case silent
+    /// Only failures and final summary.
+    case normal
+    /// All progress including iteration counts and shrinking.
+    case verbose
+  }
+
   /// Initializes a property testing configuration.
   ///
   /// - Parameters:
@@ -322,6 +349,8 @@ public struct PropertyConfig: Sendable {
   ///   - maxDiscarded: Maximum discarded cases (default: 1000). Clamped to at least 0.
   ///   - seed: Optional seed for reproducibility. Default: nil (system randomness).
   ///   - verbose: Enable verbose output. Default: false.
+  ///   - timeout: Optional per-iteration timeout. Default: nil (no timeout).
+  ///   - verbosity: Output verbosity level. Default: .normal.
   ///
   /// - Example:
   ///   ```swift
@@ -329,7 +358,9 @@ public struct PropertyConfig: Sendable {
   ///       iterations: 500,
   ///       maxShrinks: 2000,
   ///       maxDiscarded: 500,
-  ///       seed: Seed(value: 42)
+  ///       seed: Seed(value: 42),
+  ///       timeout: 5.0,
+  ///       verbosity: .verbose
   ///   )
   ///   ```
   public init(
@@ -337,13 +368,17 @@ public struct PropertyConfig: Sendable {
     maxShrinks: Int = 1000,
     maxDiscarded: Int = 1000,
     seed: Seed? = nil,
-    verbose: Bool = false
+    verbose: Bool = false,
+    timeout: TimeInterval? = nil,
+    verbosity: Verbosity = .normal
   ) {
     self.iterations = max(1, iterations)
     self.maxShrinks = max(0, maxShrinks)
     self.maxDiscarded = max(0, maxDiscarded)
     self.seed = seed
     self.verbose = verbose
+    self.timeout = timeout
+    self.verbosity = verbosity
   }
 
   /// Default configuration: 100 iterations, 1000 shrinks, 1000 max discarded.
@@ -563,6 +598,157 @@ extension Property {
       }
     )
   }
+
+  /// Negate this property (logical NOT).
+  ///
+  /// Creates a new property that passes when this property fails, and fails when
+  /// this property passes. Useful for testing boolean algebra laws like:
+  /// - `p ∧ ¬p = ⊥` (contradiction)
+  /// - `p ∨ ¬p = ⊤` (tautology)
+  ///
+  /// - Returns: A property with inverted predicate semantics
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let positive = Property(generator: Gen.int) { $0 > 0 }
+  ///   let nonPositive = positive.negation()  // $0 <= 0
+  ///   ```
+  public func negation() -> Property<T> {
+    Property(generator: self.generator, predicate: { value in !self.predicate(value) })
+  }
+
+  /// A property that always passes (logical TRUE / tautology).
+  ///
+  /// Creates a property that passes for any generated value. Useful as an identity
+  /// element for testing boolean algebra laws like `p ∧ ⊤ = p`.
+  ///
+  /// - Parameter generator: The generator to use for test values
+  /// - Returns: A property that always returns true
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let tautology = Property<Int>.tautology(Gen.int)
+  ///   let result = runPropertySynchronously(tautology)
+  ///   // Always .success
+  ///   ```
+  public static func tautology(_ generator: Gen<T>) -> Property<T> {
+    Property(generator: generator, predicate: { _ in true })
+  }
+
+  /// A property that always fails (logical FALSE / contradiction).
+  ///
+  /// Creates a property that fails for any generated value. Useful as an identity
+  /// element for testing boolean algebra laws like `p ∨ ⊥ = p`.
+  ///
+  /// - Parameter generator: The generator to use for test values
+  /// - Returns: A property that always returns false
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let contradiction = Property<Int>.contradiction(Gen.int)
+  ///   let result = runPropertySynchronously(contradiction)
+  ///   // Always .failure
+  ///   ```
+  public static func contradiction(_ generator: Gen<T>) -> Property<T> {
+    Property(generator: generator, predicate: { _ in false })
+  }
+
+  // MARK: - Transformation Combinators
+
+  /// Transform the predicate while keeping the same generator.
+  ///
+  /// Useful for wrapping or modifying the predicate logic without changing generation.
+  ///
+  /// - Parameter transform: Function that takes the current predicate and returns a new one
+  /// - Returns: Property with transformed predicate
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let prop = Property(generator: Gen.int) { $0 > 0 }
+  ///   let wrapped = prop.mapPredicate { predicate in
+  ///       { value in
+  ///           print("Testing: \(value)")
+  ///           return predicate(value)
+  ///       }
+  ///   }
+  ///   ```
+  public func mapPredicate(
+    _ transform: @escaping (@escaping (T) -> Bool) -> (T) -> Bool
+  ) -> Property<T> {
+    Property(generator: self.generator, predicate: transform(self.predicate))
+  }
+
+  /// Transform the generator while keeping the same predicate.
+  ///
+  /// Useful for modifying how values are generated without changing the property assertion.
+  ///
+  /// - Parameter transform: Function that takes the current generator and returns a new one
+  /// - Returns: Property with transformed generator
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let prop = Property(generator: Gen.int) { $0 >= 0 }
+  ///   let nonNegative = prop.mapGenerator { gen in
+  ///       gen.map { abs($0) }
+  ///   }
+  ///   ```
+  public func mapGenerator(_ transform: @escaping (Gen<T>) -> Gen<T>) -> Property<T> {
+    Property(generator: transform(self.generator), predicate: self.predicate)
+  }
+
+  /// Filter generated values using an assumption (alias for suchThat).
+  ///
+  /// Values that don't satisfy the filter condition are discarded. Be careful not to
+  /// filter out too many values, as this can cause the property test to give up.
+  ///
+  /// - Parameter condition: Predicate that generated values must satisfy
+  /// - Returns: Property that only tests values satisfying the condition
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let prop = Property(generator: Gen.int) { $0 * $0 >= 0 }
+  ///   let positiveOnly = prop.filter { $0 > 0 }
+  ///   ```
+  public func filter(_ condition: @escaping (T) -> Bool) -> Property<T> {
+    Property(generator: self.generator.suchThat(condition), predicate: self.predicate)
+  }
+
+  /// Attach a descriptive label to this property for better failure messages.
+  ///
+  /// Labels appear in test output and help identify which property failed when
+  /// running multiple properties.
+  ///
+  /// - Parameter name: Descriptive label for the property
+  /// - Returns: A labeled property wrapper
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let prop = Property(generator: Gen.int) { $0 >= 0 }
+  ///       .label("non-negative integers")
+  ///   ```
+  public func label(_ name: String) -> LabeledProperty<T> {
+    LabeledProperty(property: self, label: name)
+  }
+}
+
+// MARK: - Labeled Property
+
+/// A property with an attached descriptive label for failure reporting.
+///
+/// Use the `label(_:)` method on `Property` to create a `LabeledProperty`.
+/// The label appears in test output and helps identify which property failed.
+public struct LabeledProperty<T>: @unchecked Sendable {
+  /// The underlying property.
+  public let property: Property<T>
+
+  /// Descriptive label for test output.
+  public let label: String
+
+  /// Initialize a labeled property.
+  public init(property: Property<T>, label: String) {
+    self.property = property
+    self.label = label
+  }
 }
 
 // MARK: - Synchronous Property Testing Helper
@@ -768,6 +954,83 @@ extension PropertyResult {
 
     case .failure, .gaveUp:
       return false
+    }
+  }
+
+  /// Check if the property result represents giving up due to too many discards
+  public var isGaveUp: Bool {
+    switch self {
+    case .gaveUp:
+      return true
+
+    case .success, .failure:
+      return false
+    }
+  }
+
+  /// Extract the iteration count from any result case.
+  ///
+  /// - Returns: Number of iterations that were executed
+  public var iterationCount: Int {
+    switch self {
+    case .success(let iterations):
+      return iterations
+
+    case .failure(_, let iterations, _, _, _):
+      return iterations
+
+    case .gaveUp(_, let iterations):
+      return iterations
+    }
+  }
+
+  /// Convert result to CLI exit code.
+  ///
+  /// - Returns: 0 for success, 1 for failure, 2 for gave up
+  public func toExitCode() -> Int32 {
+    switch self {
+    case .success:
+      return 0
+
+    case .failure:
+      return 1
+
+    case .gaveUp:
+      return 2
+    }
+  }
+
+  /// Short one-line description suitable for logs.
+  public var shortDescription: String {
+    switch self {
+    case .success(let iterations):
+      return "PASS (\(iterations) iterations)"
+
+    case .failure:
+      return "FAIL"
+
+    case .gaveUp(let discarded, _):
+      return "GAVE_UP (\(discarded) discarded)"
+    }
+  }
+}
+
+extension PropertyResult: CustomStringConvertible {
+  /// Human-readable description of the property result.
+  public var description: String {
+    switch self {
+    case .success(let iterations):
+      return "✓ Passed \(iterations) tests"
+
+    case .failure(_, let iterations, let shrunk, let reason, let seed):
+      return """
+        ✗ Failed after \(iterations) tests: \(reason)
+          Minimal counterexample: \(shrunk)
+          Reproduce with seed: \(seed.rawValue)
+        """
+
+    case .gaveUp(let discarded, let iterations):
+      return "? Gave up after \(iterations) tests (\(discarded) inputs discarded)"
     }
   }
 }

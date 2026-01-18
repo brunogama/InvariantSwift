@@ -416,12 +416,16 @@ enum ArbitraryCodeGen {
     switch config.shrinkStrategy {
     case .towards(let expr):
       return buildTowardsShrink(targetExpr: expr)
+
     case .toEmpty:
       return buildToEmptyShrink(typeName: typeName, fields: fields)
+
     case .dropFields:
       return buildDropFieldsShrink(typeName: typeName, fields: fields)
+
     case .custom(let expr):
       return buildCustomShrink(closure: expr)
+
     case .automatic, .none:
       return buildAutomaticShrink(typeName: typeName, fields: fields)
     }

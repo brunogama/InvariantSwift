@@ -3,7 +3,6 @@ import SwiftSyntax
 import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
 import SwiftDiagnostics
-import SwiftParser
 import Foundation
 
 public struct BusinessRuleMacro: PeerMacro {
@@ -187,31 +186,28 @@ private func generateGeneratorExpressions(
   }
 }
 
-/// **Infer appropriate generator for parameter based on name and type**
 private func inferGenerator(for paramName: String, type: String) throws -> String {
-  // Smart generator inference based on parameter names and types
-
-  // If the type has .smartGen available, use it
+  // Custom types use Generatable.arbitrary (from @Arbitrary macro)
   if !isBuiltInType(type) {
-    return "\(type).smartGen"
+    return "\(type).arbitrary"
   }
 
   // Built-in type generators based on parameter names
   switch paramName.lowercased() {
   case let name where name.contains("email"):
-    return "Gen.email"
+    return "Gen<String>.email"
 
   case let name where name.contains("age"):
-    return "Gen.age"
+    return "Gen<Int>.age"
 
   case let name where name.contains("price"), let name where name.contains("amount"):
-    return "Gen.currency"
+    return "Gen<Decimal>.currency"
 
   case let name where name.contains("name"):
-    return "Gen.firstName"
+    return "Gen<String>.firstName"
 
   case let name where name.contains("id"):
-    return "Gen.uuid.map { $0.uuidString }"
+    return "Gen<UUID>.uuid.map { $0.uuidString }"
 
   default:
     break
@@ -220,24 +216,35 @@ private func inferGenerator(for paramName: String, type: String) throws -> Strin
   // Fallback to type-based generators
   switch type {
   case "Int":
-    return "Gen.int"
+    return "Gen<Int>.int"
 
   case "String":
-    return "Gen.string"
+    return "Gen<String>.string"
 
   case "Bool":
-    return "Gen.bool"
+    return "Gen<Bool>.bool"
 
   case "Double":
-    return "Gen.double"
+    return "Gen<Double>.double"
+
+  case "Float":
+    return "Gen<Float>.float"
 
   case "UUID":
-    return "Gen.uuid"
+    return "Gen<UUID>.uuid"
+
+  case "Decimal":
+    return "Gen<Decimal>.currency"
 
   case let arrayType where arrayType.hasPrefix("[") && arrayType.hasSuffix("]"):
     let elementType = String(arrayType.dropFirst().dropLast())
     let elementGenerator = try inferGenerator(for: "element", type: elementType)
     return "Gen.array(\(elementGenerator))"
+
+  case let optionalType where optionalType.hasPrefix("Optional<"):
+    let innerType = String(optionalType.dropFirst(9).dropLast())
+    let innerGenerator = try inferGenerator(for: paramName, type: innerType)
+    return "Gen.optional(\(innerGenerator))"
 
   default:
     throw BusinessRuleError.cannotInferParameterType(paramName)
@@ -250,9 +257,8 @@ private func isBuiltInType(_ type: String) -> Bool {
   return builtInTypes.contains(type) || type.hasPrefix("[") || type.hasPrefix("Optional<")
 }
 
-// MARK: - Test Function Generation
+// MARK: - Test Function Generation (SwiftSyntax Builders)
 
-/// **Generate the complete property test function**
 private func generatePropertyTestFunction(
   functionName: String,
   propertyTestName: String,
@@ -261,102 +267,540 @@ private func generatePropertyTestFunction(
   config: BusinessRuleConfig
 ) throws -> FunctionDeclSyntax {
 
-  // Create parameter list for the property predicate
   let parameterNames = parameters.map { $0.firstName.text }
   let parameterTypes = parameters.map { $0.type.trimmed.description }
 
-  // Generate the combined generator expression
-  let combinedGenerator: String
-  if generatorExpressions.count == 1 {
-    combinedGenerator = generatorExpressions[0]
-  } else if generatorExpressions.count == 2 {
-    combinedGenerator = "Gen.zip(\(generatorExpressions[0]), \(generatorExpressions[1]))"
-  } else if generatorExpressions.count == 3 {
-    combinedGenerator =
-      "Gen.zip(\(generatorExpressions[0]), \(generatorExpressions[1]), \(generatorExpressions[2]))"
-  } else {
-    // For more than 3 parameters, use nested zip
-    var result = "Gen.zip(\(generatorExpressions[0]), \(generatorExpressions[1]))"
-    for i in 2..<generatorExpressions.count {
-      result = "Gen.zip(\(result), \(generatorExpressions[i]))"
-    }
-    combinedGenerator = result
-  }
-
-  // Generate the predicate expression
-  let predicateCall: String
-  if parameterNames.count == 1 {
-    predicateCall = "\(functionName)(\(parameterNames[0]): value)"
-  } else {
-    let args = parameterNames.enumerated().map { index, name in
-      "\(name): value.\(index)"
-    }.joined(separator: ", ")
-    predicateCall = "\(functionName)(\(args))"
-  }
-
-  // Generate iterations expression
-  let iterationsExpr =
-    config.iterations == ".smart" ? "PropertyConfig.smartIterations" : config.iterations
-
-  // Generate the complete test function code
-  let testCode = """
-    @Test("\(config.description)")
-    func \(propertyTestName)() async throws {
-        let property = Property<\(generatePropertyType(from: parameterTypes))>(
-            generator: \(combinedGenerator),
-            predicate: { value in
-                \(predicateCall)
-            }
-        )
-
-        let config = PropertyConfig(
-            iterations: \(iterationsExpr),
-            maxShrinks: 1000,
-            maxDiscarded: 1000,
-            seed: nil
-        )
-
-        let runner = PropertyRunner()
-        let result = await runner.runProperty(property, config: config)
-
-        switch result {
-        case .success:
-            break // Test passes
-
-        case .failure(let counterexample, let iterations, let shrunk, _, _):
-            throw BusinessRuleViolation(
-                rule: "\(config.description)",
-                counterexample: String(describing: counterexample),
-                shrunk: String(describing: shrunk),
-                iterations: iterations,
-                businessImpact: "Business rule validation failed - this may indicate a logical error in business constraints"
-            )
-
-        case .gaveUp(let discarded, let iterations):
-            throw BusinessRuleGaveUp(
-                rule: "\(config.description)",
-                discarded: discarded,
-                iterations: iterations,
-                suggestion: "Consider relaxing generator constraints or providing more specific generators"
-            )
-        }
-    }
-    """
-
-  // Parse and return the function
-  let sourceFile = Parser.parse(source: testCode)
-  guard
-    let functionDecl = sourceFile.statements.first?.item.as(DeclSyntax.self)?.as(
-      FunctionDeclSyntax.self
+  return FunctionDeclSyntax(
+    attributes: buildTestAttribute(description: config.description),
+    funcKeyword: .keyword(.func),
+    name: .identifier(propertyTestName),
+    signature: FunctionSignatureSyntax(
+      parameterClause: FunctionParameterClauseSyntax(parameters: []),
+      effectSpecifiers: FunctionEffectSpecifiersSyntax(
+        asyncSpecifier: .keyword(.async),
+        throwsClause: ThrowsClauseSyntax(throwsSpecifier: .keyword(.throws))
+      )
+    ),
+    body: buildTestBody(
+      functionName: functionName,
+      parameterNames: parameterNames,
+      parameterTypes: parameterTypes,
+      generatorExpressions: generatorExpressions,
+      config: config
     )
-  else {
-    throw BusinessRuleError.invalidConfiguration("Failed to generate test function")
-  }
-
-  return functionDecl
+  )
 }
 
-/// **Generate the property type for the generator**
+private func buildTestAttribute(description: String) -> AttributeListSyntax {
+  AttributeListSyntax {
+    AttributeSyntax(
+      attributeName: IdentifierTypeSyntax(name: .identifier("Test")),
+      leftParen: .leftParenToken(),
+      arguments: .argumentList(
+        LabeledExprListSyntax {
+          LabeledExprSyntax(expression: StringLiteralExprSyntax(content: description))
+        }
+      ),
+      rightParen: .rightParenToken()
+    )
+    .with(\.trailingTrivia, .newline)
+  }
+}
+
+private func buildTestBody(
+  functionName: String,
+  parameterNames: [String],
+  parameterTypes: [String],
+  generatorExpressions: [String],
+  config: BusinessRuleConfig
+) -> CodeBlockSyntax {
+  CodeBlockSyntax {
+    buildPropertyDecl(
+      parameterTypes: parameterTypes,
+      generatorExpressions: generatorExpressions,
+      functionName: functionName,
+      parameterNames: parameterNames
+    )
+    buildConfigDecl(config: config)
+    buildRunnerDecl()
+    buildResultDecl()
+    buildResultSwitch(config: config)
+  }
+}
+
+private func buildPropertyDecl(
+  parameterTypes: [String],
+  generatorExpressions: [String],
+  functionName: String,
+  parameterNames: [String]
+) -> VariableDeclSyntax {
+  let propertyType =
+    parameterTypes.count == 1
+    ? parameterTypes[0]
+    : "(\(parameterTypes.joined(separator: ", ")))"
+
+  let generatorExpr = buildCombinedGenerator(generatorExpressions)
+  let predicateClosure = buildPredicateClosure(
+    functionName: functionName,
+    parameterNames: parameterNames
+  )
+
+  return VariableDeclSyntax(
+    bindingSpecifier: .keyword(.let),
+    bindings: PatternBindingListSyntax {
+      PatternBindingSyntax(
+        pattern: IdentifierPatternSyntax(identifier: .identifier("property")),
+        initializer: InitializerClauseSyntax(
+          value: FunctionCallExprSyntax(
+            calledExpression: GenericSpecializationExprSyntax(
+              expression: DeclReferenceExprSyntax(baseName: .identifier("Property")),
+              genericArgumentClause: GenericArgumentClauseSyntax {
+                GenericArgumentSyntax(
+                  argument: IdentifierTypeSyntax(name: .identifier(propertyType))
+                )
+              }
+            ),
+            leftParen: .leftParenToken(),
+            arguments: LabeledExprListSyntax {
+              LabeledExprSyntax(
+                label: .identifier("generator"),
+                colon: .colonToken(),
+                expression: generatorExpr
+              )
+              LabeledExprSyntax(
+                label: .identifier("predicate"),
+                colon: .colonToken(),
+                expression: predicateClosure
+              )
+            },
+            rightParen: .rightParenToken()
+          )
+        )
+      )
+    }
+  )
+}
+
+private func buildCombinedGenerator(_ expressions: [String]) -> ExprSyntax {
+  if expressions.count == 1 {
+    return ExprSyntax(DeclReferenceExprSyntax(baseName: .identifier(expressions[0])))
+  }
+
+  var args = LabeledExprListSyntax()
+  for (index, expr) in expressions.enumerated() {
+    let isLast = index == expressions.count - 1
+    args.append(
+      LabeledExprSyntax(
+        expression: DeclReferenceExprSyntax(baseName: .identifier(expr)),
+        trailingComma: isLast ? nil : .commaToken()
+      )
+    )
+  }
+
+  return ExprSyntax(
+    FunctionCallExprSyntax(
+      calledExpression: MemberAccessExprSyntax(
+        base: DeclReferenceExprSyntax(baseName: .identifier("Gen")),
+        declName: DeclReferenceExprSyntax(baseName: .identifier("zip"))
+      ),
+      leftParen: .leftParenToken(),
+      arguments: args,
+      rightParen: .rightParenToken()
+    )
+  )
+}
+
+private func buildPredicateClosure(
+  functionName: String,
+  parameterNames: [String]
+) -> ClosureExprSyntax {
+  let callArgs: LabeledExprListSyntax
+  if parameterNames.count == 1 {
+    callArgs = LabeledExprListSyntax {
+      LabeledExprSyntax(
+        label: .identifier(parameterNames[0]),
+        colon: .colonToken(),
+        expression: DeclReferenceExprSyntax(baseName: .identifier("value"))
+      )
+    }
+  } else {
+    var args = LabeledExprListSyntax()
+    for (index, name) in parameterNames.enumerated() {
+      let isLast = index == parameterNames.count - 1
+      args.append(
+        LabeledExprSyntax(
+          label: .identifier(name),
+          colon: .colonToken(),
+          expression: MemberAccessExprSyntax(
+            base: DeclReferenceExprSyntax(baseName: .identifier("value")),
+            declName: DeclReferenceExprSyntax(baseName: .identifier("\(index)"))
+          ),
+          trailingComma: isLast ? nil : .commaToken()
+        )
+      )
+    }
+    callArgs = args
+  }
+
+  return ClosureExprSyntax(
+    signature: ClosureSignatureSyntax(
+      parameterClause: .simpleInput(
+        ClosureShorthandParameterListSyntax {
+          ClosureShorthandParameterSyntax(name: .identifier("value"))
+        }
+      )
+    ),
+    statements: CodeBlockItemListSyntax {
+      FunctionCallExprSyntax(
+        calledExpression: DeclReferenceExprSyntax(baseName: .identifier(functionName)),
+        leftParen: .leftParenToken(),
+        arguments: callArgs,
+        rightParen: .rightParenToken()
+      )
+    }
+  )
+}
+
+private func buildConfigDecl(config: BusinessRuleConfig) -> VariableDeclSyntax {
+  let iterationsExpr: ExprSyntax =
+    config.iterations == ".smart"
+    ? ExprSyntax(
+      MemberAccessExprSyntax(
+        base: DeclReferenceExprSyntax(baseName: .identifier("PropertyConfig")),
+        declName: DeclReferenceExprSyntax(baseName: .identifier("smartIterations"))
+      )
+    )
+    : ExprSyntax(IntegerLiteralExprSyntax(literal: .integerLiteral(config.iterations)))
+
+  return VariableDeclSyntax(
+    bindingSpecifier: .keyword(.let),
+    bindings: PatternBindingListSyntax {
+      PatternBindingSyntax(
+        pattern: IdentifierPatternSyntax(identifier: .identifier("config")),
+        initializer: InitializerClauseSyntax(
+          value: FunctionCallExprSyntax(
+            calledExpression: DeclReferenceExprSyntax(baseName: .identifier("PropertyConfig")),
+            leftParen: .leftParenToken(),
+            arguments: LabeledExprListSyntax {
+              LabeledExprSyntax(
+                label: .identifier("iterations"),
+                colon: .colonToken(),
+                expression: iterationsExpr
+              )
+              LabeledExprSyntax(
+                label: .identifier("maxShrinks"),
+                colon: .colonToken(),
+                expression: IntegerLiteralExprSyntax(literal: .integerLiteral("1000"))
+              )
+              LabeledExprSyntax(
+                label: .identifier("maxDiscarded"),
+                colon: .colonToken(),
+                expression: IntegerLiteralExprSyntax(literal: .integerLiteral("1000"))
+              )
+              LabeledExprSyntax(
+                label: .identifier("seed"),
+                colon: .colonToken(),
+                expression: NilLiteralExprSyntax()
+              )
+            },
+            rightParen: .rightParenToken()
+          )
+        )
+      )
+    }
+  )
+}
+
+private func buildRunnerDecl() -> VariableDeclSyntax {
+  VariableDeclSyntax(
+    bindingSpecifier: .keyword(.let),
+    bindings: PatternBindingListSyntax {
+      PatternBindingSyntax(
+        pattern: IdentifierPatternSyntax(identifier: .identifier("runner")),
+        initializer: InitializerClauseSyntax(
+          value: FunctionCallExprSyntax(
+            calledExpression: DeclReferenceExprSyntax(baseName: .identifier("PropertyRunner")),
+            leftParen: .leftParenToken(),
+            arguments: [],
+            rightParen: .rightParenToken()
+          )
+        )
+      )
+    }
+  )
+}
+
+private func buildResultDecl() -> VariableDeclSyntax {
+  VariableDeclSyntax(
+    bindingSpecifier: .keyword(.let),
+    bindings: PatternBindingListSyntax {
+      PatternBindingSyntax(
+        pattern: IdentifierPatternSyntax(identifier: .identifier("result")),
+        initializer: InitializerClauseSyntax(
+          value: AwaitExprSyntax(
+            expression: FunctionCallExprSyntax(
+              calledExpression: MemberAccessExprSyntax(
+                base: DeclReferenceExprSyntax(baseName: .identifier("runner")),
+                declName: DeclReferenceExprSyntax(baseName: .identifier("runProperty"))
+              ),
+              leftParen: .leftParenToken(),
+              arguments: LabeledExprListSyntax {
+                LabeledExprSyntax(
+                  expression: DeclReferenceExprSyntax(baseName: .identifier("property"))
+                )
+                LabeledExprSyntax(
+                  label: .identifier("config"),
+                  colon: .colonToken(),
+                  expression: DeclReferenceExprSyntax(baseName: .identifier("config"))
+                )
+              },
+              rightParen: .rightParenToken()
+            )
+          )
+        )
+      )
+    }
+  )
+}
+
+private func buildResultSwitch(config: BusinessRuleConfig) -> SwitchExprSyntax {
+  SwitchExprSyntax(
+    subject: DeclReferenceExprSyntax(baseName: .identifier("result")),
+    cases: SwitchCaseListSyntax {
+      buildSuccessCase()
+      buildFailureCase(config: config)
+      buildGaveUpCase(config: config)
+    }
+  )
+}
+
+private func buildSuccessCase() -> SwitchCaseSyntax {
+  SwitchCaseSyntax(
+    label: .case(
+      SwitchCaseLabelSyntax(
+        caseItems: SwitchCaseItemListSyntax {
+          SwitchCaseItemSyntax(
+            pattern: ExpressionPatternSyntax(
+              expression: MemberAccessExprSyntax(
+                period: .periodToken(),
+                declName: DeclReferenceExprSyntax(baseName: .identifier("success"))
+              )
+            )
+          )
+        }
+      )
+    ),
+    statements: CodeBlockItemListSyntax {
+      BreakStmtSyntax()
+    }
+  )
+}
+
+private func buildFailureCase(config: BusinessRuleConfig) -> SwitchCaseSyntax {
+  SwitchCaseSyntax(
+    label: .case(
+      SwitchCaseLabelSyntax(
+        caseItems: SwitchCaseItemListSyntax {
+          SwitchCaseItemSyntax(
+            pattern: ExpressionPatternSyntax(
+              expression: FunctionCallExprSyntax(
+                calledExpression: MemberAccessExprSyntax(
+                  period: .periodToken(),
+                  declName: DeclReferenceExprSyntax(baseName: .identifier("failure"))
+                ),
+                leftParen: .leftParenToken(),
+                arguments: LabeledExprListSyntax {
+                  LabeledExprSyntax(
+                    label: .identifier("counterexample"),
+                    colon: .colonToken(),
+                    expression: PatternExprSyntax(
+                      pattern: ValueBindingPatternSyntax(
+                        bindingSpecifier: .keyword(.let),
+                        pattern: IdentifierPatternSyntax(identifier: .identifier("counterexample"))
+                      )
+                    )
+                  )
+                  LabeledExprSyntax(
+                    label: .identifier("iterations"),
+                    colon: .colonToken(),
+                    expression: PatternExprSyntax(
+                      pattern: ValueBindingPatternSyntax(
+                        bindingSpecifier: .keyword(.let),
+                        pattern: IdentifierPatternSyntax(identifier: .identifier("iterations"))
+                      )
+                    )
+                  )
+                  LabeledExprSyntax(
+                    label: .identifier("shrunk"),
+                    colon: .colonToken(),
+                    expression: PatternExprSyntax(
+                      pattern: ValueBindingPatternSyntax(
+                        bindingSpecifier: .keyword(.let),
+                        pattern: IdentifierPatternSyntax(identifier: .identifier("shrunk"))
+                      )
+                    )
+                  )
+                  LabeledExprSyntax(
+                    label: .identifier("_"),
+                    colon: .colonToken(),
+                    expression: DiscardAssignmentExprSyntax()
+                  )
+                  LabeledExprSyntax(
+                    label: .identifier("_"),
+                    colon: .colonToken(),
+                    expression: DiscardAssignmentExprSyntax()
+                  )
+                },
+                rightParen: .rightParenToken()
+              )
+            )
+          )
+        }
+      )
+    ),
+    statements: CodeBlockItemListSyntax {
+      ThrowStmtSyntax(
+        expression: FunctionCallExprSyntax(
+          calledExpression: DeclReferenceExprSyntax(baseName: .identifier("BusinessRuleViolation")),
+          leftParen: .leftParenToken(),
+          arguments: LabeledExprListSyntax {
+            LabeledExprSyntax(
+              label: .identifier("rule"),
+              colon: .colonToken(),
+              expression: StringLiteralExprSyntax(content: config.description)
+            )
+            LabeledExprSyntax(
+              label: .identifier("counterexample"),
+              colon: .colonToken(),
+              expression: FunctionCallExprSyntax(
+                calledExpression: DeclReferenceExprSyntax(baseName: .identifier("String")),
+                leftParen: .leftParenToken(),
+                arguments: LabeledExprListSyntax {
+                  LabeledExprSyntax(
+                    label: .identifier("describing"),
+                    colon: .colonToken(),
+                    expression: DeclReferenceExprSyntax(baseName: .identifier("counterexample"))
+                  )
+                },
+                rightParen: .rightParenToken()
+              )
+            )
+            LabeledExprSyntax(
+              label: .identifier("shrunk"),
+              colon: .colonToken(),
+              expression: FunctionCallExprSyntax(
+                calledExpression: DeclReferenceExprSyntax(baseName: .identifier("String")),
+                leftParen: .leftParenToken(),
+                arguments: LabeledExprListSyntax {
+                  LabeledExprSyntax(
+                    label: .identifier("describing"),
+                    colon: .colonToken(),
+                    expression: DeclReferenceExprSyntax(baseName: .identifier("shrunk"))
+                  )
+                },
+                rightParen: .rightParenToken()
+              )
+            )
+            LabeledExprSyntax(
+              label: .identifier("iterations"),
+              colon: .colonToken(),
+              expression: DeclReferenceExprSyntax(baseName: .identifier("iterations"))
+            )
+            LabeledExprSyntax(
+              label: .identifier("businessImpact"),
+              colon: .colonToken(),
+              expression: StringLiteralExprSyntax(
+                content:
+                  "Business rule validation failed - this may indicate a logical error in business constraints"
+              )
+            )
+          },
+          rightParen: .rightParenToken()
+        )
+      )
+    }
+  )
+}
+
+private func buildGaveUpCase(config: BusinessRuleConfig) -> SwitchCaseSyntax {
+  SwitchCaseSyntax(
+    label: .case(
+      SwitchCaseLabelSyntax(
+        caseItems: SwitchCaseItemListSyntax {
+          SwitchCaseItemSyntax(
+            pattern: ExpressionPatternSyntax(
+              expression: FunctionCallExprSyntax(
+                calledExpression: MemberAccessExprSyntax(
+                  period: .periodToken(),
+                  declName: DeclReferenceExprSyntax(baseName: .identifier("gaveUp"))
+                ),
+                leftParen: .leftParenToken(),
+                arguments: LabeledExprListSyntax {
+                  LabeledExprSyntax(
+                    label: .identifier("discarded"),
+                    colon: .colonToken(),
+                    expression: PatternExprSyntax(
+                      pattern: ValueBindingPatternSyntax(
+                        bindingSpecifier: .keyword(.let),
+                        pattern: IdentifierPatternSyntax(identifier: .identifier("discarded"))
+                      )
+                    )
+                  )
+                  LabeledExprSyntax(
+                    label: .identifier("iterations"),
+                    colon: .colonToken(),
+                    expression: PatternExprSyntax(
+                      pattern: ValueBindingPatternSyntax(
+                        bindingSpecifier: .keyword(.let),
+                        pattern: IdentifierPatternSyntax(identifier: .identifier("iterations"))
+                      )
+                    )
+                  )
+                },
+                rightParen: .rightParenToken()
+              )
+            )
+          )
+        }
+      )
+    ),
+    statements: CodeBlockItemListSyntax {
+      ThrowStmtSyntax(
+        expression: FunctionCallExprSyntax(
+          calledExpression: DeclReferenceExprSyntax(baseName: .identifier("BusinessRuleGaveUp")),
+          leftParen: .leftParenToken(),
+          arguments: LabeledExprListSyntax {
+            LabeledExprSyntax(
+              label: .identifier("rule"),
+              colon: .colonToken(),
+              expression: StringLiteralExprSyntax(content: config.description)
+            )
+            LabeledExprSyntax(
+              label: .identifier("discarded"),
+              colon: .colonToken(),
+              expression: DeclReferenceExprSyntax(baseName: .identifier("discarded"))
+            )
+            LabeledExprSyntax(
+              label: .identifier("iterations"),
+              colon: .colonToken(),
+              expression: DeclReferenceExprSyntax(baseName: .identifier("iterations"))
+            )
+            LabeledExprSyntax(
+              label: .identifier("suggestion"),
+              colon: .colonToken(),
+              expression: StringLiteralExprSyntax(
+                content:
+                  "Consider relaxing generator constraints or providing more specific generators"
+              )
+            )
+          },
+          rightParen: .rightParenToken()
+        )
+      )
+    }
+  )
+}
+
 private func generatePropertyType(from parameterTypes: [String]) -> String {
   if parameterTypes.count == 1 {
     return parameterTypes[0]

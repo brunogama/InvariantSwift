@@ -59,7 +59,6 @@ final class StateMachineMacroTests: XCTestCase {
                 switch self {
                 case .increment:
                     return true
-
                 case .decrement:
                     return true
                 }
@@ -71,7 +70,6 @@ final class StateMachineMacroTests: XCTestCase {
                 case .increment:
                     let newState = state
                     return newState
-
                 case .decrement:
                     let newState = state
                     return newState
@@ -528,10 +526,8 @@ final class StateMachineMacroTests: XCTestCase {
                 switch self {
                 case .reset:
                     return true
-
                 case .set(value: _):
                     return true
-
                 case .increment:
                     return true
                 }
@@ -543,11 +539,9 @@ final class StateMachineMacroTests: XCTestCase {
                 case .reset:
                     let newState = state
                     return newState
-
                 case .set(value: _):
                     let newState = state
                     return newState
-
                 case .increment:
                     let newState = state
                     return newState
@@ -963,16 +957,12 @@ final class StateMachineMacroTests: XCTestCase {
                 switch self {
                 case .cmd1:
                     return true
-
                 case .cmd2:
                     return true
-
                 case .cmd3:
                     return true
-
                 case .cmd4:
                     return true
-
                 case .cmd5:
                     return true
                 }
@@ -984,19 +974,15 @@ final class StateMachineMacroTests: XCTestCase {
                 case .cmd1:
                     let newState = state
                     return newState
-
                 case .cmd2:
                     let newState = state
                     return newState
-
                 case .cmd3:
                     let newState = state
                     return newState
-
                 case .cmd4:
                     let newState = state
                     return newState
-
                 case .cmd5:
                     let newState = state
                     return newState

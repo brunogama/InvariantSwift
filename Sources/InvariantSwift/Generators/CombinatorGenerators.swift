@@ -72,8 +72,10 @@ extension Gen {
         result.reserveCapacity(count)
 
         for _ in 0..<count {
-          let element = elementGen.generate(&rng, actualSize)
-          result.append(element)
+          autoreleasepool {
+            let element = elementGen.generate(&rng, actualSize)
+            result.append(element)
+          }
         }
 
         return result

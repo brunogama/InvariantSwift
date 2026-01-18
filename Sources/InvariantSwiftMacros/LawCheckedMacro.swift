@@ -487,7 +487,7 @@ private func extractFunctionSignature(_ funcDecl: FunctionDeclSyntax) -> Functio
     Parameter(
       name: param.secondName?.text ?? param.firstName.text,
       type: param.type,
-      isInOut: false  // TODO: Fix specifier access for Swift 6
+      isInOut: isInOutParameter(param.type)
     )
   }
 
@@ -499,6 +499,19 @@ private func extractFunctionSignature(_ funcDecl: FunctionDeclSyntax) -> Functio
     returnType: returnType,
     isThrows: isThrows
   )
+}
+
+/// Detects if a type has the `inout` specifier (Swift 6 AttributedTypeSyntax.specifiers)
+private func isInOutParameter(_ type: TypeSyntax) -> Bool {
+  guard let attributedType = type.as(AttributedTypeSyntax.self) else {
+    return false
+  }
+  return attributedType.specifiers.contains { specifier in
+    if let simpleSpecifier = specifier.as(SimpleTypeSpecifierSyntax.self) {
+      return simpleSpecifier.specifier.tokenKind == .keyword(.inout)
+    }
+    return false
+  }
 }
 
 private func extractTypeConstraints(from declaration: some DeclGroupSyntax) -> [TypeConstraint] {
@@ -563,8 +576,10 @@ private func generateLawTests(
   case .monoid:
     return try generateMonoidLaws(structure: structure, config: config)
 
-  default:
-    // TODO: Implement other laws
+  case .comonad, .group, .ring, .field,
+    .partialOrder, .totalOrder, .lattice,
+    .metric, .norm, .foldable, .traversable,
+    .bifunctor, .profunctor:
     return []
   }
 }

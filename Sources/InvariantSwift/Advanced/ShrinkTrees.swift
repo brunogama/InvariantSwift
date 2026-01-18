@@ -711,20 +711,13 @@ public struct ShrinkTreeRunner {
 // MARK: - Common Generators with Enhanced Shrinking
 
 extension TreeGen {
-  /// Boolean generator with shrinking toward false
   public static func boolTreeGen() -> TreeGen<Bool> where A == Bool {
-    // FIXME: Temporarily commented out due to type inference issue
-    TreeGen<Bool> { _, _ in Node.leaf(true) }
-    /*
     TreeGen<Bool> { rng, _ in
       let value = Bool.random(using: &rng)
-    
-      return Node(
-        value: value,
-        shrinks: value ? { [Node.leaf(false)] } : { [] }
-      )
+      return Node(value: value) {
+        value ? [Node.leaf(false)] : []
+      }
     }
-    */
   }
 
   /// Character generator with shrinking toward 'a'

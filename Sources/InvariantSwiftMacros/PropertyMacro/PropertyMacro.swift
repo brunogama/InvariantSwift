@@ -556,3 +556,36 @@ public struct PropertyMacro: PeerMacro {
     return ExprSyntax(issueRecordCall)
   }
 }
+
+public struct PropertyTestMacro: PeerMacro {
+  public static func expansion(
+    of node: AttributeSyntax,
+    providingPeersOf declaration: some DeclSyntaxProtocol,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    try PropertyMacro.expansion(of: node, providingPeersOf: declaration, in: context)
+  }
+}
+
+public enum PropertyTestError: Error, CustomStringConvertible {
+  case onlyApplicableToFunction
+  case noParameters
+  case cannotInferParameterType(String)
+  case invalidConfiguration(String)
+
+  public var description: String {
+    switch self {
+    case .onlyApplicableToFunction:
+      return "@PropertyTest can only be applied to functions"
+
+    case .noParameters:
+      return "@PropertyTest requires functions to have at least one parameter"
+
+    case .cannotInferParameterType(let paramName):
+      return "Cannot infer generator type for parameter '\(paramName)'"
+
+    case .invalidConfiguration(let message):
+      return "Invalid @PropertyTest configuration: \(message)"
+    }
+  }
+}

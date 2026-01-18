@@ -8,24 +8,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **PropertyResult Enhancements** (Phase 1):
+  * `isGaveUp` computed property for consistency with `isSuccess`/`isFailure`
+  * `iterationCount` computed property to extract iteration count from any result case
+  * `toExitCode()` method returning CLI exit codes (0=success, 1=failure, 2=gaveUp)
+  * `shortDescription` for concise log output
+  * `CustomStringConvertible` conformance with rich human-readable descriptions
+- **Property Combinators** (Phase 1):
+  * `mapPredicate(_:)` - transform predicate while keeping generator
+  * `mapGenerator(_:)` - transform generator while keeping predicate
+  * `filter(_:)` - alias for suchThat assumption filtering
+  * `label(_:)` - attach descriptive labels for failure messages
+  * `LabeledProperty<T>` struct for labeled property wrapper
+- **PropertyConfig Enhancements** (Phase 1):
+  * `timeout: TimeInterval?` for per-iteration timeout
+  * `verbosity: Verbosity` enum (`.silent`, `.normal`, `.verbose`)
+- **Dogfooding Tests** (Phase 2):
+  * Failure reporting tests (ReproString parsing, seed reproducibility)
+  * Generator distribution tests (oneOf fairness, frequency weights, optional nil/value)
+  * Async property shrinking verification
 - Async property support in @Property macro:
   * Detects async functions and generates `async throws` test methods
   * Uses `runPropertyAsync()` for async property execution
   * New `runPropertyAsync<T: Sendable>()` runtime function
-- Constraint parsing for @Arbitrary macro:
-  * Range constraints: `"0...120"` generates `Gen<Int>.int(in: 0...120)`
-  * Half-open ranges: `"..<100"` supported
-  * `"nonEmpty"` constraint generates `.suchThat { !$0.isEmpty }`
-- New shrink strategies for @Arbitrary macro:
-  * `.toEmpty` - shrinks to empty/zero values (0, "", [], nil)
-  * `.dropFields` - prioritizes shrinking optional fields first
-  * `.custom(closure)` - allows custom shrink closures
-- Verbose mode for PropertyConfig:
-  * `verbose: Bool` parameter for detailed test output
-  * Macro extracts and passes verbose flag to generated code
-- Improved failure messages with contextual tips:
-  * Clearer section labels ("Original failing input", "Shrunk to minimal case")
-  * Added "Tip: Re-run with this seed to reproduce the failure"
 
 ### Tests
 - Added async property macro tests
