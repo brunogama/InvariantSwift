@@ -1,4 +1,4 @@
-// swift-tools-version: 6.0
+// swift-tools-version: 6.1
 import PackageDescription
 import CompilerPluginSupport
 
@@ -23,6 +23,10 @@ let package = Package(
     .plugin(
       name: "InvariantSwiftPlugin",
       targets: ["InvariantSwiftPlugin"]
+    ),
+    .plugin(
+      name: "GhostwriterPlugin",
+      targets: ["GhostwriterPlugin"]
     ),
   ],
   dependencies: [
@@ -112,6 +116,21 @@ let package = Package(
         "FuncTestCLI"
       ],
       path: "Plugins/InvariantSwiftPlugin"
+    ),
+
+    /// Ghostwriter Plugin for automatic test generation
+    .plugin(
+      name: "GhostwriterPlugin",
+      capability: .command(
+        intent: .custom(
+          verb: "ghostwrite",
+          description: "Generate property tests automatically from source code"
+        ),
+        permissions: [
+          .writeToPackageDirectory(reason: "Generate property test files")
+        ]
+      ),
+      path: "Plugins/GhostwriterPlugin"
     ),
 
     // MARK: - Test Targets
