@@ -56,10 +56,15 @@ struct LibFuzzerTests {
   func testConsumeBool() {
     var provider = FuzzDataProvider(data: [0, 1, 2, 3])
 
-    #expect(!provider.consumeBool())  // 0 & 1 == 0
-    #expect(provider.consumeBool())  // 1 & 1 == 1
-    #expect(!provider.consumeBool())  // 2 & 1 == 0
-    #expect(provider.consumeBool())  // 3 & 1 == 1
+    let bool1 = provider.consumeBool()  // 0 & 1 == 0
+    let bool2 = provider.consumeBool()  // 1 & 1 == 1
+    let bool3 = provider.consumeBool()  // 2 & 1 == 0
+    let bool4 = provider.consumeBool()  // 3 & 1 == 1
+
+    #expect(!bool1)
+    #expect(bool2)
+    #expect(!bool3)
+    #expect(bool4)
   }
 
   @Test("FuzzDataProvider consumeUInt16")
@@ -338,7 +343,6 @@ struct LibFuzzerTests {
   @Test("Property.fuzz executes with bytes")
   func testPropertyFuzz() {
     let property = Property<Int>(
-      name: "test",
       generator: Gen.int,
       predicate: { _ in true }
     )

@@ -143,7 +143,7 @@ struct ShrinkCombinatorTests {
   @Test("shrinkElements applies shrinker to each element")
   func testShrinkElementsAppliesShrinker() {
     let intShrinker: (Int) -> [Int] = { value in
-      Shrink.towards(0, value)
+      Array(Shrink<Int>.towards(0, value))
     }
 
     let candidates = Shrink<Int>.shrinkElements(in: [10, 20], using: intShrinker)
@@ -176,10 +176,10 @@ struct ShrinkCombinatorTests {
   @Test("concat combines multiple strategies")
   func testConcatCombinesStrategies() {
     let strategy1: ([Int]) -> [[Int]] = { arr in
-      Shrink.removeElements(from: arr)
+      Array(Shrink<Int>.removeElements(from: arr))
     }
     let strategy2: ([Int]) -> [[Int]] = { arr in
-      Shrink.shrinkElements(in: arr, using: { Shrink.towards(0, $0) })
+      Array(Shrink<Int>.shrinkElements(in: arr, using: { Array(Shrink<Int>.towards(0, $0)) }))
     }
 
     let combined = Shrink<[Int]>.concat([strategy1, strategy2])
@@ -197,7 +197,7 @@ struct ShrinkCombinatorTests {
 
   @Test("concat with empty strategies returns empty")
   func testConcatEmptyStrategies() {
-    let combined = Shrink<Int>.concat([])
+    let combined: (Int) -> [Int] = Shrink<Int>.concat([])
     let candidates = combined(100)
     #expect(candidates.isEmpty)
   }
@@ -322,9 +322,11 @@ struct ShrinkCombinatorTests {
     #expect(!property(largerFailing))
 
     // Shrink the larger failing input
-    let shrinkFn = Shrink<[Int]>.concat([
-      { arr in Shrink.removeElements(from: arr) },
-      { arr in Shrink.shrinkElements(in: arr, using: { Shrink.towards(0, $0) }) },
+    let shrinkFn: ([Int]) -> [[Int]] = Shrink<[Int]>.concat([
+      { arr in Array(Shrink<Int>.removeElements(from: arr)) },
+      { arr in
+        Array(Shrink<Int>.shrinkElements(in: arr, using: { Array(Shrink<Int>.towards(0, $0)) }))
+      },
     ])
 
     let candidates = shrinkFn(largerFailing)
@@ -338,11 +340,11 @@ struct ShrinkCombinatorTests {
 
   @Test("combined array shrinking strategy")
   func testCombinedArrayShrinking() {
-    let intShrinker: (Int) -> [Int] = { Shrink.towards(0, $0) }
+    let intShrinker: (Int) -> [Int] = { Array(Shrink<Int>.towards(0, $0)) }
 
-    let arrayShrink = Shrink<[Int]>.concat([
-      { Shrink.removeElements(from: $0) },
-      { Shrink.shrinkElements(in: $0, using: intShrinker) },
+    let arrayShrink: ([Int]) -> [[Int]] = Shrink<[Int]>.concat([
+      { Array(Shrink<Int>.removeElements(from: $0)) },
+      { Array(Shrink<Int>.shrinkElements(in: $0, using: intShrinker)) },
     ])
 
     let candidates = arrayShrink([5, 10, 15])
