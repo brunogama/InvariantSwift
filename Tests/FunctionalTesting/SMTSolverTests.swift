@@ -262,11 +262,14 @@ struct SMTSolverTests {
     let invalidInput = SMTSolverError.invalidInput("invalid")
     let unsupported = SMTSolverError.unsupportedOperation("op")
 
-    // Verify they exist
-    #expect(timeout is Error)
-    #expect(solverError is Error)
-    #expect(invalidInput is Error)
-    #expect(unsupported is Error)
+    // Verify they are distinct error cases via pattern matching
+    if case .timeout = timeout {} else { Issue.record("Expected timeout") }
+    if case .solverError = solverError {} else { Issue.record("Expected solverError") }
+    if case .invalidInput = invalidInput {} else { Issue.record("Expected invalidInput") }
+    if case .unsupportedOperation = unsupported {
+    } else {
+      Issue.record("Expected unsupportedOperation")
+    }
   }
 
   // MARK: - SMTSolverStatistics Tests
@@ -289,14 +292,14 @@ struct SMTSolverTests {
   func testPrimeNumberConstraints() {
     let generator = SMTExamples.primeNumberConstraints()
     // Just verify it can be created without crashing
-    #expect(generator.constraintBuilder != nil)
+    _ = generator.constraintBuilder
   }
 
   @Test("SMTExamples pythagorean triple constraints builds correctly")
   func testPythagoreanTripleConstraints() {
     let generator = SMTExamples.pythagoreanTripleConstraints()
     // Just verify it can be created without crashing
-    #expect(generator.constraintBuilder != nil)
+    _ = generator.constraintBuilder
   }
 
   // MARK: - Complex Expression Building

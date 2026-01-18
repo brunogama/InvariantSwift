@@ -226,7 +226,7 @@ struct ComprehensiveGeneratorTests {
     /// **Coverage**: Termination logic, size-bounded recursion
     @Test("Recursive generation always terminates")
     func testRecursiveTermination() async throws {
-      let intGen = Gen<Int>.int(in: 1...10)
+      _ = Gen<Int>.int(in: 1...10)
 
       let recursiveGen = Gen<Int>.recursive(
         recursiveCase: { gen in gen.map { $0 + 1 } },
@@ -253,7 +253,7 @@ struct ComprehensiveGeneratorTests {
     /// **Coverage**: Probability-based recursive case selection
     @Test("Recursive probability affects case selection")
     func testRecursiveProbabilityEffect() async throws {
-      let baseGen = Gen<String>.pure("base")
+      _ = Gen<String>.pure("base")
 
       // Low probability recursive generator
       let lowProbGen = Gen<String>.recursive(
@@ -295,7 +295,7 @@ struct ComprehensiveGeneratorTests {
     /// **Coverage**: Size reduction logic in recursive calls
     @Test("Recursive size reduction prevents infinite loops")
     func testRecursiveSizeReduction() async throws {
-      let intGen = Gen<Int>.pure(1)
+      _ = Gen<Int>.pure(1)
 
       let recursiveGen = Gen<Int>.recursive(
         recursiveCase: { gen in
@@ -321,7 +321,7 @@ struct ComprehensiveGeneratorTests {
     /// **Coverage**: Shrink implementation for recursive generators
     @Test("Recursive shrinking prefers base case")
     func testRecursiveShrinking() async throws {
-      let stringGen = Gen<String>.pure("recursive")
+      _ = Gen<String>.pure("recursive")
 
       let recursiveGen = Gen<String>.recursive(
         recursiveCase: { gen in gen.map { $0 + "-R" } },
