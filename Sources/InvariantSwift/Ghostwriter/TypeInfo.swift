@@ -32,40 +32,58 @@ public enum ProtocolConformance: String, CaseIterable, Sendable {
     switch self {
     case .codable:
       return [.codableRoundtrip]
+
     case .decodable:
       return []
+
     case .encodable:
       return []
+
     case .equatable:
       return TestPattern.equatableLaws
+
     case .hashable:
       return [.hashableConsistency] + TestPattern.equatableLaws
+
     case .comparable:
       return TestPattern.comparableLaws
+
     case .collection:
       return TestPattern.collectionLaws
+
     case .bidirectionalCollection:
       return TestPattern.collectionLaws + [.bidirectionalSymmetry]
+
     case .randomAccessCollection:
       return TestPattern.collectionLaws
+
     case .rangeReplaceableCollection:
       return TestPattern.collectionLaws
+
     case .mutableCollection:
       return TestPattern.collectionLaws
+
     case .sequence:
       return [.sequenceIteration]
+
     case .identifiable:
       return [.identifiableStability]
+
     case .rawRepresentable:
       return [.rawRepresentableRoundtrip]
+
     case .numeric:
       return TestPattern.numericLaws
+
     case .signedNumeric:
       return TestPattern.numericLaws
+
     case .additiveArithmetic:
       return [.additiveArithmeticZero, .numericCommutativity, .numericAssociativity]
+
     case .strideable:
       return []
+
     case .sendable:
       return []  // Sendable is checked by compiler
     }

@@ -78,5 +78,5 @@ public enum FakerLocale: String, Sendable, CaseIterable {
   }
 
   /// Default locale (English US)
-  public static var `default`: FakerLocale { .enUS }
+  public static var `default`: Self { .enUS }
 }

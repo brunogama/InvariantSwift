@@ -133,7 +133,7 @@ public struct SourceKittenItem: Codable, Sendable {
   public let nameLength: Int?
   public let accessibility: String?
   public let inheritedtypes: [InheritedType]?
-  public let substructure: [SourceKittenItem]?
+  public let substructure: [Self]?
 
   enum CodingKeys: String, CodingKey {
     case kind = "key.kind"
@@ -175,18 +175,25 @@ public enum ProtocolConformanceMapper {
     switch protocolName {
     case "Equatable":
       return .equatable
+
     case "Hashable":
       return .hashable
+
     case "Comparable":
       return .comparable
+
     case "Codable", "Encodable", "Decodable":
       return .codable
+
     case "Sendable":
       return .sendable
+
     case "Collection", "Sequence", "RandomAccessCollection":
       return .collection
+
     case "Identifiable":
       return .identifiable
+
     default:
       return nil
     }

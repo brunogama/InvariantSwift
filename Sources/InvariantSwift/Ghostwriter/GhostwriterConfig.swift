@@ -80,68 +80,89 @@ public enum TestPattern: String, CaseIterable, Sendable {
     switch self {
     case .codableRoundtrip:
       return "Codable encode/decode roundtrip preserves value"
+
     case .equatableReflexive:
       return "Equatable reflexivity: x == x"
+
     case .equatableSymmetric:
       return "Equatable symmetry: x == y implies y == x"
+
     case .equatableTransitive:
       return "Equatable transitivity: x == y && y == z implies x == z"
+
     case .hashableConsistency:
       return "Hashable consistency: equal values have equal hashes"
+
     case .comparableIrreflexive:
       return "Comparable irreflexivity: !(x < x)"
+
     case .comparableAsymmetric:
       return "Comparable asymmetry: x < y implies !(y < x)"
+
     case .comparableTransitive:
       return "Comparable transitivity: x < y && y < z implies x < z"
+
     case .comparableTrichotomy:
       return "Comparable trichotomy: exactly one of <, ==, > holds"
+
     case .idempotent:
       return "Idempotent: f(f(x)) == f(x)"
+
     case .inverseFunctions:
       return "Inverse functions: decode(encode(x)) == x"
+
     case .collectionCount:
       return "Collection count matches iteration count"
+
     case .collectionIndices:
       return "Collection indices are all valid"
+
     case .identifiableStability:
       return "Identifiable: id is stable across accesses"
+
     case .rawRepresentableRoundtrip:
       return "RawRepresentable: init(rawValue:) roundtrip"
+
     case .numericAdditiveIdentity:
       return "Numeric: x + 0 == x (additive identity)"
+
     case .numericCommutativity:
       return "Numeric: a + b == b + a (commutativity)"
+
     case .numericAssociativity:
       return "Numeric: (a + b) + c == a + (b + c) (associativity)"
+
     case .additiveArithmeticZero:
       return "AdditiveArithmetic: zero identity"
+
     case .collectionBounds:
       return "Collection: startIndex/endIndex consistency"
+
     case .sequenceIteration:
       return "Sequence: iteration is consistent"
+
     case .bidirectionalSymmetry:
       return "BidirectionalCollection: index(before:after:) symmetry"
     }
   }
 
   /// Patterns that apply to Equatable types
-  public static var equatableLaws: [TestPattern] {
+  public static var equatableLaws: [Self] {
     [.equatableReflexive, .equatableSymmetric, .equatableTransitive]
   }
 
   /// Patterns that apply to Comparable types
-  public static var comparableLaws: [TestPattern] {
+  public static var comparableLaws: [Self] {
     [.comparableIrreflexive, .comparableAsymmetric, .comparableTransitive, .comparableTrichotomy]
   }
 
   /// Patterns that apply to Numeric types
-  public static var numericLaws: [TestPattern] {
+  public static var numericLaws: [Self] {
     [.numericAdditiveIdentity, .numericCommutativity, .numericAssociativity]
   }
 
   /// Patterns that apply to Collection types
-  public static var collectionLaws: [TestPattern] {
+  public static var collectionLaws: [Self] {
     [.collectionCount, .collectionIndices, .collectionBounds]
   }
 }
@@ -226,7 +247,7 @@ public struct GhostwriterConfig: Sendable {
   }
 
   /// Default configuration
-  public static let `default` = GhostwriterConfig(sources: [])
+  public static let `default` = Self(sources: [])
 }
 
 // MARK: - Generated Test Info
@@ -297,11 +318,11 @@ public struct GhostwriterManifest: Sendable, Codable {
   }
 
   /// Load manifest from file
-  public static func load(from url: URL) throws -> GhostwriterManifest {
+  public static func load(from url: URL) throws -> Self {
     let data = try Data(contentsOf: url)
     let decoder = JSONDecoder()
     decoder.dateDecodingStrategy = .iso8601
-    return try decoder.decode(GhostwriterManifest.self, from: data)
+    return try decoder.decode(Self.self, from: data)
   }
 
   /// Save manifest to file
@@ -360,12 +381,16 @@ public enum GhostwriterError: Error, Sendable, CustomStringConvertible {
     switch self {
     case .fileNotFound(let path):
       return "File not found: \(path)"
+
     case .parseError(let file, let message):
       return "Parse error in \(file): \(message)"
+
     case .noTypesFound(let path):
       return "No types found in: \(path)"
+
     case .writeError(let file, let message):
       return "Write error for \(file): \(message)"
+
     case .configurationError(let message):
       return "Configuration error: \(message)"
     }

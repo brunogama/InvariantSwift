@@ -195,8 +195,8 @@ public struct ContractTestResult: Sendable {
     self.violationsFound = violationsFound
   }
 
-  public static var success: ContractTestResult {
-    ContractTestResult(passed: true, operationsExecuted: 0, violationsFound: [])
+  public static var success: Self {
+    Self(passed: true, operationsExecuted: 0, violationsFound: [])
   }
 }
 
