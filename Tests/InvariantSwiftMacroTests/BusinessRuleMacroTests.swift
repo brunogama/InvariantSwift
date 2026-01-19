@@ -178,7 +178,7 @@ final class BusinessRuleMacroTests: XCTestCase {
         """,
       diagnostics: [
         DiagnosticSpec(
-          message: "@BusinessRule requires functions to have at least one parameter",
+          message: "@BusinessRule requires at least one parameter to generate test values",
           line: 1,
           column: 1
         )
@@ -218,6 +218,56 @@ final class BusinessRuleMacroTests: XCTestCase {
             }
         }
         """,
+      macros: testMacros
+    )
+  }
+
+  // MARK: - Diagnostic Tests for New Cases
+
+  func testBusinessRuleRequiresDescription() throws {
+    assertMacroExpansion(
+      """
+      @BusinessRule
+      func testFunction(value: Int) -> Bool {
+          return value > 0
+      }
+      """,
+      expandedSource: """
+        func testFunction(value: Int) -> Bool {
+            return value > 0
+        }
+        """,
+      diagnostics: [
+        DiagnosticSpec(
+          message: "@BusinessRule requires a description string as the first argument",
+          line: 1,
+          column: 1
+        )
+      ],
+      macros: testMacros
+    )
+  }
+
+  func testBusinessRuleRequiresStringDescription() throws {
+    assertMacroExpansion(
+      """
+      @BusinessRule(123)
+      func testFunction(value: Int) -> Bool {
+          return value > 0
+      }
+      """,
+      expandedSource: """
+        func testFunction(value: Int) -> Bool {
+            return value > 0
+        }
+        """,
+      diagnostics: [
+        DiagnosticSpec(
+          message: "@BusinessRule description must be a string literal",
+          line: 1,
+          column: 1
+        )
+      ],
       macros: testMacros
     )
   }
