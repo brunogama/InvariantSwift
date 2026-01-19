@@ -113,8 +113,10 @@ struct SubprocessRunner {
 ///
 /// switch result {
 /// case .success:
+// swiftlint:disable:next no_print
 ///   print("All iterations passed")
 /// case .crashed(let signal, let counterexample, let shrunk, _):
+// swiftlint:disable:next no_print
 ///   print("Crashed with signal \(signal) on: \(shrunk)")
 /// }
 /// ```

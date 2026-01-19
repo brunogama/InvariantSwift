@@ -526,16 +526,23 @@ public struct ModelTestConfig: Sendable {
 ///
 /// switch result {
 /// case .success(let iterations):
+// swiftlint:disable:next no_print
 ///   print("All \(iterations) test iterations passed!")
 ///
 /// case .failure(let commands, let failedCommand, let iterations, let shrunk):
+// swiftlint:disable:next no_print
 ///   print("Failed after \(iterations) iterations")
+// swiftlint:disable:next no_print
 ///   print("Original failing sequence: \(commands)")
+// swiftlint:disable:next no_print
 ///   print("Minimal failing sequence: \(shrunk)")
+// swiftlint:disable:next no_print
 ///   print("First failing command: \(failedCommand)")
 ///
 /// case .gaveUp(let discarded, let iterations):
+// swiftlint:disable:next no_print
 ///   print("Gave up after \(iterations) iterations (\(discarded) discarded)")
+// swiftlint:disable:next no_print
 ///   print("Review command generation and preconditions")
 /// }
 /// ```
@@ -554,6 +561,7 @@ public enum ModelTestResult<CommandType>: Sendable where CommandType: Command & 
   /// - Example:
   ///   ```swift
   ///   if case .success(let iterations) = result {
+  // swiftlint:disable:next no_print
   ///     print("Tested \(iterations) command sequences successfully")
   ///   }
   ///   ```
@@ -581,13 +589,18 @@ public enum ModelTestResult<CommandType>: Sendable where CommandType: Command & 
   /// - Example:
   ///   ```swift
   ///   if case .failure(let commands, let failedCmd, let iter, let shrunk) = result {
+  // swiftlint:disable:next no_print
   ///     print("Failure found in iteration \(iter)")
+  // swiftlint:disable:next no_print
   ///     print("Original sequence (\(commands.count) commands): \(commands)")
+  // swiftlint:disable:next no_print
   ///     print("Minimal sequence (\(shrunk.count) commands): \(shrunk)")
+  // swiftlint:disable:next no_print
   ///     print("Failed command: \(failedCmd)")
   ///
   ///     // Analyze the minimal sequence for debugging
   ///     for (i, cmd) in shrunk.enumerated() {
+  // swiftlint:disable:next no_print
   ///       print("  \(i): \(cmd)")
   ///     }
   ///   }
@@ -623,7 +636,9 @@ public enum ModelTestResult<CommandType>: Sendable where CommandType: Command & 
   ///   ```swift
   ///   if case .gaveUp(let discarded, let iterations) = result {
   ///     let discardRate = Double(discarded) / Double(iterations) * 100
+  // swiftlint:disable:next no_print
   ///     print("Gave up: \(discardRate)% command sequences were invalid")
+  // swiftlint:disable:next no_print
   ///     print("Review preconditions and command generation")
   ///   }
   ///   ```
@@ -676,11 +691,15 @@ public enum ModelTestResult<CommandType>: Sendable where CommandType: Command & 
 /// // Handle results
 /// switch result {
 /// case .success(let iterations):
+// swiftlint:disable:next no_print
 ///   print("Passed all \(iterations) iterations")
 /// case .failure(let commands, _, let iterations, let shrunk):
+// swiftlint:disable:next no_print
 ///   print("Failed in iteration \(iterations)")
+// swiftlint:disable:next no_print
 ///   print("Minimal counterexample: \(shrunk)")
 /// case .gaveUp(let discarded, _):
+// swiftlint:disable:next no_print
 ///   print("Gave up with \(discarded) discarded sequences")
 /// }
 /// ```
@@ -756,14 +775,18 @@ public actor ModelTestRunner {
   ///
   ///   switch result {
   ///   case .success(let iterations):
+  // swiftlint:disable:next no_print
   ///     print("All \(iterations) command sequences passed!")
   ///
   ///   case .failure(let commands, let failedCmd, let iter, let shrunk):
+  // swiftlint:disable:next no_print
   ///     print("Failure found in iteration \(iter)")
+  // swiftlint:disable:next no_print
   ///     print("Minimal failing sequence: \(shrunk.count) commands")
   ///     // Fix the implementation based on shrunk sequence
   ///
   ///   case .gaveUp(let discarded, let iterations):
+  // swiftlint:disable:next no_print
   ///     print("Test gave up: \(discarded)/\(iterations) sequences discarded")
   ///     // Review command generation and preconditions
   ///   }
@@ -1194,6 +1217,7 @@ extension Property {
 /// // Generate sample sequences
 /// let seed = Seed(value: 42)
 /// let sample = commandSeqGen.sample(size: .medium, seed: seed)
+// swiftlint:disable:next no_print
 /// print("Generated sequence of \(sample.count) commands")
 ///
 /// // Or use in a property

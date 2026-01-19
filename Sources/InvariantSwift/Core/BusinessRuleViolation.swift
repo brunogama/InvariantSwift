@@ -201,6 +201,7 @@ public struct BusinessRuleViolation: Error, CustomStringConvertible, Sendable {
   /// - Example:
   ///   ```swift
   ///   let violation = // ... BusinessRuleViolation
+  // swiftlint:disable:next no_print
   ///   print(violation.businessReport)
   ///   // Output includes: rule, business impact, minimal failing case
   ///   ```
@@ -279,6 +280,7 @@ public struct BusinessRuleViolation: Error, CustomStringConvertible, Sendable {
 /// do {
 ///   try await testRule()
 /// } catch let error as BusinessRuleGaveUp {
+// swiftlint:disable:next no_print
 ///   print("Testing incomplete: \(error.suggestion)")
 ///   // Review and adjust constraints
 /// }

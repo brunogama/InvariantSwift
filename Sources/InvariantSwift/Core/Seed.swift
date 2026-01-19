@@ -141,6 +141,7 @@ public struct Seed: Sendable, Hashable {
   /// - Example:
   ///   ```swift
   ///   let seed = Seed(value: 42)
+  // swiftlint:disable:next no_print
   ///   print("Failing seed: \(seed.rawValue)")  // Output: "Failing seed: 42"
   ///   ```
   public var rawValue: UInt64 {

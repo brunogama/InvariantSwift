@@ -87,6 +87,7 @@ public struct ArbitraryMacro: MemberMacro, ExtensionMacro {
     }
 
     for constraintField in config.constraints.keys {
+      // swiftlint:disable:next for_where
       if !fields.contains(where: { $0.name == constraintField }) {
         context.warning(
           "Constraint for unknown field '\(constraintField)'",

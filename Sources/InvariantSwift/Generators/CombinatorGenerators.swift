@@ -408,6 +408,7 @@ extension BinaryTree {
   public static func generator(elementGen: Gen<T>) -> Gen<BinaryTree<T>> {
     Gen<BinaryTree<T>>.recursive(
       recursiveCase: { recursiveGen in
+        // swiftlint:disable:next large_tuple
         Gen<(T, BinaryTree<T>, BinaryTree<T>)>.zip3(
           elementGen,
           recursiveGen,
@@ -674,8 +675,10 @@ extension Gen {
   /// let boolGen = Gen<Bool>.bool()
   /// let tripleGen = Gen<(Int, String, Bool)>.zip3(intGen, stringGen, boolGen)
   /// ```
+  // swiftlint:disable:next large_tuple
   public static func zip3<A, B, C>(_ genA: Gen<A>, _ genB: Gen<B>, _ genC: Gen<C>) -> Gen<(A, B, C)>
   {
+    // swiftlint:disable:next large_tuple
     Gen<(A, B, C)>(
       generate: { rng, size in
         let a = genA.generate(&rng, size)
@@ -683,6 +686,7 @@ extension Gen {
         let c = genC.generate(&rng, size)
         return (a, b, c)
       },
+      // swiftlint:disable:next large_tuple
       shrink: Shrink<(A, B, C)>({ tuple in
         let (a, b, c) = tuple
         let aShrinks = genA.shrink.shrink(a).map { newA in (newA, b, c) }

@@ -316,6 +316,7 @@ public enum GeneratorTestHelpers {
     outer: for i in 0..<samples {
       let reference = sequences[0][i]
       for seq in sequences.dropFirst() {
+        // swiftlint:disable:next for_where
         if seq[i] != reference {
           firstDifference = i
           allEqual = false

@@ -94,6 +94,7 @@ enum StructAnalyzer {
 
     var mismatches: [String] = []
     for field in fields {
+      // swiftlint:disable:next for_where
       if !initParams.contains(field.name) {
         mismatches.append(field.name)
       }

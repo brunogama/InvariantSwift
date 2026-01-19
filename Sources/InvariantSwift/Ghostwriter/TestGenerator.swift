@@ -26,6 +26,7 @@ public struct TestGenerator: Sendable {
       && !config.supportedArbitraryTypes.contains(typeInfo.name)
     {
       if config.verbose {
+        // swiftlint:disable:next no_print
         print("  ⚠️ Skipping \(typeInfo.name): no Arbitrary generator available")
       }
       return []

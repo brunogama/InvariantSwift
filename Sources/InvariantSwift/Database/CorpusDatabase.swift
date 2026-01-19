@@ -703,6 +703,7 @@ extension PropertyRunner {
     let existingFailures = try? await database.get(key, as: T.self, query: .counterexamples)
 
     for failure in existingFailures ?? [] {
+      // swiftlint:disable:next for_where
       if !property.predicate(failure.minimal) {
         let stats = try? await database.getStatistics()
         return (

@@ -112,6 +112,7 @@ public struct TestRunStatistics: Sendable, Codable {
 ///
 /// collector.markComplete(passed: false)
 /// let stats = collector.finalize()
+// swiftlint:disable:next no_print
 /// print(stats.formatted())
 /// ```
 public final class StatisticsCollector: @unchecked Sendable {

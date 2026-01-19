@@ -91,6 +91,7 @@ public enum AttributeParser {
 
   public static func exprArg(from attribute: AttributeSyntax, label: String?) -> ExprSyntax? {
     for arg in arguments(from: attribute) {
+      // swiftlint:disable:next for_where
       if arg.label == label {
         return arg.expr
       }

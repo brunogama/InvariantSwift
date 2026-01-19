@@ -517,6 +517,7 @@ public struct StatisticalMiner: InvariantMiner {
 
   private func mineNumericalInvariants(_ traces: [ExecutionTrace]) async -> [DiscoveredInvariant] {
     var invariants: [DiscoveredInvariant] = []
+    // swiftlint:disable:next large_tuple
     var propertyStats: [String: (min: Double, max: Double, values: [Double])] = [:]
 
     // Collect numerical properties

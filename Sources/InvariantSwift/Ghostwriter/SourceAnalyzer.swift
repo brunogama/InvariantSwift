@@ -37,6 +37,7 @@ public actor SourceAnalyzer {
         results.append(info)
       } catch {
         // Log error but continue with other files
+        // swiftlint:disable:next no_print
         print("Warning: Could not analyze \(path): \(error)")
       }
     }
@@ -318,6 +319,7 @@ public actor SourceAnalyzer {
 
   private func checkForFailableInit(lines: [String], startingAt startLine: Int) -> Bool {
     for lineIndex in startLine..<min(startLine + 50, lines.count) {
+      // swiftlint:disable:next for_where
       if lines[lineIndex].contains("init?") {
         return true
       }

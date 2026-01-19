@@ -28,7 +28,9 @@ public func expectNoDifference<T: Equatable>(
 
     let printer = PrettyPrinter(config: .testOutput)
 
+    // swiftlint:disable:next no_print
     let lhsStr = (lhs as? PrettyPrintable).map { printer.print($0) } ?? "\(lhs)"
+    // swiftlint:disable:next no_print
     let rhsStr = (rhs as? PrettyPrintable).map { printer.print($0) } ?? "\(rhs)"
     let diffOutput = """
       \(format.first) \(lhsStr)
@@ -98,7 +100,9 @@ public func expectDifference<T: Equatable>(
 
     let printer = PrettyPrinter(config: .testOutput)
 
+    // swiftlint:disable:next no_print
     let expectedStr = (expected as? PrettyPrintable).map { printer.print($0) } ?? "\(expected)"
+    // swiftlint:disable:next no_print
     let actualStr = (actual as? PrettyPrintable).map { printer.print($0) } ?? "\(actual)"
     let diffOutput = """
       \(format.first) \(expectedStr)
@@ -147,7 +151,9 @@ public func expectDifference<T: Equatable & Sendable>(
 
     let printer = PrettyPrinter(config: .testOutput)
 
+    // swiftlint:disable:next no_print
     let expectedStr = (expected as? PrettyPrintable).map { printer.print($0) } ?? "\(expected)"
+    // swiftlint:disable:next no_print
     let actualStr = (actual as? PrettyPrintable).map { printer.print($0) } ?? "\(actual)"
     let diffOutput = """
       \(format.first) \(expectedStr)

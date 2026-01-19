@@ -710,7 +710,9 @@ public enum SMTExamples {
   }
 
   /// Generate pairs of integers with specific relationships
+  // swiftlint:disable:next large_tuple
   public static func pythagoreanTripleConstraints() -> SMTGenerator<(Int, Int, Int)> {
+    // swiftlint:disable:next large_tuple
     SMTGenerator<(Int, Int, Int)>(
       constraintBuilder: { _ in
         let a = SMTVariableDeclaration(name: "a", sort: .int)

@@ -170,6 +170,9 @@ def process_violations(violations: list[LintViolation], dry_run: bool = True) ->
         'type_body_length', 
         'function_body_length',
         'cyclomatic_complexity',
+        'no_print',
+        'large_tuple',
+        'for_where',
     }
     
     # Group violations by file

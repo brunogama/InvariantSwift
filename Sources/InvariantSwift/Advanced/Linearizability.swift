@@ -298,6 +298,7 @@ where Input: Sendable, Output: Sendable & Equatable {
 
       for edge1 in currentEdges {
         for edge2 in currentEdges {
+          // swiftlint:disable:next for_where
           if edge1.to == edge2.from {
             let transitiveEdge = HBEdge(from: edge1.from, to: edge2.to)
             if !edges.contains(transitiveEdge) {

@@ -74,12 +74,17 @@ public enum FailureReason: Sendable, Equatable, CustomStringConvertible {
 ///
 ///   switch result {
 ///   case .success(let iterations):
+// swiftlint:disable:next no_print
 ///       print("Passed \(iterations) tests")
 ///   case .failure(let counterexample, let iterations, let shrunk, let reason, let seed):
+// swiftlint:disable:next no_print
 ///       print("Failed after \(iterations) tests (\(reason))")
+// swiftlint:disable:next no_print
 ///       print("Original: \(counterexample), Minimal: \(shrunk)")
+// swiftlint:disable:next no_print
 ///       print("Reproduce with seed: \(seed.rawValue)")
 ///   case .gaveUp(let discarded, let iterations):
+// swiftlint:disable:next no_print
 ///       print("Gave up after discarding \(discarded) cases in \(iterations) attempts")
 ///   }
 ///   ```
@@ -422,10 +427,13 @@ public struct PropertyConfig: Sendable {
 ///   let result = await runner.runProperty(property)
 ///   switch result {
 ///   case .success(let iterations):
+// swiftlint:disable:next no_print
 ///       print("✓ Passed \(iterations) tests")
 ///   case .failure(let counterexample, let iterations, let shrunk, _, _):
+// swiftlint:disable:next no_print
 ///       print("✗ Failed: \(shrunk)")
 ///   case .gaveUp(let discarded, let iterations):
+// swiftlint:disable:next no_print
 ///       print("? Gave up after \(discarded) discards")
 ///   }
 ///   ```
@@ -667,6 +675,7 @@ extension Property {
   ///   let prop = Property(generator: Gen.int) { $0 > 0 }
   ///   let wrapped = prop.mapPredicate { predicate in
   ///       { value in
+  // swiftlint:disable:next no_print
   ///           print("Testing: \(value)")
   ///           return predicate(value)
   ///       }

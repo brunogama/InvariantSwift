@@ -32,6 +32,7 @@ public actor Ghostwriter {
     let filePaths = try FileDiscovery.findFiles(for: config)
 
     if config.verbose {
+      // swiftlint:disable:next no_print
       print("📂 Found \(filePaths.count) Swift file(s) to analyze")
     }
 
@@ -49,6 +50,7 @@ public actor Ghostwriter {
 
     if config.verbose {
       for file in sourceFiles {
+        // swiftlint:disable:next no_print
         print("  📄 \(file.path): \(file.types.count) type(s)")
       }
     }
@@ -58,6 +60,7 @@ public actor Ghostwriter {
     let testableTypes = allTypes.filter { !$0.applicablePatterns.isEmpty }
 
     if config.verbose {
+      // swiftlint:disable:next no_print
       print("🔍 Found \(allTypes.count) type(s), \(testableTypes.count) testable")
     }
 
@@ -66,6 +69,7 @@ public actor Ghostwriter {
 
     for file in sourceFiles where !file.testableTypes.isEmpty {
       if config.verbose {
+        // swiftlint:disable:next no_print
         print("✨ Generating tests for \(file.path)")
       }
 
@@ -81,12 +85,15 @@ public actor Ghostwriter {
       if !config.dryRun {
         try await writeTestFile(testCode, for: file)
       } else if config.verbose {
+        // swiftlint:disable:next no_print
         print("📝 Would generate:")
+        // swiftlint:disable:next no_print
         print(testCode)
       }
     }
 
     if config.verbose {
+      // swiftlint:disable:next no_print
       print("✅ Generated \(allGeneratedTests.count) test(s)")
     }
 
@@ -122,6 +129,7 @@ public actor Ghostwriter {
     try content.write(to: outputURL, atomically: true, encoding: .utf8)
 
     if config.verbose {
+      // swiftlint:disable:next no_print
       print("  💾 Wrote \(outputPath)")
     }
   }
@@ -144,6 +152,7 @@ public actor Ghostwriter {
     try manifest.save(to: manifestURL)
 
     if config.verbose {
+      // swiftlint:disable:next no_print
       print("  📋 Wrote manifest to \(manifestPath)")
     }
   }

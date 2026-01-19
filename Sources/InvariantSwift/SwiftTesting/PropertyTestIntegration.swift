@@ -195,6 +195,7 @@ public func checkProperty<T: Sendable>(
 
     let counterexampleStr: String
     if let printable = counterexample as? PrettyPrintable {
+      // swiftlint:disable:next no_print
       counterexampleStr = printer.print(printable)
     } else {
       counterexampleStr = "\(counterexample)"
@@ -202,6 +203,7 @@ public func checkProperty<T: Sendable>(
 
     let shrunkStr: String
     if let printable = shrunk as? PrettyPrintable {
+      // swiftlint:disable:next no_print
       shrunkStr = printer.print(printable)
     } else {
       shrunkStr = "\(shrunk)"
@@ -331,6 +333,7 @@ public func checkPropertyAsync<T: Sendable>(
 
     let counterexampleStr: String
     if let printable = counterexample as? PrettyPrintable {
+      // swiftlint:disable:next no_print
       counterexampleStr = printer.print(printable)
     } else {
       counterexampleStr = "\(counterexample)"
@@ -338,6 +341,7 @@ public func checkPropertyAsync<T: Sendable>(
 
     let shrunkStr: String
     if let printable = shrunk as? PrettyPrintable {
+      // swiftlint:disable:next no_print
       shrunkStr = printer.print(printable)
     } else {
       shrunkStr = "\(shrunk)"
@@ -369,14 +373,17 @@ public func checkPropertyAsync<T: Sendable>(
 // MARK: - Utility Functions for Macro-Generated Code
 
 /// Helper function to flatten nested tuples for multi-parameter properties
+// swiftlint:disable:next large_tuple
 public func flattenTuple<A, B, C>(_ tuple: ((A, B), C)) -> (A, B, C) {
   (tuple.0.0, tuple.0.1, tuple.1)
 }
 
+// swiftlint:disable:next large_tuple
 public func flattenTuple<A, B, C, D>(_ tuple: (((A, B), C), D)) -> (A, B, C, D) {
   (tuple.0.0.0, tuple.0.0.1, tuple.0.1, tuple.1)
 }
 
+// swiftlint:disable:next large_tuple
 public func flattenTuple<A, B, C, D, E>(_ tuple: ((((A, B), C), D), E)) -> (A, B, C, D, E) {
   (tuple.0.0.0.0, tuple.0.0.0.1, tuple.0.0.1, tuple.0.1, tuple.1)
 }
@@ -417,12 +424,17 @@ public func flattenTuple<A, B, C, D, E>(_ tuple: ((((A, B), C), D), E)) -> (A, B
 ///   ```swift
 ///   switch result {
 ///   case .success(let iterations):
+// swiftlint:disable:next no_print
 ///       print("Passed all \(iterations) iterations")
 ///   case .failure(let original, let shrunk, let iteration):
+// swiftlint:disable:next no_print
 ///       print("Failed at iteration \(iteration)")
+// swiftlint:disable:next no_print
 ///       print("Original: \(original)")
+// swiftlint:disable:next no_print
 ///       print("Minimized: \(shrunk)")
 ///   case .gaveUp(let discarded, let iterations):
+// swiftlint:disable:next no_print
 ///       print("Gave up: \(discarded) discarded in \(iterations) iterations")
 ///   }
 ///   ```
@@ -469,7 +481,9 @@ public enum PropertyTestResult: Sendable {
 ///   let testResult = convertPropertyResult(propertyResult)
 ///   switch testResult {
 ///   case .failure(let original, let shrunk, let iter):
+// swiftlint:disable:next no_print
 ///       print("Failed at iteration \(iter)")
+// swiftlint:disable:next no_print
 ///       print("Original: \(original), Minimized: \(shrunk)")
 ///   default:
 ///       break

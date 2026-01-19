@@ -63,6 +63,7 @@ public struct ShrinkStep<T>: Sendable where T: Sendable {
 /// trace.record(value: [], passed: true, depth: 5)  // Passes, so [1] is minimal
 /// trace.complete(minimal: [1])
 ///
+// swiftlint:disable:next no_print
 /// print(trace.formattedOutput())
 /// // Original: [1, 2, 3, 4, 5]
 /// // Step 1 (depth 1): [1, 2, 3, 4] ✗

@@ -1151,8 +1151,10 @@ extension Gen {
   ///   ```
   ///
   /// - See Also: ``zip(_:)`` for two generators
+  // swiftlint:disable:next large_tuple
   public static func zip<A, B, C>(_ genA: Gen<A>, _ genB: Gen<B>, _ genC: Gen<C>) -> Gen<(A, B, C)>
   {
+    // swiftlint:disable:next large_tuple
     Gen<(A, B, C)>(
       generate: { rng, size in
         let a = genA.generate(&rng, size)

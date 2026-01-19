@@ -51,6 +51,7 @@ extension CharacterSet {
     // Fallback for custom sets
     var chars: [Character] = []
     for plane: UInt8 in 0...16 {
+      // swiftlint:disable:next for_where
       if self.hasMember(inPlane: plane) {
         let p = UInt32(plane) << 16
         for codePoint in p...(p + 0xFFFF) {

@@ -261,6 +261,7 @@ extension Gen where T == DirectedGraph {
 
         for from in vertexIds {
           for to in vertexIds {
+            // swiftlint:disable:next for_where
             if from != to {  // No self-loops in complete graphs
               edges.insert(Edge(from: from, to: to))
             }

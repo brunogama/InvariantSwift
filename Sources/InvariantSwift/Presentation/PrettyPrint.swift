@@ -651,7 +651,9 @@ public struct PrettyPrinter: Sendable {
   ) -> String? {
     guard old != new else { return nil }
 
+    // swiftlint:disable:next no_print
     let oldStr = (old as? PrettyPrintable).map { print($0) } ?? "\(old)"
+    // swiftlint:disable:next no_print
     let newStr = (new as? PrettyPrintable).map { print($0) } ?? "\(new)"
 
     let diffDoc = Doc.concat([
@@ -811,6 +813,7 @@ public struct PrettyPrinter: Sendable {
 /// - Parameter value: Value to print
 /// - Returns: Pretty-printed string
 public func prettyPrint<T: PrettyPrintable>(_ value: T) -> String {
+  // swiftlint:disable:next no_print
   PrettyPrinter().print(value)
 }
 

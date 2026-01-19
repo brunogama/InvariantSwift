@@ -119,6 +119,7 @@ public func checkPrecondition(
     if ContractConfig.throwOnViolation {
       // Note: Would need to be in a throwing context
       if ContractConfig.verbose {
+        // swiftlint:disable:next no_print
         print("⚠️ \(violation)")
       }
     } else {
@@ -148,6 +149,7 @@ public func checkPostcondition(
     )
 
     if ContractConfig.verbose {
+      // swiftlint:disable:next no_print
       print("⚠️ \(violation)")
     }
     assertionFailure(violation.description)
@@ -175,6 +177,7 @@ public func checkInvariant(
     )
 
     if ContractConfig.verbose {
+      // swiftlint:disable:next no_print
       print("⚠️ \(violation)")
     }
     assertionFailure(violation.description)
@@ -253,6 +256,7 @@ public struct ContractTestRunner<T: ContractProtocol & Sendable>: Sendable {
     for step in 0..<operationCount {
       // Check invariants before operation
       for (idx, invariant) in invariants.enumerated() {
+        // swiftlint:disable:next for_where
         if !invariant(state) {
           violations.append("Invariant \(idx) failed before step \(step)")
         }
@@ -276,6 +280,7 @@ public struct ContractTestRunner<T: ContractProtocol & Sendable>: Sendable {
 
       // Check postconditions
       for (idx, postcond) in operation.postconditions.enumerated() {
+        // swiftlint:disable:next for_where
         if !postcond(oldState, state) {
           violations.append("\(operation.name) postcondition \(idx) failed at step \(step)")
         }
@@ -283,6 +288,7 @@ public struct ContractTestRunner<T: ContractProtocol & Sendable>: Sendable {
 
       // Check invariants after operation
       for (idx, invariant) in invariants.enumerated() {
+        // swiftlint:disable:next for_where
         if !invariant(state) {
           violations.append("Invariant \(idx) failed after step \(step) (\(operation.name))")
         }

@@ -32,6 +32,7 @@ import Foundation
 /// - Example:
 ///   ```swift
 ///   let branch = BranchID(functionName: "findValue", branchIndex: 0)
+// swiftlint:disable:next no_print
 ///   print(branch)  // Prints: "findValue:0"
 ///   ```
 ///
@@ -108,7 +109,9 @@ public struct BranchID: Sendable, Hashable, CustomStringConvertible {
 ///       coveredFunctions: 2
 ///   )
 ///
+// swiftlint:disable:next no_print
 ///   print(budget.coveragePercentage)  // 66.67
+// swiftlint:disable:next no_print
 ///   print(budget.criticalGaps)  // ["edgeCase", "errorHandler"] (sorted)
 ///   ```
 ///
@@ -276,6 +279,7 @@ public struct ExecutionRecord: Sendable {
 ///
 ///           // Check progress
 ///           let budget = await coverageCollector.currentBudget()
+// swiftlint:disable:next no_print
 ///           print("Coverage: \(budget.coveragePercentage)%")
 ///       }
 ///   }
@@ -423,7 +427,9 @@ public actor CoverageCollector {
   /// - Example:
   ///   ```swift
   ///   let stats = await collector.getStatistics()
+  // swiftlint:disable:next no_print
   ///   print("Executions: \(stats.executions)")
+  // swiftlint:disable:next no_print
   ///   print("Average time: \(stats.avgExecutionTime * 1000) ms")
   ///   ```
   ///
@@ -431,6 +437,7 @@ public actor CoverageCollector {
   ///   or detecting unexpectedly slow test cases.
   ///
   /// - See Also: ``ExecutionRecord``
+  // swiftlint:disable:next large_tuple
   public func getStatistics() -> (
     executions: Int, totalSymbols: Int, avgExecutionTime: TimeInterval
   ) {
@@ -757,6 +764,7 @@ extension Property {
 ///       uncoveredSymbols: ["errorHandler", "retryLogic"]
 ///   )
 ///
+// swiftlint:disable:next no_print
 ///   print(report.summary())
 ///   // Coverage Report:
 ///   // - Initial Coverage: 45.00%
@@ -850,6 +858,7 @@ public struct CoverageReport: Sendable {
   ///
   /// - Example:
   ///   ```swift
+  // swiftlint:disable:next no_print
   ///   print(report.summary())
   ///   ```
   ///

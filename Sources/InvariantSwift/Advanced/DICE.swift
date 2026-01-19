@@ -374,6 +374,7 @@ public struct HappensBefore: Sendable {
 
     // Find all edges that lead to the target step
     for edge in edges {
+      // swiftlint:disable:next for_where
       if edge.to == targetStep {
         predecessors.insert(edge.from)
       }

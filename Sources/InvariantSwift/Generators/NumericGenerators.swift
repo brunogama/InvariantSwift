@@ -483,6 +483,7 @@ extension Gen where T == Decimal {
         let exponent = Int8.random(in: -128...127, using: &rng)
         let length = UInt32.random(in: 1...8, using: &rng)  // Max 8 significand parts
 
+        // swiftlint:disable:next large_tuple
         var mantissa: (UInt16, UInt16, UInt16, UInt16, UInt16, UInt16, UInt16, UInt16) = (
           0, 0, 0, 0, 0, 0, 0, 0
         )

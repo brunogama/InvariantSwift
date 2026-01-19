@@ -201,12 +201,14 @@ public struct TreeGen<A>: Sendable where A: Sendable {
               through: max(range.lowerBound, 0),
               by: -step
             ) {
+              // swiftlint:disable:next for_where
               if shrinkValue < value {
                 shrinks.append(Node.leaf(shrinkValue))
               }
             }
           } else if value < 0 {
             for shrinkValue in stride(from: value + step, to: min(range.upperBound, 0), by: step) {
+              // swiftlint:disable:next for_where
               if shrinkValue > value {
                 shrinks.append(Node.leaf(shrinkValue))
               }
@@ -448,6 +450,7 @@ extension Node {
 
     // Breadth-first search for smallest counterexample
     for shrunk in breadthFirst() {
+      // swiftlint:disable:next for_where
       if property(shrunk) {
         return shrunk
       }
