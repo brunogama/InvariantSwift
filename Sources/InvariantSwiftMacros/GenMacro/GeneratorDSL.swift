@@ -28,7 +28,7 @@ import SwiftSyntaxBuilder
 /// Fake data generators (shorthand):
 /// - `.firstName`, `.lastName`, `.fullName`, `.city`, `.zipCode`, `.email`, `.username`
 /// - `.companyName`, `.productName`, `.price`, `.color`, `.word`, `.sentence`, `.paragraph`
-// swiftlint:disable cyclomatic_complexity file_length function_body_length type_body_length
+// swiftlint:disable:next type_body_length
 public enum GeneratorDSL {
 
   /// Parsed generator expression
@@ -205,6 +205,7 @@ public enum GeneratorDSL {
 
   // MARK: - Member Access Parsing
 
+  // swiftlint:disable:next cyclomatic_complexity
   private static func parseMemberAccess(_ expr: MemberAccessExprSyntax) -> ParsedGenerator? {
     if let fakeGen = parseFakeChain(expr) {
       return .fake(fakeGen)
@@ -263,6 +264,7 @@ public enum GeneratorDSL {
     return fakeGeneratorFromCategoryAndMember(category: category, member: member)
   }
 
+  // swiftlint:disable:next cyclomatic_complexity
   private static func fakeGeneratorFromCategoryAndMember(
     category: String,
     member: String
@@ -303,6 +305,7 @@ public enum GeneratorDSL {
     }
   }
 
+  // swiftlint:disable:next cyclomatic_complexity
   private static func parseFakeShorthand(_ name: String) -> FakeGenerator? {
     switch name {
     case "firstName": return .firstName
@@ -340,6 +343,7 @@ public enum GeneratorDSL {
 
   // MARK: - Function Call Parsing
 
+  // swiftlint:disable:next cyclomatic_complexity
   private static func parseFunctionCall(_ expr: FunctionCallExprSyntax) -> ParsedGenerator? {
     guard let memberAccess = expr.calledExpression.as(MemberAccessExprSyntax.self) else {
       return nil
@@ -514,6 +518,7 @@ public enum GeneratorDSL {
 extension GeneratorDSL {
 
   /// Generate SwiftSyntax expression for a parsed generator
+  // swiftlint:disable:next cyclomatic_complexity
   public static func generateCode(for parsed: ParsedGenerator) -> ExprSyntax {
     switch parsed {
     // Primitives
@@ -746,4 +751,5 @@ extension GeneratorDSL {
       .arg(valueCode)
       .buildExpr()
   }
+// swiftlint:disable:next file_length
 }

@@ -29,7 +29,6 @@ import Dispatch
 // MARK: - Core Types
 
 /// **Test execution result with metadata**
-// swiftlint:disable file_length
 public struct TestExecution: Codable, Sendable {
   /// Unique identifier for this execution
   public let id: UUID
@@ -1219,4 +1218,5 @@ private func correlation(_ x: [Double], _ y: [Double]) -> Double {
   let denominator = sqrt(xVariance * yVariance)
 
   return denominator != 0 ? numerator / denominator : 0.0
+// swiftlint:disable:next file_length
 }

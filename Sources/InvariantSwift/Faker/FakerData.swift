@@ -6,7 +6,6 @@ import Foundation
 // MARK: - Faker Data
 
 /// Thread-safe lazy-loaded faker data storage.
-// swiftlint:disable file_length function_body_length type_body_length
 public final class FakerData: @unchecked Sendable {
   public static let shared = FakerData()
 
@@ -36,6 +35,7 @@ public final class FakerData: @unchecked Sendable {
 // MARK: - Locale Data
 
 /// Data for a specific locale.
+// swiftlint:disable:next type_body_length
 public struct LocaleData: Sendable {
   public let locale: FakerLocale
 
@@ -93,6 +93,7 @@ public struct LocaleData: Sendable {
 
   // MARK: - English (US) Data
 
+  // swiftlint:disable:next function_body_length
   private static func createEnglishUS() -> Self {
     Self(
       locale: .enUS,
@@ -200,6 +201,7 @@ public struct LocaleData: Sendable {
 
   // MARK: - Portuguese (Brazil) Data
 
+  // swiftlint:disable:next function_body_length
   private static func createBrazilianPortuguese() -> Self {
     Self(
       locale: .ptBR,
@@ -510,4 +512,5 @@ public struct LocaleData: Sendable {
       ]
     )
   }
+// swiftlint:disable:next file_length
 }

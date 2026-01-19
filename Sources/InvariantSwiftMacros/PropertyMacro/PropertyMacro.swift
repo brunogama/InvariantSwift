@@ -3,7 +3,7 @@ import SwiftSyntax
 import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
 
-// swiftlint:disable file_length function_body_length type_body_length
+// swiftlint:disable:next type_body_length
 public struct PropertyMacro: PeerMacro {
 
   public static func expansion(
@@ -324,6 +324,7 @@ public struct PropertyMacro: PeerMacro {
     )
   }
 
+  // swiftlint:disable:next function_body_length
   private static func buildConfigDeclaration(config: PropertyMacroConfig) -> VariableDeclSyntax {
     var arguments: [LabeledExprSyntax] = []
 
@@ -495,6 +496,7 @@ public struct PropertyMacro: PeerMacro {
     )
   }
 
+  // swiftlint:disable:next function_body_length
   private static func buildFailureCase(labels: [String], includeSeed: Bool) -> SwitchCaseSyntax {
     let patternExpr = FunctionCallExprSyntax(
       calledExpression: MemberAccessExprSyntax(
@@ -672,4 +674,5 @@ public enum PropertyTestError: Error, CustomStringConvertible {
       return "Invalid @PropertyTest configuration: \(message)"
     }
   }
+// swiftlint:disable:next file_length
 }

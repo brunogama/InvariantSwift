@@ -5,7 +5,6 @@ import SwiftSyntaxBuilder
 
 /// Builds the body of a property test function.
 /// Creates the PropertyRunner invocation and result handling.
-// swiftlint:disable function_body_length
 public enum PropertyTestBodyBuilder {
 
   /// Build the complete test body
@@ -213,6 +212,7 @@ public enum PropertyTestBodyBuilder {
     )
   }
 
+  // swiftlint:disable:next function_body_length
   private static func buildFailureCase() -> SwitchCaseSyntax {
     SwitchCaseSyntax(
       label: .case(

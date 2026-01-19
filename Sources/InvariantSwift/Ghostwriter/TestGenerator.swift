@@ -6,7 +6,7 @@ import Foundation
 // MARK: - Test Generator
 
 /// Generates property test code from type information.
-// swiftlint:disable cyclomatic_complexity file_length type_body_length
+// swiftlint:disable:next type_body_length
 public struct TestGenerator: Sendable {
 
   /// Configuration for test generation
@@ -48,6 +48,7 @@ public struct TestGenerator: Sendable {
   }
 
   /// Generate a single test for a pattern.
+  // swiftlint:disable:next cyclomatic_complexity
   public func generateTest(for typeInfo: TypeInfo, pattern: TestPattern) -> GeneratedTest? {
     let code: String
 
@@ -573,4 +574,5 @@ public struct TestGenerator: Sendable {
 
     return lines.joined(separator: "\n")
   }
+// swiftlint:disable:next file_length
 }

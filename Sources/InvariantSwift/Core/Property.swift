@@ -13,7 +13,6 @@ import Foundation
 /// unexpected edge case.
 ///
 /// - See Also: ``PropertyResult``, ``PropertyConfig``
-// swiftlint:disable file_length
 public enum FailureReason: Sendable, Equatable, CustomStringConvertible {
   /// The property's predicate returned `false`.
   case predicateFailed
@@ -1198,4 +1197,5 @@ extension PropertyResult {
       )
     }
   }
+// swiftlint:disable:next file_length
 }

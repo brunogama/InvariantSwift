@@ -27,7 +27,6 @@ import SwiftSyntaxMacros
 ///     #expect(await cache.isConsistent)
 /// }
 /// ```
-// swiftlint:disable file_length
 public struct AsyncPropertyTestMacro: PeerMacro {
 
   public static func expansion(
@@ -618,4 +617,5 @@ enum AsyncPropertyTestError: Error, CustomStringConvertible {
       return "Invalid attribute configuration"
     }
   }
+// swiftlint:disable:next file_length
 }

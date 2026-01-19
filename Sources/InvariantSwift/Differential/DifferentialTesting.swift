@@ -7,7 +7,6 @@ import Foundation
 // MARK: - Error Behavior
 
 /// How to handle error cases in differential testing.
-// swiftlint:disable cyclomatic_complexity
 public enum ErrorBehavior: Sendable {
   /// Both implementations must throw the same error type
   case mustMatch
@@ -56,6 +55,7 @@ public struct DifferentialResult<Input: Sendable, Output: Sendable>: Sendable {
   }
 
   /// Check divergence with specific error behavior
+  // swiftlint:disable:next cyclomatic_complexity
   public func diverges(errorBehavior: ErrorBehavior) -> Bool {
     switch (referenceOutput, candidateOutput) {
     case (.success(let ref), .success(let cand)):

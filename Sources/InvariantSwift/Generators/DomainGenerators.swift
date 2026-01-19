@@ -20,7 +20,6 @@ import Foundation
 // MARK: - Graph Generators
 
 /// **Vertex in a directed graph**
-// swiftlint:disable cyclomatic_complexity file_length function_body_length
 public struct Vertex: Hashable, Codable, Sendable {
   public let id: String
   public let label: String?
@@ -89,6 +88,7 @@ extension Gen where T == DirectedGraph {
   /// - Cyclic graphs (simple cycles, complex cycles)
   /// - Connected vs disconnected components
   /// - Various vertex degrees and connectivity patterns
+  // swiftlint:disable:next cyclomatic_complexity
   public static func directedGraph(
     maxVertices: Int = 10,
     maxEdges: Int = 15,
@@ -433,7 +433,9 @@ extension Gen where T == JSONSchema {
   /// - Validation constraints and rules
   /// - Required fields and optional properties
   /// - Enum constraints and pattern validation
+  // swiftlint:disable:next function_body_length
   public static func jsonSchema(maxDepth: Int = 3, maxProperties: Int = 5) -> Gen<JSONSchema> {
+    // swiftlint:disable:next cyclomatic_complexity
     func schemaGenerator(depth: Int) -> Gen<JSONSchema> {
       Gen<JSONSchema>(
         generate: { rng, size in
@@ -664,6 +666,7 @@ extension Gen where T == DatabaseRecord {
   /// - Nullable vs non-nullable fields
   /// - Primary keys and metadata
   /// - Realistic data distributions
+  // swiftlint:disable:next cyclomatic_complexity
   public static func databaseRecord(
     maxFields: Int = 10,
     fieldNames: [String] = [
@@ -852,6 +855,7 @@ extension Gen where T == HTTPRequest {
   /// - Common header patterns
   /// - Query parameter structures
   /// - Content negotiation patterns
+  // swiftlint:disable:next cyclomatic_complexity
   public static func httpRequest(
     maxPathSegments: Int = 4,
     maxHeaders: Int = 10,
@@ -992,4 +996,5 @@ extension Gen where T == HTTPRequest {
       }
     )
   }
+// swiftlint:disable:next file_length
 }

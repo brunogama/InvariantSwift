@@ -8,7 +8,6 @@ import Foundation
 // MARK: - Core Executor
 
 /// Actor-based executor for PropertyEffect with isolation guarantees
-// swiftlint:disable function_body_length
 public actor PropertyEffectExecutor {
   private var activeExecutions: [String: Task<PropertyEffectResult, Never>] = [:]
   private var executionCounter: Int = 0
@@ -16,6 +15,7 @@ public actor PropertyEffectExecutor {
   public init() {}
 
   /// Execute a PropertyEffect with full isolation and tracing
+  // swiftlint:disable:next function_body_length
   public func run<A>(_ effect: PropertyEffect<A>) async -> PropertyEffectResult {
     let executionId = generateExecutionId()
     let startTime = ContinuousClock.now

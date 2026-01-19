@@ -26,7 +26,6 @@ import SQLite3
 // MARK: - Core Types
 
 /// Unique key for identifying test cases in the corpus
-// swiftlint:disable cyclomatic_complexity file_length function_body_length type_body_length
 public struct CorpusKey: Sendable, Hashable, Codable, CustomStringConvertible {
   public let propertyHash: String
   public let generatorFingerprint: String
@@ -194,6 +193,7 @@ public struct CorpusStatistics: Sendable {
 // MARK: - Corpus Database Implementation
 
 /// Persistent corpus database with SQLite backend
+// swiftlint:disable:next type_body_length
 public actor CorpusDatabase {
   private let dbPath: URL
   private var db: OpaquePointer?
@@ -348,6 +348,7 @@ public actor CorpusDatabase {
   }
 
   /// Retrieve entries from the corpus
+  // swiftlint:disable:next cyclomatic_complexity
   public func get<A: Codable>(
     _ key: CorpusKey,
     as type: A.Type,
@@ -779,4 +780,5 @@ public typealias SQLiteExampleDatabase = CorpusDatabase
 
 /// Legacy type alias for backward compatibility
 @available(*, deprecated, renamed: "CorpusDatabaseError")
+// swiftlint:disable:next file_length
 public typealias DatabaseError = CorpusDatabaseError

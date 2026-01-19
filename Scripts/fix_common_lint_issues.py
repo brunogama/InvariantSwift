@@ -104,27 +104,29 @@ def fix_identifier_name_underscore(content: str, line_num: int, identifier: str)
     return content, False
 
 
-def add_swiftlint_disable_for_file(content: str, rules: list[str]) -> tuple[str, bool]:
-    """Add swiftlint:disable comment at top of file for specified rules."""
-    rules_str = ' '.join(rules)
-    disable_comment = f"// swiftlint:disable {rules_str}\n"
-    
-    # Check if already disabled
-    if f"swiftlint:disable {rules_str}" in content:
+def add_swiftlint_disable_next(content: str, line_num: int, rule: str) -> tuple[str, bool]:
+    """Add swiftlint:disable:next comment for a specific line and rule."""
+    lines = content.split('\n')
+    if line_num <= 0 or line_num > len(lines):
         return content, False
     
-    # Add after any existing file-level comments or imports
-    lines = content.split('\n')
-    insert_index = 0
+    # Insert disable:next comment before the violating line
+    insert_index = line_num - 1
     
-    # Find first non-comment, non-import line
-    for i, line in enumerate(lines):
-        stripped = line.strip()
-        if stripped and not stripped.startswith('//') and not stripped.startswith('import'):
-            insert_index = i
-            break
+    # Get indentation from the violating line
+    violating_line = lines[insert_index]
+    indent = len(violating_line) - len(violating_line.lstrip())
+    indent_str = ' ' * indent
     
-    lines.insert(insert_index, disable_comment.rstrip())
+    disable_comment = f"{indent_str}// swiftlint:disable:next {rule}"
+    
+    # Check if already disabled
+    if insert_index > 0:
+        prev_line = lines[insert_index - 1].strip()
+        if f"swiftlint:disable:next {rule}" in prev_line or "swiftlint:disable:next" in prev_line:
+            return content, False
+    
+    lines.insert(insert_index, disable_comment)
     return '\n'.join(lines), True
 
 
@@ -185,33 +187,31 @@ def process_violations(violations: list[LintViolation], dry_run: bool = True) ->
         original_content = content
         modified = False
         
-        # Collect rules to disable for this file
-        rules_to_disable = set()
+        # Track line offset as we insert comments
+        line_offset = 0
         
-        for v in sorted(file_violations, key=lambda x: -x.line):  # Process from bottom up
+        for v in sorted(file_violations, key=lambda x: x.line):  # Process from top to bottom
             stats[v.rule] += 1
+            adjusted_line = v.line + line_offset
             
             if v.rule in disable_rules:
-                rules_to_disable.add(v.rule)
+                content, disabled = add_swiftlint_disable_next(content, adjusted_line, v.rule)
+                if disabled:
+                    modified = True
+                    line_offset += 1  # We added a line
+                    changes.append(f"  [DISABLE:NEXT] {v.file}:{v.line} - {v.rule}")
                 
             elif v.rule == 'redundant_string_enum_value':
-                content, fixed = fix_redundant_string_enum_value(content, v.line)
+                content, fixed = fix_redundant_string_enum_value(content, adjusted_line)
                 if fixed:
                     modified = True
                     changes.append(f"  [FIX] {v.file}:{v.line} - {v.rule}")
                     
             elif v.rule == 'contains_over_filter_is_empty':
-                content, fixed = fix_contains_over_filter_is_empty(content, v.line)
+                content, fixed = fix_contains_over_filter_is_empty(content, adjusted_line)
                 if fixed:
                     modified = True
                     changes.append(f"  [FIX] {v.file}:{v.line} - {v.rule}")
-        
-        # Add disable comments for structural issues
-        if rules_to_disable:
-            content, disabled = add_swiftlint_disable_for_file(content, sorted(rules_to_disable))
-            if disabled:
-                modified = True
-                changes.append(f"  [DISABLE] {file_path} - {', '.join(sorted(rules_to_disable))}")
         
         if modified and not dry_run:
             Path(file_path).write_text(content)

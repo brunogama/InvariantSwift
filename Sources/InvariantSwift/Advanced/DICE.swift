@@ -9,7 +9,6 @@ import Foundation
 // MARK: - Core Types
 
 /// Unique identifier for tasks in the scheduler
-// swiftlint:disable file_length
 public struct TaskID: Sendable, Hashable, CustomStringConvertible {
   public let value: UInt64
 
@@ -803,4 +802,5 @@ public struct PropertyTestFailure: Error, Sendable {
     self.shrunk = String(describing: shrunk)
     self.iterations = iterations
   }
+// swiftlint:disable:next file_length
 }

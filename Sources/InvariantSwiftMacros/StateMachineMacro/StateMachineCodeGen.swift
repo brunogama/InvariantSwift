@@ -1,7 +1,7 @@
 import SwiftSyntax
 import SwiftSyntaxBuilder
 
-// swiftlint:disable file_length function_body_length type_body_length
+// swiftlint:disable:next type_body_length
 enum StateMachineCodeGen {
 
   static func generateMembers(
@@ -199,6 +199,7 @@ enum StateMachineCodeGen {
     return TypeSyntax(TupleTypeSyntax(elements: tupleElements))
   }
 
+  // swiftlint:disable:next function_body_length
   private static func buildGenerateCommandFunc(
     modelTypeName: String,
     commandMethods: [CommandMethod]
@@ -294,6 +295,7 @@ enum StateMachineCodeGen {
     )
   }
 
+  // swiftlint:disable:next function_body_length
   private static func buildParameterizedCommandGenerator(
     commandEnumName: String,
     method: CommandMethod
@@ -785,4 +787,5 @@ enum StateMachineCodeGen {
       return ExprSyntax(IntegerLiteralExprSyntax(literal: .integerLiteral("0")))
     }
   }
+// swiftlint:disable:next file_length
 }

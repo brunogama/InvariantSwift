@@ -5,12 +5,12 @@ import SwiftSyntaxBuilder
 
 /// Builds generator expressions for various types.
 /// Maps Swift types to their corresponding Gen<T> expressions.
-// swiftlint:disable cyclomatic_complexity
 public enum GeneratorBuilder {
 
   // MARK: - Primitive Generators
 
   /// Returns the generator expression for a primitive type
+  // swiftlint:disable:next cyclomatic_complexity
   public static func primitive(_ typeName: String) -> ExprSyntax? {
     switch typeName {
     case "Int":

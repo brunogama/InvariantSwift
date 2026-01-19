@@ -5,7 +5,6 @@ import SwiftSyntaxMacros
 // MARK: - Property Macro Configuration
 
 /// Extracted configuration from @Property attribute
-// swiftlint:disable cyclomatic_complexity
 public struct PropertyMacroConfig: Sendable {
   public let iterations: Int
   public let seed: UInt64?
@@ -38,6 +37,7 @@ public struct PropertyMacroConfig: Sendable {
 public enum PropertyConfigExtractor {
 
   /// Extract config from attribute syntax
+  // swiftlint:disable:next cyclomatic_complexity
   public static func extract(from attribute: AttributeSyntax) -> PropertyMacroConfig {
     guard case .argumentList(let arguments) = attribute.arguments else {
       return .default

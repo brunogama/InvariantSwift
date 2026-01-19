@@ -34,7 +34,6 @@ import Foundation
 /// **External References:**
 /// - [LibFuzzer FuzzedDataProvider](https://llvm.org/docs/LibFuzzer.html#fuzzed-data-provider)
 /// - [AFL Technical Whitepaper](https://lcamtuf.coredump.cx/afl/technical_details.txt)
-// swiftlint:disable file_length
 public struct FuzzDataProvider: Sendable {
   private var data: [UInt8]
   private var position: Int = 0
@@ -899,4 +898,5 @@ public struct FuzzableConfig: Sendable {
     self.mode = mode
     self.sanitizers = sanitizers
   }
+// swiftlint:disable:next file_length
 }

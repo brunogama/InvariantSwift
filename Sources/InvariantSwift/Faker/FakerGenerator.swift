@@ -5,10 +5,10 @@ import Foundation
 
 // MARK: - Faker Generator Extension
 
-// swiftlint:disable cyclomatic_complexity file_length function_body_length
 extension Gen {
 
   /// Create a faker generator for the specified type.
+  // swiftlint:disable:next cyclomatic_complexity
   public static func faker(
     _ type: FakerType,
     locale: FakerLocale = .enUS
@@ -500,6 +500,7 @@ extension Gen {
   }
 
   /// Create a domain-specific faker generator.
+  // swiftlint:disable:next cyclomatic_complexity
   public static func faker(domain: DomainFaker, locale: FakerLocale = .enUS) -> Gen<String> {
     switch domain {
     // Healthcare
@@ -1251,4 +1252,5 @@ extension Gen {
       }
     }
   }
+// swiftlint:disable:next file_length
 }

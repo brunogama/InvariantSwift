@@ -6,7 +6,6 @@ import Foundation
 // MARK: - Ghostwriter
 
 /// Main Ghostwriter class that orchestrates automatic test generation.
-// swiftlint:disable cyclomatic_complexity
 public actor Ghostwriter {
 
   /// Configuration
@@ -27,6 +26,7 @@ public actor Ghostwriter {
   // MARK: - Main Entry Point
 
   /// Run the Ghostwriter to analyze sources and generate tests.
+  // swiftlint:disable:next cyclomatic_complexity
   public func run() async throws -> GhostwriterResult {
     // Step 1: Find source files
     let filePaths = try FileDiscovery.findFiles(for: config)

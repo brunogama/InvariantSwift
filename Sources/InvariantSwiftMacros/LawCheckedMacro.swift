@@ -41,7 +41,6 @@ import Foundation
 ///     // Implementation...
 /// }
 /// ```
-// swiftlint:disable file_length
 public struct LawCheckedMacro: MemberMacro {
 
   // MARK: - Macro Entry Point
@@ -1114,4 +1113,5 @@ public macro LawChecked(
   enableShrinking: Bool = true,
   timeout: Double = 30.0
 ) = #externalMacro(module: "InvariantSwiftMacros", type: "LawCheckedMacro")
+// swiftlint:disable:next file_length
 */

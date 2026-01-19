@@ -34,7 +34,6 @@ import Foundation
 /// Not shared across concurrent operations.
 ///
 /// **Performance:** O(1) lookup and insertion using `ObjectIdentifier` hashing.
-// swiftlint:disable cyclomatic_complexity file_length
 public struct ObjectTracker: Sendable {
   /// Maps object identifiers to their assigned reference IDs
   private var idMapping: [ObjectIdentifier: Int] = [:]
@@ -681,6 +680,7 @@ public struct PrettyPrinter: Sendable {
     be(width: width, col: 0, docs: [(0, doc)])
   }
 
+  // swiftlint:disable:next cyclomatic_complexity
   private func be(width: Int, col: Int, docs: [(Int, Doc)]) -> SimpleDoc {
     guard let (indent, doc) = docs.first else {
       return .empty
@@ -745,6 +745,7 @@ public struct PrettyPrinter: Sendable {
     }
   }
 
+  // swiftlint:disable:next cyclomatic_complexity
   private func flatten(_ doc: Doc) -> Doc {
     switch doc {
     case .concat(let x, let y):
@@ -889,4 +890,5 @@ extension PropertyResult {
 /// **Helper function to separate documents**
 func separatedBy(_ separator: Doc, _ docs: [Doc]) -> Doc {
   Doc.separatedBy(separator, docs)
+// swiftlint:disable:next file_length
 }

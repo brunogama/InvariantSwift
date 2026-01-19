@@ -5,7 +5,6 @@ import SwiftSyntaxMacros
 import SwiftDiagnostics
 import Foundation
 
-// swiftlint:disable cyclomatic_complexity file_length function_body_length
 public struct BusinessRuleMacro: PeerMacro {
 
   public static func expansion(
@@ -149,6 +148,7 @@ public struct MacroExpansionErrorMessage: DiagnosticMessage {
   }
 }
 
+// swiftlint:disable:next cyclomatic_complexity
 private func extractBusinessRuleConfig(
   from node: AttributeSyntax,
   context: MacroContext
@@ -244,6 +244,7 @@ private func generateGeneratorExpressions(
   return expressions
 }
 
+// swiftlint:disable:next cyclomatic_complexity
 private func inferGenerator(for paramName: String, type: String) -> String? {
   // Custom types use Generatable.arbitrary (from @Arbitrary macro)
   if !isBuiltInType(type) {
@@ -658,6 +659,7 @@ private func buildSuccessCase() -> SwitchCaseSyntax {
   )
 }
 
+// swiftlint:disable:next function_body_length
 private func buildFailureCase(config: BusinessRuleConfig) -> SwitchCaseSyntax {
   SwitchCaseSyntax(
     label: .case(
@@ -784,6 +786,7 @@ private func buildFailureCase(config: BusinessRuleConfig) -> SwitchCaseSyntax {
   )
 }
 
+// swiftlint:disable:next function_body_length
 private func buildGaveUpCase(config: BusinessRuleConfig) -> SwitchCaseSyntax {
   SwitchCaseSyntax(
     label: .case(
@@ -869,4 +872,5 @@ private func generatePropertyType(from parameterTypes: [String]) -> String {
   } else {
     return "(\(parameterTypes.joined(separator: ", ")))"
   }
+// swiftlint:disable:next file_length
 }

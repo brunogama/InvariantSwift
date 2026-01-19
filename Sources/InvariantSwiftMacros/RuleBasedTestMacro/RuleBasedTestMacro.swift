@@ -1,4 +1,3 @@
-// swiftlint:disable file_length
 /// RuleBasedTestMacro - Member macro for rule-based state machine tests
 ///
 /// Implements `@RuleBasedTest` from ISP-0003 for declarative stateful testing.

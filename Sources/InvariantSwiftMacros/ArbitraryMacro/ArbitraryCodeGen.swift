@@ -1,7 +1,7 @@
 import SwiftSyntax
 import SwiftSyntaxBuilder
 
-// swiftlint:disable file_length function_body_length type_body_length
+// swiftlint:disable:next type_body_length
 enum ArbitraryCodeGen {
 
   static func buildStructArbitraryProperty(
@@ -538,6 +538,7 @@ enum ArbitraryCodeGen {
     )
   }
 
+  // swiftlint:disable:next function_body_length
   private static func buildPerFieldShrink(
     typeName: String,
     fields: [AnalyzedField]
@@ -611,6 +612,7 @@ enum ArbitraryCodeGen {
     )
   }
 
+  // swiftlint:disable:next function_body_length
   private static func buildFieldShrinkLoop(
     typeName: String,
     field: AnalyzedField,
@@ -916,4 +918,5 @@ enum ArbitraryCodeGen {
       )
     )
   }
+// swiftlint:disable:next file_length
 }

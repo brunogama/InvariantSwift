@@ -9,7 +9,6 @@ import Foundation
 // MARK: - Core Types
 
 /// Unique identifier for threads in concurrent execution
-// swiftlint:disable file_length
 public struct ThreadID: Sendable, Hashable, CustomStringConvertible {
   public let value: UInt64
 
@@ -1174,4 +1173,5 @@ extension Gen {
       }
     }
   }
+// swiftlint:disable:next file_length
 }

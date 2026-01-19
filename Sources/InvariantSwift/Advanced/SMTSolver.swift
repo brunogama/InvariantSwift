@@ -9,7 +9,6 @@ import Foundation
 // MARK: - Core SMT Types
 
 /// Represents SMT expressions with strong typing
-// swiftlint:disable file_length
 public indirect enum SMTExpression: Sendable, CustomStringConvertible {
   case variable(String)
   case constant(SMTValue)
@@ -758,4 +757,5 @@ public enum SMTExamples {
       }
     )
   }
+// swiftlint:disable:next file_length
 }

@@ -9,7 +9,6 @@ import Foundation
 // MARK: - Core Types
 
 /// An invariant discovered through execution analysis
-// swiftlint:disable file_length
 public struct DiscoveredInvariant: Sendable, Hashable, CustomStringConvertible {
   public let id: UUID
   public let predicate: String
@@ -1140,4 +1139,5 @@ extension Gen {
       return (input, trace)
     }
   }
+// swiftlint:disable:next file_length
 }

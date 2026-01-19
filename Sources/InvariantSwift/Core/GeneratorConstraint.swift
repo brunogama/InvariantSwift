@@ -1,4 +1,3 @@
-// swiftlint:disable file_length
 /// GeneratorConstraint - Constraint DSL for #draw
 ///
 /// Provides type-safe constraints for dependent generator construction.

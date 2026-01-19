@@ -28,8 +28,8 @@ import os
 /// - [Statistical Process Control](https://en.wikipedia.org/wiki/Statistical_process_control)
 /// - [Performance Monitoring Best Practices](https://sre.google/sre-book/monitoring-distributed-systems/)
 
-// swiftlint:disable file_length function_body_length type_body_length
 @available(macOS 13.0, iOS 16.0, tvOS 16.0, watchOS 9.0, *)
+// swiftlint:disable:next type_body_length
 public actor TelemetrySystem {
 
   // MARK: - Types and Configuration
@@ -728,6 +728,7 @@ public struct TelemetryStatistics: Codable, Sendable {
 extension PropertyRunner {
 
   /// **Run property test with full telemetry integration**
+  // swiftlint:disable:next function_body_length
   public func runPropertyWithTelemetry<T>(
     _ property: Property<T>,
     config: PropertyConfig = .default,
@@ -819,4 +820,5 @@ extension PropertyRunner {
   }
 }
 
+// swiftlint:disable:next file_length
 // MARK: - Utility Extensions

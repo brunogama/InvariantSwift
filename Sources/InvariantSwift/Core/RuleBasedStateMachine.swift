@@ -1,4 +1,3 @@
-// swiftlint:disable file_length
 /// RuleBasedStateMachine - Core types for rule-based stateful testing
 ///
 /// Implements ISP-0003: Hypothesis-style stateful testing where rules define

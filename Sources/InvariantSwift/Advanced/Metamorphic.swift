@@ -9,7 +9,6 @@ import Foundation
 // MARK: - Core Types
 
 /// A metamorphic relation between inputs and outputs
-// swiftlint:disable file_length
 public struct MetamorphicRelation<Input, Output>: Sendable
 where Input: Sendable, Output: Sendable & Equatable {
 
@@ -646,4 +645,5 @@ extension Property {
       relations: relations
     )
   }
+// swiftlint:disable:next file_length
 }
