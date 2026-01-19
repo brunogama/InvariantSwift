@@ -446,15 +446,11 @@ public struct FuzzTarget<T: Sendable>: Sendable {
     let input = generator.generate(&rng, size)
 
     // Test property
-    do {
-      let result = property(input)
-      if result {
-        return .pass
-      } else {
-        return .fail(input: "\(input)")
-      }
-    } catch {
-      return .error(message: "\(error)")
+    let result = property(input)
+    if result {
+      return .pass
+    } else {
+      return .fail(input: "\(input)")
     }
   }
 }

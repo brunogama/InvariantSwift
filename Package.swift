@@ -1,6 +1,14 @@
 // swift-tools-version: 6.1
+// swiftlint:disable all
+
 import PackageDescription
 import CompilerPluginSupport
+
+let commonSwiftSettings: [SwiftSetting] = [
+  .unsafeFlags(["-warnings-as-errors"]),
+  .unsafeFlags(["-Xfrontend", "-strict-concurrency=complete", "-Xfrontend", "-warn-concurrency"]),
+  .enableUpcomingFeature("StrictConcurrency"),
+]
 
 let package = Package(
   name: "InvariantSwift",
@@ -31,8 +39,8 @@ let package = Package(
   ],
   dependencies: [
     .package(url: "https://github.com/pointfreeco/swift-custom-dump", from: "1.3.3"),
-    // Pin to 600.0.1 for Swift 6.0.x/6.1.x/6.2.x compatibility
-    .package(url: "https://github.com/swiftlang/swift-syntax", from: "600.0.1"),
+    // Swift-syntax uses major version matching Swift version (600=6.0, 601=6.1, 602=6.2)
+    .package(url: "https://github.com/swiftlang/swift-syntax", "600.0.1"..<"700.0.0"),
   ],
   targets: [
     // MARK: - Main Library Targets
@@ -47,13 +55,8 @@ let package = Package(
       exclude: [
         "Macros/LawGeneration.swift.disabled"
       ],
-      swiftSettings: [
-        .unsafeFlags(
-          [
-            "-enable-testing"
-          ],
-          .when(configuration: .debug)
-        )
+      swiftSettings: commonSwiftSettings + [
+        .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
       ]
     ),
 
@@ -66,13 +69,8 @@ let package = Package(
         .product(name: "SwiftParser", package: "swift-syntax"),
       ],
       path: "Sources/InvariantSwiftMacros",
-      swiftSettings: [
-        .unsafeFlags(
-          [
-            "-enable-testing"
-          ],
-          .when(configuration: .debug)
-        )
+      swiftSettings: commonSwiftSettings + [
+        .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
       ]
     ),
 
@@ -86,13 +84,8 @@ let package = Package(
         .product(name: "CustomDump", package: "swift-custom-dump"),
       ],
       path: "Sources/FuncTestCLI",
-      swiftSettings: [
-        .unsafeFlags(
-          [
-            "-enable-testing"
-          ],
-          .when(configuration: .debug)
-        )
+      swiftSettings: commonSwiftSettings + [
+        .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
       ]
     ),
 
@@ -143,7 +136,8 @@ let package = Package(
         .product(name: "SwiftParser", package: "swift-syntax"),
         .product(name: "SwiftSyntax", package: "swift-syntax"),
       ],
-      path: "Sources/GhostwriterCLI"
+      path: "Sources/GhostwriterCLI",
+      swiftSettings: commonSwiftSettings
     ),
 
     // MARK: - Test Targets
@@ -153,13 +147,8 @@ let package = Package(
       dependencies: ["InvariantSwift"],
       path: "Tests/FunctionalTesting",
       exclude: ["FakeryGeneratorsTests.swift.disabled"],
-      swiftSettings: [
-        .unsafeFlags(
-          [
-            "-enable-testing"
-          ],
-          .when(configuration: .debug)
-        )
+      swiftSettings: commonSwiftSettings + [
+        .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
       ]
     ),
 
@@ -170,13 +159,8 @@ let package = Package(
         .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
       ],
       path: "Tests/InvariantSwiftMacroTests",
-      swiftSettings: [
-        .unsafeFlags(
-          [
-            "-enable-testing"
-          ],
-          .when(configuration: .debug)
-        )
+      swiftSettings: commonSwiftSettings + [
+        .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
       ]
     ),
 
@@ -184,14 +168,8 @@ let package = Package(
       name: "PerformanceTests",
       dependencies: ["InvariantSwift"],
       path: "Tests/PerformanceTests",
-      swiftSettings: [
-        .unsafeFlags(
-          [
-            "-enable-testing",
-            "-Onone",
-          ],
-          .when(configuration: .debug)
-        )
+      swiftSettings: commonSwiftSettings + [
+        .unsafeFlags(["-enable-testing", "-Onone"], .when(configuration: .debug))
       ]
     ),
 
@@ -202,13 +180,8 @@ let package = Package(
         "InvariantSwiftMacros",
       ],
       path: "Tests/CoverageIntegrationTests",
-      swiftSettings: [
-        .unsafeFlags(
-          [
-            "-enable-testing"
-          ],
-          .when(configuration: .debug)
-        )
+      swiftSettings: commonSwiftSettings + [
+        .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
       ]
     ),
 
@@ -216,13 +189,8 @@ let package = Package(
       name: "GeneratedPropertyTests",
       dependencies: ["InvariantSwift"],
       path: "Tests/Generated",
-      swiftSettings: [
-        .unsafeFlags(
-          [
-            "-enable-testing"
-          ],
-          .when(configuration: .debug)
-        )
+      swiftSettings: commonSwiftSettings + [
+        .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
       ]
     ),
   ]
