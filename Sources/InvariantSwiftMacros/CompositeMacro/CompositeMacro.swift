@@ -7,6 +7,7 @@ import SwiftCompilerPlugin
 import SwiftSyntax
 import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
+import SwiftDiagnostics
 
 /// `@Composite` macro for declarative dependent generator construction.
 ///
@@ -41,12 +42,16 @@ public struct CompositeMacro: BodyMacro {
     in context: some MacroExpansionContext
   ) throws -> [CodeBlockItemSyntax] {
 
+    let ctx = MacroContext(context: context)
+
     guard let funcDecl = declaration.as(FunctionDeclSyntax.self) else {
-      throw CompositeMacroError.notAFunction
+      ctx.error(CompositeMacroDiagnostic.mustBeFunction, at: node)
+      return []
     }
 
     guard let body = funcDecl.body else {
-      throw CompositeMacroError.missingBody
+      ctx.error(CompositeMacroDiagnostic.missingBody, at: node)
+      return []
     }
 
     // Collect all draw calls in order
@@ -256,8 +261,36 @@ final class DrawCallCollector: SyntaxVisitor {
   }
 }
 
-// MARK: - Errors
+// MARK: - Diagnostics
 
+public enum CompositeMacroDiagnostic: String, MacroDiagnostic {
+  public static let domain = "InvariantSwift.CompositeMacro"
+
+  case mustBeFunction = "must_be_function"
+  case missingBody = "missing_body"
+  case invalidReturnType = "invalid_return_type"
+  case noDrawCalls = "no_draw_calls"
+
+  public var severity: DiagnosticSeverity { .error }
+
+  public var message: String {
+    switch self {
+    case .mustBeFunction:
+      return "@Composite can only be applied to functions"
+
+    case .missingBody:
+      return "@Composite requires a function body"
+
+    case .invalidReturnType:
+      return "@Composite function must return Gen<T>"
+
+    case .noDrawCalls:
+      return "@Composite function must contain #draw calls"
+    }
+  }
+}
+
+// Legacy error type for backward compatibility
 enum CompositeMacroError: Error, CustomStringConvertible {
   case notAFunction
   case missingBody
