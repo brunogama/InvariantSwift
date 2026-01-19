@@ -98,6 +98,7 @@ public enum PropertyResult<T>: Sendable where T: Sendable {
   ///   - iterations: Number of test cases successfully checked
   case success(iterations: Int)
 
+  // swiftlint:disable:next orphaned_doc_comment
   /// Property failed on a generated input.
   ///
   /// - Parameters:
@@ -106,6 +107,7 @@ public enum PropertyResult<T>: Sendable where T: Sendable {
   ///   - shrunk: The minimized failing input (typically simpler than counterexample)
   ///   - reason: Classification of how the property failed
   ///   - seed: The seed used for this test run (for reproduction)
+  // swiftlint:disable:next enum_case_associated_values_count
   case failure(counterexample: T, iterations: Int, shrunk: T, reason: FailureReason, seed: Seed)
 
   /// Property testing gave up due to too many discarded cases.

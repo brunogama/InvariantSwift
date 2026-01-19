@@ -351,7 +351,7 @@ public actor CorpusDatabase {
 
   // swiftlint:disable:next orphaned_doc_comment
   /// Retrieve entries from the corpus
-  // swiftlint:disable:next cyclomatic_complexity
+  // swiftlint:disable:next function_body_length cyclomatic_complexity
   public func get<A: Codable>(
     _ key: CorpusKey,
     as type: A.Type,

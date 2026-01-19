@@ -181,6 +181,11 @@ def process_violations(violations: list[LintViolation], dry_run: bool = True) ->
         'line_length',
         'identifier_name',
         'unused_enumerated',
+        'enum_case_associated_values_count',
+        'optional_data_string_conversion',
+        'force_try',
+        'force_cast',
+        'attributes',
     }
     
     # Group violations by file

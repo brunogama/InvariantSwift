@@ -104,6 +104,7 @@ disabled_rules:
 - vertical_whitespace_opening_braces # CRITICAL: Conflicts with swift-format
 - vertical_whitespace_closing_braces # CRITICAL: Conflicts with swift-format
 - number_separator # CRITICAL: Conflicts with swift-format number formatting
+- orphaned_doc_comment # False positives from swiftlint:disable comments
 
 # Rule configurations
 analyzer_rules:

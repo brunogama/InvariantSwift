@@ -1183,6 +1183,7 @@ extension ProcessInfo {
     var machine = [CChar](repeating: 0, count: size)
     sysctlbyname("hw.machine", &machine, &size, nil, 0)
     let truncated = machine.prefix { $0 != 0 }
+    // swiftlint:disable:next optional_data_string_conversion
     return String(decoding: truncated.map { UInt8(bitPattern: $0) }, as: UTF8.self)
   }
 }

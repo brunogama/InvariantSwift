@@ -825,6 +825,7 @@ extension Gen {
       },
       shrink: Shrink.pair(genF.shrink, self.shrink).contramap { u in
         // This is simplified - full implementation would need proper shrinking
+        // swiftlint:disable:next force_cast
         (({ _ in u }), u as! T)
       }
     )

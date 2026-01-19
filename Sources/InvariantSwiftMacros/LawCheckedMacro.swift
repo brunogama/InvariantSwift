@@ -1114,5 +1114,5 @@ public macro LawChecked(
   enableShrinking: Bool = true,
   timeout: Double = 30.0
 ) = #externalMacro(module: "InvariantSwiftMacros", type: "LawCheckedMacro")
-// swiftlint:disable:next file_length
 */
+// swiftlint:disable:this file_length

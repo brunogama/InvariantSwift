@@ -367,7 +367,7 @@ infix operator |> : ApplyPrecedence  // Pipe operator
 // swiftlint:disable:next orphaned_doc_comment
 /// **Function composition operator (mathematical style)**
 /// Compose two functions: g • f = λx. g(f(x))
-// swiftlint:disable:next static_operator
+// swiftlint:disable:next identifier_name static_operator
 public func • <A, B, C>(g: @escaping (B) -> C, f: @escaping (A) -> B) -> (A) -> C {
   compose(g, f)
 }

@@ -395,11 +395,9 @@ public struct TestGenerator: Sendable {
       @PropertyTest
       func \(config.testPrefix)\(typeName)_collectionBounds(collection: \(typeName)) {
         if collection.isEmpty {
-          // swiftlint:disable:next line_length
-          #expect(collection.startIndex == collection.endIndex, "Empty collection: startIndex == endIndex")
+          #expect(collection.startIndex == collection.endIndex, "Empty: start == end")
         } else {
-          // swiftlint:disable:next line_length
-          #expect(collection.startIndex < collection.endIndex, "Non-empty collection: startIndex < endIndex")
+          #expect(collection.startIndex < collection.endIndex, "Non-empty: start < end")
         }
       }
       """
