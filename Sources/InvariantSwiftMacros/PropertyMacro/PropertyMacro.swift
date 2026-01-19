@@ -33,7 +33,10 @@ public struct PropertyMacro: PeerMacro {
 
     let isAsync = funcDecl.signature.effectSpecifiers?.asyncSpecifier != nil
 
-    let transformedFunc = buildTransformedFunction(
+    // Generate a wrapper enum containing the @Test function
+    // This provides proper scope for @Test's internal symbol generation,
+    // avoiding the peer+peer macro conflict
+    let wrapperEnum = buildWrapperEnum(
       original: funcDecl,
       parameters: parameters,
       originalBody: originalBody,
@@ -41,7 +44,61 @@ public struct PropertyMacro: PeerMacro {
       isAsync: isAsync
     )
 
-    return [DeclSyntax(transformedFunc)]
+    return [DeclSyntax(wrapperEnum)]
+  }
+
+  /// Builds a wrapper enum containing the @Test function
+  /// The enum provides proper scope for @Test's internal symbols
+  private static func buildWrapperEnum(
+    original funcDecl: FunctionDeclSyntax,
+    parameters: [ExtractedParameter],
+    originalBody: CodeBlockSyntax,
+    config: PropertyMacroConfig,
+    isAsync: Bool
+  ) -> EnumDeclSyntax {
+    let enumName = "\(funcDecl.name.text)_PropertyTest"
+    let testName = funcDecl.name.text
+
+    let testBody = buildPropertyTestBody(
+      parameters: parameters,
+      originalBody: originalBody,
+      config: config,
+      isAsync: isAsync
+    )
+
+    let testFunc = FunctionDeclSyntax(
+      attributes: AttributeListSyntax {
+        AttributeSyntax(
+          attributeName: IdentifierTypeSyntax(name: .identifier("Test")),
+          leftParen: .leftParenToken(),
+          arguments: .argumentList(
+            LabeledExprListSyntax {
+              LabeledExprSyntax(expression: StringLiteralExprSyntax(content: testName))
+            }
+          ),
+          rightParen: .rightParenToken()
+        )
+      },
+      modifiers: DeclModifierListSyntax {
+        DeclModifierSyntax(name: .keyword(.static))
+      },
+      funcKeyword: .keyword(.func),
+      name: .identifier("run"),
+      signature: isAsync ? buildAsyncThrowsSignature() : buildThrowsSignature(),
+      body: testBody
+    )
+
+    return EnumDeclSyntax(
+      modifiers: DeclModifierListSyntax {
+        DeclModifierSyntax(name: .keyword(.private))
+      },
+      name: .identifier(enumName),
+      memberBlock: MemberBlockSyntax(
+        members: MemberBlockItemListSyntax {
+          MemberBlockItemSyntax(decl: testFunc)
+        }
+      )
+    )
   }
 
   private static func buildTransformedFunction(
@@ -61,9 +118,12 @@ public struct PropertyMacro: PeerMacro {
       isAsync: isAsync
     )
 
+    // Preserve original modifiers (do not auto-add static to support file-scope tests)
+    let modifiers = funcDecl.modifiers
+
     return FunctionDeclSyntax(
       attributes: buildTestAttribute(),
-      modifiers: funcDecl.modifiers,
+      modifiers: modifiers,
       funcKeyword: .keyword(.func),
       name: .identifier(newName),
       signature: isAsync ? buildAsyncThrowsSignature() : buildThrowsSignature(),
@@ -72,12 +132,12 @@ public struct PropertyMacro: PeerMacro {
   }
 
   private static func buildTestAttribute() -> AttributeListSyntax {
-    AttributeListSyntax {
-      AttributeSyntax(
-        attributeName: IdentifierTypeSyntax(name: .identifier("Test"))
-      )
-      .with(\.trailingTrivia, .newline)
-    }
+    // NOTE: We do NOT generate @Test here because combining peer macros
+    // (PropertyMacro generates peer + @Test generates peer) causes
+    // Swift symbol resolution failures.
+    // Users should wrap calls to the generated function with @Test manually:
+    //   @Test func myTest() throws { try myProperty_PropertyTest() }
+    AttributeListSyntax {}
   }
 
   private static func buildThrowsSignature() -> FunctionSignatureSyntax {
@@ -141,7 +201,23 @@ public struct PropertyMacro: PeerMacro {
     if generators.count == 1 {
       generatorExpr = generators[0]
     } else {
-      generatorExpr = buildZipExpression(generators)
+      let paramNames = parameters.map { $0.name }
+      generatorExpr = buildFlatMapChain(generators, parameterNames: paramNames)
+    }
+
+    // Build explicit type annotation: Gen<(T1, T2, ...)> or Gen<T>
+    let typeAnnotation: TypeAnnotationSyntax
+    if parameters.count == 1 {
+      let genType = "Gen<\(parameters[0].type.description)>"
+      typeAnnotation = TypeAnnotationSyntax(
+        type: TypeSyntax(stringLiteral: genType)
+      )
+    } else {
+      let tupleTypes = parameters.map { $0.type.description }.joined(separator: ", ")
+      let genType = "Gen<(\(tupleTypes))>"
+      typeAnnotation = TypeAnnotationSyntax(
+        type: TypeSyntax(stringLiteral: genType)
+      )
     }
 
     return VariableDeclSyntax(
@@ -149,28 +225,41 @@ public struct PropertyMacro: PeerMacro {
       bindings: PatternBindingListSyntax {
         PatternBindingSyntax(
           pattern: IdentifierPatternSyntax(identifier: .identifier("generator")),
+          typeAnnotation: typeAnnotation,
           initializer: InitializerClauseSyntax(value: generatorExpr)
         )
       }
     )
   }
 
-  private static func buildZipExpression(_ generators: [ExprSyntax]) -> ExprSyntax {
-    ExprSyntax(
-      FunctionCallExprSyntax(
-        calledExpression: MemberAccessExprSyntax(
-          base: DeclReferenceExprSyntax(baseName: .identifier("Gen")),
-          declName: DeclReferenceExprSyntax(baseName: .identifier("zip"))
-        ),
-        leftParen: .leftParenToken(),
-        arguments: LabeledExprListSyntax {
-          for gen in generators {
-            LabeledExprSyntax(expression: gen)
-          }
-        },
-        rightParen: .rightParenToken()
-      )
-    )
+  /// Builds a flatMap chain for multiple generators.
+  /// For 2 generators: gen1.flatMap { a in gen2.map { b in (a, b) } }
+  /// For 3 generators: gen1.flatMap { a in gen2.flatMap { b in gen3.map { c in (a, b, c) } } }
+  private static func buildFlatMapChain(
+    _ generators: [ExprSyntax],
+    parameterNames: [String]
+  ) -> ExprSyntax {
+    guard generators.count >= 2 else {
+      return generators.first ?? ExprSyntax(stringLiteral: "Gen.pure(())")
+    }
+
+    // Build from right to left
+    // Start with innermost map
+    let lastGen = generators.last!
+    let lastName = parameterNames.last!
+    let tupleExpr = "(\(parameterNames.joined(separator: ", ")))"
+
+    // Build innermost: lastGen.map { lastName in tupleExpr }
+    var result = ExprSyntax(stringLiteral: "\(lastGen).map { \(lastName) in \(tupleExpr) }")
+
+    // Build outward with flatMaps
+    for i in stride(from: generators.count - 2, through: 0, by: -1) {
+      let gen = generators[i]
+      let name = parameterNames[i]
+      result = ExprSyntax(stringLiteral: "\(gen).flatMap { \(name) in \(result) }")
+    }
+
+    return result
   }
 
   private static func buildPropertyDeclaration(
@@ -208,27 +297,23 @@ public struct PropertyMacro: PeerMacro {
     parameters: [ExtractedParameter],
     body: CodeBlockSyntax
   ) -> ClosureExprSyntax {
-    let paramNames = parameters.map(\.name)
-
-    let closureParam: ClosureSignatureSyntax.ParameterClause
-    if paramNames.count == 1 {
-      closureParam = .simpleInput(
-        ClosureShorthandParameterListSyntax {
-          ClosureShorthandParameterSyntax(name: .identifier(paramNames[0]))
-        }
-      )
-    } else {
-      closureParam = .simpleInput(
-        ClosureShorthandParameterListSyntax {
-          for name in paramNames {
-            ClosureShorthandParameterSyntax(name: .identifier(name))
-          }
-        }
-      )
+    // Use explicit parameter types for proper type inference
+    let closureParams = ClosureParameterListSyntax {
+      for param in parameters {
+        ClosureParameterSyntax(
+          firstName: .identifier(param.name),
+          colon: .colonToken(),
+          type: param.type
+        )
+      }
     }
 
     return ClosureExprSyntax(
-      signature: ClosureSignatureSyntax(parameterClause: closureParam),
+      signature: ClosureSignatureSyntax(
+        parameterClause: .parameterClause(
+          ClosureParameterClauseSyntax(parameters: closureParams)
+        )
+      ),
       statements: CodeBlockItemListSyntax {
         for statement in body.statements {
           statement
@@ -239,18 +324,25 @@ public struct PropertyMacro: PeerMacro {
   }
 
   private static func buildConfigDeclaration(config: PropertyMacroConfig) -> VariableDeclSyntax {
-    var arguments: [LabeledExprSyntax] = [
+    var arguments: [LabeledExprSyntax] = []
+
+    // Add iterations argument
+    arguments.append(
       LabeledExprSyntax(
         label: .identifier("iterations"),
         colon: .colonToken(),
         expression: IntegerLiteralExprSyntax(literal: .integerLiteral("\(config.iterations)"))
-      ),
+      )
+    )
+
+    // Add maxShrinks argument
+    arguments.append(
       LabeledExprSyntax(
         label: .identifier("maxShrinks"),
         colon: .colonToken(),
         expression: IntegerLiteralExprSyntax(literal: .integerLiteral("\(config.maxShrinks)"))
-      ),
-    ]
+      )
+    )
 
     if let seed = config.seed {
       let seedExpr = FunctionCallExprSyntax(
@@ -284,6 +376,11 @@ public struct PropertyMacro: PeerMacro {
       )
     }
 
+    // Add trailing commas to all but the last argument
+    for i in 0..<(arguments.count - 1) {
+      arguments[i] = arguments[i].with(\.trailingComma, .commaToken())
+    }
+
     let configCall = FunctionCallExprSyntax(
       calledExpression: DeclReferenceExprSyntax(baseName: .identifier("PropertyConfig")),
       leftParen: .leftParenToken(),
@@ -307,7 +404,10 @@ public struct PropertyMacro: PeerMacro {
       calledExpression: DeclReferenceExprSyntax(baseName: .identifier("runPropertySynchronously")),
       leftParen: .leftParenToken(),
       arguments: LabeledExprListSyntax {
-        LabeledExprSyntax(expression: DeclReferenceExprSyntax(baseName: .identifier("property")))
+        LabeledExprSyntax(
+          expression: DeclReferenceExprSyntax(baseName: .identifier("property"))
+        )
+        .with(\.trailingComma, .commaToken())
         LabeledExprSyntax(
           label: .identifier("config"),
           colon: .colonToken(),
@@ -336,7 +436,10 @@ public struct PropertyMacro: PeerMacro {
         ),
         leftParen: .leftParenToken(),
         arguments: LabeledExprListSyntax {
-          LabeledExprSyntax(expression: DeclReferenceExprSyntax(baseName: .identifier("property")))
+          LabeledExprSyntax(
+            expression: DeclReferenceExprSyntax(baseName: .identifier("property"))
+          )
+          .with(\.trailingComma, .commaToken())
           LabeledExprSyntax(
             label: .identifier("config"),
             colon: .colonToken(),
