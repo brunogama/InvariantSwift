@@ -173,6 +173,7 @@ def process_violations(violations: list[LintViolation], dry_run: bool = True) ->
         'no_print',
         'large_tuple',
         'for_where',
+        'multiline_function_chains',
     }
     
     # Group violations by file

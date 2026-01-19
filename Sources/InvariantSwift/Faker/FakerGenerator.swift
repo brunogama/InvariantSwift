@@ -265,6 +265,7 @@ extension Gen {
             words[0] = first.capitalized
           }
           return words.joined(separator: " ") + "."
+        // swiftlint:disable:next multiline_function_chains
         }.joined(separator: " ")
       }
 
@@ -279,6 +280,7 @@ extension Gen {
             words[0] = first.capitalized
           }
           return words.joined(separator: " ") + "."
+        // swiftlint:disable:next multiline_function_chains
         }.joined(separator: " ")
       }
 
@@ -294,7 +296,9 @@ extension Gen {
               words[0] = first.capitalized
             }
             return words.joined(separator: " ") + "."
+          // swiftlint:disable:next multiline_function_chains
           }.joined(separator: " ")
+        // swiftlint:disable:next multiline_function_chains
         }.joined(separator: "\n\n")
       }
 
@@ -619,6 +623,7 @@ extension Gen {
             sentence = first.uppercased() + sentence.dropFirst()
           }
           return sentence + "."
+        // swiftlint:disable:next multiline_function_chains
         }.joined(separator: " ")
       }
 
@@ -1252,5 +1257,5 @@ extension Gen {
       }
     }
   }
-// swiftlint:disable:next file_length
+  // swiftlint:disable:next file_length
 }

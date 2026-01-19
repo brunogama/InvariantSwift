@@ -252,6 +252,7 @@ extension Gen {
               recursiveCase: recursiveCase,
               baseCase: baseCase,
               probability: probability * 0.9  // Reduce probability in recursion
+            // swiftlint:disable:next multiline_function_chains
             ).generate(&rng, size)
           }
 
@@ -413,6 +414,7 @@ extension BinaryTree {
           elementGen,
           recursiveGen,
           recursiveGen
+        // swiftlint:disable:next multiline_function_chains
         ).map { value, left, right in
           BinaryTree.node(value, left, right)
         }
@@ -530,6 +532,7 @@ extension RoseTree {
         Gen<(T, [RoseTree<T>])>.zip(
           elementGen,
           Gen<RoseTree<T>>.sequence(elementGen: recursiveGen, length: Gen<Int>.int(in: 1...4))
+        // swiftlint:disable:next multiline_function_chains
         ).map { value, children in
           RoseTree(value: value, children: children)
         }

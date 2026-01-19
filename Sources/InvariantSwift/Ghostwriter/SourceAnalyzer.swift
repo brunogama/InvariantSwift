@@ -179,9 +179,12 @@ public actor SourceAnalyzer {
       let genericRange = Range(match.range(at: 1), in: line)
     {
       let genericsString = String(line[genericRange])
+      // swiftlint:disable:next multiline_function_chains
       return genericsString.split(separator: ",").map {
         $0.trimmingCharacters(in: .whitespaces)
+          // swiftlint:disable:next multiline_function_chains
           .split(separator: ":").first.map(String.init) ?? ""
+      // swiftlint:disable:next multiline_function_chains
       }.filter { !$0.isEmpty }
     }
 

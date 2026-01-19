@@ -563,6 +563,7 @@ public struct CompanyGenerators: Sendable {
         Gen.oneOf(bsVerbs.map { Gen.pure($0) }),
         Gen.oneOf(bsAdjectives.map { Gen.pure($0) }),
         Gen.oneOf(bsNouns.map { Gen.pure($0) })
+      // swiftlint:disable:next multiline_function_chains
       ).map { "\($0) \($1) \($2)" },
       edge: Gen.oneOf([
         Gen.pure(""),
@@ -585,6 +586,7 @@ public struct CommerceGenerators: Sendable {
         Gen.oneOf(productAdjectives.map { Gen.pure($0) }),
         Gen.oneOf(productMaterials.map { Gen.pure($0) }),
         Gen.oneOf(productTypes.map { Gen.pure($0) })
+      // swiftlint:disable:next multiline_function_chains
       ).map { "\($0) \($1) \($2)" },
       edge: Gen.oneOf([
         Gen.pure(""),
@@ -820,5 +822,5 @@ private let loremWords = [
   "pariatur", "excepteur", "sint", "occaecat", "cupidatat", "non", "proident",
   "sunt", "culpa", "qui", "officia", "deserunt", "mollit", "anim", "id",
   "est", "laborum",
-// swiftlint:disable:next file_length
+  // swiftlint:disable:next file_length
 ]

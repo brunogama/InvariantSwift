@@ -787,5 +787,5 @@ enum StateMachineCodeGen {
       return ExprSyntax(IntegerLiteralExprSyntax(literal: .integerLiteral("0")))
     }
   }
-// swiftlint:disable:next file_length
+  // swiftlint:disable:next file_length
 }

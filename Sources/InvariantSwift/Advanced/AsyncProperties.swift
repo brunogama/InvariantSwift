@@ -963,5 +963,5 @@ extension Duration {
     let nanoseconds = continuousClockDuration.components.attoseconds / 1_000_000_000
     self = .nanoseconds(nanoseconds)
   }
-// swiftlint:disable:next file_length
+  // swiftlint:disable:next file_length
 }

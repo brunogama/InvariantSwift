@@ -898,5 +898,5 @@ public struct FuzzableConfig: Sendable {
     self.mode = mode
     self.sanitizers = sanitizers
   }
-// swiftlint:disable:next file_length
+  // swiftlint:disable:next file_length
 }

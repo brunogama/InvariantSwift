@@ -617,5 +617,5 @@ enum AsyncPropertyTestError: Error, CustomStringConvertible {
       return "Invalid attribute configuration"
     }
   }
-// swiftlint:disable:next file_length
+  // swiftlint:disable:next file_length
 }

@@ -292,6 +292,7 @@ public struct FlakeStatistics: Codable, Sendable {
     let environmentVariance = environmentGroups.values.map { group -> Double in
       let failures = group.filter { $0.result.isFailure }.count
       return Double(failures) / Double(group.count)
+    // swiftlint:disable:next multiline_function_chains
     }.variance()
 
     score += environmentVariance * 0.3
@@ -1218,5 +1219,5 @@ private func correlation(_ x: [Double], _ y: [Double]) -> Double {
   let denominator = sqrt(xVariance * yVariance)
 
   return denominator != 0 ? numerator / denominator : 0.0
-// swiftlint:disable:next file_length
+  // swiftlint:disable:next file_length
 }

@@ -575,5 +575,5 @@ public struct TestGenerator: Sendable {
 
     return lines.joined(separator: "\n")
   }
-// swiftlint:disable:next file_length
+  // swiftlint:disable:next file_length
 }

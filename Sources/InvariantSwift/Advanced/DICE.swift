@@ -803,5 +803,5 @@ public struct PropertyTestFailure: Error, Sendable {
     self.shrunk = String(describing: shrunk)
     self.iterations = iterations
   }
-// swiftlint:disable:next file_length
+  // swiftlint:disable:next file_length
 }

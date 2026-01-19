@@ -176,6 +176,7 @@ private func extractBusinessRuleConfig(
       return content.content.text
     }
     return nil
+  // swiftlint:disable:next multiline_function_chains
   }.joined()
 
   var config = BusinessRuleConfig(description: description)
@@ -872,5 +873,5 @@ private func generatePropertyType(from parameterTypes: [String]) -> String {
   } else {
     return "(\(parameterTypes.joined(separator: ", ")))"
   }
-// swiftlint:disable:next file_length
+  // swiftlint:disable:next file_length
 }

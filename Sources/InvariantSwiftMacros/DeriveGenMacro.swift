@@ -485,10 +485,12 @@ private func generateStructGenerator(
 
   let fieldGenerators = fields.map { field in
     generateFieldGenerator(field, config: config)
+  // swiftlint:disable:next multiline_function_chains
   }.joined(separator: ",\n            ")
 
   let fieldInitializers = fields.map { field in
     "\(field.name): \(field.name)"
+  // swiftlint:disable:next multiline_function_chains
   }.joined(separator: ", ")
 
   let generatorBody = """
@@ -514,6 +516,7 @@ private func generateEnumGenerator(
     if let associatedValues = enumCase.associatedValues, !associatedValues.isEmpty {
       let valueGenerators = associatedValues.map { value in
         generateTypeGenerator(value.type, config: config)
+      // swiftlint:disable:next multiline_function_chains
       }.joined(separator: ", ")
 
       let valueNames = associatedValues.enumerated().map { i, _ in "value\(i)" }.joined(
@@ -561,10 +564,12 @@ private func generateClassGenerator(
       ),
       config: config
     )
+  // swiftlint:disable:next multiline_function_chains
   }.joined(separator: ",\n            ")
 
   let propertyAssignments = properties.map { property in
     "instance.\(property.name) = \(property.name)"
+  // swiftlint:disable:next multiline_function_chains
   }.joined(separator: "\n                ")
 
   let generatorBody = """
@@ -671,5 +676,5 @@ public macro DeriveGen(
 public protocol Generatable {
   associatedtype Generator
   static var gen: Generator { get }
-// swiftlint:disable:next file_length
+  // swiftlint:disable:next file_length
 }

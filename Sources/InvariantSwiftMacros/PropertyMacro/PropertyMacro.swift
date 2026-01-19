@@ -674,5 +674,5 @@ public enum PropertyTestError: Error, CustomStringConvertible {
       return "Invalid @PropertyTest configuration: \(message)"
     }
   }
-// swiftlint:disable:next file_length
+  // swiftlint:disable:next file_length
 }
