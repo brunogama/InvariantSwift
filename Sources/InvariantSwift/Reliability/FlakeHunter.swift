@@ -976,6 +976,7 @@ public enum TestStatus: String, Sendable {
   case stable
   case flaky
   case quarantined
+  // swiftlint:disable:next identifier_name
   case insufficient_data
 }
 

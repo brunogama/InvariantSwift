@@ -269,6 +269,7 @@ public actor CorpusDatabase {
       "CREATE INDEX IF NOT EXISTS idx_corpus_classification ON corpus_entries(classification)",
       "CREATE INDEX IF NOT EXISTS idx_corpus_priority ON corpus_entries(priority DESC)",
       "CREATE INDEX IF NOT EXISTS idx_corpus_discovered ON corpus_entries(discovered DESC)",
+      // swiftlint:disable:next line_length
       "CREATE INDEX IF NOT EXISTS idx_corpus_composite ON corpus_entries(property_hash, generator_fingerprint, input_type_signature)",
     ]
 

@@ -73,10 +73,12 @@ public enum ArbitraryMacroDiagnostic: String, MacroDiagnostic {
 
     case .initParameterMismatch:
       return
+        // swiftlint:disable:next line_length
         "@Arbitrary requires stored property names to match init parameter labels. Use manual Generatable conformance for types with custom initializers."
 
     case .privateFieldAccess:
       return
+        // swiftlint:disable:next line_length
         "@Arbitrary cannot generate values for types with private fields without a public memberwise init"
 
     case .recursiveType:

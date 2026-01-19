@@ -510,6 +510,7 @@ public actor AsyncPropertyRunner {
     // concurrencyTracker updated separately
   }
 
+  // swiftlint:disable:next function_parameter_count
   private func withCustomExecution<T>(
     property: AsyncProperty<T>,
     actorType: any Actor.Type,

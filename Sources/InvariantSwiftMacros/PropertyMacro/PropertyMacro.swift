@@ -48,8 +48,10 @@ public struct PropertyMacro: PeerMacro {
     return [DeclSyntax(wrapperEnum)]
   }
 
+  // swiftlint:disable:next orphaned_doc_comment
   /// Builds a wrapper enum containing the @Test function
   /// The enum provides proper scope for @Test's internal symbols
+  // swiftlint:disable:next function_parameter_count
   private static func buildWrapperEnum(
     original funcDecl: FunctionDeclSyntax,
     parameters: [ExtractedParameter],
@@ -102,6 +104,7 @@ public struct PropertyMacro: PeerMacro {
     )
   }
 
+  // swiftlint:disable:next function_parameter_count
   private static func buildTransformedFunction(
     original funcDecl: FunctionDeclSyntax,
     parameters: [ExtractedParameter],

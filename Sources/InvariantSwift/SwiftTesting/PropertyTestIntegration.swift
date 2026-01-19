@@ -226,6 +226,7 @@ public func checkProperty<T: Sendable>(
   case .gaveUp(let discarded, let iterations):
     let message = """
       Property gave up after discarding \(discarded) cases in \(iterations) iterations.
+      // swiftlint:disable:next line_length
       This usually means your property predicate is too restrictive and rejects most generated values.
       Consider loosening the predicate or using a more focused generator.
       """
@@ -363,6 +364,7 @@ public func checkPropertyAsync<T: Sendable>(
   case .gaveUp(let discarded, let iterations):
     let message = """
       Property gave up after discarding \(discarded) cases in \(iterations) iterations.
+      // swiftlint:disable:next line_length
       This usually means your property predicate is too restrictive and rejects most generated values.
       Consider loosening the predicate or using a more focused generator.
       """

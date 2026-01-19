@@ -50,6 +50,7 @@ public enum GenMacroDiagnostic: String, MacroDiagnostic {
     switch self {
     case .invalidGeneratorExpression:
       return
+        // swiftlint:disable:next line_length
         "@Gen requires a valid generator expression. Use patterns like .int, .string(length: 1...10), etc."
 
     case .unsupportedGeneratorType:

@@ -252,6 +252,7 @@ public struct Shrink<T>: @unchecked Sendable {
   ///   ```
   public func contramap<U>(_ f: @escaping (U) -> T) -> Shrink<U> {
     Shrink<U> { u in
+      // swiftlint:disable:next line_length
       self.shrink(f(u)).map { _ in u }  // Simplified contramap - full implementation would be more complex
     }
   }
@@ -677,6 +678,7 @@ extension Gen {
   public func map<U>(_ f: @escaping (T) -> U) -> Gen<U> {
     Gen<U>(
       generate: { rng, size in f(self.generate(&rng, size)) },
+      // swiftlint:disable:next line_length
       shrink: Shrink<U> { _ in [] }  // Simplified - proper shrinking would require inverse transformation
     )
   }

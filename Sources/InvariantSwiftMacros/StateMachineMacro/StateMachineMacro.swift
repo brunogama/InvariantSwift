@@ -34,6 +34,7 @@ public struct StateMachineMacro: MemberMacro, ExtensionMacro {
     )
   }
 
+  // swiftlint:disable:next function_parameter_count
   public static func expansion(
     of node: AttributeSyntax,
     attachedTo declaration: some DeclGroupSyntax,

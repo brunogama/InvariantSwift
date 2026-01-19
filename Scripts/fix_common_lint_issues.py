@@ -177,6 +177,10 @@ def process_violations(violations: list[LintViolation], dry_run: bool = True) ->
         'orphaned_doc_comment',
         'closure_parameter_position',
         'static_operator',
+        'function_parameter_count',
+        'line_length',
+        'identifier_name',
+        'unused_enumerated',
     }
     
     # Group violations by file

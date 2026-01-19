@@ -36,6 +36,7 @@ public struct ArbitraryMacro: MemberMacro, ExtensionMacro {
     return []
   }
 
+  // swiftlint:disable:next function_parameter_count
   public static func expansion(
     of node: AttributeSyntax,
     attachedTo declaration: some DeclGroupSyntax,

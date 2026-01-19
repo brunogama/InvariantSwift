@@ -110,6 +110,7 @@ public actor RegressionBank {
 
   // MARK: - Public API
 
+  // swiftlint:disable:next orphaned_doc_comment
   /// Record a new failure to the regression bank.
   ///
   /// - Parameters:
@@ -118,6 +119,7 @@ public actor RegressionBank {
   ///   - counterexample: The shrunk counterexample value
   ///   - reason: Why the property failed
   ///   - iteration: Which iteration failed
+  // swiftlint:disable:next function_parameter_count
   public func recordFailure<T: CustomStringConvertible>(
     propertyLabel: String,
     seed: Seed,

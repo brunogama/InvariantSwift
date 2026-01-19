@@ -125,6 +125,7 @@ public func flip<A, B, C>(_ f: @escaping (A, B) -> C) -> (B, A) -> C {
 
 // MARK: - Combinators
 
+// swiftlint:disable:next orphaned_doc_comment
 /// **S Combinator (Substitution)**
 /// S(f)(g)(x) = f(x)(g(x))
 /// Applies two functions to the same input and then applies the first result to the second
@@ -138,30 +139,36 @@ public func flip<A, B, C>(_ f: @escaping (A, B) -> C) -> (B, A) -> C {
 ///   - f: Function that returns another function
 ///   - g: Function to apply to input
 /// - Returns: Combined function
+// swiftlint:disable:next identifier_name
 public func S<A, B, C>(_ f: @escaping (A) -> (B) -> C, _ g: @escaping (A) -> B) -> (A) -> C {
   { a in f(a)(g(a)) }
 }
 
+// swiftlint:disable:next orphaned_doc_comment
 /// **K Combinator (Constant)**
 /// K(x)(y) = x
 /// Always returns the first argument, ignoring the second
 ///
 /// - Parameter x: Value to return
 /// - Returns: Function that ignores its input and returns x
+// swiftlint:disable:next identifier_name
 public func K<A, B>(_ x: A) -> (B) -> A {
   constant(x)
 }
 
+// swiftlint:disable:next orphaned_doc_comment
 /// **I Combinator (Identity)**
 /// I(x) = x
 /// Returns its argument unchanged
 ///
 /// - Parameter x: Input value
 /// - Returns: The same input value
+// swiftlint:disable:next identifier_name
 public func I<A>(_ x: A) -> A {
   identity(x)
 }
 
+// swiftlint:disable:next orphaned_doc_comment
 /// **Y Combinator (Fixed Point)**
 /// Enables recursion in lambda calculus without explicit recursion
 ///
@@ -174,6 +181,7 @@ public func I<A>(_ x: A) -> A {
 ///
 /// - Parameter f: Function to find fixed point for
 /// - Returns: Fixed point of f
+// swiftlint:disable:next identifier_name
 public func Y<A>(_ f: @escaping ((A) -> A) -> (A) -> A) -> (A) -> A {
   { a in f(Y(f))(a) }
 }

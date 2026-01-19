@@ -110,6 +110,7 @@ public enum BusinessRuleDiagnostic: String, MacroDiagnostic {
 
     case .cannotInferGenerator:
       return
+        // swiftlint:disable:next line_length
         "Cannot infer generator for parameter type. Ensure the type conforms to Generatable or use a built-in type."
     }
   }
@@ -323,6 +324,7 @@ private func isBuiltInType(_ type: String) -> Bool {
 
 // MARK: - Test Function Generation (SwiftSyntax Builders)
 
+// swiftlint:disable:next function_parameter_count
 private func generatePropertyTestFunction(
   functionName: String,
   propertyTestName: String,
@@ -371,6 +373,7 @@ private func buildTestAttribute(description: String) -> AttributeListSyntax {
   }
 }
 
+// swiftlint:disable:next function_parameter_count
 private func buildTestBody(
   functionName: String,
   parameterNames: [String],
@@ -776,6 +779,7 @@ private func buildFailureCase(config: BusinessRuleConfig) -> SwitchCaseSyntax {
               colon: .colonToken(),
               expression: StringLiteralExprSyntax(
                 content:
+                  // swiftlint:disable:next line_length
                   "Business rule validation failed - this may indicate a logical error in business constraints"
               )
             )

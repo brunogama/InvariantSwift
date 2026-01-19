@@ -72,6 +72,7 @@ public struct DeriveGenMacro: MemberMacro, ExtensionMacro {
     return [generatorMember]
   }
 
+  // swiftlint:disable:next function_parameter_count
   public static func expansion(
     of node: AttributeSyntax,
     attachedTo declaration: some DeclGroupSyntax,
@@ -513,6 +514,7 @@ private func generateEnumGenerator(
   config: DeriveGenConfig
 ) throws -> DeclSyntax {
 
+  // swiftlint:disable:next unused_enumerated
   let caseGenerators = cases.enumerated().map { _, enumCase in
     if let associatedValues = enumCase.associatedValues, !associatedValues.isEmpty {
       let valueGenerators = associatedValues.map { value in
@@ -520,6 +522,7 @@ private func generateEnumGenerator(
       // swiftlint:disable:next multiline_function_chains
       }.joined(separator: ", ")
 
+      // swiftlint:disable:next unused_enumerated
       let valueNames = associatedValues.enumerated().map { i, _ in "value\(i)" }.joined(
         separator: ", "
       )

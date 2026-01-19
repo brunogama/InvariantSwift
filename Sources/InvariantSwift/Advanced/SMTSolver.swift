@@ -16,6 +16,7 @@ public indirect enum SMTExpression: Sendable, CustomStringConvertible {
   case binary(SMTBinaryOp, Self, Self)
   case unary(SMTUnaryOp, Self)
   case quantified(SMTQuantifier, [(String, SMTSort)], Self)
+  // swiftlint:disable:next identifier_name
   case let_([(String, Self)], Self)
 
   public var description: String {

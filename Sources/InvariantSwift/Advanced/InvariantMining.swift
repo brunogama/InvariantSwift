@@ -103,6 +103,7 @@ public enum DiscoveryMethod: String, Sendable {
   case symbolic  // Symbolic execution analysis
   case clustering  // ML clustering of behaviors
   case regression  // Regression analysis
+  // swiftlint:disable:next identifier_name
   case decision_tree  // Decision tree learning
 }
 

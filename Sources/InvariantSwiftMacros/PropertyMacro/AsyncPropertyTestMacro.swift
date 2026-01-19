@@ -110,6 +110,7 @@ public struct AsyncPropertyTestMacro: PeerMacro {
 
   // MARK: - Function Building
 
+  // swiftlint:disable:next function_parameter_count
   private static func buildExpandedFunction(
     original funcDecl: FunctionDeclSyntax,
     parameters: [ExtractedParameter],

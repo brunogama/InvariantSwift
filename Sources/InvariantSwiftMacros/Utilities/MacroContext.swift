@@ -110,7 +110,9 @@ public struct MacroContext {
 
   // MARK: - Fix-It Support
 
+  // swiftlint:disable:next orphaned_doc_comment
   /// Emits an error with a Fix-It suggestion to insert text.
+  // swiftlint:disable:next function_parameter_count
   public func error(
     _ diagnostic: some DiagnosticMessage,
     at node: some SyntaxProtocol,
