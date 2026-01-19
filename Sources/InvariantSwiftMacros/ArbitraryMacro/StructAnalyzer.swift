@@ -58,4 +58,46 @@ enum StructAnalyzer {
 
     return fields
   }
+
+  /// Extracts init parameter labels from explicit initializers
+  /// Returns nil if no explicit init is found (uses memberwise init)
+  static func extractInitParameters(from structDecl: StructDeclSyntax) -> [String]? {
+    for member in structDecl.memberBlock.members {
+      guard let initDecl = member.decl.as(InitializerDeclSyntax.self) else {
+        continue
+      }
+
+      // Found an explicit init, extract parameter labels
+      var params: [String] = []
+      for param in initDecl.signature.parameterClause.parameters {
+        // Use external name if present, otherwise internal name
+        let label = param.firstName.text
+        if label != "_" {  // Skip unlabeled params
+          params.append(label)
+        }
+      }
+      return params
+    }
+    return nil  // No explicit init found
+  }
+
+  /// Checks if stored property names match init parameter labels
+  /// Returns list of mismatched field names, empty if all match
+  static func findInitMismatches(
+    fields: [AnalyzedField],
+    initParams: [String]?
+  ) -> [String] {
+    guard let initParams = initParams else {
+      // No explicit init - memberwise init will match field names
+      return []
+    }
+
+    var mismatches: [String] = []
+    for field in fields {
+      if !initParams.contains(field.name) {
+        mismatches.append(field.name)
+      }
+    }
+    return mismatches
+  }
 }

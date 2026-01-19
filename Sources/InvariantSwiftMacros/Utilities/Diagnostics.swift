@@ -40,6 +40,7 @@ public enum ArbitraryMacroDiagnostic: String, MacroDiagnostic {
   case noEnumCases = "arbitrary_no_enum_cases"
   case cannotInferFieldGenerator = "arbitrary_cannot_infer_field_generator"
   case invalidConstraint = "arbitrary_invalid_constraint"
+  case initParameterMismatch = "arbitrary_init_parameter_mismatch"
 
   public var severity: DiagnosticSeverity { .error }
 
@@ -59,6 +60,10 @@ public enum ArbitraryMacroDiagnostic: String, MacroDiagnostic {
 
     case .invalidConstraint:
       return "Invalid constraint specification"
+
+    case .initParameterMismatch:
+      return
+        "@Arbitrary requires stored property names to match init parameter labels. Use manual Generatable conformance for types with custom initializers."
     }
   }
 }

@@ -78,6 +78,14 @@ public struct ArbitraryMacro: MemberMacro, ExtensionMacro {
       return []
     }
 
+    // Check for init parameter mismatch
+    let initParams = StructAnalyzer.extractInitParameters(from: structDecl)
+    let mismatches = StructAnalyzer.findInitMismatches(fields: fields, initParams: initParams)
+    if !mismatches.isEmpty {
+      context.error(ArbitraryMacroDiagnostic.initParameterMismatch, at: structDecl.name)
+      return []
+    }
+
     for constraintField in config.constraints.keys {
       if !fields.contains(where: { $0.name == constraintField }) {
         context.warning(
