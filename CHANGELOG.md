@@ -8,6 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Automated Documentation Generation System**:
+  * `check_docs.py` - Enhanced DocC coverage analysis with JSON reports and threshold enforcement
+  * `Scripts/generate_architecture_diagrams.py` - Mermaid diagram generation from Package.swift
+  * `Scripts/generate_api_reference.py` - Public symbol extraction and markdown API reference
+  * `Scripts/validate_doc_examples.py` - Code example validation with syntax checking
+  * `.github/workflows/docs-check.yml` - CI workflow for documentation enforcement
+  * Makefile targets: `doc-check`, `doc-diagrams`, `doc-api`, `doc-examples`, `docs-gen`, `docs-validate`
+- **Documentation Tutorials**:
+  * `docs/FUZZING.md` - LibFuzzer integration guide (FuzzTarget, FuzzDataProvider, crash detection)
+  * Linearizability Testing section in ADVANCED.md (Wing-Gong algorithm, concurrent data structures)
+  * Contract Testing section in ADVANCED.md (Equatable/Comparable contracts, pre/postconditions)
+  * Regression Banking section in ADVANCED.md (failure persistence, replay, CI integration)
+  * Lens and Prism Optics tutorial in ADVANCED.md (lens laws, prism extraction, traversals)
+  * Expanded Metamorphic Testing in COOKBOOK.md (relations, discovery engine, ML/AI testing)
 - `docs/QUICKSTART.md` - 10-minute quick start guide for new developers
 - **PropertyResult Enhancements** (Phase 1):
   * `isGaveUp` computed property for consistency with `isSuccess`/`isFailure`
