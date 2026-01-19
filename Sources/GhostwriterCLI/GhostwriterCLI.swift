@@ -180,10 +180,16 @@ struct GhostwriterCLI {
 
     result.typesFound = mergedTypes.count
 
-    // Filter to testable types (have @Arbitrary or standard conformances)
+    // Filter to testable types:
+    // 1. Must be public (accessible in tests), AND
+    // 2. Has @Arbitrary attribute, OR is a known primitive type, OR has generatable properties
     let testableTypes = mergedTypes.filter { type in
       let patterns = generator.detectPatterns(for: type)
-      return !patterns.isEmpty && (type.hasArbitraryAttribute || isKnownGeneratableType(type.name))
+      guard !patterns.isEmpty else { return false }
+      guard type.isPublic else { return false }  // Skip internal types
+      return type.hasArbitraryAttribute
+        || isKnownGeneratableType(type.name)
+        || canAutoGenerateArbitrary(for: type)
     }
 
     result.testableTypes = testableTypes.count
@@ -263,16 +269,73 @@ struct GhostwriterCLI {
 
   // MARK: - Known Types
 
+  /// Known types that have built-in Arbitrary generators.
+  static let knownGeneratableTypes: Set<String> = [
+    // Primitives
+    "Int", "Int8", "Int16", "Int32", "Int64",
+    "UInt", "UInt8", "UInt16", "UInt32", "UInt64",
+    "Double", "Float", "Bool", "String", "Character",
+    // Foundation types
+    "Date", "UUID", "URL", "Data",
+    // Core types
+    "Seed", "Size",
+  ]
+
   static func isKnownGeneratableType(_ name: String) -> Bool {
-    let knownTypes: Set<String> = [
-      // Primitives
-      "Int", "Int8", "Int16", "Int32", "Int64",
-      "UInt", "UInt8", "UInt16", "UInt32", "UInt64",
-      "Double", "Float", "Bool", "String", "Character",
-      // Core types
-      "Seed", "Size",
-    ]
-    return knownTypes.contains(name)
+    knownGeneratableTypes.contains(name)
+  }
+
+  /// Check if a type can have Arbitrary auto-generated because all its properties are generatable.
+  static func canAutoGenerateArbitrary(for type: ExtractedTypeInfo) -> Bool {
+    // Must have at least one property
+    guard !type.properties.isEmpty else { return false }
+
+    // All properties must have known generatable types
+    return type.properties.allSatisfy { prop in
+      isPropertyTypeGeneratable(prop.typeName)
+    }
+  }
+
+  /// Check if a property type can be generated.
+  static func isPropertyTypeGeneratable(_ typeName: String) -> Bool {
+    var cleanedType =
+      typeName
+      .replacingOccurrences(of: "?", with: "")  // Optional<T> -> T
+      .replacingOccurrences(of: "!", with: "")  // ImplicitlyUnwrapped
+      .trimmingCharacters(in: .whitespaces)
+
+    // Handle Optional<T>
+    if cleanedType.hasPrefix("Optional<") && cleanedType.hasSuffix(">") {
+      cleanedType = String(cleanedType.dropFirst(9).dropLast())
+    }
+
+    // Handle Array<T>
+    if cleanedType.hasPrefix("Array<") && cleanedType.hasSuffix(">") {
+      let inner = String(cleanedType.dropFirst(6).dropLast())
+      return isPropertyTypeGeneratable(inner)
+    }
+
+    // Handle [T] syntax
+    if cleanedType.hasPrefix("[") && cleanedType.hasSuffix("]") && !cleanedType.contains(":") {
+      let inner = String(cleanedType.dropFirst().dropLast())
+      return isPropertyTypeGeneratable(inner)
+    }
+
+    // Handle Set<T>
+    if cleanedType.hasPrefix("Set<") && cleanedType.hasSuffix(">") {
+      let inner = String(cleanedType.dropFirst(4).dropLast())
+      return isPropertyTypeGeneratable(inner)
+    }
+
+    // Handle Dictionary<K,V> / [K:V]
+    if cleanedType.hasPrefix("Dictionary<")
+      || (cleanedType.hasPrefix("[") && cleanedType.contains(":"))
+    {
+      // Simplified: assume dictionaries with primitive keys/values are OK
+      return true
+    }
+
+    return knownGeneratableTypes.contains(cleanedType)
   }
 
   // MARK: - File Writing

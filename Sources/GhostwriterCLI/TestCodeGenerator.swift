@@ -88,6 +88,27 @@ public struct TestCodeGenerator {
     lines.append("import Foundation")
     lines.append("@testable import InvariantSwift")
     lines.append("")
+
+    // Generate Arbitrary extensions for types that need them
+    // Skip types with @Arbitrary attribute and types that are known to have built-in generators
+    let knownTypes: Set<String> = [
+      "Int", "Int8", "Int16", "Int32", "Int64",
+      "UInt", "UInt8", "UInt16", "UInt32", "UInt64",
+      "Double", "Float", "Bool", "String", "Character",
+      "Date", "UUID", "URL", "Data", "Seed", "Size",
+    ]
+    let typesNeedingArbitrary = types.filter {
+      !$0.hasArbitraryAttribute && !$0.properties.isEmpty && !knownTypes.contains($0.name)
+    }
+    if !typesNeedingArbitrary.isEmpty {
+      lines.append("// MARK: - Auto-Generated Arbitrary Conformances")
+      lines.append("")
+      for type in typesNeedingArbitrary {
+        lines.append(generateArbitraryExtension(for: type))
+        lines.append("")
+      }
+    }
+
     lines.append("// MARK: - \(fileName) Property Tests")
     lines.append("")
 
@@ -107,6 +128,74 @@ public struct TestCodeGenerator {
     }
 
     return lines.joined(separator: "\n")
+  }
+
+  /// Generate Arbitrary extension for a type.
+  public func generateArbitraryExtension(for type: ExtractedTypeInfo) -> String {
+    let propGenerators = type.properties.map { prop in
+      "\(prop.name): \(generatorExpression(for: prop.typeName))"
+    }
+
+    return """
+      extension \(type.name): Arbitrary {
+        public static var arbitrary: Gen<\(type.name)> {
+          Gen.compose { composer in
+            \(type.name)(
+              \(propGenerators.joined(separator: ",\n        "))
+            )
+          }
+        }
+      }
+      """
+  }
+
+  /// Generate the Gen expression for a type.
+  private func generatorExpression(for typeName: String) -> String {
+    var cleanedType =
+      typeName
+      .replacingOccurrences(of: "?", with: "")
+      .replacingOccurrences(of: "!", with: "")
+      .trimmingCharacters(in: .whitespaces)
+
+    let isOptional = typeName.contains("?") || typeName.hasPrefix("Optional<")
+
+    // Handle Optional<T>
+    if cleanedType.hasPrefix("Optional<") && cleanedType.hasSuffix(">") {
+      cleanedType = String(cleanedType.dropFirst(9).dropLast())
+    }
+
+    let baseExpr: String
+
+    // Handle Array<T> or [T]
+    if cleanedType.hasPrefix("Array<") && cleanedType.hasSuffix(">") {
+      let inner = String(cleanedType.dropFirst(6).dropLast())
+      baseExpr = "composer.generate(using: Gen.array(of: \(inner).arbitrary))"
+    } else if cleanedType.hasPrefix("[") && cleanedType.hasSuffix("]") && !cleanedType.contains(":")
+    {
+      let inner = String(cleanedType.dropFirst().dropLast())
+      baseExpr = "composer.generate(using: Gen.array(of: \(inner).arbitrary))"
+    }
+    // Handle Set<T>
+    else if cleanedType.hasPrefix("Set<") && cleanedType.hasSuffix(">") {
+      let inner = String(cleanedType.dropFirst(4).dropLast())
+      baseExpr = "Set(composer.generate(using: Gen.array(of: \(inner).arbitrary)))"
+    }
+    // Handle Dictionary
+    else if cleanedType.hasPrefix("Dictionary<")
+      || (cleanedType.hasPrefix("[") && cleanedType.contains(":"))
+    {
+      baseExpr = "[:]"  // Empty dictionary as fallback
+    }
+    // Standard types
+    else {
+      baseExpr = "composer.generate(using: \(cleanedType).arbitrary)"
+    }
+
+    if isOptional {
+      return "composer.generate(using: Gen.optional(\(cleanedType).arbitrary))"
+    }
+
+    return baseExpr
   }
 
   // MARK: - Individual Test Generation
