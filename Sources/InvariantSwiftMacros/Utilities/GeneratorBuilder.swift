@@ -15,14 +15,32 @@ public enum GeneratorBuilder {
     case "Int":
       return genMemberAccess("Int", "int")
 
-    case "Int8", "Int16", "Int32", "Int64":
-      return genMemberAccess(typeName, "int")
+    case "Int8":
+      return genMemberAccess("Int8", "int8")
+
+    case "Int16":
+      return genMemberAccess("Int16", "int16")
+
+    case "Int32":
+      return genMemberAccess("Int32", "int32")
+
+    case "Int64":
+      return genMemberAccess("Int64", "int64")
 
     case "UInt":
       return genMemberAccess("UInt", "uint")
 
-    case "UInt8", "UInt16", "UInt32", "UInt64":
-      return genMemberAccess(typeName, "uint")
+    case "UInt8":
+      return genMemberAccess("UInt8", "uint8")
+
+    case "UInt16":
+      return genMemberAccess("UInt16", "uint16")
+
+    case "UInt32":
+      return genMemberAccess("UInt32", "uint32")
+
+    case "UInt64":
+      return genMemberAccess("UInt64", "uint64")
 
     case "Bool":
       return genMemberAccess("Bool", "bool")

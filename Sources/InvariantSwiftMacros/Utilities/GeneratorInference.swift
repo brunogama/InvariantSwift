@@ -13,15 +13,15 @@ public enum GeneratorInference {
   private static let primitiveGenerators: [String: (type: String, member: String)] = [
     // Integer types
     "Int": ("Int", "int"),
-    "Int8": ("Int8", "int"),
-    "Int16": ("Int16", "int"),
-    "Int32": ("Int32", "int"),
-    "Int64": ("Int64", "int"),
+    "Int8": ("Int8", "int8"),
+    "Int16": ("Int16", "int16"),
+    "Int32": ("Int32", "int32"),
+    "Int64": ("Int64", "int64"),
     "UInt": ("UInt", "uint"),
-    "UInt8": ("UInt8", "uint"),
-    "UInt16": ("UInt16", "uint"),
-    "UInt32": ("UInt32", "uint"),
-    "UInt64": ("UInt64", "uint"),
+    "UInt8": ("UInt8", "uint8"),
+    "UInt16": ("UInt16", "uint16"),
+    "UInt32": ("UInt32", "uint32"),
+    "UInt64": ("UInt64", "uint64"),
 
     // Floating point
     "Double": ("Double", "double"),
