@@ -53,7 +53,9 @@ let package = Package(
       ],
       path: "Sources/InvariantSwift",
       exclude: [
-        "Macros/LawGeneration.swift.disabled"
+        "Macros/LawGeneration.swift.disabled",
+        "CLAUDE.md",
+        "AGENTS.md",
       ],
       swiftSettings: commonSwiftSettings + [
         .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
@@ -69,6 +71,10 @@ let package = Package(
         .product(name: "SwiftParser", package: "swift-syntax"),
       ],
       path: "Sources/InvariantSwiftMacros",
+      exclude: [
+        "CLAUDE.md",
+        "AGENTS.md",
+      ],
       swiftSettings: commonSwiftSettings + [
         .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
       ]
