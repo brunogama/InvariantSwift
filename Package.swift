@@ -198,5 +198,19 @@ let package = Package(
         )
       ]
     ),
+
+    .testTarget(
+      name: "GeneratedPropertyTests",
+      dependencies: ["InvariantSwift"],
+      path: "Tests/Generated",
+      swiftSettings: [
+        .unsafeFlags(
+          [
+            "-enable-testing"
+          ],
+          .when(configuration: .debug)
+        )
+      ]
+    ),
   ]
 )
