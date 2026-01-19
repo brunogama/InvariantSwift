@@ -13,13 +13,10 @@ public struct StateMachineMacro: MemberMacro, ExtensionMacro {
     in context: some MacroExpansionContext
   ) throws -> [DeclSyntax] {
 
+    let ctx = MacroContext(context: context)
+
     guard let structDecl = declaration.as(StructDeclSyntax.self) else {
-      context.diagnose(
-        Diagnostic(
-          node: node,
-          message: StateMachineDiagnostic.mustBeStruct
-        )
-      )
+      ctx.error(StateMachineDiagnostic.mustBeStruct, at: node)
       return []
     }
 
@@ -27,12 +24,7 @@ public struct StateMachineMacro: MemberMacro, ExtensionMacro {
     let analysis = StateMachineAnalyzer.analyze(structDecl)
 
     guard !analysis.commandMethods.isEmpty else {
-      context.diagnose(
-        Diagnostic(
-          node: structDecl.name,
-          message: StateMachineDiagnostic.noCommandMethods
-        )
-      )
+      ctx.error(StateMachineDiagnostic.noCommandMethods, at: structDecl.name)
       return []
     }
 
@@ -81,13 +73,33 @@ public struct CommandMacro: PeerMacro {
   }
 }
 
-enum StateMachineDiagnostic: String, DiagnosticMessage {
-  case mustBeStruct = "@StateMachine can only be applied to structs"
-  case noCommandMethods = "@StateMachine requires at least one @Command method"
+public enum StateMachineDiagnostic: String, MacroDiagnostic {
+  public static let domain = "InvariantSwift.StateMachineMacro"
 
-  var message: String { rawValue }
-  var diagnosticID: MessageID {
-    MessageID(domain: "InvariantSwiftMacros", id: rawValue)
+  case mustBeStruct = "must_be_struct"
+  case noCommandMethods = "no_command_methods"
+  case invalidCommandSignature = "invalid_command_signature"
+  case missingStateProperty = "missing_state_property"
+  case duplicateCommandNames = "duplicate_command_names"
+
+  public var severity: DiagnosticSeverity { .error }
+
+  public var message: String {
+    switch self {
+    case .mustBeStruct:
+      return "@StateMachine can only be applied to structs"
+
+    case .noCommandMethods:
+      return "@StateMachine requires at least one @Command method"
+
+    case .invalidCommandSignature:
+      return "@Command must be applied to a mutating method"
+
+    case .missingStateProperty:
+      return "@StateMachine requires a state property"
+
+    case .duplicateCommandNames:
+      return "@StateMachine has duplicate command names"
+    }
   }
-  var severity: DiagnosticSeverity { .error }
 }

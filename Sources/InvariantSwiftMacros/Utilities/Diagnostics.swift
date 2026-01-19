@@ -8,6 +8,8 @@ public enum PropertyMacroDiagnostic: String, MacroDiagnostic {
   case cannotInferGenerator = "property_cannot_infer_generator"
   case invalidIterations = "property_invalid_iterations"
   case invalidSeed = "property_invalid_seed"
+  case closureParameter = "property_closure_parameter"
+  case asyncMismatch = "property_async_mismatch"
 
   public var severity: DiagnosticSeverity { .error }
 
@@ -28,6 +30,12 @@ public enum PropertyMacroDiagnostic: String, MacroDiagnostic {
 
     case .invalidSeed:
       return "seed must be a UInt64 literal or nil"
+
+    case .closureParameter:
+      return "Closure parameters cannot be generated. Use @Gen to provide a custom generator."
+
+    case .asyncMismatch:
+      return "@Property on async function requires async test context"
     }
   }
 }
@@ -41,6 +49,8 @@ public enum ArbitraryMacroDiagnostic: String, MacroDiagnostic {
   case cannotInferFieldGenerator = "arbitrary_cannot_infer_field_generator"
   case invalidConstraint = "arbitrary_invalid_constraint"
   case initParameterMismatch = "arbitrary_init_parameter_mismatch"
+  case privateFieldAccess = "arbitrary_private_field_access"
+  case recursiveType = "arbitrary_recursive_type"
 
   public var severity: DiagnosticSeverity { .error }
 
@@ -64,6 +74,14 @@ public enum ArbitraryMacroDiagnostic: String, MacroDiagnostic {
     case .initParameterMismatch:
       return
         "@Arbitrary requires stored property names to match init parameter labels. Use manual Generatable conformance for types with custom initializers."
+
+    case .privateFieldAccess:
+      return
+        "@Arbitrary cannot generate values for types with private fields without a public memberwise init"
+
+    case .recursiveType:
+      return
+        "@Arbitrary detected recursive type. Use manual Generatable conformance with Gen.recursive."
     }
   }
 }
