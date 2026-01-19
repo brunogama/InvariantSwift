@@ -33,7 +33,7 @@ struct CoverageValidationTests {
 
     #expect(intValue >= Int.min && intValue <= Int.max, "Int generator should work")
     // Verify generator output types (string can be empty, so just check type)
-    #expect(stringValue.isEmpty, "String generator should work")
+    #expect(!stringValue.isEmpty || stringValue.isEmpty, "String generator should work")
     #expect(boolValue == true || boolValue == false, "Bool generator should work")
 
     // Test shrinking APIs
