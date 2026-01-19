@@ -130,7 +130,20 @@ let package = Package(
           .writeToPackageDirectory(reason: "Generate property test files")
         ]
       ),
+      dependencies: [
+        "GhostwriterCLI"
+      ],
       path: "Plugins/GhostwriterPlugin"
+    ),
+
+    /// Ghostwriter CLI - SwiftSyntax-powered source analysis
+    .executableTarget(
+      name: "GhostwriterCLI",
+      dependencies: [
+        .product(name: "SwiftParser", package: "swift-syntax"),
+        .product(name: "SwiftSyntax", package: "swift-syntax"),
+      ],
+      path: "Sources/GhostwriterCLI"
     ),
 
     // MARK: - Test Targets
