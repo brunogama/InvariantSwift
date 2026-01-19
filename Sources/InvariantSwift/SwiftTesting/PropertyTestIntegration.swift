@@ -110,7 +110,7 @@ import Foundation
 ///   This is used internally; don't call it directly.
 ///
 /// - See Also: ``Property``, ``Gen``, ``PropertyTest(contentBuilder:)``
-@attached(peer, names: suffixed(_Property))
+@attached(peer, names: suffixed(_PropertyTest))
 public macro PropertyTest(
   _ name: String? = nil,
   iterations: Int = 100,
