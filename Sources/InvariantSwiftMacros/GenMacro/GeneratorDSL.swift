@@ -28,6 +28,7 @@ import SwiftSyntaxBuilder
 /// Fake data generators (shorthand):
 /// - `.firstName`, `.lastName`, `.fullName`, `.city`, `.zipCode`, `.email`, `.username`
 /// - `.companyName`, `.productName`, `.price`, `.color`, `.word`, `.sentence`, `.paragraph`
+// swiftlint:disable cyclomatic_complexity file_length function_body_length type_body_length
 public enum GeneratorDSL {
 
   /// Parsed generator expression

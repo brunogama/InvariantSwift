@@ -9,6 +9,7 @@ import Foundation
 // MARK: - Core Types
 
 /// Lazy container for deferred computation of shrink options
+// swiftlint:disable file_length
 public struct Lazy<T>: Sendable where T: Sendable {
   private let compute: @Sendable () -> T
   private var cached: T?

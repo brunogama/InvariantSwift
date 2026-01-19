@@ -5,6 +5,7 @@ import SwiftSyntaxBuilder
 
 /// Builds the body of a property test function.
 /// Creates the PropertyRunner invocation and result handling.
+// swiftlint:disable function_body_length
 public enum PropertyTestBodyBuilder {
 
   /// Build the complete test body
@@ -262,6 +263,16 @@ public enum PropertyTestBodyBuilder {
                         )
                       )
                     )
+                    LabeledExprSyntax(
+                      label: .identifier("reason"),
+                      colon: .colonToken(),
+                      expression: DiscardAssignmentExprSyntax()
+                    )
+                    LabeledExprSyntax(
+                      label: .identifier("seed"),
+                      colon: .colonToken(),
+                      expression: DiscardAssignmentExprSyntax()
+                    )
                   },
                   rightParen: .rightParenToken()
                 )
@@ -294,26 +305,12 @@ public enum PropertyTestBodyBuilder {
                     LabeledExprSyntax(
                       label: .identifier("discarded"),
                       colon: .colonToken(),
-                      expression: PatternExprSyntax(
-                        pattern: ValueBindingPatternSyntax(
-                          bindingSpecifier: .keyword(.let),
-                          pattern: IdentifierPatternSyntax(
-                            identifier: .identifier("discarded")
-                          )
-                        )
-                      )
+                      expression: DiscardAssignmentExprSyntax()
                     )
                     LabeledExprSyntax(
                       label: .identifier("iterations"),
                       colon: .colonToken(),
-                      expression: PatternExprSyntax(
-                        pattern: ValueBindingPatternSyntax(
-                          bindingSpecifier: .keyword(.let),
-                          pattern: IdentifierPatternSyntax(
-                            identifier: .identifier("iterations")
-                          )
-                        )
-                      )
+                      expression: DiscardAssignmentExprSyntax()
                     )
                   },
                   rightParen: .rightParenToken()

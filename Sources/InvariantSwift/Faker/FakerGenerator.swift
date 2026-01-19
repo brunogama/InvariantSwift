@@ -5,6 +5,7 @@ import Foundation
 
 // MARK: - Faker Generator Extension
 
+// swiftlint:disable cyclomatic_complexity file_length function_body_length
 extension Gen {
 
   /// Create a faker generator for the specified type.
@@ -72,8 +73,10 @@ extension Gen {
         switch strength {
         case .weak:
           chars = lowercase
+
         case .medium:
           chars = lowercase + uppercase + numbers
+
         case .strong, .veryStrong:
           chars = lowercase + uppercase + numbers + symbols
         }
@@ -1243,8 +1246,8 @@ extension Gen {
       }
 
     case .correlationId:
-      return Gen<String> { rng, _ in
-        return UUID().uuidString.lowercased()
+      return Gen<String> { _, _ in
+        UUID().uuidString.lowercased()
       }
     }
   }

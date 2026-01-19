@@ -28,6 +28,7 @@ import os
 /// - [Statistical Process Control](https://en.wikipedia.org/wiki/Statistical_process_control)
 /// - [Performance Monitoring Best Practices](https://sre.google/sre-book/monitoring-distributed-systems/)
 
+// swiftlint:disable file_length function_body_length type_body_length
 @available(macOS 13.0, iOS 16.0, tvOS 16.0, watchOS 9.0, *)
 public actor TelemetrySystem {
 

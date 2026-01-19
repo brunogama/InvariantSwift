@@ -34,6 +34,7 @@ import Foundation
 /// Not shared across concurrent operations.
 ///
 /// **Performance:** O(1) lookup and insertion using `ObjectIdentifier` hashing.
+// swiftlint:disable cyclomatic_complexity file_length
 public struct ObjectTracker: Sendable {
   /// Maps object identifiers to their assigned reference IDs
   private var idMapping: [ObjectIdentifier: Int] = [:]

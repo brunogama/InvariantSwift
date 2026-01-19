@@ -6,6 +6,7 @@ import Foundation
 // MARK: - Ghostwriter
 
 /// Main Ghostwriter class that orchestrates automatic test generation.
+// swiftlint:disable cyclomatic_complexity
 public actor Ghostwriter {
 
   /// Configuration

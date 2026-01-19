@@ -5,6 +5,7 @@ import SwiftSyntaxBuilder
 
 /// Builds generator expressions for various types.
 /// Maps Swift types to their corresponding Gen<T> expressions.
+// swiftlint:disable cyclomatic_complexity
 public enum GeneratorBuilder {
 
   // MARK: - Primitive Generators

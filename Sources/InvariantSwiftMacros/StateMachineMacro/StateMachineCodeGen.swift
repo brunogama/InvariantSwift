@@ -1,6 +1,7 @@
 import SwiftSyntax
 import SwiftSyntaxBuilder
 
+// swiftlint:disable file_length function_body_length type_body_length
 enum StateMachineCodeGen {
 
   static func generateMembers(

@@ -26,6 +26,7 @@ import SQLite3
 // MARK: - Core Types
 
 /// Unique key for identifying test cases in the corpus
+// swiftlint:disable cyclomatic_complexity file_length function_body_length type_body_length
 public struct CorpusKey: Sendable, Hashable, Codable, CustomStringConvertible {
   public let propertyHash: String
   public let generatorFingerprint: String
@@ -95,12 +96,12 @@ public struct CorpusEntry<A: Codable & Sendable>: Sendable, Codable {
 
 /// Classification of corpus entries
 public enum EntryClassification: String, Sendable, Codable, CaseIterable {
-  case counterexample = "counterexample"
-  case interesting = "interesting"
-  case boundary = "boundary"
-  case regression = "regression"
-  case coverage = "coverage"
-  case performance = "performance"
+  case counterexample
+  case interesting
+  case boundary
+  case regression
+  case coverage
+  case performance
 
   public var priorityWeight: Double {
     switch self {

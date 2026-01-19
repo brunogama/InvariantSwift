@@ -7,6 +7,7 @@ import Foundation
 // MARK: - Error Behavior
 
 /// How to handle error cases in differential testing.
+// swiftlint:disable cyclomatic_complexity
 public enum ErrorBehavior: Sendable {
   /// Both implementations must throw the same error type
   case mustMatch
@@ -69,6 +70,7 @@ public struct DifferentialResult<Input: Sendable, Output: Sendable>: Sendable {
       case .mustMatch:
         // TODO: Compare error types
         return false
+
       case .bothThrowOrBothSucceed, .candidateMaySucceedMore, .ignoreErrors:
         return false
       }
@@ -77,6 +79,7 @@ public struct DifferentialResult<Input: Sendable, Output: Sendable>: Sendable {
       switch errorBehavior {
       case .candidateMaySucceedMore, .ignoreErrors:
         return false
+
       case .mustMatch, .bothThrowOrBothSucceed:
         return true
       }
@@ -85,6 +88,7 @@ public struct DifferentialResult<Input: Sendable, Output: Sendable>: Sendable {
       switch errorBehavior {
       case .ignoreErrors:
         return false
+
       case .mustMatch, .bothThrowOrBothSucceed, .candidateMaySucceedMore:
         return true
       }
@@ -136,6 +140,7 @@ public struct DifferentialTestError<Input: Sendable, Output: Sendable>: Error,
     switch result.referenceOutput {
     case .success(let ref):
       lines.append("\(referenceName): \(ref)")
+
     case .failure(let err):
       lines.append("\(referenceName) threw: \(err)")
     }
@@ -143,6 +148,7 @@ public struct DifferentialTestError<Input: Sendable, Output: Sendable>: Error,
     switch result.candidateOutput {
     case .success(let cand):
       lines.append("\(candidateName): \(cand)")
+
     case .failure(let err):
       lines.append("\(candidateName) threw: \(err)")
     }

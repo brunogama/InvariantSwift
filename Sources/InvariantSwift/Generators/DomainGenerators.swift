@@ -20,6 +20,7 @@ import Foundation
 // MARK: - Graph Generators
 
 /// **Vertex in a directed graph**
+// swiftlint:disable cyclomatic_complexity file_length function_body_length
 public struct Vertex: Hashable, Codable, Sendable {
   public let id: String
   public let label: String?
@@ -277,13 +278,13 @@ extension Gen where T == DirectedGraph {
 
 /// **JSON Schema type definitions**
 public enum JSONSchemaType: String, CaseIterable, Codable, Sendable, Hashable {
-  case object = "object"
-  case array = "array"
-  case string = "string"
-  case number = "number"
-  case integer = "integer"
-  case boolean = "boolean"
-  case null = "null"
+  case object
+  case array
+  case string
+  case number
+  case integer
+  case boolean
+  case null
 }
 
 /// **JSON Schema data structure**

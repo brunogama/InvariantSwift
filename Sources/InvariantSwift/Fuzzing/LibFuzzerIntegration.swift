@@ -34,6 +34,7 @@ import Foundation
 /// **External References:**
 /// - [LibFuzzer FuzzedDataProvider](https://llvm.org/docs/LibFuzzer.html#fuzzed-data-provider)
 /// - [AFL Technical Whitepaper](https://lcamtuf.coredump.cx/afl/technical_details.txt)
+// swiftlint:disable file_length
 public struct FuzzDataProvider: Sendable {
   private var data: [UInt8]
   private var position: Int = 0
@@ -697,7 +698,7 @@ public enum FuzzingMode: Sendable, Equatable {
   case ossFuzz
 
   /// Default mode (property test with 100 iterations)
-  public static var `default`: FuzzingMode {
+  public static var `default`: Self {
     .propertyTest(iterations: 100)
   }
 }
@@ -834,19 +835,19 @@ public struct Sanitizer: OptionSet, Sendable {
   }
 
   /// Address Sanitizer (memory errors)
-  public static let address = Sanitizer(rawValue: 1 << 0)
+  public static let address = Self(rawValue: 1 << 0)
 
   /// Undefined Behavior Sanitizer
-  public static let undefined = Sanitizer(rawValue: 1 << 1)
+  public static let undefined = Self(rawValue: 1 << 1)
 
   /// Thread Sanitizer (data races)
-  public static let thread = Sanitizer(rawValue: 1 << 2)
+  public static let thread = Self(rawValue: 1 << 2)
 
   /// Memory Sanitizer (uninitialized reads)
-  public static let memory = Sanitizer(rawValue: 1 << 3)
+  public static let memory = Self(rawValue: 1 << 3)
 
   /// Fuzzer sanitizer (coverage instrumentation)
-  public static let fuzzer = Sanitizer(rawValue: 1 << 4)
+  public static let fuzzer = Self(rawValue: 1 << 4)
 
   /// All sanitizers enabled
   public static let all: Sanitizer = [.address, .undefined, .thread, .memory, .fuzzer]

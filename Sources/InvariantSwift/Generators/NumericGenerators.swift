@@ -3,6 +3,7 @@ import CoreGraphics
 
 // MARK: - Integer Type Generators
 
+// swiftlint:disable file_length
 extension Gen where T == Int8 {
   /// Generate Int8 with comprehensive edge cases
   public static var int8: Gen<Int8> {

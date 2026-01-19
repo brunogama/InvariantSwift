@@ -29,6 +29,7 @@ import Dispatch
 // MARK: - Core Types
 
 /// **Test execution result with metadata**
+// swiftlint:disable file_length
 public struct TestExecution: Codable, Sendable {
   /// Unique identifier for this execution
   public let id: UUID
@@ -87,11 +88,11 @@ public struct TestExecution: Codable, Sendable {
 
 /// **Test result enumeration**
 public enum TestResult: String, Codable, Sendable {
-  case passed = "passed"
-  case failed = "failed"
-  case skipped = "skipped"
-  case timeout = "timeout"
-  case error = "error"
+  case passed
+  case failed
+  case skipped
+  case timeout
+  case error
 
   var isFailure: Bool {
     switch self {
@@ -469,9 +470,9 @@ public struct TimePatterns: Codable, Sendable {
 
 /// **Trend direction**
 public enum Trend: String, Codable, Sendable {
-  case improving = "improving"
-  case stable = "stable"
-  case worsening = "worsening"
+  case improving
+  case stable
+  case worsening
 }
 
 /// **Resource usage correlation analysis**
@@ -971,10 +972,10 @@ public struct TestFlakeReport: Sendable {
 
 /// **Test status enumeration**
 public enum TestStatus: String, Sendable {
-  case stable = "stable"
-  case flaky = "flaky"
-  case quarantined = "quarantined"
-  case insufficient_data = "insufficient_data"
+  case stable
+  case flaky
+  case quarantined
+  case insufficient_data
 }
 
 /// **Report summary statistics**

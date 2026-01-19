@@ -5,6 +5,7 @@ import SwiftSyntaxMacros
 // MARK: - Property Macro Configuration
 
 /// Extracted configuration from @Property attribute
+// swiftlint:disable cyclomatic_complexity
 public struct PropertyMacroConfig: Sendable {
   public let iterations: Int
   public let seed: UInt64?

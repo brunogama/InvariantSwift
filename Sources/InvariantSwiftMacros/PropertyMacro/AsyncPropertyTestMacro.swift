@@ -27,6 +27,7 @@ import SwiftSyntaxMacros
 ///     #expect(await cache.isConsistent)
 /// }
 /// ```
+// swiftlint:disable file_length
 public struct AsyncPropertyTestMacro: PeerMacro {
 
   public static func expansion(

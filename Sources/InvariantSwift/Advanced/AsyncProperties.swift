@@ -9,6 +9,7 @@ import Foundation
 // MARK: - Core Async Property Types
 
 /// Configuration for async property execution
+// swiftlint:disable file_length
 public struct AsyncPropertyConfig: Sendable {
   public let iterations: Int
   public let timeout: Duration

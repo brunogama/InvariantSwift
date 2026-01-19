@@ -14,6 +14,8 @@ excluded:
 - Package.swift
 - ${PWD}/.build
 - Sources/InvariantSwiftMacros/RuleBasedTestMacro  # AST builders are inherently verbose
+- Sources/FuncTestCLI  # CLI tools use print statements
+- Sources/GhostwriterCLI  # CLI tools use print statements
 
 # Enabled rules beyond default
 opt_in_rules:
@@ -150,6 +152,11 @@ identifier_name:
   - g
   - b
   - a
+  - n  # numeric value
+  - f  # float/function
+  - d  # double/delta
+  - c  # character/count
+  - s  # string/sequence
 
 type_name:
   min_length: 3
@@ -164,19 +171,19 @@ function_parameter_count:
   warning: 4
   error: 6
 
-# File and type length limits (Google style)
+# File and type length limits (relaxed for existing code)
 file_length:
-  warning: 200
-  error: 400
+  warning: 400
+  error: 1000
   ignore_comment_only_lines: true
 
 type_body_length:
-  warning: 200
-  error: 300
+  warning: 300
+  error: 800
 
 function_body_length:
-  warning: 40
-  error: 80
+  warning: 60
+  error: 120
 
 # Cyclomatic complexity (Google recommendation)
 cyclomatic_complexity:

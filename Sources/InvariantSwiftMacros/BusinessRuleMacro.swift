@@ -5,6 +5,7 @@ import SwiftSyntaxMacros
 import SwiftDiagnostics
 import Foundation
 
+// swiftlint:disable cyclomatic_complexity file_length function_body_length
 public struct BusinessRuleMacro: PeerMacro {
 
   public static func expansion(

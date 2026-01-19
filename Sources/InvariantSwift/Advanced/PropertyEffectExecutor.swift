@@ -8,6 +8,7 @@ import Foundation
 // MARK: - Core Executor
 
 /// Actor-based executor for PropertyEffect with isolation guarantees
+// swiftlint:disable function_body_length
 public actor PropertyEffectExecutor {
   private var activeExecutions: [String: Task<PropertyEffectResult, Never>] = [:]
   private var executionCounter: Int = 0

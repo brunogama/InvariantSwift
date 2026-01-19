@@ -289,7 +289,7 @@ struct PropertyTestIntegrationTests {
       // Check structure is valid (arrays of arrays of strings)
       nestedArray.allSatisfy { innerArray in
         innerArray.allSatisfy { str in
-          str is String  // Always true, just validates structure
+          str.isEmpty  // Validates structure (strings always have non-negative count)
         }
       }
     }

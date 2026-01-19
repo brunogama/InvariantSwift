@@ -129,6 +129,7 @@ import Foundation
 ///
 /// Controls the frequency at which intentionally malformed data is generated
 /// to stress-test properties and find edge cases.
+// swiftlint:disable file_length
 public struct FakeConfig: Sendable {
   /// Frequency of edge case generation (0.0 to 1.0).
   ///

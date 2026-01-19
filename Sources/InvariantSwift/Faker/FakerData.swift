@@ -6,6 +6,7 @@ import Foundation
 // MARK: - Faker Data
 
 /// Thread-safe lazy-loaded faker data storage.
+// swiftlint:disable file_length function_body_length type_body_length
 public final class FakerData: @unchecked Sendable {
   public static let shared = FakerData()
 
@@ -68,18 +69,23 @@ public struct LocaleData: Sendable {
   public let loremWords: [String]
 
   // Create locale data
-  public static func create(for locale: FakerLocale) -> LocaleData {
+  public static func create(for locale: FakerLocale) -> Self {
     switch locale {
     case .ptBR:
       return createBrazilianPortuguese()
+
     case .deDE:
       return createGerman()
+
     case .frFR:
       return createFrench()
+
     case .esES, .esMX, .esAR:
       return createSpanish()
+
     case .jaJP:
       return createJapanese()
+
     default:
       return createEnglishUS()
     }
@@ -87,8 +93,8 @@ public struct LocaleData: Sendable {
 
   // MARK: - English (US) Data
 
-  private static func createEnglishUS() -> LocaleData {
-    LocaleData(
+  private static func createEnglishUS() -> Self {
+    Self(
       locale: .enUS,
       firstNames: [
         "James", "Mary", "John", "Patricia", "Robert", "Jennifer",
@@ -194,8 +200,8 @@ public struct LocaleData: Sendable {
 
   // MARK: - Portuguese (Brazil) Data
 
-  private static func createBrazilianPortuguese() -> LocaleData {
-    LocaleData(
+  private static func createBrazilianPortuguese() -> Self {
+    Self(
       locale: .ptBR,
       firstNames: [
         "João", "Maria", "José", "Ana", "Pedro", "Francisca", "Carlos",
@@ -279,8 +285,8 @@ public struct LocaleData: Sendable {
 
   // MARK: - German Data
 
-  private static func createGerman() -> LocaleData {
-    LocaleData(
+  private static func createGerman() -> Self {
+    Self(
       locale: .deDE,
       firstNames: [
         "Hans", "Anna", "Peter", "Maria", "Michael", "Julia", "Thomas",
@@ -340,8 +346,8 @@ public struct LocaleData: Sendable {
 
   // MARK: - French Data
 
-  private static func createFrench() -> LocaleData {
-    LocaleData(
+  private static func createFrench() -> Self {
+    Self(
       locale: .frFR,
       firstNames: [
         "Jean", "Marie", "Pierre", "Françoise", "Michel", "Monique",
@@ -397,8 +403,8 @@ public struct LocaleData: Sendable {
 
   // MARK: - Spanish Data
 
-  private static func createSpanish() -> LocaleData {
-    LocaleData(
+  private static func createSpanish() -> Self {
+    Self(
       locale: .esES,
       firstNames: [
         "Antonio", "María", "José", "Carmen", "Manuel", "Ana", "Francisco",
@@ -454,8 +460,8 @@ public struct LocaleData: Sendable {
 
   // MARK: - Japanese Data
 
-  private static func createJapanese() -> LocaleData {
-    LocaleData(
+  private static func createJapanese() -> Self {
+    Self(
       locale: .jaJP,
       firstNames: [
         "太郎", "花子", "一郎", "幸子", "健太", "美咲", "大輔", "さくら",

@@ -3,6 +3,7 @@ import SwiftSyntax
 import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
 
+// swiftlint:disable file_length function_body_length type_body_length
 public struct PropertyMacro: PeerMacro {
 
   public static func expansion(
@@ -535,22 +536,12 @@ public struct PropertyMacro: PeerMacro {
         LabeledExprSyntax(
           label: .identifier("reason"),
           colon: .colonToken(),
-          expression: PatternExprSyntax(
-            pattern: ValueBindingPatternSyntax(
-              bindingSpecifier: .keyword(.let),
-              pattern: IdentifierPatternSyntax(identifier: .identifier("reason"))
-            )
-          )
+          expression: DiscardAssignmentExprSyntax()
         )
         LabeledExprSyntax(
           label: .identifier("seed"),
           colon: .colonToken(),
-          expression: PatternExprSyntax(
-            pattern: ValueBindingPatternSyntax(
-              bindingSpecifier: .keyword(.let),
-              pattern: IdentifierPatternSyntax(identifier: .identifier("seed"))
-            )
-          )
+          expression: DiscardAssignmentExprSyntax()
         )
       },
       rightParen: .rightParenToken()
@@ -588,22 +579,12 @@ public struct PropertyMacro: PeerMacro {
         LabeledExprSyntax(
           label: .identifier("discarded"),
           colon: .colonToken(),
-          expression: PatternExprSyntax(
-            pattern: ValueBindingPatternSyntax(
-              bindingSpecifier: .keyword(.let),
-              pattern: IdentifierPatternSyntax(identifier: .identifier("discarded"))
-            )
-          )
+          expression: DiscardAssignmentExprSyntax()
         )
         LabeledExprSyntax(
           label: .identifier("iterations"),
           colon: .colonToken(),
-          expression: PatternExprSyntax(
-            pattern: ValueBindingPatternSyntax(
-              bindingSpecifier: .keyword(.let),
-              pattern: IdentifierPatternSyntax(identifier: .identifier("iterations"))
-            )
-          )
+          expression: DiscardAssignmentExprSyntax()
         )
       },
       rightParen: .rightParenToken()

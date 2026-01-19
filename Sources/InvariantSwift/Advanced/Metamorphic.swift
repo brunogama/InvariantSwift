@@ -9,6 +9,7 @@ import Foundation
 // MARK: - Core Types
 
 /// A metamorphic relation between inputs and outputs
+// swiftlint:disable file_length
 public struct MetamorphicRelation<Input, Output>: Sendable
 where Input: Sendable, Output: Sendable & Equatable {
 
@@ -87,14 +88,14 @@ where Input: Sendable, Output: Sendable & Equatable {
 
 /// Categories of metamorphic relations
 public enum RelationCategory: String, Sendable, CaseIterable {
-  case algebraic = "algebraic"  // Mathematical properties
-  case permutation = "permutation"  // Order independence
-  case addition = "addition"  // Additive properties
-  case scaling = "scaling"  // Scale invariance
-  case equivalence = "equivalence"  // Input equivalence
-  case monotonic = "monotonic"  // Order preservation
-  case invariant = "invariant"  // Value preservation
-  case transformation = "transformation"  // Structural changes
+  case algebraic  // Mathematical properties
+  case permutation  // Order independence
+  case addition  // Additive properties
+  case scaling  // Scale invariance
+  case equivalence  // Input equivalence
+  case monotonic  // Order preservation
+  case invariant  // Value preservation
+  case transformation  // Structural changes
 }
 
 /// Result of testing a metamorphic relation

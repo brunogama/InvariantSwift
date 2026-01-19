@@ -41,6 +41,7 @@ import Foundation
 ///     // Implementation...
 /// }
 /// ```
+// swiftlint:disable file_length
 public struct LawCheckedMacro: MemberMacro {
 
   // MARK: - Macro Entry Point
@@ -106,32 +107,32 @@ struct LawCheckedConfig: Sendable {
 /// **Built-in mathematical laws**
 public enum MathematicalLaw: String, CaseIterable, Sendable {
   // Category Theory
-  case functor = "functor"
-  case applicative = "applicative"
-  case monad = "monad"
-  case comonad = "comonad"
+  case functor
+  case applicative
+  case monad
+  case comonad
 
   // Abstract Algebra
-  case semigroup = "semigroup"
-  case monoid = "monoid"
-  case group = "group"
-  case ring = "ring"
-  case field = "field"
+  case semigroup
+  case monoid
+  case group
+  case ring
+  case field
 
   // Order Theory
-  case partialOrder = "partialOrder"
-  case totalOrder = "totalOrder"
-  case lattice = "lattice"
+  case partialOrder
+  case totalOrder
+  case lattice
 
   // Topology
-  case metric = "metric"
-  case norm = "norm"
+  case metric
+  case norm
 
   // Special Structures
-  case foldable = "foldable"
-  case traversable = "traversable"
-  case bifunctor = "bifunctor"
-  case profunctor = "profunctor"
+  case foldable
+  case traversable
+  case bifunctor
+  case profunctor
 }
 
 /// **Analyzed mathematical structure**

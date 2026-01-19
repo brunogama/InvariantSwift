@@ -9,6 +9,7 @@ import Foundation
 // MARK: - Core Types
 
 /// An invariant discovered through execution analysis
+// swiftlint:disable file_length
 public struct DiscoveredInvariant: Sendable, Hashable, CustomStringConvertible {
   public let id: UUID
   public let predicate: String
@@ -76,14 +77,14 @@ public struct DiscoveredInvariant: Sendable, Hashable, CustomStringConvertible {
 
 /// Categories of invariants
 public enum InvariantCategory: String, Sendable, CaseIterable {
-  case numerical = "numerical"  // x >= 0, x < 100, etc.
-  case structural = "structural"  // array.count >= 0, etc.
-  case relational = "relational"  // x < y, length(a) == length(b)
-  case conditional = "conditional"  // if P then Q
-  case equality = "equality"  // x == f(y)
-  case ordering = "ordering"  // x <= y <= z
-  case membership = "membership"  // x ∈ S
-  case functional = "functional"  // f(x) = g(h(x))
+  case numerical  // x >= 0, x < 100, etc.
+  case structural  // array.count >= 0, etc.
+  case relational  // x < y, length(a) == length(b)
+  case conditional  // if P then Q
+  case equality  // x == f(y)
+  case ordering  // x <= y <= z
+  case membership  // x ∈ S
+  case functional  // f(x) = g(h(x))
 
   public var priority: Int {
     switch self {
@@ -98,12 +99,12 @@ public enum InvariantCategory: String, Sendable, CaseIterable {
 
 /// Methods for discovering invariants
 public enum DiscoveryMethod: String, Sendable {
-  case statistical = "statistical"  // Statistical analysis of traces
-  case template = "template"  // Template-based pattern matching
-  case symbolic = "symbolic"  // Symbolic execution analysis
-  case clustering = "clustering"  // ML clustering of behaviors
-  case regression = "regression"  // Regression analysis
-  case decision_tree = "decision_tree"  // Decision tree learning
+  case statistical  // Statistical analysis of traces
+  case template  // Template-based pattern matching
+  case symbolic  // Symbolic execution analysis
+  case clustering  // ML clustering of behaviors
+  case regression  // Regression analysis
+  case decision_tree  // Decision tree learning
 }
 
 /// Configuration for invariant mining
@@ -865,7 +866,7 @@ public struct StreamingStats: Sendable {
   }
 
   /// Whether no values have been added
-  public var isEmpty: Bool { count == 0 }
+  public var isEmpty: Bool { isEmpty }
 
   /// Range of values
   public var range: Double {

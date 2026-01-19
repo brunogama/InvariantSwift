@@ -6,6 +6,7 @@ import Foundation
 // MARK: - Test Generator
 
 /// Generates property test code from type information.
+// swiftlint:disable cyclomatic_complexity file_length type_body_length
 public struct TestGenerator: Sendable {
 
   /// Configuration for test generation
@@ -53,46 +54,67 @@ public struct TestGenerator: Sendable {
     switch pattern {
     case .codableRoundtrip:
       code = generateCodableRoundtrip(for: typeInfo)
+
     case .equatableReflexive:
       code = generateEquatableReflexive(for: typeInfo)
+
     case .equatableSymmetric:
       code = generateEquatableSymmetric(for: typeInfo)
+
     case .equatableTransitive:
       code = generateEquatableTransitive(for: typeInfo)
+
     case .hashableConsistency:
       code = generateHashableConsistency(for: typeInfo)
+
     case .comparableIrreflexive:
       code = generateComparableIrreflexive(for: typeInfo)
+
     case .comparableAsymmetric:
       code = generateComparableAsymmetric(for: typeInfo)
+
     case .comparableTransitive:
       code = generateComparableTransitive(for: typeInfo)
+
     case .comparableTrichotomy:
       code = generateComparableTrichotomy(for: typeInfo)
+
     case .idempotent:
       code = generateIdempotent(for: typeInfo)
+
     case .inverseFunctions:
       code = generateInverseFunctions(for: typeInfo)
+
     case .collectionCount:
       code = generateCollectionCount(for: typeInfo)
+
     case .collectionIndices:
       code = generateCollectionIndices(for: typeInfo)
+
     case .identifiableStability:
       code = generateIdentifiableStability(for: typeInfo)
+
     case .rawRepresentableRoundtrip:
       code = generateRawRepresentableRoundtrip(for: typeInfo)
+
     case .numericAdditiveIdentity:
       code = generateNumericAdditiveIdentity(for: typeInfo)
+
     case .numericCommutativity:
       code = generateNumericCommutativity(for: typeInfo)
+
     case .numericAssociativity:
       code = generateNumericAssociativity(for: typeInfo)
+
     case .additiveArithmeticZero:
       code = generateAdditiveArithmeticZero(for: typeInfo)
+
     case .collectionBounds:
       code = generateCollectionBounds(for: typeInfo)
+
     case .sequenceIteration:
       code = generateSequenceIteration(for: typeInfo)
+
     case .bidirectionalSymmetry:
       code = generateBidirectionalSymmetry(for: typeInfo)
     }

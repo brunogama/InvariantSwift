@@ -327,7 +327,7 @@ struct TestUtilitiesDemo {
 
     let complexProperty = Property<(([Int], String), Bool)>(generator: complexGenerator) { nested in
       let (arrayAndString, flag) = nested
-      let (array, string) = arrayAndString
+      let (_, string) = arrayAndString
       return !string.isEmpty && (flag == true || flag == false)
     }
 

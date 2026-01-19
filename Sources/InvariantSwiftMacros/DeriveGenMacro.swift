@@ -43,6 +43,7 @@ import Foundation
 /// }
 /// // Uses custom generator for name, derives others automatically
 /// ```
+// swiftlint:disable file_length
 public struct DeriveGenMacro: MemberMacro, ExtensionMacro {
 
   // MARK: - Macro Entry Points
