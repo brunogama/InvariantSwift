@@ -15,39 +15,43 @@ public struct BusinessRuleMacro: PeerMacro {
 
     let ctx = MacroContext(context: context)
 
-    guard
-      let funcDecl = DeclarationAnalyzer.requireFunction(
-        from: declaration,
-        context: ctx,
-        macroName: "BusinessRule"
-      )
-    else {
+    guard let funcDecl = declaration.as(FunctionDeclSyntax.self) else {
+      ctx.error(BusinessRuleDiagnostic.mustBeFunction, at: node)
       return []
     }
 
     guard funcDecl.signature.returnClause?.type.trimmed.description == "Bool" else {
-      ctx.error("@BusinessRule functions must return Bool", at: node)
+      ctx.error(BusinessRuleDiagnostic.mustReturnBool, at: node)
       return []
     }
 
     guard !funcDecl.signature.parameterClause.parameters.isEmpty else {
-      ctx.error(
-        "@BusinessRule requires functions to have at least one parameter",
-        at: node
-      )
+      ctx.error(BusinessRuleDiagnostic.noParameters, at: node)
       return []
     }
 
-    let config = try extractBusinessRuleConfig(from: node)
+    guard let config = extractBusinessRuleConfig(from: node, context: ctx) else {
+      // Diagnostic already emitted by extractBusinessRuleConfig
+      return []
+    }
 
     let functionName = funcDecl.name.text
     let parameters = funcDecl.signature.parameterClause.parameters
 
     let propertyTestName = "\(functionName)_PropertyTest"
 
-    let generatorExpressions = try generateGeneratorExpressions(for: parameters)
+    guard
+      let generatorExpressions = generateGeneratorExpressions(
+        for: parameters,
+        context: ctx,
+        node: node
+      )
+    else {
+      // Diagnostic already emitted by generateGeneratorExpressions
+      return []
+    }
 
-    let testFunction = try generatePropertyTestFunction(
+    let testFunction = generatePropertyTestFunction(
       functionName: functionName,
       propertyTestName: propertyTestName,
       parameters: parameters,
@@ -75,6 +79,43 @@ private struct BusinessRuleConfig {
   }
 }
 
+public enum BusinessRuleDiagnostic: String, MacroDiagnostic {
+  public static let domain = "InvariantSwift.BusinessRuleMacro"
+
+  case mustBeFunction = "must_be_function"
+  case mustReturnBool = "must_return_bool"
+  case noParameters = "no_parameters"
+  case missingDescription = "missing_description"
+  case invalidDescription = "invalid_description"
+  case cannotInferGenerator = "cannot_infer_generator"
+
+  public var severity: DiagnosticSeverity { .error }
+
+  public var message: String {
+    switch self {
+    case .mustBeFunction:
+      return "@BusinessRule can only be applied to functions"
+
+    case .mustReturnBool:
+      return "@BusinessRule functions must return Bool"
+
+    case .noParameters:
+      return "@BusinessRule requires at least one parameter to generate test values"
+
+    case .missingDescription:
+      return "@BusinessRule requires a description string as the first argument"
+
+    case .invalidDescription:
+      return "@BusinessRule description must be a string literal"
+
+    case .cannotInferGenerator:
+      return
+        "Cannot infer generator for parameter type. Ensure the type conforms to Generatable or use a built-in type."
+    }
+  }
+}
+
+// Legacy error type for backward compatibility
 public enum BusinessRuleError: Error, CustomStringConvertible {
   case cannotInferParameterType(String)
   case invalidConfiguration(String)
@@ -107,20 +148,26 @@ public struct MacroExpansionErrorMessage: DiagnosticMessage {
   }
 }
 
-private func extractBusinessRuleConfig(from node: AttributeSyntax) throws -> BusinessRuleConfig {
+private func extractBusinessRuleConfig(
+  from node: AttributeSyntax,
+  context: MacroContext
+) -> BusinessRuleConfig? {
   guard case .argumentList(let arguments) = node.arguments else {
-    throw BusinessRuleError.invalidDescription
+    context.error(BusinessRuleDiagnostic.missingDescription, at: node)
+    return nil
   }
 
   let args = Array(arguments)
   guard !args.isEmpty else {
-    throw BusinessRuleError.invalidDescription
+    context.error(BusinessRuleDiagnostic.missingDescription, at: node)
+    return nil
   }
 
   guard let firstArg = args.first,
     let stringLiteral = firstArg.expression.as(StringLiteralExprSyntax.self)
   else {
-    throw BusinessRuleError.invalidDescription
+    context.error(BusinessRuleDiagnostic.invalidDescription, at: node)
+    return nil
   }
 
   let description = stringLiteral.segments.compactMap { segment in
@@ -174,19 +221,29 @@ private func extractBusinessRuleConfig(from node: AttributeSyntax) throws -> Bus
 
 /// **Generate generator expressions for function parameters**
 private func generateGeneratorExpressions(
-  for parameters: FunctionParameterListSyntax
-) throws -> [String] {
-  try parameters.map { param in
+  for parameters: FunctionParameterListSyntax,
+  context: MacroContext,
+  node: AttributeSyntax
+) -> [String]? {
+  var expressions: [String] = []
+
+  for param in parameters {
     let paramName = param.firstName.text
     let paramType = param.type.trimmed.description
 
     // Try to infer generator from parameter name and type
-    let generator = try inferGenerator(for: paramName, type: paramType)
-    return generator
+    if let generator = inferGenerator(for: paramName, type: paramType) {
+      expressions.append(generator)
+    } else {
+      context.error(BusinessRuleDiagnostic.cannotInferGenerator, at: node)
+      return nil
+    }
   }
+
+  return expressions
 }
 
-private func inferGenerator(for paramName: String, type: String) throws -> String {
+private func inferGenerator(for paramName: String, type: String) -> String? {
   // Custom types use Generatable.arbitrary (from @Arbitrary macro)
   if !isBuiltInType(type) {
     return "\(type).arbitrary"
@@ -238,16 +295,20 @@ private func inferGenerator(for paramName: String, type: String) throws -> Strin
 
   case let arrayType where arrayType.hasPrefix("[") && arrayType.hasSuffix("]"):
     let elementType = String(arrayType.dropFirst().dropLast())
-    let elementGenerator = try inferGenerator(for: "element", type: elementType)
-    return "Gen.array(\(elementGenerator))"
+    if let elementGenerator = inferGenerator(for: "element", type: elementType) {
+      return "Gen.array(\(elementGenerator))"
+    }
+    return nil
 
   case let optionalType where optionalType.hasPrefix("Optional<"):
     let innerType = String(optionalType.dropFirst(9).dropLast())
-    let innerGenerator = try inferGenerator(for: paramName, type: innerType)
-    return "Gen.optional(\(innerGenerator))"
+    if let innerGenerator = inferGenerator(for: paramName, type: innerType) {
+      return "Gen.optional(\(innerGenerator))"
+    }
+    return nil
 
   default:
-    throw BusinessRuleError.cannotInferParameterType(paramName)
+    return nil
   }
 }
 
@@ -265,7 +326,7 @@ private func generatePropertyTestFunction(
   parameters: FunctionParameterListSyntax,
   generatorExpressions: [String],
   config: BusinessRuleConfig
-) throws -> FunctionDeclSyntax {
+) -> FunctionDeclSyntax {
 
   let parameterNames = parameters.map { $0.firstName.text }
   let parameterTypes = parameters.map { $0.type.trimmed.description }
