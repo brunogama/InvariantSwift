@@ -8,6 +8,7 @@ import SwiftCompilerPlugin
 import SwiftSyntax
 import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
+import SwiftDiagnostics
 
 /// `@RuleBasedTest` macro for declarative stateful testing.
 ///
@@ -24,8 +25,11 @@ public struct RuleBasedTestMacro: MemberMacro, ExtensionMacro {
     in context: some MacroExpansionContext
   ) throws -> [DeclSyntax] {
 
+    let ctx = MacroContext(context: context)
+
     guard let structDecl = declaration.as(StructDeclSyntax.self) else {
-      throw RuleBasedTestMacroError.notAStruct
+      ctx.error(RuleBasedTestMacroDiagnostic.mustBeStruct, at: node)
+      return []
     }
 
     let typeName = structDecl.name.text
@@ -754,8 +758,36 @@ struct BundleInfo {
   let name: String
 }
 
-// MARK: - Errors
+// MARK: - Diagnostics
 
+public enum RuleBasedTestMacroDiagnostic: String, MacroDiagnostic {
+  public static let domain = "InvariantSwift.RuleBasedTestMacro"
+
+  case mustBeStruct = "must_be_struct"
+  case noRules = "no_rules"
+  case invalidRuleSignature = "invalid_rule_signature"
+  case invalidInvariantReturn = "invalid_invariant_return"
+
+  public var severity: DiagnosticSeverity { .error }
+
+  public var message: String {
+    switch self {
+    case .mustBeStruct:
+      return "@RuleBasedTest can only be applied to structs"
+
+    case .noRules:
+      return "@RuleBasedTest requires at least one @Rule method"
+
+    case .invalidRuleSignature:
+      return "@Rule must be applied to a mutating method with no parameters"
+
+    case .invalidInvariantReturn:
+      return "@Invariant must be applied to a method returning Bool"
+    }
+  }
+}
+
+// Legacy error type for backward compatibility
 enum RuleBasedTestMacroError: Error, CustomStringConvertible {
   case notAStruct
   case invalidConfiguration
