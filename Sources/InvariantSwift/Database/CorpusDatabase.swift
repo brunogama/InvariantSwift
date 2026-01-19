@@ -192,6 +192,7 @@ public struct CorpusStatistics: Sendable {
 
 // MARK: - Corpus Database Implementation
 
+// swiftlint:disable:next orphaned_doc_comment
 /// Persistent corpus database with SQLite backend
 // swiftlint:disable:next type_body_length
 public actor CorpusDatabase {
@@ -347,6 +348,7 @@ public actor CorpusDatabase {
     }
   }
 
+  // swiftlint:disable:next orphaned_doc_comment
   /// Retrieve entries from the corpus
   // swiftlint:disable:next cyclomatic_complexity
   public func get<A: Codable>(

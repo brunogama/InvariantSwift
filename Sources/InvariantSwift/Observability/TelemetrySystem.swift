@@ -727,6 +727,7 @@ public struct TelemetryStatistics: Codable, Sendable {
 @available(macOS 13.0, iOS 16.0, tvOS 16.0, watchOS 9.0, *)
 extension PropertyRunner {
 
+  // swiftlint:disable:next orphaned_doc_comment
   /// **Run property test with full telemetry integration**
   // swiftlint:disable:next function_body_length
   public func runPropertyWithTelemetry<T>(

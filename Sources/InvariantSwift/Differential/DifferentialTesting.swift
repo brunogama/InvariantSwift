@@ -54,6 +54,7 @@ public struct DifferentialResult<Input: Sendable, Output: Sendable>: Sendable {
     diverges(errorBehavior: .bothThrowOrBothSucceed)
   }
 
+  // swiftlint:disable:next orphaned_doc_comment
   /// Check divergence with specific error behavior
   // swiftlint:disable:next cyclomatic_complexity
   public func diverges(errorBehavior: ErrorBehavior) -> Bool {

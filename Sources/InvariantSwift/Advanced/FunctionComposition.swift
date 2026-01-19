@@ -2,6 +2,7 @@ import Foundation
 
 // MARK: - Function Composition and Higher-Order Function Utilities
 
+// swiftlint:disable:next orphaned_doc_comment
 /// **Function Composition Utilities**
 ///
 /// This module provides a comprehensive set of higher-order functions for functional
@@ -355,20 +356,26 @@ infix operator • : MultiplicationPrecedence  // Function composition (mathemat
 infix operator >>> : MultiplicationPrecedence  // Forward composition (pipeline)
 infix operator |> : ApplyPrecedence  // Pipe operator
 
+// swiftlint:disable:next orphaned_doc_comment
 /// **Function composition operator (mathematical style)**
 /// Compose two functions: g • f = λx. g(f(x))
+// swiftlint:disable:next static_operator
 public func • <A, B, C>(g: @escaping (B) -> C, f: @escaping (A) -> B) -> (A) -> C {
   compose(g, f)
 }
 
+// swiftlint:disable:next orphaned_doc_comment
 /// **Forward composition operator (pipeline style)**
 /// Chain functions left-to-right: f >>> g = λx. g(f(x))
+// swiftlint:disable:next static_operator
 public func >>> <A, B, C>(f: @escaping (A) -> B, g: @escaping (B) -> C) -> (A) -> C {
   pipe(f, g)
 }
 
+// swiftlint:disable:next orphaned_doc_comment
 /// **Pipe operator**
 /// Apply a function to a value: x |> f = f(x)
+// swiftlint:disable:next static_operator
 public func |> <A, B>(value: A, f: (A) -> B) -> B {
   f(value)
 }

@@ -367,6 +367,7 @@ private func analyzeEnum(
         let caseName = element.name.text
 
         let associatedValues: [AssociatedValue]? = element.parameterClause?.parameters.map {
+          // swiftlint:disable:next closure_parameter_position
           param in
           AssociatedValue(
             label: param.firstName?.text,
@@ -642,6 +643,7 @@ private func generateTypeGenerator(_ type: TypeSyntax, config: DeriveGenConfig) 
 
 // MARK: - Public Macro Declaration
 
+// swiftlint:disable:next orphaned_doc_comment
 /// **@DeriveGen Macro Attribute**
 ///
 /// Automatically derives a `Gen<T>` generator for the annotated type.

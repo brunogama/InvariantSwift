@@ -631,7 +631,9 @@ public struct PathCondition: Sendable {
   /// Check if path condition is satisfiable
   public func isSatisfiable(using solver: SMTSolver) async -> Bool {
     let conjunctiveConstraint = conditions.reduce(SMTExpression.constant(SMTValue.bool(true))) {
+      // swiftlint:disable:next closure_parameter_position
       acc,
+      // swiftlint:disable:next closure_parameter_position
       condition in
       SMTExpression.binary(SMTBinaryOp.and, acc, condition)
     }
@@ -648,7 +650,9 @@ public struct PathCondition: Sendable {
   public func generateInputs(using solver: SMTSolver, count: Int = 5) async -> [[String: SMTValue]]
   {
     let conjunctiveConstraint = conditions.reduce(SMTExpression.constant(SMTValue.bool(true))) {
+      // swiftlint:disable:next closure_parameter_position
       acc,
+      // swiftlint:disable:next closure_parameter_position
       condition in
       SMTExpression.binary(SMTBinaryOp.and, acc, condition)
     }
@@ -709,6 +713,7 @@ public enum SMTExamples {
     )
   }
 
+  // swiftlint:disable:next orphaned_doc_comment
   /// Generate pairs of integers with specific relationships
   // swiftlint:disable:next large_tuple
   public static func pythagoreanTripleConstraints() -> SMTGenerator<(Int, Int, Int)> {

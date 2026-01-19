@@ -133,6 +133,7 @@ public struct Seed: Sendable, Hashable {
     return (value: nextState, next: Self(value: nextState))
   }
 
+  // swiftlint:disable:next orphaned_doc_comment
   /// The raw 64-bit state value of this seed.
   ///
   /// Provides direct access to the underlying state for serialization,

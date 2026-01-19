@@ -372,6 +372,7 @@ public func checkPropertyAsync<T: Sendable>(
 
 // MARK: - Utility Functions for Macro-Generated Code
 
+// swiftlint:disable:next orphaned_doc_comment
 /// Helper function to flatten nested tuples for multi-parameter properties
 // swiftlint:disable:next large_tuple
 public func flattenTuple<A, B, C>(_ tuple: ((A, B), C)) -> (A, B, C) {
@@ -390,6 +391,7 @@ public func flattenTuple<A, B, C, D, E>(_ tuple: ((((A, B), C), D), E)) -> (A, B
 
 // MARK: - Property Test Result Types
 
+// swiftlint:disable:next orphaned_doc_comment
 /// Result of executing a property-based test with details for logging and reporting.
 ///
 /// `PropertyTestResult` captures the outcome of a property-based test execution,
@@ -454,6 +456,7 @@ public enum PropertyTestResult: Sendable {
   case gaveUp(discarded: Int, iterations: Int)
 }
 
+// swiftlint:disable:next orphaned_doc_comment
 /// Convert internal property results to Swift Testing-compatible result format.
 ///
 /// Transforms a raw ``PropertyResult`` (from the test framework) into a ``PropertyTestResult``

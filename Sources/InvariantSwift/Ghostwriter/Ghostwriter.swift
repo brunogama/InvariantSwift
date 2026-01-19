@@ -25,6 +25,7 @@ public actor Ghostwriter {
 
   // MARK: - Main Entry Point
 
+  // swiftlint:disable:next orphaned_doc_comment
   /// Run the Ghostwriter to analyze sources and generate tests.
   // swiftlint:disable:next cyclomatic_complexity
   public func run() async throws -> GhostwriterResult {

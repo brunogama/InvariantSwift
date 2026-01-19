@@ -190,6 +190,7 @@ public struct BusinessRuleViolation: Error, CustomStringConvertible, Sendable {
     """
   }
 
+  // swiftlint:disable:next orphaned_doc_comment
   /// **Business-focused error report**
   ///
   /// Generates a report emphasizing business impact and implications, suitable for
@@ -250,6 +251,7 @@ public struct BusinessRuleViolation: Error, CustomStringConvertible, Sendable {
   }
 }
 
+// swiftlint:disable:next orphaned_doc_comment
 /// **Error when property testing gives up due to too many discarded cases**
 ///
 /// `BusinessRuleGaveUp` indicates that property testing could not generate enough valid

@@ -655,6 +655,7 @@ extension Gen {
 // MARK: - Helper Extensions
 
 extension Gen {
+  // swiftlint:disable:next orphaned_doc_comment
   /// Create 3-tuple generator from three generators.
   ///
   /// Combines three independent generators into a single generator

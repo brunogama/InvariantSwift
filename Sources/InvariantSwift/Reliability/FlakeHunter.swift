@@ -3,6 +3,7 @@ import Dispatch
 
 // MARK: - Flake Hunter and Quarantine System
 
+// swiftlint:disable:next orphaned_doc_comment
 /// **Flake Hunter Infrastructure**
 ///
 /// Advanced system for detecting, analyzing, and quarantining flaky tests.

@@ -86,7 +86,6 @@ public actor SourceAnalyzer {
 
     // Pattern for type declarations with conformances
     // swiftlint:disable:next line_length
-    let typePattern =
       #"(public\s+|private\s+|internal\s+|fileprivate\s+|open\s+)?(struct|class|enum|actor)\s+(\w+)(?:<[^>]+>)?(?:\s*:\s*([^{]+))?\s*\{"#
 
     guard let regex = try? NSRegularExpression(pattern: typePattern, options: []) else {

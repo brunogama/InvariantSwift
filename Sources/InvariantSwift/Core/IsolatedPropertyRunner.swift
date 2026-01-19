@@ -98,6 +98,7 @@ struct SubprocessRunner {
 
 // MARK: - Isolated Property Runner
 
+// swiftlint:disable:next orphaned_doc_comment
 /// Property runner with crash isolation using subprocess execution
 ///
 /// Unlike the standard `PropertyRunner`, this runner can detect and handle

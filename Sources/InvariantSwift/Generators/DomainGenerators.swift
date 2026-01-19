@@ -2,6 +2,7 @@ import Foundation
 
 // MARK: - Domain-Specific Generators for Advanced Testing
 
+// swiftlint:disable:next orphaned_doc_comment
 /// **Domain-Specific Generators for Real-World Data Structures**
 ///
 /// Advanced generators for common domain objects including graphs, JSON schemas,
@@ -75,6 +76,7 @@ public struct DirectedGraph: Hashable, Codable, Sendable {
 }
 
 extension Gen where T == DirectedGraph {
+  // swiftlint:disable:next orphaned_doc_comment
   /// **Generate directed graphs with comprehensive coverage**
   ///
   /// Generates graphs covering important structural patterns:
@@ -88,7 +90,7 @@ extension Gen where T == DirectedGraph {
   /// - Cyclic graphs (simple cycles, complex cycles)
   /// - Connected vs disconnected components
   /// - Various vertex degrees and connectivity patterns
-  // swiftlint:disable:next cyclomatic_complexity
+  // swiftlint:disable:next function_body_length cyclomatic_complexity
   public static func directedGraph(
     maxVertices: Int = 10,
     maxEdges: Int = 15,
@@ -419,6 +421,7 @@ public struct Box<T: Codable>: Codable, Sendable where T: Sendable {
 extension Box: Equatable where T: Equatable {}
 
 extension Gen where T == JSONSchema {
+  // swiftlint:disable:next orphaned_doc_comment
   /// **Generate JSON schemas with realistic complexity**
   ///
   /// Creates schemas covering common patterns:
@@ -436,7 +439,7 @@ extension Gen where T == JSONSchema {
   /// - Enum constraints and pattern validation
   // swiftlint:disable:next function_body_length
   public static func jsonSchema(maxDepth: Int = 3, maxProperties: Int = 5) -> Gen<JSONSchema> {
-    // swiftlint:disable:next cyclomatic_complexity
+    // swiftlint:disable:next function_body_length cyclomatic_complexity
     func schemaGenerator(depth: Int) -> Gen<JSONSchema> {
       Gen<JSONSchema>(
         generate: { rng, size in
@@ -652,6 +655,7 @@ public enum DatabaseValue: Codable, Sendable, Equatable, Hashable {
 }
 
 extension Gen where T == DatabaseRecord {
+  // swiftlint:disable:next orphaned_doc_comment
   /// **Generate realistic database records**
   ///
   /// Creates records with various field types and realistic data patterns:
@@ -667,7 +671,7 @@ extension Gen where T == DatabaseRecord {
   /// - Nullable vs non-nullable fields
   /// - Primary keys and metadata
   /// - Realistic data distributions
-  // swiftlint:disable:next cyclomatic_complexity
+  // swiftlint:disable:next function_body_length cyclomatic_complexity
   public static func databaseRecord(
     maxFields: Int = 10,
     fieldNames: [String] = [
@@ -841,6 +845,7 @@ public enum HTTPMethod: String, CaseIterable, Codable, Sendable, Hashable {
 }
 
 extension Gen where T == HTTPRequest {
+  // swiftlint:disable:next orphaned_doc_comment
   /// **Generate realistic HTTP requests**
   ///
   /// Creates requests covering common API patterns:
@@ -856,7 +861,7 @@ extension Gen where T == HTTPRequest {
   /// - Common header patterns
   /// - Query parameter structures
   /// - Content negotiation patterns
-  // swiftlint:disable:next cyclomatic_complexity
+  // swiftlint:disable:next function_body_length cyclomatic_complexity
   public static func httpRequest(
     maxPathSegments: Int = 4,
     maxHeaders: Int = 10,

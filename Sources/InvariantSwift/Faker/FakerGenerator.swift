@@ -7,8 +7,9 @@ import Foundation
 
 extension Gen {
 
+  // swiftlint:disable:next orphaned_doc_comment
   /// Create a faker generator for the specified type.
-  // swiftlint:disable:next cyclomatic_complexity
+  // swiftlint:disable:next cyclomatic_complexity function_body_length
   public static func faker(
     _ type: FakerType,
     locale: FakerLocale = .enUS
@@ -265,7 +266,7 @@ extension Gen {
             words[0] = first.capitalized
           }
           return words.joined(separator: " ") + "."
-        // swiftlint:disable:next multiline_function_chains
+          // swiftlint:disable:next multiline_function_chains
         }.joined(separator: " ")
       }
 
@@ -280,7 +281,7 @@ extension Gen {
             words[0] = first.capitalized
           }
           return words.joined(separator: " ") + "."
-        // swiftlint:disable:next multiline_function_chains
+          // swiftlint:disable:next multiline_function_chains
         }.joined(separator: " ")
       }
 
@@ -296,9 +297,9 @@ extension Gen {
               words[0] = first.capitalized
             }
             return words.joined(separator: " ") + "."
-          // swiftlint:disable:next multiline_function_chains
+            // swiftlint:disable:next multiline_function_chains
           }.joined(separator: " ")
-        // swiftlint:disable:next multiline_function_chains
+          // swiftlint:disable:next multiline_function_chains
         }.joined(separator: "\n\n")
       }
 
@@ -503,8 +504,9 @@ extension Gen {
     }
   }
 
+  // swiftlint:disable:next orphaned_doc_comment
   /// Create a domain-specific faker generator.
-  // swiftlint:disable:next cyclomatic_complexity
+  // swiftlint:disable:next cyclomatic_complexity function_body_length
   public static func faker(domain: DomainFaker, locale: FakerLocale = .enUS) -> Gen<String> {
     switch domain {
     // Healthcare
@@ -623,7 +625,7 @@ extension Gen {
             sentence = first.uppercased() + sentence.dropFirst()
           }
           return sentence + "."
-        // swiftlint:disable:next multiline_function_chains
+          // swiftlint:disable:next multiline_function_chains
         }.joined(separator: " ")
       }
 

@@ -36,6 +36,7 @@ public struct PropertyMacroConfig: Sendable {
 /// Extracts configuration from @Property attribute arguments
 public enum PropertyConfigExtractor {
 
+  // swiftlint:disable:next orphaned_doc_comment
   /// Extract config from attribute syntax
   // swiftlint:disable:next cyclomatic_complexity
   public static func extract(from attribute: AttributeSyntax) -> PropertyMacroConfig {

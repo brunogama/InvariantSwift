@@ -34,6 +34,7 @@ public final class FakerData: @unchecked Sendable {
 
 // MARK: - Locale Data
 
+// swiftlint:disable:next orphaned_doc_comment
 /// Data for a specific locale.
 // swiftlint:disable:next type_body_length
 public struct LocaleData: Sendable {

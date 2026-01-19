@@ -157,6 +157,10 @@ identifier_name:
   - d  # double/delta
   - c  # character/count
   - s  # string/sequence
+  - t  # time/type
+  - p  # position/point
+  - u  # value/unit
+  - e  # element/error
 
 type_name:
   min_length: 3

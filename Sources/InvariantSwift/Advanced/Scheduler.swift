@@ -416,6 +416,7 @@ extension Scheduler {
     await applyJitter()
 
     return await _Concurrency.withTaskGroup(of: childTaskResultType, returning: returnType) {
+      // swiftlint:disable:next closure_parameter_position
       group in
       await body(&group)
     }
@@ -435,6 +436,7 @@ extension Scheduler {
       of: childTaskResultType,
       returning: returnType
     ) {
+      // swiftlint:disable:next closure_parameter_position
       group in
       try await body(&group)
     }

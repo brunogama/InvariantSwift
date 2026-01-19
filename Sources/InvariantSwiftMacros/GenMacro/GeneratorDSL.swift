@@ -3,6 +3,7 @@ import SwiftSyntaxBuilder
 
 // MARK: - Generator DSL Parser
 
+// swiftlint:disable:next orphaned_doc_comment
 /// Parses generator DSL expressions from @Gen attribute arguments.
 ///
 /// Supported DSL patterns:
@@ -343,7 +344,7 @@ public enum GeneratorDSL {
 
   // MARK: - Function Call Parsing
 
-  // swiftlint:disable:next cyclomatic_complexity
+  // swiftlint:disable:next cyclomatic_complexity function_body_length
   private static func parseFunctionCall(_ expr: FunctionCallExprSyntax) -> ParsedGenerator? {
     guard let memberAccess = expr.calledExpression.as(MemberAccessExprSyntax.self) else {
       return nil
@@ -517,8 +518,9 @@ public enum GeneratorDSL {
 
 extension GeneratorDSL {
 
+  // swiftlint:disable:next orphaned_doc_comment
   /// Generate SwiftSyntax expression for a parsed generator
-  // swiftlint:disable:next cyclomatic_complexity
+  // swiftlint:disable:next cyclomatic_complexity function_body_length
   public static func generateCode(for parsed: ParsedGenerator) -> ExprSyntax {
     switch parsed {
     // Primitives

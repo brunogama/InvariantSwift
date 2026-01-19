@@ -294,6 +294,7 @@ extension Lens {
   }
 }
 
+// swiftlint:disable:next orphaned_doc_comment
 /// Compose two lenses using forward-composition syntax.
 ///
 /// This operator composes two lenses in left-to-right order: `left >>> right` creates a lens
@@ -325,6 +326,7 @@ extension Lens {
 ///   ```
 ///
 /// - See Also: ``compose(_:)``, ``Lens``
+// swiftlint:disable:next static_operator
 public func >>> <Root, Value, NewValue>(
   left: Lens<Root, Value>,
   right: Lens<Value, NewValue>

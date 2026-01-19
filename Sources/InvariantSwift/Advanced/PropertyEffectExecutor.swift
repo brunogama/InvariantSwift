@@ -14,6 +14,7 @@ public actor PropertyEffectExecutor {
 
   public init() {}
 
+  // swiftlint:disable:next orphaned_doc_comment
   /// Execute a PropertyEffect with full isolation and tracing
   // swiftlint:disable:next function_body_length
   public func run<A>(_ effect: PropertyEffect<A>) async -> PropertyEffectResult {

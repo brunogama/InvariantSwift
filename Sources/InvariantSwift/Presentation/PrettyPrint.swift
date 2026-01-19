@@ -2,6 +2,7 @@ import Foundation
 
 // MARK: - Pretty-Printing and Diff System for Counterexamples
 
+// swiftlint:disable:next orphaned_doc_comment
 /// **Pretty-Printing Infrastructure**
 ///
 /// Advanced pretty-printing system for test values, counterexamples, and diffs.

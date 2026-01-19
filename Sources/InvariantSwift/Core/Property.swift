@@ -41,6 +41,7 @@ public enum FailureReason: Sendable, Equatable, CustomStringConvertible {
   }
 }
 
+// swiftlint:disable:next orphaned_doc_comment
 /// Outcome of executing a property-based test.
 ///
 /// `PropertyResult<T>` represents the three possible outcomes when running a property test:
@@ -393,6 +394,7 @@ public struct PropertyConfig: Sendable {
   public static let `default` = Self()
 }
 
+// swiftlint:disable:next orphaned_doc_comment
 /// Actor for thread-safe property test execution with shrinking support.
 ///
 /// `PropertyRunner` is the main entry point for executing property-based tests.
@@ -663,6 +665,7 @@ extension Property {
 
   // MARK: - Transformation Combinators
 
+  // swiftlint:disable:next orphaned_doc_comment
   /// Transform the predicate while keeping the same generator.
   ///
   /// Useful for wrapping or modifying the predicate logic without changing generation.

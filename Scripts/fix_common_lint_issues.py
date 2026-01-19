@@ -174,6 +174,9 @@ def process_violations(violations: list[LintViolation], dry_run: bool = True) ->
         'large_tuple',
         'for_where',
         'multiline_function_chains',
+        'orphaned_doc_comment',
+        'closure_parameter_position',
+        'static_operator',
     }
     
     # Group violations by file

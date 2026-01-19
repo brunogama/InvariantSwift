@@ -89,6 +89,7 @@ public struct TestRunStatistics: Sendable, Codable {
 
 // MARK: - Statistics Collector
 
+// swiftlint:disable:next orphaned_doc_comment
 /// Collects and aggregates statistics during property test execution.
 ///
 /// Use `StatisticsCollector` to track metrics as a property test runs.

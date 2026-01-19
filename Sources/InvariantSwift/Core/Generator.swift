@@ -1129,6 +1129,7 @@ extension Gen {
     )
   }
 
+  // swiftlint:disable:next orphaned_doc_comment
   /// Combines three independent generators into a generator of triples.
   ///
   /// Generates values from all three generators independently and combines them

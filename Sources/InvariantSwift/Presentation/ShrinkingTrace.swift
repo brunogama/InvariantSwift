@@ -46,6 +46,7 @@ public struct ShrinkStep<T>: Sendable where T: Sendable {
 
 // MARK: - Shrinking Trace
 
+// swiftlint:disable:next orphaned_doc_comment
 /// Records the complete history of a shrinking operation.
 ///
 /// `ShrinkingTrace` captures every step of the shrinking process, from the

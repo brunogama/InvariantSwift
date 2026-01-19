@@ -1,5 +1,6 @@
 import Foundation
 
+// swiftlint:disable:next orphaned_doc_comment
 /// Model-based testing framework for stateful system testing
 /// Enables testing of stateful systems by defining state machines, commands, and invariants
 
@@ -504,6 +505,7 @@ public struct ModelTestConfig: Sendable {
   public static let `default` = Self()
 }
 
+// swiftlint:disable:next orphaned_doc_comment
 /// **Outcome of a model-based test execution**
 ///
 /// `ModelTestResult` encapsulates the result of running a model-based test, providing both
@@ -549,6 +551,7 @@ public struct ModelTestConfig: Sendable {
 ///
 /// - See Also: ``ModelTestRunner``, ``Command``, ``ModelTestConfig``
 public enum ModelTestResult<CommandType>: Sendable where CommandType: Command & Sendable {
+  // swiftlint:disable:next orphaned_doc_comment
   /// **Test passed: All iterations succeeded without violations**
   ///
   /// Indicates the model-based test ran to completion without finding any failures.
@@ -571,6 +574,7 @@ public enum ModelTestResult<CommandType>: Sendable where CommandType: Command & 
   /// absence of them suggests but doesn't guarantee correctness).
   case success(iterations: Int)
 
+  // swiftlint:disable:next orphaned_doc_comment
   /// **Test failed: Command sequence violated specification**
   ///
   /// Indicates the test runner found a command sequence that causes the system to violate
@@ -618,6 +622,7 @@ public enum ModelTestResult<CommandType>: Sendable where CommandType: Command & 
     shrunk: [CommandType]
   )
 
+  // swiftlint:disable:next orphaned_doc_comment
   /// **Test incomplete: Too many discarded command sequences**
   ///
   /// Indicates the test runner gave up because too many generated command sequences were
@@ -662,6 +667,7 @@ public enum ModelTestResult<CommandType>: Sendable where CommandType: Command & 
   case gaveUp(discarded: Int, iterations: Int)
 }
 
+// swiftlint:disable:next orphaned_doc_comment
 /// **Thread-safe executor for model-based tests**
 ///
 /// `ModelTestRunner` orchestrates model-based testing by:
@@ -743,6 +749,7 @@ public actor ModelTestRunner {
     }
   }
 
+  // swiftlint:disable:next orphaned_doc_comment
   /// **Execute a complete model-based test**
   ///
   /// Runs the full model-based testing process:
@@ -1191,6 +1198,7 @@ extension Property {
   }
 }
 
+// swiftlint:disable:next orphaned_doc_comment
 /// **Generator for valid command sequences from a state machine**
 ///
 /// `ModelCommandSequenceGenerator` bridges model-based testing with the property-based testing

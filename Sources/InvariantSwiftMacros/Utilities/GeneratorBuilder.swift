@@ -9,6 +9,7 @@ public enum GeneratorBuilder {
 
   // MARK: - Primitive Generators
 
+  // swiftlint:disable:next orphaned_doc_comment
   /// Returns the generator expression for a primitive type
   // swiftlint:disable:next cyclomatic_complexity
   public static func primitive(_ typeName: String) -> ExprSyntax? {

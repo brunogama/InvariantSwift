@@ -8,6 +8,7 @@ import Foundation
 
 // MARK: - Core Coverage Types
 
+// swiftlint:disable:next orphaned_doc_comment
 /// Unique identifier for executable branches in source code.
 ///
 /// Branch identifiers are used to track which paths through a function's control flow
@@ -70,6 +71,7 @@ public struct BranchID: Sendable, Hashable, CustomStringConvertible {
   }
 }
 
+// swiftlint:disable:next orphaned_doc_comment
 /// Coverage metrics and uncovered symbols used to guide test generation.
 ///
 /// A coverage budget summarizes the current state of code coverage and identifies
@@ -235,6 +237,7 @@ public struct ExecutionRecord: Sendable {
   }
 }
 
+// swiftlint:disable:next orphaned_doc_comment
 /// An actor that collects and analyzes coverage data during test execution.
 ///
 /// `CoverageCollector` tracks which symbols (functions/branches) are executed during
@@ -410,6 +413,7 @@ public actor CoverageCollector {
     allSeenSymbols.formUnion(symbols)
   }
 
+  // swiftlint:disable:next orphaned_doc_comment
   /// Get execution statistics (for progress monitoring and diagnostics).
   ///
   /// Returns aggregate statistics about test execution history, useful for
@@ -724,6 +728,7 @@ extension Property {
   }
 }
 
+// swiftlint:disable:next orphaned_doc_comment
 /// Summary of code coverage achieved during a test session.
 ///
 /// A coverage report captures the before/after coverage state of a test run, showing
@@ -837,6 +842,7 @@ public struct CoverageReport: Sendable {
     self.uncoveredSymbols = uncoveredSymbols
   }
 
+  // swiftlint:disable:next orphaned_doc_comment
   /// Generate a human-readable summary of the coverage report.
   ///
   /// Formats all key metrics into a readable multi-line string suitable for logging,

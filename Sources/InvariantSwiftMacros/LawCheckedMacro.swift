@@ -1084,6 +1084,7 @@ private func generateCustomLawTest(
 
 // MARK: - Public Macro Declaration
 
+// swiftlint:disable:next orphaned_doc_comment
 /// **@LawChecked Macro Attribute**
 ///
 /// Automatically generates property-based tests for mathematical laws.

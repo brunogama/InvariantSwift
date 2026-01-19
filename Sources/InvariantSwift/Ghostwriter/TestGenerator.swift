@@ -5,6 +5,7 @@ import Foundation
 
 // MARK: - Test Generator
 
+// swiftlint:disable:next orphaned_doc_comment
 /// Generates property test code from type information.
 // swiftlint:disable:next type_body_length
 public struct TestGenerator: Sendable {
@@ -48,6 +49,7 @@ public struct TestGenerator: Sendable {
     return tests
   }
 
+  // swiftlint:disable:next orphaned_doc_comment
   /// Generate a single test for a pattern.
   // swiftlint:disable:next cyclomatic_complexity
   public func generateTest(for typeInfo: TypeInfo, pattern: TestPattern) -> GeneratedTest? {

@@ -1,3 +1,4 @@
+// swiftlint:disable:next orphaned_doc_comment
 /// FunctionalTesting - A modern Swift 6 property-based testing library
 /// Built on category theory principles with protocol-witness pattern architecture
 ///
