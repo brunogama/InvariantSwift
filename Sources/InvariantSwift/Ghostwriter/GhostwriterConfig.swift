@@ -177,6 +177,28 @@ public struct GhostwriterConfig: Sendable {
   /// Test file name suffix
   public let testSuffix: String
 
+  /// Whether to use SourceKitten for accurate protocol detection
+  public let useSourceKitten: Bool
+
+  /// Types that have known Arbitrary generators.
+  /// Only types in this set (or with @Arbitrary attribute) will have tests generated.
+  /// Empty set means generate for all types (no filtering).
+  public let supportedArbitraryTypes: Set<String>
+
+  /// Default set of types with built-in Arbitrary generators
+  public static let defaultArbitraryTypes: Set<String> = [
+    // Primitives
+    "Int", "Int8", "Int16", "Int32", "Int64",
+    "UInt", "UInt8", "UInt16", "UInt32", "UInt64",
+    "Double", "Float", "Bool", "String", "Character",
+    // Core InvariantSwift types
+    "Seed", "Size",
+    // Ghostwriter types
+    "GeneratedTest", "GhostwriterManifest", "TestPattern",
+    "ProtocolConformance", "TypeKind", "PropertyInfo",
+    "MethodInfo", "TypeInfo", "SourceFileInfo",
+  ]
+
   public init(
     sources: [String],
     outputDirectory: String = "Tests/Generated/",
@@ -186,7 +208,9 @@ public struct GhostwriterConfig: Sendable {
     verbose: Bool = false,
     force: Bool = false,
     testPrefix: String = "test",
-    testSuffix: String = "PropertyTests"
+    testSuffix: String = "PropertyTests",
+    useSourceKitten: Bool = true,
+    supportedArbitraryTypes: Set<String>? = nil
   ) {
     self.sources = sources
     self.outputDirectory = outputDirectory
@@ -197,6 +221,8 @@ public struct GhostwriterConfig: Sendable {
     self.force = force
     self.testPrefix = testPrefix
     self.testSuffix = testSuffix
+    self.useSourceKitten = useSourceKitten
+    self.supportedArbitraryTypes = supportedArbitraryTypes ?? Self.defaultArbitraryTypes
   }
 
   /// Default configuration

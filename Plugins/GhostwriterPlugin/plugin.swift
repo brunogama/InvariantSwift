@@ -146,7 +146,8 @@ struct GhostwriterPlugin: CommandPlugin {
       patterns: patterns,
       excludePatterns: excludePatterns,
       dryRun: dryRun,
-      verbose: verbose
+      verbose: verbose,
+      supportedArbitraryTypes: GhostwriteConfig.defaultArbitraryTypes
     )
   }
 
@@ -222,8 +223,18 @@ struct GhostwriterPlugin: CommandPlugin {
     }
 
     // Group types by source file for generation
+    // Filter to only types with known Arbitrary generators
+    let supportedTypes = testableTypes.filter { type in
+      config.supportedArbitraryTypes.contains(type.name)
+    }
+
+    if verbose && supportedTypes.count < testableTypes.count {
+      let skipped = testableTypes.count - supportedTypes.count
+      print("⚠️ Skipped \(skipped) type(s) without Arbitrary generators")
+    }
+
     var typesByFile: [String: [ExtractedType]] = [:]
-    for type in testableTypes {
+    for type in supportedTypes {
       typesByFile[type.sourceFile, default: []].append(type)
     }
 
@@ -363,8 +374,12 @@ struct GhostwriterPlugin: CommandPlugin {
     for conformance in conformances {
       switch conformance {
       case "Codable":
-        patterns.append(.codableRoundtrip)
-        patterns.append(contentsOf: TestPatternType.equatableLaws)
+        // Codable roundtrip only - don't assume Equatable
+        // The roundtrip test requires Equatable but we only generate it
+        // if the type is also explicitly Equatable
+        if conformances.contains("Equatable") || conformances.contains("Hashable") {
+          patterns.append(.codableRoundtrip)
+        }
       case "Equatable":
         patterns.append(contentsOf: TestPatternType.equatableLaws)
       case "Hashable":
@@ -398,24 +413,19 @@ struct GhostwriterPlugin: CommandPlugin {
     lines.append("import Foundation")
     lines.append("@testable import InvariantSwift")
     lines.append("")
-    lines.append("@Suite(\"\(fileName) Property Tests\")")
-    lines.append("struct \(fileName)PropertyTests {")
+    lines.append("// MARK: - \(fileName) Property Tests")
     lines.append("")
 
     for type in types {
-      lines.append("  // MARK: - \(type.name) Tests")
+      lines.append("// MARK: - \(type.name)")
       lines.append("")
 
       for pattern in type.applicablePatterns {
         let testCode = generateTest(for: type, pattern: pattern)
-        let indented = testCode.split(separator: "\n").map { "  \($0)" }.joined(separator: "\n")
-        lines.append(indented)
+        lines.append(testCode)
         lines.append("")
       }
     }
-
-    lines.append("}")
-    lines.append("")
 
     return lines.joined(separator: "\n")
   }
@@ -556,6 +566,21 @@ private struct GhostwriteConfig {
   let excludePatterns: [String]
   let dryRun: Bool
   let verbose: Bool
+  let supportedArbitraryTypes: Set<String>
+
+  /// Default set of types with known Arbitrary generators
+  static let defaultArbitraryTypes: Set<String> = [
+    // Primitives
+    "Int", "Int8", "Int16", "Int32", "Int64",
+    "UInt", "UInt8", "UInt16", "UInt32", "UInt64",
+    "Double", "Float", "Bool", "String", "Character",
+    // Core InvariantSwift types
+    "Seed", "Size",
+    // Ghostwriter types
+    "GeneratedTest", "GhostwriterManifest", "TestPattern",
+    "ProtocolConformance", "TypeKind", "PropertyInfo",
+    "MethodInfo", "TypeInfo", "SourceFileInfo",
+  ]
 }
 
 private struct GhostwriteResult {

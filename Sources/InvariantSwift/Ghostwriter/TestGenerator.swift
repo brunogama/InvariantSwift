@@ -18,7 +18,18 @@ public struct TestGenerator: Sendable {
   // MARK: - Main Generation
 
   /// Generate all tests for a type.
+  /// Returns empty array if the type is not in supportedArbitraryTypes.
   public func generateTests(for typeInfo: TypeInfo) -> [GeneratedTest] {
+    // Skip types without known Arbitrary generators (unless supportedArbitraryTypes is empty)
+    if !config.supportedArbitraryTypes.isEmpty
+      && !config.supportedArbitraryTypes.contains(typeInfo.name)
+    {
+      if config.verbose {
+        print("  ⚠️ Skipping \(typeInfo.name): no Arbitrary generator available")
+      }
+      return []
+    }
+
     var tests: [GeneratedTest] = []
 
     let patterns =
