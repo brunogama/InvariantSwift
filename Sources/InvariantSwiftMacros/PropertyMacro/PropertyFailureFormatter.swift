@@ -24,30 +24,30 @@ public enum PropertyFailureFormatter {
   ) -> [MessageComponent] {
     var components: [MessageComponent] = []
 
+    // Note: We use escaped newlines (\\n) so they appear as \n in the generated code
+    // and are not interpreted as literal newlines which would break the string literal
     components.append(.literal("Property failed after "))
     components.append(.variable("iterations"))
-    components.append(.literal(" iterations\n\n"))
+    components.append(.literal(" iterations. "))
 
-    components.append(.literal("Original failing input:\n"))
-    for label in labels {
-      components.append(.literal("  \(label): "))
+    components.append(.literal("Original: "))
+    for (index, label) in labels.enumerated() {
+      if index > 0 { components.append(.literal(", ")) }
+      components.append(.literal("\(label)="))
       components.append(.counterexampleValue(label))
-      components.append(.literal("\n"))
     }
 
-    components.append(.literal("\nShrunk to minimal case:\n"))
-    for label in labels {
-      components.append(.literal("  \(label): "))
+    components.append(.literal(" | Shrunk: "))
+    for (index, label) in labels.enumerated() {
+      if index > 0 { components.append(.literal(", ")) }
+      components.append(.literal("\(label)="))
       components.append(.shrunkValue(label))
-      components.append(.literal("\n"))
     }
 
     if includeSeed {
-      components.append(.literal("\nSeed: "))
+      components.append(.literal(" | Seed: "))
       components.append(.seedValue)
     }
-
-    components.append(.literal("\n\nTip: Re-run with this seed to reproduce the failure."))
 
     return components
   }
