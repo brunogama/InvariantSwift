@@ -339,3 +339,13 @@ extension Seed {
   /// Maximum seed value
   public static let max = Seed(value: UInt64.max)
 }
+
+// MARK: - Generatable Conformance
+
+extension Seed: Generatable {
+  /// Arbitrary generator for Seed values.
+  /// Uses Gen<UInt64>.uint64 and maps to Seed init.
+  public static var arbitrary: Gen<Seed> {
+    Gen<UInt64>.uint64.map { Seed(value: $0) }
+  }
+}
