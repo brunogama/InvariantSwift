@@ -555,7 +555,9 @@ func testFormValidation(form: FormData) {
 
 ### Recipe: Metamorphic Testing
 
-Test without knowing exact outputs.
+Test without knowing exact outputs by verifying relationships between inputs and outputs.
+
+#### Basic Metamorphic Relations
 
 ```swift
 // For a function where we don't know the exact output,
@@ -570,6 +572,145 @@ func testSinMetamorphic(
     
     #expect(abs(result1 - result2) < 0.0001)
 }
+```
+
+#### Using MetamorphicProperty
+
+```swift
+import InvariantSwift
+
+// Define a metamorphic relation
+let additionPermutation = MetamorphicRelation<[Int], Int>(
+    name: "addition-permutation",
+    category: .permutation,
+    transform: { array in array.shuffled() },
+    relation: { original, transformed, originalResult, transformedResult in
+        originalResult == transformedResult  // Sum is same regardless of order
+    }
+)
+
+@Test("Sum is independent of order")
+func testSumMetamorphic() async throws {
+    let property = MetamorphicProperty(
+        generator: Gen.array(Gen<Int>.int, count: 1...100),
+        function: { $0.reduce(0, +) },
+        relation: additionPermutation
+    )
+    
+    let result = await MetamorphicTestRunner().run(property)
+    #expect(result.allPassed)
+}
+```
+
+#### Common Metamorphic Relation Categories
+
+```swift
+// 1. Additive: f(x + k) relates to f(x)
+let additive = MetamorphicRelation<Int, Int>(
+    name: "additive",
+    transform: { $0 + 10 },
+    relation: { _, _, r1, r2 in r2 == r1 + 10 }  // For linear function
+)
+
+// 2. Multiplicative: f(x * k) relates to f(x)
+let multiplicative = MetamorphicRelation<Double, Double>(
+    name: "multiplicative", 
+    transform: { $0 * 2 },
+    relation: { _, _, r1, r2 in abs(r2 - r1 * 2) < 0.001 }
+)
+
+// 3. Negation: f(-x) relates to f(x)
+let negation = MetamorphicRelation<Double, Double>(
+    name: "negation",
+    transform: { -$0 },
+    relation: { _, _, r1, r2 in abs(r1 + r2) < 0.001 }  // For odd functions
+)
+
+// 4. Inclusion: f(subset) relates to f(superset)
+let inclusion = MetamorphicRelation<Set<Int>, Int>(
+    name: "inclusion",
+    transform: { $0.union([999]) },
+    relation: { _, _, r1, r2 in r2 >= r1 }  // Max can only increase
+)
+```
+
+#### Automatic Relation Discovery
+
+```swift
+@Test("Discover metamorphic relations")
+func testDiscoverRelations() async throws {
+    let engine = MetamorphicDiscoveryEngine()
+    
+    // Provide training inputs
+    let trainingData: [(input: [Int], output: Int)] = [
+        ([1, 2, 3], 6),
+        ([3, 2, 1], 6),
+        ([10, 20], 30),
+        ([20, 10], 30),
+    ]
+    
+    let discovered = try await engine.discover(
+        function: { $0.reduce(0, +) },
+        trainingData: trainingData
+    )
+    
+    for relation in discovered {
+        print("Found: \(relation.name) (\(relation.confidence)% confidence)")
+    }
+}
+```
+
+#### Metamorphic Testing for ML/AI
+
+```swift
+// Testing image classifiers without ground truth
+let rotationInvariance = MetamorphicRelation<Image, Classification>(
+    name: "rotation-invariance",
+    transform: { $0.rotated(by: .degrees(90)) },
+    relation: { _, _, r1, r2 in r1.label == r2.label }
+)
+
+let scaleInvariance = MetamorphicRelation<Image, Classification>(
+    name: "scale-invariance",
+    transform: { $0.scaled(by: 0.8) },
+    relation: { _, _, r1, r2 in r1.label == r2.label }
+)
+
+@Test("Image classifier metamorphic properties")
+func testClassifier() async throws {
+    let classifier = ImageClassifier()
+    
+    let property = MetamorphicProperty(
+        generator: Gen<Image>.image,
+        function: { classifier.classify($0) },
+        relations: [rotationInvariance, scaleInvariance]
+    )
+    
+    try await checkMetamorphicProperty(property)
+}
+```
+
+#### Relation Catalog
+
+InvariantSwift provides a built-in catalog of common relations:
+
+```swift
+// Use predefined relations
+let catalog = RelationCatalog.default
+
+// Numeric relations
+catalog.commutativity    // f(a, b) == f(b, a)
+catalog.associativity    // f(f(a, b), c) == f(a, f(b, c))
+catalog.identity         // f(a, identity) == a
+
+// Collection relations
+catalog.permutation      // f(shuffle(x)) relates to f(x)
+catalog.subset           // f(subset) relates to f(superset)
+catalog.reversal         // f(reverse(x)) relates to f(x)
+
+// String relations
+catalog.caseInsensitive  // f(upper(x)) relates to f(lower(x))
+catalog.concatenation    // f(a+b) relates to f(a) and f(b)
 ```
 
 ### Recipe: Oracle Testing

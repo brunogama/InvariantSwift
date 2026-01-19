@@ -12,6 +12,10 @@ InvariantSwift includes powerful advanced features for sophisticated testing sce
 6. [Flake Detection](#flake-detection)
 7. [SMT Solver Integration](#smt-solver-integration)
 8. [DICE (Distributed Integrated Coverage Engine)](#dice)
+9. [Linearizability Testing](#linearizability-testing)
+10. [Contract Testing](#contract-testing)
+11. [Regression Banking](#regression-banking)
+12. [Lens and Prism Optics](#lens-and-prism-optics)
 
 ---
 
@@ -649,3 +653,427 @@ func testBasic(input: Int) { ... }
 // Identify uncovered branches
 // Focus generation on gaps
 ```
+
+---
+
+## Linearizability Testing
+
+Test that concurrent operations on shared data structures are linearizable—i.e., they behave as if executed atomically in some sequential order.
+
+### Wing-Gong Algorithm
+
+InvariantSwift implements the Wing-Gong algorithm for efficient linearizability checking:
+
+```swift
+import InvariantSwift
+
+// Define a sequential specification
+let stackSpec = Spec<StackOp, StackResult> { op, state in
+    switch op {
+    case .push(let value):
+        state.append(value)
+        return .ok
+    case .pop:
+        if let last = state.popLast() {
+            return .value(last)
+        }
+        return .empty
+    }
+}
+
+// Check linearizability of concurrent execution
+let checker = LinearizabilityChecker(spec: stackSpec)
+
+let result = await checker.check(operations: [
+    Operation(thread: 1, op: .push(42), start: 0, end: 10),
+    Operation(thread: 2, op: .pop, start: 5, end: 15),
+    Operation(thread: 2, result: .value(42))
+])
+
+switch result {
+case .linearizable(let witness):
+    print("Linearizable! Order: \(witness.linearization)")
+case .notLinearizable(let witness):
+    print("Not linearizable: \(witness.explanation)")
+}
+```
+
+### Concurrent Data Structure Testing
+
+```swift
+@Test("ConcurrentQueue is linearizable")
+func testQueueLinearizability() async throws {
+    let queue = ConcurrentQueue<Int>()
+    let scheduler = DeterministicScheduler(seed: 42)
+    
+    let operations = try await scheduler.runConcurrent(threads: 4) { threadId in
+        if threadId % 2 == 0 {
+            queue.enqueue(threadId)
+            return Operation(op: .enqueue(threadId))
+        } else {
+            let value = queue.dequeue()
+            return Operation(op: .dequeue, result: value)
+        }
+    }
+    
+    let result = await LinearizabilityChecker(spec: queueSpec).check(operations)
+    #expect(result.isLinearizable)
+}
+```
+
+### Happens-Before Analysis
+
+```swift
+// Build happens-before graph
+let hbGraph = HappensBefore()
+
+hbGraph.addEdge(from: op1, to: op2)  // op1 happens-before op2
+hbGraph.addEdge(from: op2, to: op3)
+
+// Check ordering
+if hbGraph.happensBefore(op1, op3) {
+    print("op1 → op3 (transitive)")
+}
+
+// Find concurrent operations
+let concurrent = hbGraph.findConcurrent(op2)
+```
+
+---
+
+## Contract Testing
+
+Define behavioral contracts for types and verify implementations conform to them.
+
+### Defining Contracts
+
+```swift
+import InvariantSwift
+
+// Define a contract for Equatable types
+let equatableContract = ContractTestRunner<Int> { value in
+    // Reflexivity: a == a
+    Contract.require("reflexivity") { value == value }
+    
+    // Symmetry: if a == b then b == a (tested via generator)
+    // Transitivity: if a == b and b == c then a == c
+}
+
+// Run the contract
+let result = try await equatableContract.test(
+    generator: Gen<Int>.int,
+    iterations: 1000
+)
+
+switch result {
+case .passed:
+    print("Contract satisfied")
+case .violated(let violation):
+    print("Violated: \(violation.contractName)")
+    print("Counterexample: \(violation.input)")
+}
+```
+
+### Protocol Contracts
+
+```swift
+// Contract for Comparable
+protocol ComparableContract {
+    static func verifyContract<T: Comparable>(
+        _ gen: Gen<T>
+    ) async throws -> ContractTestResult
+}
+
+extension ComparableContract {
+    static func verifyContract<T: Comparable>(
+        _ gen: Gen<T>
+    ) async throws -> ContractTestResult {
+        let runner = ContractTestRunner<(T, T, T)>()
+        
+        return try await runner.test(
+            generator: Gen.zip(gen, gen, gen)
+        ) { (a, b, c) in
+            // Irreflexivity: !(a < a)
+            Contract.require("irreflexivity") { !(a < a) }
+            
+            // Asymmetry: if a < b then !(b < a)
+            Contract.require("asymmetry") {
+                !(a < b) || !(b < a)
+            }
+            
+            // Transitivity: if a < b and b < c then a < c
+            Contract.require("transitivity") {
+                !(a < b && b < c) || a < c
+            }
+        }
+    }
+}
+```
+
+### Custom Type Contracts
+
+```swift
+@ContractProtocol
+struct Money: Equatable, Comparable {
+    let amount: Decimal
+    let currency: String
+    
+    // Invariant: amount >= 0
+    static var invariants: [Invariant<Money>] {
+        [
+            Invariant("non-negative") { $0.amount >= 0 }
+        ]
+    }
+}
+
+@Test("Money satisfies contracts")
+func testMoneyContracts() async throws {
+    let moneyGen = Gen.zip(
+        Gen<Decimal>.decimal(in: 0...1000),
+        Gen.element(of: ["USD", "EUR", "GBP"])
+    ).map { Money(amount: $0, currency: $1) }
+    
+    try await Money.verifyContracts(generator: moneyGen)
+}
+```
+
+### Precondition and Postcondition Checking
+
+```swift
+extension Array {
+    /// Sorts the array in place.
+    /// - Precondition: Elements must be Comparable
+    /// - Postcondition: Array is sorted in ascending order
+    /// - Postcondition: Array contains same elements (permutation)
+    @Contract(
+        precondition: { _ in true },
+        postcondition: { old, new in
+            new.isSorted && Set(new) == Set(old)
+        }
+    )
+    mutating func checkedSort() where Element: Comparable {
+        sort()
+    }
+}
+```
+
+---
+
+## Regression Banking
+
+Persist and replay failing test cases for regression testing.
+
+### Banking Failures
+
+```swift
+let bank = RegressionBank(path: ".invariant/regressions.db")
+
+// Run property with automatic failure banking
+let property = Property(generator: Gen<String>.string) { input in
+    parseAndValidate(input)
+}
+
+let result = await PropertyRunner().runProperty(
+    property,
+    config: PropertyConfig(regressionBank: bank)
+)
+
+// Failed cases are automatically stored
+if case .failure(let counterexample, _, let shrunk, _, let seed) = result {
+    // This failure is now banked for future runs
+    print("Banked failure: \(shrunk)")
+}
+```
+
+### Replaying Banked Failures
+
+```swift
+// On subsequent test runs, replay banked failures first
+let failures = try await bank.allFailures()
+
+for failure in failures {
+    let reproduced = property.predicate(failure.input)
+    
+    if reproduced {
+        print("Regression still fails: \(failure.id)")
+    } else {
+        // Bug was fixed, remove from bank
+        try await bank.removeFailure(failure.id)
+        print("Regression fixed: \(failure.id)")
+    }
+}
+```
+
+### Bank Statistics
+
+```swift
+let stats = try await bank.getStatistics()
+print("Total banked failures: \(stats.totalCount)")
+print("By property:")
+for (name, count) in stats.byProperty {
+    print("  \(name): \(count)")
+}
+```
+
+### CI Integration
+
+```swift
+@Test("Replay regressions before random testing")
+func testWithRegressions() async throws {
+    let bank = try await RegressionBank(path: ".invariant/regressions.db")
+    
+    // First: replay all banked failures
+    let regressions = try await bank.failuresForProperty("myProperty")
+    for regression in regressions {
+        let passed = myProperty.predicate(regression.input)
+        #expect(passed, "Regression \(regression.id) still fails")
+    }
+    
+    // Then: run random testing
+    try await checkProperty(myProperty)
+}
+```
+
+---
+
+## Lens and Prism Optics
+
+Functional optics for immutable data access and manipulation in tests.
+
+### Lens Basics
+
+A Lens focuses on a single value within a structure:
+
+```swift
+import InvariantSwift
+
+struct Address {
+    var street: String
+    var city: String
+    var zip: String
+}
+
+struct Person {
+    var name: String
+    var age: Int
+    var address: Address
+}
+
+// Define lenses
+let addressLens = Lens<Person, Address>(
+    get: { $0.address },
+    set: { address, person in
+        var copy = person
+        copy.address = address
+        return copy
+    }
+)
+
+let cityLens = Lens<Address, String>(
+    get: { $0.city },
+    set: { city, address in
+        var copy = address
+        copy.city = city
+        return copy
+    }
+)
+
+// Compose lenses
+let personCityLens = addressLens.compose(cityLens)
+
+// Use in tests
+let person = Person(name: "Alice", age: 30, 
+                    address: Address(street: "123 Main", city: "Boston", zip: "02101"))
+
+let city = personCityLens.view(person)  // "Boston"
+let updated = personCityLens.set("Cambridge", person)  // New person with city = "Cambridge"
+```
+
+### Prism Basics
+
+A Prism focuses on one case of a sum type (enum):
+
+```swift
+enum Result<T, E> {
+    case success(T)
+    case failure(E)
+}
+
+let successPrism = Prism<Result<Int, String>, Int>(
+    extract: { result in
+        if case .success(let value) = result { return value }
+        return nil
+    },
+    embed: { .success($0) }
+)
+
+// Use in tests
+let result: Result<Int, String> = .success(42)
+let value = successPrism.extract(result)  // Optional(42)
+let embedded = successPrism.embed(100)    // .success(100)
+```
+
+### Testing with Optics
+
+```swift
+@PropertyTest
+func testLensLaws(person: Person, newCity: String) {
+    let lens = personCityLens
+    
+    // Law 1: Get-Put - setting what you get changes nothing
+    let current = lens.view(person)
+    let afterGetPut = lens.set(current, person)
+    #expect(afterGetPut == person)
+    
+    // Law 2: Put-Get - getting what you set returns what you set
+    let afterSet = lens.set(newCity, person)
+    let retrieved = lens.view(afterSet)
+    #expect(retrieved == newCity)
+    
+    // Law 3: Put-Put - setting twice is same as setting once
+    let afterFirst = lens.set("First", person)
+    let afterSecond = lens.set(newCity, afterFirst)
+    let direct = lens.set(newCity, person)
+    #expect(afterSecond == direct)
+}
+```
+
+### Traversal
+
+Focus on multiple values within a structure:
+
+```swift
+let arrayElementsTraversal = Traversal<[Int], Int>(
+    getAll: { $0 },
+    modify: { transform, array in array.map(transform) }
+)
+
+// Double all elements
+let doubled = arrayElementsTraversal.over({ $0 * 2 }, [1, 2, 3])  // [2, 4, 6]
+
+// Get all elements
+let all = arrayElementsTraversal.getAll([1, 2, 3])  // [1, 2, 3]
+```
+
+### Using Optics for State Diffs
+
+```swift
+@Test("Config changes tracked with lens")
+func testConfigChange() {
+    var config = AppConfig.default
+    
+    expectDifference(config) {
+        config = timeoutLens.set(60, config)
+    } changes: {
+        $0.timeout = 60
+    }
+}
+```
+
+---
+
+## See Also
+
+- [COOKBOOK.md](COOKBOOK.md) - Practical recipes
+- [API_REFERENCE.md](API_REFERENCE.md) - Complete API documentation
+- [FUZZING.md](FUZZING.md) - LibFuzzer integration guide
