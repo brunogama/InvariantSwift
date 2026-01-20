@@ -1,0 +1,14 @@
+# Custom SwiftLint configuration for functional tests
+# Overrides root .swiftlint.yml for this directory
+
+# Comprehensive functional test suites legitimately exceed standard limits
+# Tests remain cohesive and readable when kept together
+disabled_rules:
+  - file_length
+  - type_body_length
+  - line_length
+
+# Keep other important rules active
+opt_in_rules:
+  - closure_parameter_position
+  - identical_operands

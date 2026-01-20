@@ -1,0 +1,3 @@
+ancestorEntries = ["Package.swift"]
+ourEntries = ["Package.swift"]
+theirEntries = ["Package.swift"]

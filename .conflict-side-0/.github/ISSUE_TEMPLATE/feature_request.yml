@@ -1,0 +1,109 @@
+name: Feature Request
+description: Suggest an idea for FunctionalTesting
+title: "[Feature]: "
+labels: ["enhancement", "needs-triage"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for your interest in improving FunctionalTesting! Please describe your feature request.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Feature Summary
+      description: A brief description of the feature you'd like to see
+      placeholder: Brief summary of the feature...
+    validations:
+      required: true
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation
+      description: What problem does this feature solve? What's your use case?
+      placeholder: |
+        I'm working on... and I need...
+        This would help because...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: How would you like this feature to work?
+      placeholder: Describe your proposed solution...
+    validations:
+      required: true
+
+  - type: textarea
+    id: api-example
+    attributes:
+      label: API Example
+      description: Show how you'd like to use this feature
+      render: swift
+      placeholder: |
+        // Example of how the API might look
+        let generator = Gen.yourNewFeature { ... }
+    validations:
+      required: false
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: What alternatives have you considered?
+      placeholder: |
+        - Alternative 1: ...
+        - Alternative 2: ...
+        - Workaround I'm currently using: ...
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: categories
+    attributes:
+      label: Feature Category
+      description: Which category best describes this feature?
+      options:
+        - label: New generator type
+        - label: Property testing enhancement
+        - label: Performance improvement
+        - label: Developer experience
+        - label: Documentation
+        - label: Testing utilities
+        - label: CLI tool enhancement
+        - label: Macro system enhancement
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How important is this feature to you?
+      options:
+        - Low - Nice to have
+        - Medium - Would be helpful
+        - High - Important for my use case
+        - Critical - Blocking my adoption
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      options:
+        - label: I'd be willing to implement this feature
+        - label: I'd be willing to help with testing
+        - label: I'd be willing to help with documentation
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any additional context, mockups, or references
+      placeholder: Links, screenshots, related issues, etc...
+    validations:
+      required: false
