@@ -5,6 +5,7 @@
 
 import Testing
 import Foundation
+import InvariantCore
 @testable import InvariantSwift
 
 // MARK: - Test Types

@@ -1,5 +1,6 @@
 import Testing
 import Foundation
+import InvariantCore
 @testable import InvariantSwift
 
 /// Final comprehensive coverage validation tests for achieving and maintaining 99%+ code coverage

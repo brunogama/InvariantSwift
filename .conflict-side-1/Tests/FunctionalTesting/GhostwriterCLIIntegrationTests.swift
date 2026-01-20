@@ -5,6 +5,7 @@
 import Foundation
 import Testing
 
+import InvariantCore
 @testable import InvariantSwift
 
 @Suite("GhostwriterCLI Integration Tests")

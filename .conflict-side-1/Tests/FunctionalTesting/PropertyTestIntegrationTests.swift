@@ -1,5 +1,6 @@
 import Testing
 import Foundation
+import InvariantCore
 @testable import InvariantSwift
 
 /// Comprehensive tests for Swift Testing integration API to achieve 99%+ code coverage

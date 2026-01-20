@@ -1,5 +1,6 @@
 import Testing
 import Foundation
+import InvariantCore
 @testable import InvariantSwift
 
 /// Enhanced error path coverage tests to achieve 99%+ code coverage

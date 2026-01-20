@@ -1,4 +1,5 @@
 import Testing
+@testable import InvariantCore
 @testable import InvariantSwift
 
 /// Comprehensive tests for coverage-guided generation functionality

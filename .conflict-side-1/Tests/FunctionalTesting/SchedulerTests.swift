@@ -5,6 +5,7 @@
 
 import Testing
 import Foundation
+@testable import InvariantCore
 @testable import InvariantSwift
 
 @Suite("Scheduler Core Types")

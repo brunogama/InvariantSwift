@@ -1,5 +1,6 @@
 import Testing
 import Foundation
+import InvariantCore
 @testable import InvariantSwift
 
 /// Tests for S024: Gen.flatMap shrinking with dependent generators

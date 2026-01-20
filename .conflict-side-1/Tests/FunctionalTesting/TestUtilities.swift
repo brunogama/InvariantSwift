@@ -1,5 +1,6 @@
 import Testing
 import Foundation
+@testable import InvariantCore
 @testable import InvariantSwift
 
 // MARK: - Test Utilities Framework for 99%+ Code Coverage (Task 11)

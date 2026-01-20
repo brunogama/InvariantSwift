@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+@testable import InvariantCore
 @testable import InvariantSwift
 
 @Suite("PrettyPrinter Enhancement Tests")

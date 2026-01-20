@@ -70,13 +70,21 @@ let package = Package(
     // MARK: - Main Library Targets
 
     /// Main functional testing library target (includes macros)
+    /// Includes Core + Macros + SwiftTesting for full functionality
     .target(
       name: "InvariantSwift",
       dependencies: [
         "InvariantCore",
         "InvariantSwiftMacros",
       ],
-      path: "Sources/InvariantSwiftUmbrella",
+      path: "Sources/InvariantSwift",
+      exclude: [
+        "Macros/LawGeneration.swift.disabled"
+      ],
+      sources: [
+        "Macros",
+        "SwiftTesting",
+      ],
       swiftSettings: commonSwiftSettings + [
         .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
       ]

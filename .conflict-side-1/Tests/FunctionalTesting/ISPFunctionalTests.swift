@@ -5,6 +5,7 @@
 
 import Testing
 
+import InvariantCore
 @testable import InvariantSwift
 
 // MARK: - ISP-0003: Rule-Based Stateful Testing

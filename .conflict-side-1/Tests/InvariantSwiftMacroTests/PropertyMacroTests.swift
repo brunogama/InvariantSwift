@@ -5,6 +5,7 @@ import SwiftSyntaxMacrosTestSupport
 import Testing
 
 // Import the macro implementation
+import InvariantCore
 @testable import InvariantSwiftMacros
 
 /// Base class for macro testing with helper methods and validation utilities

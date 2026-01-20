@@ -1,5 +1,6 @@
 import Testing
 import Foundation
+import InvariantCore
 @testable import InvariantSwift
 
 /// Tests for `ReproString` round-trip parsing and deterministic reproduction.

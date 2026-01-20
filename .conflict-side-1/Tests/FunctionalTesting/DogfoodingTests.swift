@@ -1,5 +1,6 @@
 import Testing
 import Foundation
+import InvariantCore
 @testable import InvariantSwift
 
 /// Dogfooding Tests: Using InvariantSwift to test InvariantSwift
