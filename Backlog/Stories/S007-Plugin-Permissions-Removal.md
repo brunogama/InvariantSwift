@@ -3,7 +3,7 @@ id: S007
 epic: E005
 priority: P0
 title: Remove network permission from SwiftPM plugin and document opt-in approach
-status: todo
+status: done
 owners: ["llm"]
 dependencies: []
 files:

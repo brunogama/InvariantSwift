@@ -3,7 +3,7 @@ id: S030
 title: Define replay token format and API
 epic: E003
 priority: P1
-status: todo
+status: done
 dependencies: [S010]
 ---
 

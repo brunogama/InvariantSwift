@@ -3,7 +3,7 @@ id: S002
 title: Prevent macOS zip artifacts from entering the repo
 epic: E005
 priority: P0
-status: todo
+status: done
 dependencies: []
 ---
 

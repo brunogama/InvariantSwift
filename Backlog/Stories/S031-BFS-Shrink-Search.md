@@ -3,7 +3,7 @@ id: S031
 title: Replace greedy-first shrinking with BFS shrink search
 epic: E002
 priority: P0
-status: todo
+status: done
 dependencies: [S030]
 ---
 

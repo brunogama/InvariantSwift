@@ -3,7 +3,7 @@ id: S040
 title: Create `InvariantSwiftCore` target and move core files
 epic: E004
 priority: P2
-status: todo
+status: done
 dependencies: [S010, S021]
 ---
 

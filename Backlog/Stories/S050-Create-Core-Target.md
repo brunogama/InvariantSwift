@@ -3,7 +3,7 @@ id: S050
 title: Create InvariantSwiftCore target and migrate non-macro code
 epic: E004
 priority: P1
-status: todo
+status: done
 dependencies: [S010, S030]
 ---
 

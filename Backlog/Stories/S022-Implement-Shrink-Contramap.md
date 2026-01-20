@@ -3,7 +3,7 @@ id: S022
 title: Implement `Shrink.contramap` correctly (or remove it)
 epic: E002
 priority: P1
-status: todo
+status: done
 dependencies: [S020]
 ---
 

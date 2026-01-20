@@ -3,7 +3,7 @@ id: S041
 title: Add deterministic seed splitting utilities for composite generators
 epic: E003
 priority: P1
-status: todo
+status: done
 dependencies: [S040]
 ---
 

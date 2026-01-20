@@ -3,7 +3,7 @@ id: S033
 title: Replace placeholder Shrink.flatMap with ShrinkTree-based implementation
 epic: E002
 priority: P1
-status: todo
+status: done
 dependencies: [S030]
 ---
 

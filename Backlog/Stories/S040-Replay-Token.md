@@ -3,7 +3,7 @@ id: S040
 title: Implement replay token format and printing
 epic: E003
 priority: P0
-status: todo
+status: done
 dependencies: [S010]
 ---
 

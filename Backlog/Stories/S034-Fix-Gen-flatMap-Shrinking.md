@@ -3,7 +3,7 @@ id: S034
 title: Fix Gen.flatMap shrinking for dependent generators
 epic: E002
 priority: P0
-status: todo
+status: done
 dependencies: [S030, S031]
 ---
 

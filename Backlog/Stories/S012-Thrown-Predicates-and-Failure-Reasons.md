@@ -3,7 +3,7 @@ id: S012
 title: Support thrown predicates and report `.threwError`
 epic: E001
 priority: P1
-status: todo
+status: done
 dependencies: [S010]
 ---
 

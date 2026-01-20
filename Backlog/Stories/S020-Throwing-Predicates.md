@@ -3,7 +3,7 @@ id: S020
 title: Support throwing predicates and failure reason propagation
 epic: E001
 priority: P1
-status: todo
+status: done
 dependencies: [S010]
 ---
 

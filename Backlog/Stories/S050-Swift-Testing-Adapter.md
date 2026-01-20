@@ -3,7 +3,7 @@ id: S050
 title: Provide a Swift Testing adapter with minimal counterexample output
 epic: E006
 priority: P1
-status: todo
+status: done
 dependencies: [S010, S021, S030]
 ---
 

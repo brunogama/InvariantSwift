@@ -3,7 +3,7 @@ id: S012
 title: Make Gen.suchThat safe (no invalid fallback)
 epic: E001
 priority: P1
-status: todo
+status: done
 dependencies: [S010]
 ---
 

@@ -3,7 +3,7 @@ id: S011
 title: Stop using Gen.suchThat for property assumptions
 epic: E001
 priority: P0
-status: todo
+status: done
 dependencies: [S010]
 ---
 

@@ -3,7 +3,7 @@ id: S006
 epic: E003
 priority: P1
 title: Align predicate signature with failure reasons (throws/async) or remove unreachable reasons
-status: todo
+status: done
 owners: ["llm"]
 dependencies: ["S001"]
 files:

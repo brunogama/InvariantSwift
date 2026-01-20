@@ -3,7 +3,7 @@ id: S060
 title: Improve Swift Testing integration output and ergonomics
 epic: E006
 priority: P1
-status: todo
+status: done
 dependencies: [S040]
 ---
 

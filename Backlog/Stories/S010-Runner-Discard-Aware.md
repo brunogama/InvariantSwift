@@ -3,7 +3,7 @@ id: S010
 title: Implement discard-aware PropertyRunner and .gaveUp
 epic: E001
 priority: P0
-status: todo
+status: done
 dependencies: []
 ---
 
