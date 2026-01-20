@@ -1,0 +1,85 @@
+name: Question
+description: Ask a question about FunctionalTesting
+title: "[Question]: "
+labels: ["question", "needs-triage"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Have a question about FunctionalTesting? We're here to help!
+        
+        **Before asking**: Please check our [documentation](https://your-org.github.io/FunctionalTesting/) and [existing discussions](https://github.com/your-org/FunctionalTesting/discussions) first.
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: What would you like to know?
+      placeholder: Ask your question here...
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: What are you trying to accomplish?
+      placeholder: |
+        I'm trying to...
+        My goal is to...
+        I'm working on...
+    validations:
+      required: false
+
+  - type: textarea
+    id: code
+    attributes:
+      label: Code Sample
+      description: Share any relevant code you're working with
+      render: swift
+      placeholder: |
+        import FunctionalTesting
+        
+        // Your code here
+    validations:
+      required: false
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Question Category
+      description: What area is your question about?
+      options:
+        - Getting started
+        - Generators
+        - Property testing
+        - Performance
+        - Testing patterns
+        - Integration
+        - Troubleshooting
+        - Best practices
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: attempted
+    attributes:
+      label: What I've Tried
+      description: What have you already tried?
+      placeholder: |
+        - Looked at documentation section X
+        - Tried approach Y
+        - Searched for similar issues
+    validations:
+      required: false
+
+  - type: input
+    id: package-version
+    attributes:
+      label: FunctionalTesting Version
+      description: What version are you using?
+      placeholder: e.g., 1.0.0
+    validations:
+      required: false
