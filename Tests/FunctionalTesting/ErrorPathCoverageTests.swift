@@ -62,7 +62,7 @@ struct ErrorPathCoverageTests {
     #expect(Bool(true), "Test disabled")
     /*
     // Test suchThat with condition that can never be satisfied
-    let impossibleGen = Gen.int(in: 1...10).suchThat { _ in false }
+    let impossibleGen = Gen.int(in: 1...10).tryGenerate(where: { _ in false })
     let property = Property<Int>(generator: impossibleGen) { _ in true }
     
     let result = runPropertySynchronously(
@@ -92,7 +92,7 @@ struct ErrorPathCoverageTests {
     #expect(Bool(true), "Test disabled")
     /*
     // Test suchThat with extremely rare condition
-    let rareGen = Gen.int(in: 1...10000).suchThat { $0 == 7777 }
+    let rareGen = Gen.int(in: 1...10000).tryGenerate(where: { $0 == 7777 })
     let property = Property<Int>(generator: rareGen) { value in
       value == 7777
     }
@@ -327,7 +327,7 @@ struct ErrorPathCoverageTests {
 
     // Property with high discard rate due to filtering
     let highDiscardProperty = Property<Int>(
-      generator: Gen.int(in: 1...1000).suchThat { $0 <= 10 },  // Very selective filter
+      generator: Gen.int(in: 1...1000).tryGenerate(where: { $0 <= 10 }),  // Very selective filter
       predicate: { _ in true }
     )
 

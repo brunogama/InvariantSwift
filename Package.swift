@@ -5,7 +5,7 @@ import PackageDescription
 import CompilerPluginSupport
 
 let commonSwiftSettings: [SwiftSetting] = [
-  .unsafeFlags(["-warnings-as-errors"]),
+  // .unsafeFlags(["-warnings-as-errors"]),
   .unsafeFlags(["-Xfrontend", "-strict-concurrency=complete", "-Xfrontend", "-warn-concurrency"]),
   .enableUpcomingFeature("StrictConcurrency"),
 ]

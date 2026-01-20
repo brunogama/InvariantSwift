@@ -221,50 +221,6 @@ public struct Shrink<T>: @unchecked Sendable {
     Self { _ in [target] }
   }
 
-  /// Transforms the shrinking context via a function.
-  ///
-  /// Contramap allows adapting a `Shrink<T>` to work with a different type `U`
-  /// via a conversion function `(U) -> T`. This enables reusing shrinking logic
-  /// for different types.
-  ///
-  /// Contrapositively, contramap preserves the shrinking structure while changing
-  /// the input type. This is the opposite of `map`, which changes the output type.
-  ///
-  /// Mathematical foundation: Contramap implements the contravariant functor instance
-  /// for the shrinking coalgebra. See [Contravariant Functors](https://wiki.haskell.org/Contravariant)
-  /// for background.
-  ///
-  /// - Parameters:
-  ///   - f: Transformation from `U` to `T`
-  ///
-  /// - Returns: New `Shrink<U>` that shrinks via the original `Shrink<T>`
-  ///
-  /// - Example:
-  ///   ```swift
-  ///   struct Person { let age: Int }
-  ///   let ageShrink = Shrink<Int> { n in n > 0 ? [0, n/2] : [] }
-  ///
-  ///   // Adapt to shrink Person by age
-  ///   let personShrink = ageShrink.contramap { person in person.age }
-  ///
-  ///   let person = Person(age: 50)
-  ///   let shrunk = personShrink.shrink(person)  // Persons with ages 0, 25
-  ///   ```
-  ///
-  /// > Warning: This implementation is a placeholder that does not properly shrink.
-  /// > For correct dependent shrinking, use `ShrinkTree.flatMap` instead.
-  @available(
-    *,
-    deprecated,
-    message: "Use ShrinkTree-based shrinking for correct contramap behavior"
-  )
-  public func contramap<U>(_ f: @escaping (U) -> T) -> Shrink<U> {
-    Shrink<U> { u in
-      // swiftlint:disable:next line_length
-      self.shrink(f(u)).map { _ in u }  // Simplified contramap - full implementation would be more complex
-    }
-  }
-
   /// Combines two shrinking strategies into one for pairs.
   ///
   /// Creates a shrinking strategy for tuples `(T, U)` by combining independent
@@ -296,39 +252,18 @@ public struct Shrink<T>: @unchecked Sendable {
 
   /// Monadic bind for dependent shrinking structures.
   ///
-  /// Enables dependent shrinking where the shrinking strategy for one value
-  /// depends on the value itself. This is useful for shrinking composite types
-  /// where the second component depends on the first.
-  ///
-  /// Implementation note: The current implementation is simplified. A full
-  /// implementation would properly handle coalgebraic unfolding to avoid
-  /// exponential explosion in the shrinking tree.
-  ///
-  /// - Parameters:
-  ///   - f: Function mapping value to dependent shrinking strategy
-  ///
-  /// - Returns: Shrinking strategy for dependent types
-  ///
-  /// - Example:
-  ///   ```swift
-  ///   // Shrinking strategy where strategy depends on the value
-  ///   let dependentShrink = intShrink.flatMap { value in
-  ///       Shrink<(Int, String)> { pair in
-  ///           // Shrinking strategy depends on the integer value
-  ///           value > 10 ? [...] : [...]
-  ///       }
-  ///   }
-  ///   ```
-  ///
-  /// > Warning: This implementation is a stub that returns no shrinks.
-  /// > For correct dependent shrinking, use `ShrinkTree.flatMap` instead.
-  @available(*, deprecated, message: "Use ShrinkTree-based shrinking for correct flatMap behavior")
+  /// - Warning: This method is removed. Use `ShrinkTree.flatMap` for dependent shrinking.
+  @available(*, unavailable, message: "Use ShrinkTree.flatMap for correct dependent shrinking. Shrink<T> cannot support flatMap correctly.")
   public func flatMap<U>(_ f: @escaping (T) -> Shrink<U>) -> Shrink<U> {
-    Shrink<U> { _ in
-      // This is a simplified implementation - full implementation would
-      // need to handle the coalgebraic unfolding properly
-      []
-    }
+    fatalError("Unavailable")
+  }
+
+  /// Transforms the shrinking context via a function.
+  ///
+  /// - Warning: This method is removed. Use `ShrinkTree` for dependent shrinking.
+  @available(*, unavailable, message: "Use ShrinkTree-based shrinking. Shrink.contramap is mathematically invalid for this type.")
+  public func contramap<U>(_ f: @escaping (U) -> T) -> Shrink<U> {
+    fatalError("Unavailable")
   }
 
   // MARK: - Shrink Combinators
@@ -1191,12 +1126,15 @@ extension Gen {
         let t = outerGen.generate(&rng, size)
         return f(t).generate(&rng, size)
       },
-      // Robust shrinking: capture outer value and shrink both outer and inner
+      // Legacy shrinking returns empty - tree-based shrinking handles dependencies
       shrink: Shrink<U> { _ in
-        // For the Shrink<U> perspective, we only have U. But we build integrated
-        // shrinking in generateTree below that handles the dependency properly.
-        // This fallback uses empty shrinking - PropertyRunner uses generateTree.
+        // For the Shrink<U> perspective, we only have U.
+        // Tree-based shrinking via generateTreeOverride handles this properly.
         []
+      },
+      // Integrated tree-based shrinking for dependent generators
+      generateTreeOverride: { rng, size in
+        outerGen.generateTreeFlatMap(f, &rng, size)
       }
     )
   }
@@ -1219,43 +1157,39 @@ extension Gen {
     _ rng: inout any RandomNumberGenerator,
     _ size: Size
   ) -> ShrinkTree<U> {
-    // Generate outer value with its shrink tree
+    // Generate outer value with its shrink tree (consumes rng)
     let outerTree = self.generateTree(&rng, size)
     let outerValue = outerTree.value
 
-    // Generate inner value with its shrink tree
+    // Generate inner value with its shrink tree (consumes rng further)
     let innerGen = f(outerValue)
     let innerTree = innerGen.generateTree(&rng, size)
 
+    // Define the transform for *re-generation* during shrinking
+    let transform: (T) -> ShrinkTree<U> = { outerVal in
+      // Hash the shrunk value's description to create a deterministic seed
+      let hashValue = String(describing: outerVal).hashValue
+      var innerRng: any RandomNumberGenerator = SeedBasedRandomNumberGenerator(
+        seed: Seed(value: UInt64(bitPattern: Int64(hashValue)))
+      )
+      return f(outerVal).generateTree(&innerRng, size)
+    }
+
     // Compose the shrink trees:
-    // 1. Direct shrinks of the inner value
-    // 2. Shrinks of the outer value, with regenerated inner values
-    return ShrinkTree(value: innerTree.value) { [outerTree, innerTree, size, f] in
+    // 1. Direct shrinks of the inner value (from original generation)
+    // 2. Shrinks of the outer value (recursively using transform)
+    return ShrinkTree(value: innerTree.value) { [outerTree, innerTree, transform] in
       var children: [ShrinkTree<U>] = []
 
-      // First: add direct shrinks of the inner value (more likely to find minimal)
+      // First: add direct shrinks of the inner value
       children.append(contentsOf: innerTree.children)
 
       // Second: shrink the outer value and regenerate inner
-      // For each shrunk outer value, we generate a new inner value
-      // We use a deterministic RNG based on the shrunk outer value
-      for outerShrink in outerTree.children {
-        // Create a deterministic seed from the shrunk outer value
-        // This ensures reproducibility while allowing inner regeneration
-        let shrunkOuter = outerShrink.value
-        let innerGenForShrunk = f(shrunkOuter)
-
-        // Use a new RNG for each shrunk branch to ensure independence
-        // Hash the shrunk value's description to create a deterministic seed
-        let hashValue = String(describing: shrunkOuter).hashValue
-        var innerRng: any RandomNumberGenerator = SeedBasedRandomNumberGenerator(
-          seed: Seed(value: UInt64(bitPattern: Int64(hashValue)))
-        )
-        let regeneratedInner = innerGenForShrunk.generateTree(&innerRng, size)
-
-        // Create a child tree that continues shrinking both dimensions
-        children.append(regeneratedInner)
+      // Use flatMap on the outer *children* to propagate the transform recursively
+      let outerShrinks = outerTree.children.map { child in
+        child.flatMap(transform)
       }
+      children.append(contentsOf: outerShrinks)
 
       return children
     }

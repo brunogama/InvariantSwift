@@ -16,7 +16,9 @@ struct FinalCoverageValidationTests {
 
     // 1. Property Creation APIs
     let basicProperty = Property<Int>(generator: Gen.int) { _ in true }
-    let conditionalProperty = Property<String>(generator: Gen.string.suchThat { !$0.isEmpty }) {
+    let conditionalProperty = Property<String>(
+      generator: Gen.string.tryGenerate(where: { !$0.isEmpty })
+    ) {
       !$0.isEmpty
     }
     let timedProperty = Property<Double>(generator: Gen.double) { $0.isFinite }
@@ -133,7 +135,7 @@ struct FinalCoverageValidationTests {
     let intStringZip = Gen.int.zip(Gen.string)
     let mappedGenerator = Gen.int.map { $0 * 2 }
     let flatMappedGenerator = Gen.int.flatMap { n in Gen.array(Gen.pure(n)) }
-    let filteredGenerator = Gen.int.suchThat { $0 > 0 }
+    let filteredGenerator = Gen.int.tryGenerate(where: { $0 > 0 })
 
     var combRng1: any RandomNumberGenerator = SeedBasedRandomNumberGenerator(seed: Seed(value: 301))
     var combRng2: any RandomNumberGenerator = SeedBasedRandomNumberGenerator(seed: Seed(value: 302))
@@ -428,8 +430,8 @@ struct FinalCoverageValidationTests {
 
     // 2. Generator Failure Scenarios
     let problematicGenerators: [Gen<Int>] = [
-      Gen.int.suchThat { _ in false },  // Impossible filter
-      Gen.int.suchThat { _ in false },  // Impossible filter alternative
+      Gen.int.tryGenerate(where: { _ in false }),  // Impossible filter
+      Gen.int.tryGenerate(where: { _ in false }),  // Impossible filter alternative
       Gen.int,  // Regular generator for comparison
     ]
 
@@ -500,7 +502,8 @@ struct FinalCoverageValidationTests {
       }
 
       // Test async with give-up property
-      let giveUpAsyncProperty = Property<Int>(generator: Gen.int.suchThat { _ in false }) { _ in
+      let giveUpAsyncProperty = Property<Int>(generator: Gen.int.tryGenerate(where: { _ in false }))
+      { _ in
         true
       }
       let asyncGiveUpResult = await asyncRunner.runProperty(
@@ -697,7 +700,10 @@ struct FinalCoverageValidationTests {
 
     // 6. Cross-Component Error Propagation
     let errorPropagationScenarios: [(String, Property<Int>)] = [
-      ("Generator Error", Property<Int>(generator: Gen.int.suchThat { _ in false }) { _ in true }),
+      (
+        "Generator Error",
+        Property<Int>(generator: Gen.int.tryGenerate(where: { _ in false })) { _ in true }
+      ),
       ("Property Error", Property<Int>(generator: Gen.int) { _ in false }),
       ("Shrinking Error", Property<Int>(generator: Gen.int(in: 1...5)) { $0 > 10 }),
     ]

@@ -122,7 +122,7 @@ struct CoverageValidationTests {
 
     // Test property that gives up due to filtering
     let giveUpProperty = Property<Int>(
-      generator: Gen.int.suchThat { _ in false },  // Impossible condition
+      generator: Gen.int.tryGenerate(where: { _ in false }),  // Impossible condition
       predicate: { _ in true }
     )
     let giveUpResult = runPropertySynchronously(

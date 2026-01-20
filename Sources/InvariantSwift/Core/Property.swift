@@ -698,7 +698,9 @@ public actor PropertyRunner {
 
     while successfulIterations < config.iterations {
       let size = Size(value: min(successfulIterations, 100))
-      let testCase = property.generator.generate(&rng, size)
+      // Generate tree for proper shrinking (essential for flatMap)
+      let tree = property.generator.generateTree(&rng, size)
+      let testCase = tree.value
 
       // Check assumption first - discarded values never reach the predicate
       if !property.assumption(testCase) {
@@ -711,9 +713,9 @@ public actor PropertyRunner {
 
       // Assumption passed, check the predicate
       if !property.predicate(testCase) {
-        // Property failed - begin shrinking
-        let shrunkCase = shrinkFailure(
-          testCase,
+        // Property failed - begin shrinking using the pre-built tree
+        let shrunkCase = shrinkFailureWithTree(
+          tree,
           property: property,
           maxShrinks: config.maxShrinks
         )
@@ -943,6 +945,26 @@ public actor PropertyRunner {
     }
 
     return minimal ?? failingCase
+  }
+
+  /// Shrink using a pre-built shrink tree (essential for flatMap dependent shrinking).
+  ///
+  /// This version uses the tree generated during test execution, which includes
+  /// proper shrinking for dependent generators created via flatMap.
+  private func shrinkFailureWithTree<T>(
+    _ tree: ShrinkTree<T>,
+    property: Property<T>,
+    maxShrinks: Int
+  ) -> T {
+    // Filter tree to respect assumptions
+    let filteredTree = tree.filter { property.assumption($0) }
+
+    // BFS search for minimal counterexample that still fails the predicate
+    let minimal = filteredTree.findMinimal(budget: maxShrinks) { candidate in
+      !property.predicate(candidate)
+    }
+
+    return minimal ?? tree.value
   }
 
   // MARK: - Timeout-Enforced Property Testing
