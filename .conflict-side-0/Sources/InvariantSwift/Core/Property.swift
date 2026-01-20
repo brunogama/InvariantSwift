@@ -1070,6 +1070,78 @@ public actor PropertyRunner {
       successfulIterations += 1
     }
 
+    return .success(iterations: successfulIterations)
+  }
+
+  /// Run a throwing property test and return the result.
+  ///
+  /// Similar to `runProperty`, but supports predicates that may throw errors.
+  /// Thrown errors are caught and classified as `.threwError` failures.
+  ///
+  /// - Parameters:
+  ///   - property: The throwing property to test
+  ///   - config: Configuration for test execution
+  ///
+  /// - Returns: The result of running the property
+  public func runThrowingProperty<T>(
+    _ property: ThrowingProperty<T>,
+    config: PropertyConfig = .default
+  ) -> PropertyResult<T> {
+    var discarded = 0
+    var successfulIterations = 0
+
+    while successfulIterations < config.iterations {
+      let size = Size(value: min(successfulIterations, 100))
+      let testCase = property.generator.generate(&rng, size)
+
+      // Check assumption first
+      if !property.assumption(testCase) {
+        discarded += 1
+        if discarded > config.maxDiscarded {
+          return .gaveUp(discarded: discarded, iterations: successfulIterations)
+        }
+        continue
+      }
+
+      // Assumption passed, check the predicate
+      do {
+        if try !property.predicate(testCase) {
+          // Predicate returned false
+          let shrunkCase = shrinkThrowingFailure(
+            testCase,
+            property: property,
+            failureReason: .predicateFailed,
+            maxShrinks: config.maxShrinks
+          )
+          return .failure(
+            counterexample: testCase,
+            iterations: successfulIterations + 1,
+            shrunk: shrunkCase,
+            reason: .predicateFailed,
+            seed: seed
+          )
+        }
+      } catch {
+        // Predicate threw an error
+        let errorDescription = String(describing: error)
+        let shrunkCase = shrinkThrowingFailure(
+          testCase,
+          property: property,
+          failureReason: .threwError(errorDescription),
+          maxShrinks: config.maxShrinks
+        )
+        return .failure(
+          counterexample: testCase,
+          iterations: successfulIterations + 1,
+          shrunk: shrunkCase,
+          reason: .threwError(errorDescription),
+          seed: seed
+        )
+      }
+
+      successfulIterations += 1
+    }
+
     // Check discard ratio before returning success
     let discardCheck = checkDiscardRatio(
       discarded: discarded,
@@ -1092,6 +1164,41 @@ public actor PropertyRunner {
     }
 
     return .success(iterations: successfulIterations)
+  }
+
+  /// Shrink a failing test case for a throwing property
+  private func shrinkThrowingFailure<T>(
+    _ failingCase: T,
+    property: ThrowingProperty<T>,
+    failureReason: FailureReason,
+    maxShrinks: Int
+  ) -> T {
+    var current = failingCase
+    var shrinkAttempts = 0
+
+    while shrinkAttempts < maxShrinks {
+      let candidates = property.generator.shrink.shrink(current)
+
+      // Find the first shrunk value that passes assumption and still fails
+      let nextFailure = candidates.first { candidate in
+        guard property.assumption(candidate) else { return false }
+        do {
+          return try !property.predicate(candidate)
+        } catch {
+          // If it throws, it still "fails" the property
+          return true
+        }
+      }
+
+      if let nextFailure = nextFailure {
+        current = nextFailure
+        shrinkAttempts += 1
+      } else {
+        break
+      }
+    }
+
+    return current
   }
 
   /// Run a throwing property test and return the result.

@@ -684,68 +684,52 @@ public actor PropertyRunner {
     return .success(iterations: successfulIterations)
   }
 
-  /// Shrink a failing test case for a throwing property
+  /// Shrink a failing test case for a throwing property using BFS.
   private func shrinkThrowingFailure<T>(
     _ failingCase: T,
     property: ThrowingProperty<T>,
     failureReason: FailureReason,
     maxShrinks: Int
   ) -> T {
-    var current = failingCase
-    var shrinkAttempts = 0
+    // Build shrink tree from the failing case
+    let tree = ShrinkTree.from(failingCase, shrink: property.generator.shrink)
 
-    while shrinkAttempts < maxShrinks {
-      let candidates = property.generator.shrink.shrink(current)
+    // Filter tree to respect assumptions
+    let filteredTree = tree.filter { property.assumption($0) }
 
-      // Find the first shrunk value that passes assumption and still fails
-      let nextFailure = candidates.first { candidate in
-        guard property.assumption(candidate) else { return false }
-        do {
-          return try !property.predicate(candidate)
-        } catch {
-          // If it throws, it still "fails" the property
-          return true
-        }
-      }
-
-      if let nextFailure = nextFailure {
-        current = nextFailure
-        shrinkAttempts += 1
-      } else {
-        break
+    // BFS search for minimal counterexample that still fails (returns false or throws)
+    let minimal = filteredTree.findMinimal(budget: maxShrinks) { candidate in
+      do {
+        return try !property.predicate(candidate)
+      } catch {
+        return true  // Throws = still fails
       }
     }
 
-    return current
+    return minimal ?? failingCase
   }
 
-  /// Shrink a failing test case to find the minimal counterexample
+  /// Shrink a failing test case to find the minimal counterexample using BFS.
+  ///
+  /// Uses breadth-first search on the shrink tree to find smaller counterexamples.
+  /// BFS typically finds better (more minimal) counterexamples than greedy-first.
   private func shrinkFailure<T>(
     _ failingCase: T,
     property: Property<T>,
     maxShrinks: Int
   ) -> T {
-    var current = failingCase
-    var shrinkAttempts = 0
+    // Build shrink tree from the failing case
+    let tree = ShrinkTree.from(failingCase, shrink: property.generator.shrink)
 
-    while shrinkAttempts < maxShrinks {
-      let candidates = property.generator.shrink.shrink(current)
+    // Filter tree to respect assumptions, then search for minimal failing case
+    let filteredTree = tree.filter { property.assumption($0) }
 
-      // Find the first shrunk value that passes assumption and still fails predicate
-      let nextFailure = candidates.first { candidate in
-        property.assumption(candidate) && !property.predicate(candidate)
-      }
-
-      if let nextFailure = nextFailure {
-        current = nextFailure
-        shrinkAttempts += 1
-      } else {
-        // No more shrinking possible
-        break
-      }
+    // BFS search for minimal counterexample that still fails the predicate
+    let minimal = filteredTree.findMinimal(budget: maxShrinks) { candidate in
+      !property.predicate(candidate)
     }
 
-    return current
+    return minimal ?? failingCase
   }
 }
 
@@ -1042,25 +1026,18 @@ private func shrinkFailureSynchronously<T>(
   property: Property<T>,
   maxShrinks: Int
 ) -> T {
-  var current = failingCase
-  var shrinkAttempts = 0
+  // Build shrink tree from the failing case
+  let tree = ShrinkTree.from(failingCase, shrink: property.generator.shrink)
 
-  while shrinkAttempts < maxShrinks {
-    let candidates = property.generator.shrink.shrink(current)
+  // Filter tree to respect assumptions, then search for minimal failing case
+  let filteredTree = tree.filter { property.assumption($0) }
 
-    let nextFailure = candidates.first { candidate in
-      property.assumption(candidate) && !property.predicate(candidate)
-    }
-
-    if let nextFailure = nextFailure {
-      current = nextFailure
-      shrinkAttempts += 1
-    } else {
-      break
-    }
+  // BFS search for minimal counterexample that still fails the predicate
+  let minimal = filteredTree.findMinimal(budget: maxShrinks) { candidate in
+    !property.predicate(candidate)
   }
 
-  return current
+  return minimal ?? failingCase
 }
 
 /// Run a throwing property test synchronously.
@@ -1141,30 +1118,22 @@ private func shrinkThrowingFailureSynchronously<T>(
   property: ThrowingProperty<T>,
   maxShrinks: Int
 ) -> T {
-  var current = failingCase
-  var shrinkAttempts = 0
+  // Build shrink tree from the failing case
+  let tree = ShrinkTree.from(failingCase, shrink: property.generator.shrink)
 
-  while shrinkAttempts < maxShrinks {
-    let candidates = property.generator.shrink.shrink(current)
+  // Filter tree to respect assumptions
+  let filteredTree = tree.filter { property.assumption($0) }
 
-    let nextFailure = candidates.first { candidate in
-      guard property.assumption(candidate) else { return false }
-      do {
-        return try !property.predicate(candidate)
-      } catch {
-        return true  // Throws = still fails
-      }
-    }
-
-    if let nextFailure = nextFailure {
-      current = nextFailure
-      shrinkAttempts += 1
-    } else {
-      break
+  // BFS search for minimal counterexample that still fails (returns false or throws)
+  let minimal = filteredTree.findMinimal(budget: maxShrinks) { candidate in
+    do {
+      return try !property.predicate(candidate)
+    } catch {
+      return true  // Throws = still fails
     }
   }
 
-  return current
+  return minimal ?? failingCase
 }
 
 // MARK: - Coverage-Guided Property Testing Extensions

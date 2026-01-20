@@ -228,4 +228,106 @@ struct DiscardSemanticsTests {
       Issue.record("Unexpected .failure - all values should be >= 0")
     }
   }
+
+  // MARK: - Throwing Property Tests (S012)
+
+  @Test("Throwing predicate that throws produces threwError reason")
+  func testThrowingPredicateError() {
+    enum TestError: Error {
+      case intentional
+    }
+
+    let property = ThrowingProperty(
+      generator: Gen<Int>.int(in: 0...100)
+    ) { _ in
+      throw TestError.intentional
+    }
+
+    let config = PropertyConfig(iterations: 10)
+    let result = runThrowingPropertySynchronously(property, config: config)
+
+    switch result {
+    case .failure(_, let iterations, _, let reason, _):
+      #expect(iterations == 1, "Should fail on first iteration")
+      if case .threwError(let errorString) = reason {
+        #expect(errorString.contains("intentional"), "Error should mention 'intentional'")
+      } else {
+        Issue.record("Expected .threwError reason but got \(reason)")
+      }
+    case .success:
+      Issue.record("Expected .failure but got .success")
+    case .gaveUp:
+      Issue.record("Unexpected .gaveUp")
+    }
+  }
+
+  @Test("Throwing predicate that returns false produces predicateFailed reason")
+  func testThrowingPredicateReturnsFalse() {
+    let property = ThrowingProperty(
+      generator: Gen<Int>.int(in: 0...100)
+    ) { _ in
+      false  // Returns false, doesn't throw
+    }
+
+    let config = PropertyConfig(iterations: 10)
+    let result = runThrowingPropertySynchronously(property, config: config)
+
+    switch result {
+    case .failure(_, _, _, let reason, _):
+      #expect(reason == .predicateFailed, "Should have predicateFailed reason")
+    case .success:
+      Issue.record("Expected .failure but got .success")
+    case .gaveUp:
+      Issue.record("Unexpected .gaveUp")
+    }
+  }
+
+  @Test("Throwing predicate that succeeds returns success")
+  func testThrowingPredicateSucceeds() {
+    let property = ThrowingProperty(
+      generator: Gen<Int>.int(in: 0...100)
+    ) { value in
+      true  // Always succeeds
+    }
+
+    let config = PropertyConfig(iterations: 50)
+    let result = runThrowingPropertySynchronously(property, config: config)
+
+    switch result {
+    case .success(let iterations):
+      #expect(iterations == 50, "Should complete all iterations")
+    case .failure:
+      Issue.record("Unexpected .failure")
+    case .gaveUp:
+      Issue.record("Unexpected .gaveUp")
+    }
+  }
+
+  @Test("Throwing property with assumption respects discards")
+  func testThrowingPropertyWithAssumption() {
+    enum TestError: Error { case test }
+
+    var predicateCallCount = 0
+
+    let property = ThrowingProperty(
+      generator: Gen<Int>.int(in: 0...100),
+      assumption: { $0 >= 50 }  // Only half pass
+    ) { value in
+      predicateCallCount += 1
+      return true
+    }
+
+    let config = PropertyConfig(iterations: 10, maxDiscarded: 100)
+    let result = runThrowingPropertySynchronously(property, config: config)
+
+    switch result {
+    case .success(let iterations):
+      #expect(iterations == 10, "Should complete 10 iterations")
+      #expect(predicateCallCount == 10, "Predicate called exactly once per successful iteration")
+    case .failure:
+      Issue.record("Unexpected .failure")
+    case .gaveUp:
+      Issue.record("Unexpected .gaveUp")
+    }
+  }
 }

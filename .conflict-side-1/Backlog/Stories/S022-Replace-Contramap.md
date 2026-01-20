@@ -3,7 +3,7 @@ id: S022
 title: Replace placeholder `Shrink.contramap`
 epic: E002
 priority: P1
-status: todo
+status: done
 dependencies: [S020]
 ---
 
