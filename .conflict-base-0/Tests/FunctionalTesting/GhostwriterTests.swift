@@ -4,6 +4,7 @@
 import Foundation
 import Testing
 
+import InvariantCore
 @testable import InvariantSwift
 
 // MARK: - TestPattern Tests

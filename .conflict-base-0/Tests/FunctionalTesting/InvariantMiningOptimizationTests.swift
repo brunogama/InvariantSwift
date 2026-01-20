@@ -16,6 +16,7 @@
 
 import Foundation
 import Testing
+import InvariantCore
 @testable import InvariantSwift
 
 @Suite("Invariant Mining Memory Optimizations")

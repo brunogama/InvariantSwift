@@ -2,6 +2,7 @@ import SwiftSyntax
 import SwiftSyntaxBuilder
 import XCTest
 
+import InvariantCore
 @testable import InvariantSwiftMacros
 
 final class GeneratorBuilderTests: XCTestCase {

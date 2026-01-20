@@ -16,6 +16,7 @@
 
 import Testing
 import Foundation
+import InvariantCore
 @testable import InvariantSwift
 
 @Suite("Comprehensive Generator Combinator Tests")

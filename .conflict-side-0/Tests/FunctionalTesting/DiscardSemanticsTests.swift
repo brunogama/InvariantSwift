@@ -1,4 +1,5 @@
 import Testing
+import InvariantCore
 import InvariantSwift
 
 /// Tests for discard semantics in property-based testing (Story S010).

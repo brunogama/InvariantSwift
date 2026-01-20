@@ -446,6 +446,12 @@ public struct SMTSolverStatistics: Sendable {
   public let solveCount: Int
   public let solverPath: String
   public let timeout: Duration
+
+  public init(solveCount: Int, solverPath: String, timeout: Duration) {
+    self.solveCount = solveCount
+    self.solverPath = solverPath
+    self.timeout = timeout
+  }
 }
 
 /// Errors that can occur during SMT solving

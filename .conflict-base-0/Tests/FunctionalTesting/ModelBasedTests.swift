@@ -1,4 +1,5 @@
 import Testing
+import InvariantCore
 @testable import InvariantSwift
 
 /// Tests for the model-based testing framework

@@ -572,6 +572,13 @@ public struct FuzzStatistics: Sendable {
     guard executionCount > 0 else { return 0 }
     return Double(passCount) / Double(executionCount)
   }
+
+  public init(executionCount: Int, passCount: Int, failCount: Int, lastFailure: String?) {
+    self.executionCount = executionCount
+    self.passCount = passCount
+    self.failCount = failCount
+    self.lastFailure = lastFailure
+  }
 }
 
 /// Protocol for type-erasing fuzz targets

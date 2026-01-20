@@ -9,6 +9,7 @@
 
 import Testing
 import Foundation
+@testable import InvariantCore
 @testable import InvariantSwift
 
 // MARK: - Seed Property Tests

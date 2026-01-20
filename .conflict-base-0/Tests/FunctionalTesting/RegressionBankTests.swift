@@ -1,5 +1,6 @@
 import Testing
 import Foundation
+import InvariantCore
 @testable import InvariantSwift
 
 /// Tests for `RegressionBank` - the failure persistence and replay system.

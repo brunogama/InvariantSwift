@@ -365,6 +365,18 @@ public struct GhostwriterResult: Sendable {
     Errors: \(errors.count)
     """
   }
+
+  public init(
+    analyzedFiles: [String],
+    discoveredTypes: [TypeInfo],
+    generatedTests: [GeneratedTest],
+    errors: [GhostwriterError]
+  ) {
+    self.analyzedFiles = analyzedFiles
+    self.discoveredTypes = discoveredTypes
+    self.generatedTests = generatedTests
+    self.errors = errors
+  }
 }
 
 // MARK: - Ghostwriter Errors

@@ -1,6 +1,7 @@
 import XCTest
 import SwiftSyntaxMacros
 import SwiftSyntaxMacrosTestSupport
+import InvariantCore
 @testable import InvariantSwiftMacros
 
 final class StateMachineMacroTests: XCTestCase {

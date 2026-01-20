@@ -1,5 +1,6 @@
 import Testing
 import Foundation
+@testable import InvariantCore
 @testable import InvariantSwift
 
 /// Recursive shrinking validation tests - using shrinking to test shrinking

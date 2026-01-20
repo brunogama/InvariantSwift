@@ -1,5 +1,6 @@
 import Testing
 import Foundation
+import InvariantCore
 @testable import InvariantSwift
 
 /// Performance and edge case testing to achieve 99%+ code coverage

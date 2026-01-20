@@ -1,5 +1,6 @@
 import Testing
 import Foundation
+import InvariantCore
 @testable import InvariantSwift
 
 /// Meta-property tests that use the FunctionalTesting framework to test itself

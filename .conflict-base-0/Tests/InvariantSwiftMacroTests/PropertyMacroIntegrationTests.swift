@@ -1,3 +1,4 @@
+import InvariantCore
 import InvariantSwift
 import Testing
 

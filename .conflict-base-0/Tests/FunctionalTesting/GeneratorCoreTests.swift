@@ -1,5 +1,6 @@
 import Testing
 import Foundation
+import InvariantCore
 @testable import InvariantSwift
 
 /// Comprehensive tests for core Generator functions to achieve 99%+ code coverage
