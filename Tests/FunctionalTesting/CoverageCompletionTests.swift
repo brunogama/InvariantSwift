@@ -394,7 +394,7 @@ struct GeneratorEdgeCaseCompletionTests {
     /// Test Intent: Exercise suchThat with complex predicates that might
     /// trigger retry logic and edge cases in filtering.
 
-    let complexPredicate: (Int) -> Bool = { value in
+    let complexPredicate: @Sendable (Int) -> Bool = { value in
       // Complex predicate that's sometimes satisfied
       value > 0 && value % 7 == 0 && value < 1000
     }

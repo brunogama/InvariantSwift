@@ -80,6 +80,41 @@ public struct Gen<T>: @unchecked Sendable {
 }
 ```
 
+### 🌳 ShrinkTree<T> - Canonical Shrinking Model
+
+The library standardizes on `ShrinkTree<T>` for deterministic, BFS-based shrinking:
+
+```swift
+// See: Core/ShrinkTree.swift
+public struct ShrinkTree<T>: @unchecked Sendable {
+  public let value: T
+  public var children: [ShrinkTree<T>]  // Lazy evaluation
+
+  // Find minimal value satisfying predicate via BFS
+  public func findMinimal(budget: Int, satisfying: (T) -> Bool) -> T?
+
+  // Performance controls
+  public func limitBreadth(_ maxChildren: Int) -> ShrinkTree<T>
+  public func limitTotal(_ maxNodes: Int) -> ShrinkTree<T>
+  public func prune(maxDepth: Int) -> ShrinkTree<T>
+}
+
+// Bridge from legacy Shrink<T> to tree-based search
+let tree = ShrinkTree.from(100, shrink: Shrink<Int> { ... })
+```
+
+**Key advantages:**
+- **Deterministic**: Same seed → same shrink path (reproducible failures)
+- **BFS search**: Finds truly minimal counterexamples (not greedy-first)
+- **Lazy evaluation**: Children computed on-demand (memory efficient)
+- **Composable**: `map`, `flatMap`, `filter` for complex shrinking
+
+**Deprecated types** (migrate to ShrinkTree):
+- `Node<A>` (was in Advanced/ShrinkTrees.swift) → use `ShrinkTree<T>`
+- `TreeGen<A>` (was in Advanced/ShrinkTrees.swift) → use `Gen<T>` with standard shrinking
+
+See [docs/SHRINKING_MIGRATION.md](../../docs/SHRINKING_MIGRATION.md) for detailed migration guide.
+
 ### ✅ DO: Use Gen Combinators
 
 ```swift
@@ -100,6 +135,8 @@ Shrink.removeElements(from: array)
 Shrink.halveContinuous(value)
 ```
 
+**PropertyRunner automatically converts `Shrink<T>` to `ShrinkTree<T>` via `ShrinkTree.from()` and uses BFS search to find minimal counterexamples.**
+
 ### ✅ DO: Property Test Pattern
 
 ```swift
@@ -108,6 +145,12 @@ let property = Property(generator: Gen<Int>.int) { value in
   value + 0 == value  // Identity property
 }
 try await checkProperty(property)
+
+// PropertyRunner automatically:
+// 1. Generates values with the generator
+// 2. Shrinks failures using ShrinkTree + BFS
+// 3. Respects assumptions via filter()
+// 4. Limits search with maxShrinks budget
 ```
 
 ### ❌ DON'T: Use Force Unwrap
@@ -196,7 +239,9 @@ rg -n "Lens|Prism|Traversal" Advanced/
 2. **Size parameter**: Always pass through `Size` for recursive generators to prevent infinite depth
 3. **Shrink termination**: Ensure shrink functions eventually return `[]` to prevent infinite loops
 4. **Determinism**: Same `Seed` + `Size` must always produce same value (critical for reproducibility)
-5. **Macro declarations vs implementations**: This directory has declarations only; implementations are in `InvariantSwiftMacros/`
+5. **ShrinkTree vs Shrink**: Don't use deprecated `Node<A>` or `TreeGen<A>`. Use `ShrinkTree<T>` directly or let PropertyRunner convert via `ShrinkTree.from()`
+6. **BFS search budget**: Set `maxShrinks` in PropertyConfig to control shrinking complexity (default: 1000)
+7. **Macro declarations vs implementations**: This directory has declarations only; implementations are in `InvariantSwiftMacros/`
 
 ---
 

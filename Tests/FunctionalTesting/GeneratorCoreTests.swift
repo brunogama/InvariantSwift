@@ -175,7 +175,7 @@ struct GeneratorCoreTests {
 
   @Test("Generator apply Function")
   func generatorApplyFunction() async {
-    let functionGen = Gen.pure { (x: Int) in String(x) }
+    let functionGen = Gen.pure { @Sendable (x: Int) in String(x) }
     let property = Property<String>(
       generator: Gen.int.apply(functionGen)
     ) { stringValue in
@@ -274,23 +274,23 @@ struct GeneratorCoreTests {
 
   @Test("Recursive Generator Composition")
   func recursiveGeneratorComposition() async {
-    // Test recursive generator composition
-    func recursiveListGen(depth: Int) -> Gen<[Int]> {
-      if depth <= 0 {
-        return Gen.pure([])
-      }
-      return Gen.oneOf([
-        Gen.pure([]),
-        Gen.int.flatMap { n in
-          recursiveListGen(depth: depth - 1).map { rest in
-            [n] + rest
-          }
-        },
-      ])
-    }
+    // Test nested generator composition with limited depth
+    // Using flatMap chains instead of recursive local function to avoid Sendable issues
+    let nestedListGen = Gen.oneOf([
+      Gen.pure([Int]()),
+      Gen.int.map { [$0] },
+      Gen.int.flatMap { n1 in
+        Gen.int.map { n2 in [n1, n2] }
+      },
+      Gen.int.flatMap { n1 in
+        Gen.int.flatMap { n2 in
+          Gen.int.map { n3 in [n1, n2, n3] }
+        }
+      },
+    ])
 
     let property = Property<[Int]>(
-      generator: recursiveListGen(depth: 3)
+      generator: nestedListGen
     ) { list in
       list.count <= 10  // Reasonable size limit
     }

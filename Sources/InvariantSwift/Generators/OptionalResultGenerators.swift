@@ -378,12 +378,12 @@ public enum ThrowingFunctionGen {
   ///     throwProbability: 0.2
   /// )
   /// ```
-  public static func throwingFunction<Success, Error: Swift.Error>(
+  public static func throwingFunction<Success, Error: Swift.Error & Sendable>(
     successGen: Gen<Success>,
     errorGen: Gen<Error>,
     throwProbability: Double = 0.3
-  ) -> Gen<() throws -> Success> {
-    Gen<() throws -> Success>(
+  ) -> Gen<@Sendable () throws -> Success> {
+    Gen<@Sendable () throws -> Success>(
       generate: { rng, size in
         let shouldThrow = Double.random(in: 0...1, using: &rng) < throwProbability
 
@@ -395,7 +395,7 @@ public enum ThrowingFunctionGen {
           return { success }
         }
       },
-      shrink: Shrink<() throws -> Success>({ _ in
+      shrink: Shrink<@Sendable () throws -> Success>({ _ in
         // Shrinking throwing functions is complex - simplified approach
         []
       })
@@ -427,13 +427,13 @@ public enum ThrowingFunctionGen {
   ///     maxDelay: 0.1
   /// )
   /// ```
-  public static func asyncThrowingFunction<Success, Error: Swift.Error>(
+  public static func asyncThrowingFunction<Success, Error: Swift.Error & Sendable>(
     successGen: Gen<Success>,
     errorGen: Gen<Error>,
     throwProbability: Double = 0.3,
     maxDelay: TimeInterval = 0.05
-  ) -> Gen<() async throws -> Success> {
-    Gen<() async throws -> Success>(
+  ) -> Gen<@Sendable () async throws -> Success> {
+    Gen<@Sendable () async throws -> Success>(
       generate: { rng, size in
         let shouldThrow = Double.random(in: 0...1, using: &rng) < throwProbability
         let delay = TimeInterval.random(in: 0...maxDelay, using: &rng)
@@ -452,7 +452,7 @@ public enum ThrowingFunctionGen {
           }
         }
       },
-      shrink: Shrink<() async throws -> Success>({ _ in
+      shrink: Shrink<@Sendable () async throws -> Success>({ _ in
         // Shrinking async functions is complex - simplified approach
         []
       })

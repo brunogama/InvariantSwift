@@ -25,7 +25,7 @@ struct RunFromTokenTests {
     let runner = PropertyRunner(seed: seed)
     let config = PropertyConfig(iterations: 100, maxDiscarded: 500, seed: seed)
 
-    let result1 = runner.runProperty(property, config: config)
+    let result1 = await runner.runProperty(property, config: config)
 
     // Extract the seed from failure
     guard case .failure(_, _, let shrunk1, _, let failingSeed) = result1 else {
@@ -232,7 +232,7 @@ struct RunFromTokenTests {
     let runner = PropertyRunner(seed: initialSeed)
     let config = PropertyConfig(iterations: 200, maxDiscarded: 500, seed: initialSeed)
 
-    let originalResult = runner.runProperty(property, config: config)
+    let originalResult = await runner.runProperty(property, config: config)
 
     // Skip if no failure
     guard case .failure(_, _, let originalShrunk, _, let failingSeed) = originalResult else {

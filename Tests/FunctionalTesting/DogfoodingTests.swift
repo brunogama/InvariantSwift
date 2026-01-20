@@ -226,7 +226,7 @@ struct DogfoodingTests {
 
   @Test("Dogfooding: Generator suchThat filters correctly")
   func generatorSuchThatFilters() async {
-    let evenGen = Gen.int(in: 1...100).tryGenerate(where: { $0 % 2 == 0 })
+    let evenGen = Gen.int(in: 1...100).suchThat { $0 % 2 == 0 }
 
     let property = Property<Int>(generator: evenGen) { value in
       value % 2 == 0  // All values should be even

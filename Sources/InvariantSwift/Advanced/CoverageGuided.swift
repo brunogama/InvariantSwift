@@ -515,7 +515,7 @@ public actor CoverageCollector {
 ///   - Performance benchmarking → `.random` (clean baseline)
 ///
 /// - See Also: ``CoverageCollector``, ``CoverageBudget``, ``CoverageConfig``, ``Gen.biased(by:strategy:config:)``
-public enum CoverageStrategy {
+public enum CoverageStrategy: Sendable {
   /// No coverage biasing; pure random generation (baseline).
   ///
   /// Generates test inputs uniformly at random without any preference for uncovered paths.

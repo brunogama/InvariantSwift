@@ -1,3 +1,4 @@
+// swiftlint:disable line_length multiline_function_chains
 import Testing
 import Foundation
 import InvariantCore
@@ -66,8 +67,8 @@ struct MetaPropertyTests {
     }
 
     // Test composition law with two functions
-    let f: (String) -> Int = { $0.count }
-    let g: (Int) -> Bool = { $0 > 2 }
+    let f: @Sendable (String) -> Int = { $0.count }
+    let g: @Sendable (Int) -> Bool = { $0 > 2 }
 
     let compositionProperty = Property(generator: genGen) { generatedGen in
       let seed = Seed(value: 123)
@@ -276,22 +277,20 @@ struct MetaPropertyTests {
     /// 4. Interchange: u <*> pure(y) = pure(($ y)) <*> u
 
     // Create a generator of functions (unused for now, but shows pattern)
-    _ = Gen<(Int) -> String> { rng, size in
-      let multiplier = Int.random(in: 1...size.value, using: &rng)
-      return { x in String(x * multiplier) }
-    }
+    // Note: Function generators are complex with Swift 6 Sendable requirements
+    _ = "unused"
 
     // Test applicative identity law: pure(id) <*> v = v
     // Note: For now, we'll test a simpler applicative property
     let identityProperty = Property<Int>(generator: Gen.int) { value in
-      let v = Gen.pure(value)
+      let genValue = Gen.pure(value)
 
       let seed = Seed(value: 42)
       let size = Size(value: 10)
 
       // Simple identity test - a pure value should always return that value
-      let result1 = v.sample(size: size, seed: seed)
-      let result2 = v.sample(size: size, seed: seed)
+      let result1 = genValue.sample(size: size, seed: seed)
+      let result2 = genValue.sample(size: size, seed: seed)
 
       return result1 == result2 && result1 == value
     }
@@ -311,7 +310,7 @@ struct MetaPropertyTests {
 
     // Test left identity law
     let leftIdentityProperty = Property<String>(generator: Gen.string) { value in
-      let f: (String) -> Gen<Int> = { str in Gen.pure(str.count) }
+      let f: @Sendable (String) -> Gen<Int> = { str in Gen.pure(str.count) }
 
       // Left side: return(a) >>= f
       let left = Gen.pure(value).flatMap(f)
@@ -446,9 +445,9 @@ struct MathematicalLawVerification {
   }
 
   /// Generate a property that tests mathematical laws
-  static func createLawTestingProperty<T: Equatable>(
+  static func createLawTestingProperty<T: Equatable & Sendable>(
     for genGen: Gen<Gen<T>>,
-    law: @escaping (Gen<T>) -> Bool
+    law: @escaping @Sendable (Gen<T>) -> Bool
   ) -> Property<Gen<T>> {
     Property(generator: genGen) { generatedGen in
       law(generatedGen)

@@ -49,6 +49,21 @@ public struct Lazy<T>: Sendable where T: Sendable {
 }
 
 /// A node in the shrink tree containing a value and its potential shrinks
+///
+/// - Warning: Deprecated. Use `ShrinkTree<T>` from `Core/ShrinkTree.swift` instead.
+/// `Node<A>` was an experimental implementation; `ShrinkTree<T>` is now the canonical
+/// shrink-tree type for InvariantSwift. Migration is straightforward:
+/// - `Node<A>` → `ShrinkTree<A>`
+/// - `Lazy<[Node<A>]>` → `() -> [ShrinkTree<A>]`
+/// - All methods (`map`, `flatMap`, `filter`, etc.) exist on both types
+///
+/// This type will be removed in a future version. Use `ShrinkTree<T>` for all new code.
+@available(
+  *,
+  deprecated,
+  message:
+    "Use ShrinkTree<T> instead. Node<A> is deprecated in favor of the canonical ShrinkTree type."
+)
 public struct Node<A>: Sendable where A: Sendable {
   public let value: A
   public let shrinks: Lazy<[Node<A>]>
@@ -145,6 +160,19 @@ public struct Node<A>: Sendable where A: Sendable {
 
 /// Enhanced generator that produces shrink trees instead of simple values
 /// Named TreeGen to avoid conflict with existing Gen<T>
+///
+/// - Warning: Deprecated. Use `Gen<T>` with `ShrinkTree<T>`-based shrinking instead.
+/// `TreeGen<A>` was an experimental generator type; the canonical approach is to use
+/// `Gen<T>` with shrinkers that produce `ShrinkTree<T>` values. The property runner
+/// automatically converts `Shrink<T>` to `ShrinkTree<T>` via `ShrinkTree.from()`.
+///
+/// This type will be removed in a future version. For new generators, use `Gen<T>`
+/// and rely on the standard shrinking system.
+@available(
+  *,
+  deprecated,
+  message: "Use Gen<T> with canonical Gen+ShrinkTree model instead"
+)
 public struct TreeGen<A>: Sendable where A: Sendable {
   public let run: @Sendable (inout any RandomNumberGenerator, Size) -> Node<A>
 

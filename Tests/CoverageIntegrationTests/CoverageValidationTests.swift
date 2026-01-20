@@ -120,9 +120,10 @@ struct CoverageValidationTests {
       Issue.record("Simple failing property should fail, not give up")
     }
 
-    // Test property that gives up due to filtering
+    // Test property that gives up due to filtering (suchThat loops infinitely with impossible filter)
+    // Using an extremely unlikely condition instead
     let giveUpProperty = Property<Int>(
-      generator: Gen.int.tryGenerate(where: { _ in false }),  // Impossible condition
+      generator: Gen.int.suchThat { $0 < Int.min },  // Impossible condition - will timeout/loop
       predicate: { _ in true }
     )
     let giveUpResult = runPropertySynchronously(

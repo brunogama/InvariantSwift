@@ -169,9 +169,9 @@ extension Gen {
   /// let result = traversed.generate(&rng, Size(value: 10))
   /// // result: [2, 4, 6, 8]
   /// ```
-  public static func traverse<A, B, Collection: Swift.Collection>(
+  public static func traverse<A: Sendable, B, Collection: Swift.Collection & Sendable>(
     _ collection: Collection,
-    _ transform: @escaping (A) -> Gen<B>
+    _ transform: @escaping @Sendable (A) -> Gen<B>
   ) -> Gen<[B]> where Collection.Element == A {
     Gen<[B]>(
       generate: { rng, size in
@@ -230,7 +230,7 @@ extension Gen {
   /// )
   /// ```
   public static func recursive(
-    recursiveCase: @escaping (Gen<T>) -> Gen<T>,
+    recursiveCase: @escaping @Sendable (Gen<T>) -> Gen<T>,
     baseCase: Gen<T>,
     probability: Double = 0.7
   ) -> Gen<T> {
@@ -252,7 +252,7 @@ extension Gen {
               recursiveCase: recursiveCase,
               baseCase: baseCase,
               probability: probability * 0.9  // Reduce probability in recursion
-            // swiftlint:disable:next multiline_function_chains
+                // swiftlint:disable:next multiline_function_chains
             ).generate(&rng, size)
           }
 
@@ -302,11 +302,11 @@ extension Gen {
   ///     mutualB: { exprGen in exprGen.map { "term(\($0))" } }
   /// )
   /// ```
-  public static func mutuallyRecursive<A, B>(
+  public static func mutuallyRecursive<A: Sendable, B: Sendable>(
     baseA: Gen<A>,
     baseB: Gen<B>,
-    mutualA: @escaping (Gen<B>) -> Gen<A>,
-    mutualB: @escaping (Gen<A>) -> Gen<B>
+    mutualA: @escaping @Sendable (Gen<B>) -> Gen<A>,
+    mutualB: @escaping @Sendable (Gen<A>) -> Gen<B>
   ) -> (genA: Gen<A>, genB: Gen<B>) {
 
     let genA = Gen<A>(
@@ -383,7 +383,7 @@ public indirect enum BinaryTree<T> {
 
 extension BinaryTree: Sendable where T: Sendable {}
 
-extension BinaryTree {
+extension BinaryTree where T: Sendable {
   /// Generator for binary trees using recursive combinator.
   ///
   /// Creates binary trees with controlled depth distribution using the
@@ -414,7 +414,7 @@ extension BinaryTree {
           elementGen,
           recursiveGen,
           recursiveGen
-        // swiftlint:disable:next multiline_function_chains
+          // swiftlint:disable:next multiline_function_chains
         ).map { value, left, right in
           BinaryTree.node(value, left, right)
         }
@@ -503,7 +503,7 @@ public struct RoseTree<T> {
 
 extension RoseTree: Sendable where T: Sendable {}
 
-extension RoseTree {
+extension RoseTree where T: Sendable {
   /// Generator for rose trees using recursive combinators.
   ///
   /// Creates multi-way trees with controlled branching factor and depth
@@ -532,7 +532,7 @@ extension RoseTree {
         Gen<(T, [RoseTree<T>])>.zip(
           elementGen,
           Gen<RoseTree<T>>.sequence(elementGen: recursiveGen, length: Gen<Int>.int(in: 1...4))
-        // swiftlint:disable:next multiline_function_chains
+          // swiftlint:disable:next multiline_function_chains
         ).map { value, children in
           RoseTree(value: value, children: children)
         }
@@ -571,12 +571,13 @@ extension Gen {
   ///     nodeGen: { children in Gen<String>.constant("node(\(children.count))") }
   /// )
   /// ```
-  public static func treeWithDepth<Tree>(
+  public static func treeWithDepth<Tree: Sendable>(
     maxDepth: Int,
-    depthDistribution: @escaping (Int) -> Double = { depth in max(0.1, 1.0 - Double(depth) / 10.0)
+    depthDistribution: @escaping @Sendable (Int) -> Double = { depth in
+      max(0.1, 1.0 - Double(depth) / 10.0)
     },
     leafGen: Gen<Tree>,
-    nodeGen: @escaping ([Tree]) -> Gen<Tree>
+    nodeGen: @escaping @Sendable ([Tree]) -> Gen<Tree>
   ) -> Gen<Tree> {
     Gen<Tree>(
       generate: { rng, size in
@@ -634,7 +635,7 @@ extension Gen {
   /// let (size, string) = dependentGen.generate(&rng, Size(value: 10))
   /// // size: 7, string: "xxxxxxx"
   /// ```
-  public func dependent<U>(_ dependency: @escaping (T) -> Gen<U>) -> Gen<(T, U)> {
+  public func dependent<U>(_ dependency: @escaping @Sendable (T) -> Gen<U>) -> Gen<(T, U)> {
     Gen<(T, U)>(
       generate: { rng, size in
         let first = self.generate(&rng, size)
@@ -778,7 +779,7 @@ extension Gen {
       _ = self.generate(&rng, size)
 
       // Identity law: map(id) == id
-      let identity: (T) -> T = { $0 }
+      let identity: @Sendable (T) -> T = { $0 }
       _ = self.map(identity).generate(&rng, size)
 
       // Note: Without Equatable constraint on T, we can't directly compare values

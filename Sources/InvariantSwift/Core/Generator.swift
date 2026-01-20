@@ -253,7 +253,12 @@ public struct Shrink<T>: @unchecked Sendable {
   /// Monadic bind for dependent shrinking structures.
   ///
   /// - Warning: This method is removed. Use `ShrinkTree.flatMap` for dependent shrinking.
-  @available(*, unavailable, message: "Use ShrinkTree.flatMap for correct dependent shrinking. Shrink<T> cannot support flatMap correctly.")
+  @available(
+    *,
+    unavailable,
+    message:
+      "Use ShrinkTree.flatMap for correct dependent shrinking. Shrink<T> cannot support flatMap correctly."
+  )
   public func flatMap<U>(_ f: @escaping (T) -> Shrink<U>) -> Shrink<U> {
     fatalError("Unavailable")
   }
@@ -261,7 +266,12 @@ public struct Shrink<T>: @unchecked Sendable {
   /// Transforms the shrinking context via a function.
   ///
   /// - Warning: This method is removed. Use `ShrinkTree` for dependent shrinking.
-  @available(*, unavailable, message: "Use ShrinkTree-based shrinking. Shrink.contramap is mathematically invalid for this type.")
+  @available(
+    *,
+    unavailable,
+    message:
+      "Use ShrinkTree-based shrinking. Shrink.contramap is mathematically invalid for this type."
+  )
   public func contramap<U>(_ f: @escaping (U) -> T) -> Shrink<U> {
     fatalError("Unavailable")
   }
@@ -691,12 +701,12 @@ public struct Shrink<T>: @unchecked Sendable {
 ///   ```
 ///
 /// - See Also: ``Property``, ``Size``, ``Shrink``, ``Seed``
-public struct Gen<T>: @unchecked Sendable {
+public struct Gen<T: Sendable>: @unchecked Sendable {
   /// The generation function producing values of type T.
   ///
   /// Takes a random number generator and complexity size, returns a generated value.
   /// The function must be pure (deterministic for same RNG state/size).
-  public let generate: (inout any RandomNumberGenerator, Size) -> T
+  public let generate: @Sendable (inout any RandomNumberGenerator, Size) -> T
   /// The shrinking strategy for this generator.
   ///
   /// Provides ways to reduce a value to simpler versions for counterexample minimization.
@@ -706,7 +716,8 @@ public struct Gen<T>: @unchecked Sendable {
   /// When set, `generateTree` uses this instead of the default `ShrinkTree.from(value, shrink:)`.
   /// This is essential for dependent generators (flatMap) where shrinking requires regenerating
   /// inner values when the outer value shrinks.
-  public let generateTreeOverride: ((inout any RandomNumberGenerator, Size) -> ShrinkTree<T>)?
+  public let generateTreeOverride:
+    (@Sendable (inout any RandomNumberGenerator, Size) -> ShrinkTree<T>)?
 
   /// Initialize a generator with generation and shrinking functions.
   ///
@@ -730,9 +741,10 @@ public struct Gen<T>: @unchecked Sendable {
   ///   )
   ///   ```
   public init(
-    generate: @escaping (inout any RandomNumberGenerator, Size) -> T,
+    generate: @escaping @Sendable (inout any RandomNumberGenerator, Size) -> T,
     shrink: Shrink<T> = .empty,
-    generateTreeOverride: ((inout any RandomNumberGenerator, Size) -> ShrinkTree<T>)? = nil
+    generateTreeOverride: (@Sendable (inout any RandomNumberGenerator, Size) -> ShrinkTree<T>)? =
+      nil
   ) {
     self.generate = generate
     self.shrink = shrink
@@ -753,7 +765,7 @@ public struct Gen<T>: @unchecked Sendable {
   ///       Int.random(in: 0..<size.value, using: &rng)
   ///   }
   ///   ```
-  public init(generate: @escaping (inout any RandomNumberGenerator, Size) -> T) {
+  public init(generate: @escaping @Sendable (inout any RandomNumberGenerator, Size) -> T) {
     self.init(generate: generate, shrink: .empty)
   }
 
@@ -862,7 +874,7 @@ extension Gen {
   ///   ```
   ///
   /// - See Also: ``flatMap(_:)``, ``apply(_:)``
-  public func map<U>(_ f: @escaping (T) -> U) -> Gen<U> {
+  public func map<U>(_ f: @escaping @Sendable (T) -> U) -> Gen<U> {
     Gen<U>(
       generate: { rng, size in f(self.generate(&rng, size)) },
       // swiftlint:disable:next line_length
@@ -1003,7 +1015,7 @@ extension Gen {
   ///   ```
   ///
   /// - See Also: ``zip(_:)``, ``map(_:)``
-  public func apply<U>(_ genF: Gen<(T) -> U>) -> Gen<U> {
+  public func apply<U>(_ genF: Gen<@Sendable (T) -> U>) -> Gen<U> {
     Gen<U>(
       generate: { rng, size in
         let f = genF.generate(&rng, size)
@@ -1118,7 +1130,7 @@ extension Gen {
   ///   non-dependent transformations.
   ///
   /// - See Also: ``map(_:)``, ``zip(_:)``
-  public func flatMap<U>(_ f: @escaping (T) -> Gen<U>) -> Gen<U> {
+  public func flatMap<U: Sendable>(_ f: @escaping @Sendable (T) -> Gen<U>) -> Gen<U> {
     let outerGen = self
 
     return Gen<U>(
@@ -1152,8 +1164,8 @@ extension Gen {
   ///   - size: Complexity hint
   ///
   /// - Returns: Properly composed shrink tree for the flatMapped value
-  public func generateTreeFlatMap<U>(
-    _ f: @escaping (T) -> Gen<U>,
+  public func generateTreeFlatMap<U: Sendable>(
+    _ f: @escaping @Sendable (T) -> Gen<U>,
     _ rng: inout any RandomNumberGenerator,
     _ size: Size
   ) -> ShrinkTree<U> {
@@ -1166,7 +1178,7 @@ extension Gen {
     let innerTree = innerGen.generateTree(&rng, size)
 
     // Define the transform for *re-generation* during shrinking
-    let transform: (T) -> ShrinkTree<U> = { outerVal in
+    let transform: @Sendable (T) -> ShrinkTree<U> = { outerVal in
       // Hash the shrunk value's description to create a deterministic seed
       let hashValue = String(describing: outerVal).hashValue
       var innerRng: any RandomNumberGenerator = SeedBasedRandomNumberGenerator(
@@ -1348,7 +1360,7 @@ extension Gen {
     deprecated,
     message: "Use tryGenerate(where:) for safe filtering or Property assumptions for discards"
   )
-  public func suchThat(_ predicate: @escaping (T) -> Bool) -> Gen<T> {
+  public func suchThat(_ predicate: @escaping @Sendable (T) -> Bool) -> Gen<T> {
     Gen { rng, size in
       var attempts = 0
       let maxAttempts = 100
@@ -1413,7 +1425,7 @@ extension Gen {
   ///
   /// - See Also: ``suchThat(_:)`` (deprecated), ``Property``
   public func tryGenerate(
-    where predicate: @escaping (T) -> Bool,
+    where predicate: @escaping @Sendable (T) -> Bool,
     maxAttempts: Int = 100
   ) -> Gen<T?> {
     Gen<T?> { rng, size in

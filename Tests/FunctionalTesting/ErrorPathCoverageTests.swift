@@ -327,7 +327,7 @@ struct ErrorPathCoverageTests {
 
     // Property with high discard rate due to filtering
     let highDiscardProperty = Property<Int>(
-      generator: Gen.int(in: 1...1000).tryGenerate(where: { $0 <= 10 }),  // Very selective filter
+      generator: Gen.int(in: 1...1000).suchThat { $0 <= 10 },  // Very selective filter
       predicate: { _ in true }
     )
 

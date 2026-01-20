@@ -449,7 +449,6 @@ extension Scheduler {
 public enum SchedulerContext {
   /// Thread-local scheduler for use within `@AsyncPropertyTest`
   @TaskLocal
-  // swiftlint:disable:next attributes
   public static var current: Scheduler?
 }
 

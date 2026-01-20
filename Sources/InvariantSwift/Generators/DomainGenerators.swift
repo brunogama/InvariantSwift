@@ -439,104 +439,36 @@ extension Gen where T == JSONSchema {
   /// - Enum constraints and pattern validation
   // swiftlint:disable:next function_body_length
   public static func jsonSchema(maxDepth: Int = 3, maxProperties: Int = 5) -> Gen<JSONSchema> {
-    // swiftlint:disable:next function_body_length cyclomatic_complexity
-    func schemaGenerator(depth: Int) -> Gen<JSONSchema> {
-      Gen<JSONSchema>(
-        generate: { rng, size in
-          // Edge cases
-          if size.value <= 2 || depth >= maxDepth {
-            let simpleTypes = JSONSchemaType.allCases.filter { $0 != .object && $0 != .array }
-            let type = simpleTypes.randomElement(using: &rng)!
+    schemaGeneratorHelper(depth: 0, maxDepth: maxDepth, maxProperties: maxProperties)
+  }
 
-            switch type {
-            case .string:
-              return JSONSchema(
-                type: .string,
-                minLength: Bool.random(using: &rng) ? Int.random(in: 0...10, using: &rng) : nil,
-                maxLength: Bool.random(using: &rng) ? Int.random(in: 10...100, using: &rng) : nil,
-                pattern: Bool.random(using: &rng) ? "^[a-zA-Z0-9]+$" : nil
-              )
+  // swiftlint:disable:next function_body_length cyclomatic_complexity
+  private static func schemaGeneratorHelper(
+    depth: Int,
+    maxDepth: Int,
+    maxProperties: Int
+  ) -> Gen<JSONSchema> {
+    Gen<JSONSchema>(
+      generate: { rng, size in
+        // Edge cases
+        if size.value <= 2 || depth >= maxDepth {
+          let simpleTypes = JSONSchemaType.allCases.filter { $0 != .object && $0 != .array }
+          let type = simpleTypes.randomElement(using: &rng)!
 
-            case .number, .integer:
-              return JSONSchema(
-                type: type,
-                minimum: Bool.random(using: &rng) ? Double.random(in: -100...0, using: &rng) : nil,
-                maximum: Bool.random(using: &rng) ? Double.random(in: 0...100, using: &rng) : nil
-              )
-
-            case .boolean:
-              return JSONSchema(type: .boolean)
-
-            case .null:
-              return JSONSchema(type: .null)
-
-            case .object, .array:
-              return JSONSchema(type: .boolean)  // Fallback for recursion base case
-            }
-          }
-
-          // Choose schema type
-          let schemaType = JSONSchemaType.allCases.randomElement(using: &rng)!
-
-          switch schemaType {
-          case .object:
-            let propertyCount = Int.random(
-              in: 1...min(maxProperties, max(size.value, 1)),
-              using: &rng
-            )
-            var properties: [String: JSONSchema] = [:]
-            var required: [String] = []
-
-            for i in 0..<propertyCount {
-              let propName = "prop\(i)"
-              properties[propName] = schemaGenerator(depth: depth + 1).generate(
-                &rng,
-                Size(value: size.value / 2)
-              )
-
-              if Bool.random(using: &rng) {
-                required.append(propName)
-              }
-            }
-
-            return JSONSchema(
-              type: .object,
-              properties: properties,
-              required: required.isEmpty ? nil : required,
-              description: Bool.random(using: &rng) ? "Object schema at depth \(depth)" : nil,
-              title: Bool.random(using: &rng) ? "ObjectSchema\(depth)" : nil
-            )
-
-          case .array:
-            let itemSchema = schemaGenerator(depth: depth + 1).generate(
-              &rng,
-              Size(value: size.value / 2)
-            )
-            return JSONSchema(
-              type: .array,
-              items: itemSchema,
-              description: Bool.random(using: &rng) ? "Array schema at depth \(depth)" : nil,
-              title: Bool.random(using: &rng) ? "ArraySchema\(depth)" : nil
-            )
-
+          switch type {
           case .string:
-            let enumValues =
-              Bool.random(using: &rng)
-              ? Array((0..<Int.random(in: 2...5, using: &rng)).map { "value\($0)" }) : nil
-
             return JSONSchema(
               type: .string,
               minLength: Bool.random(using: &rng) ? Int.random(in: 0...10, using: &rng) : nil,
               maxLength: Bool.random(using: &rng) ? Int.random(in: 10...100, using: &rng) : nil,
-              pattern: Bool.random(using: &rng) ? "^[a-zA-Z0-9]+$" : nil,
-              enum: enumValues
+              pattern: Bool.random(using: &rng) ? "^[a-zA-Z0-9]+$" : nil
             )
 
           case .number, .integer:
             return JSONSchema(
-              type: schemaType,
-              minimum: Bool.random(using: &rng) ? Double.random(in: -1000...0, using: &rng) : nil,
-              maximum: Bool.random(using: &rng) ? Double.random(in: 0...1000, using: &rng) : nil
+              type: type,
+              minimum: Bool.random(using: &rng) ? Double.random(in: -100...0, using: &rng) : nil,
+              maximum: Bool.random(using: &rng) ? Double.random(in: 0...100, using: &rng) : nil
             )
 
           case .boolean:
@@ -544,45 +476,125 @@ extension Gen where T == JSONSchema {
 
           case .null:
             return JSONSchema(type: .null)
-          }
-        },
-        shrink: Shrink { schema in
-          var shrunk: [JSONSchema] = []
 
-          // Shrink to simpler types
-          if schema.type == .object || schema.type == .array {
-            shrunk.append(JSONSchema(type: .string))
-            shrunk.append(JSONSchema(type: .boolean))
+          case .object, .array:
+            return JSONSchema(type: .boolean)  // Fallback for recursion base case
           }
-
-          // Remove optional properties
-          if let properties = schema.properties, !properties.isEmpty {
-            let reducedProperties = Dictionary(uniqueKeysWithValues: properties.dropLast())
-            shrunk.append(
-              JSONSchema(
-                type: schema.type,
-                properties: reducedProperties.isEmpty ? nil : reducedProperties,
-                items: schema.items,
-                required: schema.required
-              )
-            )
-          }
-
-          // Remove constraints
-          if schema.minimum != nil || schema.maximum != nil || schema.pattern != nil
-            || schema.enum != nil
-          {
-            shrunk.append(
-              JSONSchema(type: schema.type, properties: schema.properties, items: schema.items)
-            )
-          }
-
-          return Array(Set(shrunk))
         }
-      )
-    }
 
-    return schemaGenerator(depth: 0)
+        // Choose schema type
+        let schemaType = JSONSchemaType.allCases.randomElement(using: &rng)!
+
+        switch schemaType {
+        case .object:
+          let propertyCount = Int.random(
+            in: 1...min(maxProperties, max(size.value, 1)),
+            using: &rng
+          )
+          var properties: [String: JSONSchema] = [:]
+          var required: [String] = []
+
+          for i in 0..<propertyCount {
+            let propName = "prop\(i)"
+            properties[propName] = schemaGeneratorHelper(
+              depth: depth + 1,
+              maxDepth: maxDepth,
+              maxProperties: maxProperties
+            ).generate(
+              &rng,
+              Size(value: size.value / 2)
+            )
+
+            if Bool.random(using: &rng) {
+              required.append(propName)
+            }
+          }
+
+          return JSONSchema(
+            type: .object,
+            properties: properties,
+            required: required.isEmpty ? nil : required,
+            description: Bool.random(using: &rng) ? "Object schema at depth \(depth)" : nil,
+            title: Bool.random(using: &rng) ? "ObjectSchema\(depth)" : nil
+          )
+
+        case .array:
+          let itemSchema = schemaGeneratorHelper(
+            depth: depth + 1,
+            maxDepth: maxDepth,
+            maxProperties: maxProperties
+          ).generate(
+            &rng,
+            Size(value: size.value / 2)
+          )
+          return JSONSchema(
+            type: .array,
+            items: itemSchema,
+            description: Bool.random(using: &rng) ? "Array schema at depth \(depth)" : nil,
+            title: Bool.random(using: &rng) ? "ArraySchema\(depth)" : nil
+          )
+
+        case .string:
+          let enumValues =
+            Bool.random(using: &rng)
+            ? Array((0..<Int.random(in: 2...5, using: &rng)).map { "value\($0)" }) : nil
+
+          return JSONSchema(
+            type: .string,
+            minLength: Bool.random(using: &rng) ? Int.random(in: 0...10, using: &rng) : nil,
+            maxLength: Bool.random(using: &rng) ? Int.random(in: 10...100, using: &rng) : nil,
+            pattern: Bool.random(using: &rng) ? "^[a-zA-Z0-9]+$" : nil,
+            enum: enumValues
+          )
+
+        case .number, .integer:
+          return JSONSchema(
+            type: schemaType,
+            minimum: Bool.random(using: &rng) ? Double.random(in: -1000...0, using: &rng) : nil,
+            maximum: Bool.random(using: &rng) ? Double.random(in: 0...1000, using: &rng) : nil
+          )
+
+        case .boolean:
+          return JSONSchema(type: .boolean)
+
+        case .null:
+          return JSONSchema(type: .null)
+        }
+      },
+      shrink: Shrink { schema in
+        var shrunk: [JSONSchema] = []
+
+        // Shrink to simpler types
+        if schema.type == .object || schema.type == .array {
+          shrunk.append(JSONSchema(type: .string))
+          shrunk.append(JSONSchema(type: .boolean))
+        }
+
+        // Remove optional properties
+        if let properties = schema.properties, !properties.isEmpty {
+          let reducedProperties = Dictionary(uniqueKeysWithValues: properties.dropLast())
+          shrunk.append(
+            JSONSchema(
+              type: schema.type,
+              properties: reducedProperties.isEmpty ? nil : reducedProperties,
+              items: schema.items,
+              required: schema.required
+            )
+          )
+        }
+
+        // Remove constraints
+        if schema.minimum != nil || schema.maximum != nil || schema.pattern != nil
+          || schema.enum != nil
+        {
+          shrunk.append(
+            JSONSchema(type: schema.type, properties: schema.properties, items: schema.items)
+          )
+        }
+
+        return Array(Set(shrunk))
+      }
+    )
   }
 
   /// **Generate simple primitive schemas**

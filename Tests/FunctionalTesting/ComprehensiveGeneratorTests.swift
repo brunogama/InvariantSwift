@@ -132,7 +132,7 @@ struct ComprehensiveGeneratorTests {
     func testTraverseStructurePreservation() async throws {
       let inputArray = [1, 2, 3, 4, 5]
       let stringGen = Gen<String>.pure("test")
-      let transform: (Int) -> Gen<String> = { _ in stringGen }
+      let transform: @Sendable (Int) -> Gen<String> = { _ in stringGen }
 
       let traverseGen = Gen<Int>.traverse(inputArray, transform)
 
@@ -156,7 +156,7 @@ struct ComprehensiveGeneratorTests {
     func testTraverseEmptyCollection() async throws {
       let emptyArray: [Int] = []
       let stringGen = Gen<String>.pure("unused")
-      let transform: (Int) -> Gen<String> = { _ in stringGen }
+      let transform: @Sendable (Int) -> Gen<String> = { _ in stringGen }
 
       let traverseGen = Gen<Int>.traverse(emptyArray, transform)
 
@@ -175,7 +175,7 @@ struct ComprehensiveGeneratorTests {
       let inputArray = [1, 2, 3]
 
       // Test identity-like transformation
-      let identityTransform: (Int) -> Gen<Int> = { value in Gen<Int>.pure(value) }
+      let identityTransform: @Sendable (Int) -> Gen<Int> = { value in Gen<Int>.pure(value) }
       let identityGen = Gen<Int>.traverse(inputArray, identityTransform)
 
       var rng: any RandomNumberGenerator = SystemRandomNumberGenerator()
@@ -185,7 +185,7 @@ struct ComprehensiveGeneratorTests {
       #expect(identityResult == inputArray)
 
       // Test multiplicative transformation
-      let doubleTransform: (Int) -> Gen<Int> = { value in Gen<Int>.pure(value * 2) }
+      let doubleTransform: @Sendable (Int) -> Gen<Int> = { value in Gen<Int>.pure(value * 2) }
       let doubleGen = Gen<Int>.traverse(inputArray, doubleTransform)
 
       let doubleResult = doubleGen.generate(&rng, size)
@@ -357,10 +357,10 @@ struct ComprehensiveGeneratorTests {
       let baseA = Gen<String>.pure("A")
       let baseB = Gen<String>.pure("B")
 
-      let mutualA: (Gen<String>) -> Gen<String> = { genB in
+      let mutualA: @Sendable (Gen<String>) -> Gen<String> = { genB in
         genB.map { "A-\($0)" }
       }
-      let mutualB: (Gen<String>) -> Gen<String> = { genA in
+      let mutualB: @Sendable (Gen<String>) -> Gen<String> = { genA in
         genA.map { "B-\($0)" }
       }
 
@@ -391,8 +391,8 @@ struct ComprehensiveGeneratorTests {
       let baseA = Gen<Int>.pure(1)
       let baseB = Gen<Int>.pure(2)
 
-      let mutualA: (Gen<Int>) -> Gen<Int> = { genB in genB.map { $0 + 10 } }
-      let mutualB: (Gen<Int>) -> Gen<Int> = { genA in genA.map { $0 + 20 } }
+      let mutualA: @Sendable (Gen<Int>) -> Gen<Int> = { genB in genB.map { $0 + 10 } }
+      let mutualB: @Sendable (Gen<Int>) -> Gen<Int> = { genA in genA.map { $0 + 20 } }
 
       let (genA, genB) = Gen<Int>.mutuallyRecursive(
         baseA: baseA,
@@ -421,8 +421,8 @@ struct ComprehensiveGeneratorTests {
       let baseA = Gen<Character>.pure("A")
       let baseB = Gen<Character>.pure("B")
 
-      let mutualA: (Gen<Character>) -> Gen<Character> = { _ in Gen<Character>.pure("X") }
-      let mutualB: (Gen<Character>) -> Gen<Character> = { _ in Gen<Character>.pure("Y") }
+      let mutualA: @Sendable (Gen<Character>) -> Gen<Character> = { _ in Gen<Character>.pure("X") }
+      let mutualB: @Sendable (Gen<Character>) -> Gen<Character> = { _ in Gen<Character>.pure("Y") }
 
       let (genA, genB) = Gen<Character>.mutuallyRecursive(
         baseA: baseA,
@@ -688,7 +688,7 @@ struct ComprehensiveGeneratorTests {
     @Test("Functor identity law validation")
     func testFunctorIdentityLaw() async throws {
       let intGen = Gen<Int>.int(in: 1...100)
-      let identity: (Int) -> Int = { $0 }
+      let identity: @Sendable (Int) -> Int = { $0 }
 
       var rng1: any RandomNumberGenerator = SystemRandomNumberGenerator()
       var rng2: any RandomNumberGenerator = SystemRandomNumberGenerator()
@@ -710,8 +710,8 @@ struct ComprehensiveGeneratorTests {
     @Test("Functor composition law validation")
     func testFunctorCompositionLaw() async throws {
       let intGen = Gen<Int>.int(in: 1...10)
-      let f: (Int) -> Int = { $0 * 2 }
-      let g: (Int) -> String = { "value: \($0)" }
+      let f: @Sendable (Int) -> Int = { $0 * 2 }
+      let g: @Sendable (Int) -> String = { "value: \($0)" }
 
       var rng1: any RandomNumberGenerator = SystemRandomNumberGenerator()
       var rng2: any RandomNumberGenerator = SystemRandomNumberGenerator()
@@ -738,8 +738,8 @@ struct ComprehensiveGeneratorTests {
     @Test("Applicative identity law validation")
     func testApplicativeIdentityLaw() async throws {
       let intGen = Gen<Int>.int(in: 1...50)
-      let identity: (Int) -> Int = { $0 }
-      let identityGen = Gen<(Int) -> Int>.pure(identity)
+      let identity: @Sendable (Int) -> Int = { $0 }
+      let identityGen = Gen<@Sendable (Int) -> Int>.pure(identity)
 
       var rng1: any RandomNumberGenerator = SystemRandomNumberGenerator()
       var rng2: any RandomNumberGenerator = SystemRandomNumberGenerator()
@@ -762,7 +762,7 @@ struct ComprehensiveGeneratorTests {
     func testMonadLeftIdentityLaw() async throws {
       let value = 42
       let pureGen = Gen<Int>.pure(value)
-      let f: (Int) -> Gen<String> = { val in Gen<String>.pure("result: \(val)") }
+      let f: @Sendable (Int) -> Gen<String> = { val in Gen<String>.pure("result: \(val)") }
 
       var rng1: any RandomNumberGenerator = SystemRandomNumberGenerator()
       var rng2: any RandomNumberGenerator = SystemRandomNumberGenerator()
@@ -789,7 +789,7 @@ struct ComprehensiveGeneratorTests {
     @Test("Monad right identity law validation")
     func testMonadRightIdentityLaw() async throws {
       let stringGen = Gen<String>.pure("test")
-      let returnF: (String) -> Gen<String> = { Gen<String>.pure($0) }
+      let returnF: @Sendable (String) -> Gen<String> = { Gen<String>.pure($0) }
 
       var rng1: any RandomNumberGenerator = SystemRandomNumberGenerator()
       var rng2: any RandomNumberGenerator = SystemRandomNumberGenerator()

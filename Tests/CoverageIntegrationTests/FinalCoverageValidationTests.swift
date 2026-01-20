@@ -1,3 +1,4 @@
+// swiftlint:disable function_body_length type_body_length
 import Testing
 import Foundation
 import InvariantCore
@@ -17,7 +18,7 @@ struct FinalCoverageValidationTests {
     // 1. Property Creation APIs
     let basicProperty = Property<Int>(generator: Gen.int) { _ in true }
     let conditionalProperty = Property<String>(
-      generator: Gen.string.tryGenerate(where: { !$0.isEmpty })
+      generator: Gen.string.suchThat { !$0.isEmpty }
     ) {
       !$0.isEmpty
     }
@@ -150,7 +151,7 @@ struct FinalCoverageValidationTests {
     #expect(zipValue.0 >= Int.min, "Zip combinator should work")
     #expect(mappedValue % 2 == 0, "Map combinator should work")
     #expect(!flatMappedValue.isEmpty || flatMappedValue.isEmpty, "FlatMap combinator should work")
-    #expect(filteredValue > 0, "SuchThat filter should work")
+    #expect(filteredValue != nil && filteredValue! > 0, "SuchThat filter should work")
 
     // 7. Size and Configuration APIs
     let sizes = [Size(value: 0), Size(value: 50), Size(value: 100)]
@@ -429,9 +430,10 @@ struct FinalCoverageValidationTests {
     }
 
     // 2. Generator Failure Scenarios
+    // Note: Use suchThat for generators that may fail (returns same type but may loop)
+    // Using regular generators with false predicates to test behavior
     let problematicGenerators: [Gen<Int>] = [
-      Gen.int.tryGenerate(where: { _ in false }),  // Impossible filter
-      Gen.int.tryGenerate(where: { _ in false }),  // Impossible filter alternative
+      Gen.int.suchThat { _ in false },  // Impossible filter - will loop
       Gen.int,  // Regular generator for comparison
     ]
 
@@ -501,9 +503,8 @@ struct FinalCoverageValidationTests {
         #expect(Bool(true), "Async failure scenarios validated")
       }
 
-      // Test async with give-up property
-      let giveUpAsyncProperty = Property<Int>(generator: Gen.int.tryGenerate(where: { _ in false }))
-      { _ in
+      // Test async with give-up property - use suchThat which may loop/fail
+      let giveUpAsyncProperty = Property<Int>(generator: Gen.int.suchThat { _ in false }) { _ in
         true
       }
       let asyncGiveUpResult = await asyncRunner.runProperty(
@@ -702,7 +703,7 @@ struct FinalCoverageValidationTests {
     let errorPropagationScenarios: [(String, Property<Int>)] = [
       (
         "Generator Error",
-        Property<Int>(generator: Gen.int.tryGenerate(where: { _ in false })) { _ in true }
+        Property<Int>(generator: Gen.int.suchThat { _ in false }) { _ in true }
       ),
       ("Property Error", Property<Int>(generator: Gen.int) { _ in false }),
       ("Shrinking Error", Property<Int>(generator: Gen.int(in: 1...5)) { $0 > 10 }),
@@ -794,37 +795,69 @@ struct FinalCoverageValidationTests {
     }
 
     // 2. Generator Performance Validation
-    let generatorBenchmarks: [(String, Gen<Any>)] = [
-      ("Int", Gen.int.map { $0 as Any }),
-      ("Double", Gen.double.map { $0 as Any }),
-      ("String", Gen.string.map { $0 as Any }),
-      ("Bool", Gen.bool.map { $0 as Any }),
-      ("Array", Gen.array(Gen.int).map { $0 as Any }),
-    ]
+    // Test each generator individually to avoid Gen<Any> type erasure
+    let size = Size(value: 10)
+    let generations = 1000
 
-    for (name, generator) in generatorBenchmarks {
-      var rng: any RandomNumberGenerator = SeedBasedRandomNumberGenerator(seed: Seed(value: 888))
-      let size = Size(value: 10)
-      let generations = 1000
-
-      let startTime = CFAbsoluteTimeGetCurrent()
-
-      for _ in 0..<generations {
-        _ = generator.generate(&rng, size)
-      }
-
-      let duration = CFAbsoluteTimeGetCurrent() - startTime
-      let generationsPerSecond = Double(generations) / duration
-
-      #expect(
-        duration < 0.5,
-        "\(name) generator should be fast: \(duration)s for \(generations) generations"
-      )
-      #expect(
-        generationsPerSecond > 1000,
-        "\(name) generator should have high throughput: \(generationsPerSecond) gen/s"
-      )
+    // Int generator benchmark
+    var rng1: any RandomNumberGenerator = SeedBasedRandomNumberGenerator(seed: Seed(value: 888))
+    let intStartTime = CFAbsoluteTimeGetCurrent()
+    for _ in 0..<generations {
+      _ = Gen.int.generate(&rng1, size)
     }
+    let intDuration = CFAbsoluteTimeGetCurrent() - intStartTime
+    #expect(
+      intDuration < 0.5,
+      "Int generator should be fast: \(intDuration)s for \(generations) generations"
+    )
+
+    // Double generator benchmark
+    var rng2: any RandomNumberGenerator = SeedBasedRandomNumberGenerator(seed: Seed(value: 889))
+    let doubleStartTime = CFAbsoluteTimeGetCurrent()
+    for _ in 0..<generations {
+      _ = Gen.double.generate(&rng2, size)
+    }
+    let doubleDuration = CFAbsoluteTimeGetCurrent() - doubleStartTime
+    #expect(
+      doubleDuration < 0.5,
+      "Double generator should be fast: \(doubleDuration)s for \(generations) generations"
+    )
+
+    // String generator benchmark
+    var rng3: any RandomNumberGenerator = SeedBasedRandomNumberGenerator(seed: Seed(value: 890))
+    let stringStartTime = CFAbsoluteTimeGetCurrent()
+    for _ in 0..<generations {
+      _ = Gen.string.generate(&rng3, size)
+    }
+    let stringDuration = CFAbsoluteTimeGetCurrent() - stringStartTime
+    #expect(
+      stringDuration < 0.5,
+      "String generator should be fast: \(stringDuration)s for \(generations) generations"
+    )
+
+    // Bool generator benchmark
+    var rng4: any RandomNumberGenerator = SeedBasedRandomNumberGenerator(seed: Seed(value: 891))
+    let boolStartTime = CFAbsoluteTimeGetCurrent()
+    for _ in 0..<generations {
+      _ = Gen.bool.generate(&rng4, size)
+    }
+    let boolDuration = CFAbsoluteTimeGetCurrent() - boolStartTime
+    #expect(
+      boolDuration < 0.5,
+      "Bool generator should be fast: \(boolDuration)s for \(generations) generations"
+    )
+
+    // Array generator benchmark
+    var rng5: any RandomNumberGenerator = SeedBasedRandomNumberGenerator(seed: Seed(value: 892))
+    let arrayStartTime = CFAbsoluteTimeGetCurrent()
+    for _ in 0..<generations {
+      _ = Gen.array(Gen.int).generate(&rng5, size)
+    }
+    let arrayDuration = CFAbsoluteTimeGetCurrent() - arrayStartTime
+    #expect(
+      arrayDuration < 0.5,
+      "Array generator should be fast: \(arrayDuration)s for \(generations) generations"
+    )
 
     // 3. Shrinking Performance Validation
     let intShrinkTime = CFAbsoluteTimeGetCurrent()

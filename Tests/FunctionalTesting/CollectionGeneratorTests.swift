@@ -3,6 +3,7 @@ import Foundation
 @testable import InvariantCore
 @testable import InvariantSwift
 
+// swiftlint:disable file_length type_body_length
 /// Comprehensive tests for collection generators to achieve 99%+ code coverage
 struct CollectionGeneratorTests {
 
@@ -100,7 +101,8 @@ struct CollectionGeneratorTests {
 
   @Test("Set Generator Basic Coverage")
   func setGeneratorBasicCoverage() async {
-    let property = Property<Set<Int>>(generator: Gen.set(Gen.int)) { _ in true }
+    let setGen = Gen<Set<Int>>.set(Gen.int)
+    let property = Property<Set<Int>>(generator: setGen) { _ in true }
     let result = await PropertyRunner().runProperty(
       property,
       config: PropertyConfig(iterations: 50)
@@ -119,7 +121,8 @@ struct CollectionGeneratorTests {
 
   @Test("Set Generator Uniqueness")
   func setGeneratorUniqueness() async {
-    let property = Property<Set<Int>>(generator: Gen.set(Gen.int(in: 1...10))) { set in
+    let setGen = Gen<Set<Int>>.set(Gen.int(in: 1...10))
+    let property = Property<Set<Int>>(generator: setGen) { set in
       // All elements should be unique (which is guaranteed by Set)
       // Test that set size is reasonable for small range
       set.count <= 10
@@ -142,7 +145,8 @@ struct CollectionGeneratorTests {
 
   @Test("Set Generator Shrinking")
   func setGeneratorShrinking() async {
-    let property = Property<Set<Int>>(generator: Gen.set(Gen.int(in: 1...50))) { set in
+    let setGen = Gen<Set<Int>>.set(Gen.int(in: 1...50))
+    let property = Property<Set<Int>>(generator: setGen) { set in
       !set.contains(25)  // Should fail when 25 is found
     }
     let result = await PropertyRunner().runProperty(
@@ -170,7 +174,8 @@ struct CollectionGeneratorTests {
 
   @Test("Set Generator String Elements")
   func setGeneratorStringElements() async {
-    let property = Property<Set<String>>(generator: Gen.set(Gen.string)) { _ in true }
+    let setGen = Gen<Set<String>>.set(Gen.string)
+    let property = Property<Set<String>>(generator: setGen) { _ in true }
     let result = await PropertyRunner().runProperty(
       property,
       config: PropertyConfig(iterations: 30)
@@ -191,7 +196,8 @@ struct CollectionGeneratorTests {
 
   @Test("Dictionary Generator Basic Coverage")
   func dictionaryGeneratorBasicCoverage() async {
-    let property = Property<[String: Int]>(generator: Gen.dictionary(Gen.string, Gen.int)) { _ in
+    let dictGen = Gen<[String: Int]>.dictionary(Gen.string, Gen.int)
+    let property = Property<[String: Int]>(generator: dictGen) { _ in
       true
     }
     let result = await PropertyRunner().runProperty(
@@ -212,8 +218,9 @@ struct CollectionGeneratorTests {
 
   @Test("Dictionary Generator Key Uniqueness")
   func dictionaryGeneratorKeyUniqueness() async {
+    let dictGen = Gen<[Int: String]>.dictionary(Gen.int(in: 1...10), Gen.string)
     let property = Property<[Int: String]>(
-      generator: Gen.dictionary(Gen.int(in: 1...10), Gen.string)
+      generator: dictGen
     ) { dict in
       // Keys should be unique (guaranteed by Dictionary)
       // Test that dictionary size is reasonable for small key range
@@ -237,8 +244,9 @@ struct CollectionGeneratorTests {
 
   @Test("Dictionary Generator Shrinking")
   func dictionaryGeneratorShrinking() async {
+    let dictGen = Gen<[String: Int]>.dictionary(Gen.string, Gen.int(in: 1...100))
     let property = Property<[String: Int]>(
-      generator: Gen.dictionary(Gen.string, Gen.int(in: 1...100))
+      generator: dictGen
     ) { dict in
       !dict.values.contains(50)  // Should fail when value 50 is found
     }
@@ -267,8 +275,9 @@ struct CollectionGeneratorTests {
 
   @Test("Dictionary Generator Complex Types")
   func dictionaryGeneratorComplexTypes() async {
+    let dictGen = Gen<[Int: [String]]>.dictionary(Gen.int, Gen.array(Gen.string))
     let property = Property<[Int: [String]]>(
-      generator: Gen.dictionary(Gen.int, Gen.array(Gen.string))
+      generator: dictGen
     ) { _ in true }
     let result = await PropertyRunner().runProperty(
       property,
@@ -457,7 +466,8 @@ struct CollectionGeneratorTests {
 
   @Test("ArraySlice Generator Basic Coverage")
   func arraySliceGeneratorBasicCoverage() async {
-    let property = Property<ArraySlice<Int>>(generator: Gen.arraySlice(Gen.int)) { _ in true }
+    let arraySliceGen = Gen<ArraySlice<Int>>.arraySlice(Gen.int)
+    let property = Property<ArraySlice<Int>>(generator: arraySliceGen) { _ in true }
     let result = await PropertyRunner().runProperty(
       property,
       config: PropertyConfig(iterations: 50)
@@ -476,7 +486,8 @@ struct CollectionGeneratorTests {
 
   @Test("ArraySlice Generator Properties")
   func arraySliceGeneratorProperties() async {
-    let property = Property<ArraySlice<String>>(generator: Gen.arraySlice(Gen.string)) { slice in
+    let arraySliceGen = Gen<ArraySlice<String>>.arraySlice(Gen.string)
+    let property = Property<ArraySlice<String>>(generator: arraySliceGen) { slice in
       // Test that array slice behaves like an array
       let array = Array(slice)
       return array.count == slice.count
@@ -499,8 +510,8 @@ struct CollectionGeneratorTests {
 
   @Test("ArraySlice Generator Shrinking")
   func arraySliceGeneratorShrinking() async {
-    let property = Property<ArraySlice<Int>>(generator: Gen.arraySlice(Gen.int(in: 1...100))) {
-      slice in
+    let arraySliceGen = Gen<ArraySlice<Int>>.arraySlice(Gen.int(in: 1...100))
+    let property = Property<ArraySlice<Int>>(generator: arraySliceGen) { slice in
       !slice.contains(75)  // Should fail when 75 is found
     }
     let result = await PropertyRunner().runProperty(
@@ -549,8 +560,10 @@ struct CollectionGeneratorTests {
 
   @Test("Mixed Collection Types")
   func mixedCollectionTypes() async {
+    let innerSetGen = Gen<Set<Int>>.set(Gen.int)
+    let dictGen = Gen<[String: Set<Int>]>.dictionary(Gen.string, innerSetGen)
     let property = Property<[String: Set<Int>]>(
-      generator: Gen.dictionary(Gen.string, Gen.set(Gen.int))
+      generator: dictGen
     ) { _ in true }
     let result = await PropertyRunner().runProperty(
       property,

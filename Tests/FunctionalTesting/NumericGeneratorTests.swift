@@ -129,14 +129,13 @@ struct NumericGeneratorTests {
   @Test("Int16 Generator Edge Cases")
   func int16GeneratorEdgeCases() async {
     // Test that Int16 generator can produce edge values
+    // Use direct generation instead of capturing mutable state in closures
+    var rng: any RandomNumberGenerator = SeedBasedRandomNumberGenerator(seed: Seed(value: 12345))
     var generatedValues: Set<Int16> = []
 
     for _ in 0..<1000 {
-      let property = Property<Int16>(generator: Gen.int16) { value in
-        generatedValues.insert(value)
-        return true
-      }
-      _ = await PropertyRunner().runProperty(property, config: PropertyConfig(iterations: 1))
+      let value = Gen.int16.generate(&rng, Size(value: 50))
+      generatedValues.insert(value)
     }
 
     #expect(!generatedValues.isEmpty, "Int16 generator should produce values")
@@ -259,16 +258,15 @@ struct NumericGeneratorTests {
 
   @Test("UInt16 Generator Zero and Max Values")
   func uint16GeneratorZeroAndMaxValues() async {
+    // Use direct generation instead of capturing mutable state in closures
+    var rng: any RandomNumberGenerator = SeedBasedRandomNumberGenerator(seed: Seed(value: 67890))
     var generatedZero = false
     var generatedLargeValue = false
 
     for _ in 0..<500 {
-      let property = Property<UInt16>(generator: Gen.uint16) { value in
-        if value == 0 { generatedZero = true }
-        if value > UInt16.max / 2 { generatedLargeValue = true }
-        return true
-      }
-      _ = await PropertyRunner().runProperty(property, config: PropertyConfig(iterations: 1))
+      let value = Gen.uint16.generate(&rng, Size(value: 50))
+      if value == 0 { generatedZero = true }
+      if value > UInt16.max / 2 { generatedLargeValue = true }
 
       if generatedZero && generatedLargeValue { break }
     }
@@ -415,18 +413,20 @@ struct NumericGeneratorTests {
 
   @Test("Float NaN and Infinity Detection")
   func floatNanAndInfinityDetection() async {
+    // Test Float generator produces various float types by direct sampling
     var foundNaN = false
     var foundInfinity = false
     var foundFinite = false
 
-    for _ in 0..<1000 {
-      let property = Property<Float>(generator: Gen.float) { value in
-        if value.isNaN { foundNaN = true }
-        if value.isInfinite { foundInfinity = true }
-        if value.isFinite { foundFinite = true }
-        return true
-      }
-      _ = await PropertyRunner().runProperty(property, config: PropertyConfig(iterations: 1))
+    // Sample directly to avoid @Sendable closure capture issues
+    for i in 0..<1000 {
+      let seed = Seed(value: UInt64(i))
+      let size = Size(value: 50)
+      let value = Gen<Float>.float.sample(size: size, seed: seed)
+
+      if value.isNaN { foundNaN = true }
+      if value.isInfinite { foundInfinity = true }
+      if value.isFinite { foundFinite = true }
 
       if foundNaN && foundInfinity && foundFinite { break }
     }

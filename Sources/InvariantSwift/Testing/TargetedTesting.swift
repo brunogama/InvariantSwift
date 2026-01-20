@@ -7,7 +7,9 @@ import Foundation
 
 /// Namespace for task-local storage
 public enum TargetedTestingContext {
-  @TaskLocal public static var currentTargetCollector: TargetCollector?
+  /// Thread-local target collector
+  @TaskLocal
+  public static var currentTargetCollector: TargetCollector?
 }
 
 /// Global accessor for the current target collector

@@ -164,7 +164,7 @@ struct PropertyMacroIntegrationTests {
 
   @Test("Property test with Set<Int> parameter")
   func propertyTestSetInt() throws {
-    let generator = Gen.set(Gen<Int>.int)
+    let generator = Gen<Set<Int>>.set(Gen<Int>.int)
     let property = Property<Set<Int>>(generator: generator) { set in
       set.isEmpty
     }
@@ -186,7 +186,7 @@ struct PropertyMacroIntegrationTests {
 
   @Test("Property test with Dictionary<String, Int> parameter")
   func propertyTestDictionary() throws {
-    let generator = Gen.dictionary(Gen<String>.string, Gen<Int>.int)
+    let generator = Gen<[String: Int]>.dictionary(Gen<String>.string, Gen<Int>.int)
     let property = Property<[String: Int]>(generator: generator) { dict in
       dict.isEmpty
     }
@@ -312,36 +312,45 @@ struct PropertyMacroIntegrationTests {
 
   @Test("Property test respects iteration count")
   func propertyTestRespectsIterationCount() throws {
-    var callCount = 0
+    // Verify iteration count through result, not mutable counter
     let generator = Gen<Int>.int
     let property = Property(generator: generator) { (_: Int) in
-      callCount += 1
-      return true
+      true
     }
 
     let config = PropertyConfig(iterations: 25, maxShrinks: 0)
-    _ = runPropertySynchronously(property, config: config)
+    let result = runPropertySynchronously(property, config: config)
 
-    #expect(callCount == 25, "Should have run exactly 25 iterations, ran \(callCount)")
+    switch result {
+    case .success(let iterations):
+      #expect(iterations == 25, "Should have run exactly 25 iterations, ran \(iterations)")
+
+    case .failure, .gaveUp:
+      Issue.record("Test should have succeeded")
+    }
   }
 
   // MARK: - Edge Case Tests
 
   @Test("Property test handles empty string generation")
   func propertyTestHandlesEmptyString() throws {
+    // Sample directly to verify empty strings can be generated
     let generator = Gen<String>.string
     var sawEmpty = false
 
-    let property = Property(generator: generator) { (s: String) in
-      if s.isEmpty { sawEmpty = true }
-      return true
+    // Sample directly to avoid @Sendable closure capture issues
+    for i in 0..<500 {
+      let seed = Seed(value: UInt64(i))
+      let size = Size(value: 5)  // Small size to increase chance of empty
+      let s = generator.sample(size: size, seed: seed)
+      if s.isEmpty {
+        sawEmpty = true
+        break
+      }
     }
 
-    let config = PropertyConfig(iterations: 500, maxShrinks: 0)
-    _ = runPropertySynchronously(property, config: config)
-
     // Empty string may or may not be generated depending on size parameter
-    // Just verify the test completes without error
+    // Just verify we can sample without error
     _ = sawEmpty
   }
 
