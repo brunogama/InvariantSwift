@@ -1,7 +1,7 @@
 ---
 id: S006
 epic: E001
-status: todo
+status: done
 owner: llm
 depends_on: [S002]
 ---

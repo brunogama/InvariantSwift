@@ -3,7 +3,7 @@ id: S005
 epic: E001
 priority: P0
 title: Add replay token output and determinism tests
-status: todo
+status: done
 owners: ["llm"]
 dependencies: ["S001","S004"]
 files:

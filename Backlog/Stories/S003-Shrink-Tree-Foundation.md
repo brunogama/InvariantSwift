@@ -3,7 +3,7 @@ id: S003
 epic: E002
 priority: P0
 title: Introduce ShrinkTree and adapt existing shrinkers
-status: todo
+status: done
 owners: ["llm"]
 dependencies: []
 files:

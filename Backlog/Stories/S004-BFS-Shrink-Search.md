@@ -3,7 +3,7 @@ id: S004
 epic: E002
 priority: P0
 title: Replace greedy-first shrinking with BFS default search
-status: todo
+status: done
 owners: ["llm"]
 dependencies: ["S003"]
 files:
