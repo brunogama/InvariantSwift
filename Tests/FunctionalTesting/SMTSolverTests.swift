@@ -5,6 +5,7 @@
 
 import Testing
 import Foundation
+import InvariantCore
 @testable import InvariantSwift
 
 @Suite("SMT Solver Integration")
@@ -212,6 +213,7 @@ struct SMTSolverTests {
       if case .int(let value) = model["x"] {
         #expect(value == 42)
       }
+
     default:
       Issue.record("Expected satisfiable result")
     }

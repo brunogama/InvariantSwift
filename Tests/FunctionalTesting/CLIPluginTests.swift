@@ -1,5 +1,6 @@
 import Testing
 import Foundation
+@testable import InvariantCore
 @testable import InvariantSwift
 
 /// Phase 8: CLI and SPM Plugin Tests

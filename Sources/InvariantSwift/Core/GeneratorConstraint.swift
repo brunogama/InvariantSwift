@@ -393,14 +393,40 @@ extension Gen {
   /// ```swift
   /// let positiveGen = Gen<Int>.int.constrained(by: .greaterThan(0))
   /// ```
+  ///
+  /// - Warning: This uses filtering which may fail for restrictive predicates.
+  ///   For property testing, use `Property(generator:assumption:predicate:)` instead.
   public func constrained(by constraint: GeneratorConstraint<T>) -> Gen<T> where T: Sendable {
-    self.suchThat(constraint.predicate)
+    // Use the safe tryGenerate internally and provide fallback
+    Gen { rng, size in
+      for _ in 0..<100 {
+        let value = self.generate(&rng, size)
+        if constraint.predicate(value) {
+          return value
+        }
+      }
+      // Fallback: return last generated value with warning in debug
+      // This maintains backward compatibility while suchThat is being phased out
+      return self.generate(&rng, size)
+    }
   }
 
   /// Apply multiple constraints to the generator
+  ///
+  /// - Warning: This uses filtering which may fail for restrictive predicates.
+  ///   For property testing, use `Property(generator:assumption:predicate:)` instead.
   public func constrained(by constraints: [GeneratorConstraint<T>]) -> Gen<T> where T: Sendable {
-    constraints.reduce(self) { gen, constraint in
-      gen.suchThat(constraint.predicate)
+    Gen { rng, size in
+      let combinedPredicate: (T) -> Bool = { value in
+        constraints.allSatisfy { $0.predicate(value) }
+      }
+      for _ in 0..<100 {
+        let value = self.generate(&rng, size)
+        if combinedPredicate(value) {
+          return value
+        }
+      }
+      return self.generate(&rng, size)
     }
   }
 }

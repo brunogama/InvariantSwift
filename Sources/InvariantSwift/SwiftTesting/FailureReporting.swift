@@ -6,7 +6,7 @@
 
 import Foundation
 import Testing
-
+import InvariantCore
 // MARK: - Failure Report
 
 /// Detailed failure report for a property test.

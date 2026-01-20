@@ -1,5 +1,6 @@
 import Testing
 import Foundation
+import InvariantCore
 @testable import InvariantSwift
 
 /// Coverage validation and integration tests for achieving 99%+ code coverage
@@ -307,11 +308,14 @@ struct CoverageValidationTests {
     let emptyResult = emptyShrink.shrink(42)
     #expect(emptyResult.isEmpty, "Empty shrink should return empty array")
 
-    // Test contramap with complex transformation
-    let complexContramap = Shrink<String> { s in [String(s.dropFirst())] }
-      .contramap { (pair: (Int, String)) in pair.1 }
-    let contramapResult = complexContramap.shrink((42, "hello"))
-    #expect(!contramapResult.isEmpty, "Contramap shrinking should complete")
+    // Test ShrinkTree BFS search (replaces deprecated contramap test)
+    let intShrink = Shrink<Int> { n in n > 0 ? [0, n / 2, n - 1] : [] }
+    let tree = ShrinkTree.from(100, shrink: intShrink)
+    let minimal = tree.findMinimal(budget: 50) { $0 > 10 }
+    #expect(minimal != nil, "ShrinkTree should find minimal value")
+    if let minimal = minimal {
+      #expect(minimal > 10, "Minimal should satisfy predicate")
+    }
 
     // Test shrinking pair with empty components
     let emptyStringShrink = Shrink<String> { _ in [] }
@@ -319,10 +323,14 @@ struct CoverageValidationTests {
     let pairResult = pairShrink.shrink((42, "test"))
     #expect(pairResult.isEmpty, "Pair shrinking with empty components should be empty")
 
-    // Test flatMap edge case
-    let flatMapShrink = emptyShrink.flatMap { _ in Shrink<String> { _ in ["test"] } }
-    let flatMapResult = flatMapShrink.shrink("input")
-    #expect(flatMapResult.isEmpty, "FlatMap with empty base should return empty")
+    // Test ShrinkTree flatMap (replaces deprecated Shrink.flatMap test)
+    let stringTree = ShrinkTree(value: "hello") {
+      [ShrinkTree.leaf("hell"), ShrinkTree.leaf("hel")]
+    }
+    let mappedTree = stringTree.flatMap { s in
+      ShrinkTree(value: s.count) { [ShrinkTree.leaf(0)] }
+    }
+    #expect(mappedTree.value == 5, "FlatMap should transform value")
   }
 }
 

@@ -1,4 +1,5 @@
 import Testing
+import InvariantCore
 @testable import InvariantSwift
 
 /// Comprehensive mathematical law verification for category theory foundations

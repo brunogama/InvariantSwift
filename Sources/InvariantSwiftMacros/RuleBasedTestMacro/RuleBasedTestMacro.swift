@@ -270,7 +270,9 @@ public struct RuleBasedTestMacro: MemberMacro, ExtensionMacro {
     // Build type annotation: [AnyRule<TypeName>]
     let elementType = GenericArgumentClauseSyntax(
       arguments: GenericArgumentListSyntax([
-        GenericArgumentSyntax(argument: IdentifierTypeSyntax(name: .identifier(typeName)))
+        GenericArgumentSyntax(
+          argument: .type(TypeSyntax(IdentifierTypeSyntax(name: .identifier(typeName))))
+        )
       ])
     )
 
@@ -554,7 +556,9 @@ public struct RuleBasedTestMacro: MemberMacro, ExtensionMacro {
     // Type: [AnyBundle<TypeName>]
     let elementType = GenericArgumentClauseSyntax(
       arguments: GenericArgumentListSyntax([
-        GenericArgumentSyntax(argument: IdentifierTypeSyntax(name: .identifier(typeName)))
+        GenericArgumentSyntax(
+          argument: .type(TypeSyntax(IdentifierTypeSyntax(name: .identifier(typeName))))
+        )
       ])
     )
 

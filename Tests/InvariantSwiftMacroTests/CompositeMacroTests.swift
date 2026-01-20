@@ -2,6 +2,7 @@ import XCTest
 import SwiftSyntax
 import SwiftSyntaxMacros
 import SwiftSyntaxMacrosTestSupport
+import InvariantCore
 @testable import InvariantSwiftMacros
 
 final class CompositeMacroTests: XCTestCase {

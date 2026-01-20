@@ -1,5 +1,6 @@
 import Testing
 import Foundation
+import InvariantCore
 @testable import InvariantSwift
 
 /// Phase 4 Generator Optimization Tests
@@ -143,6 +144,7 @@ struct GeneratorOptimizationTests {
     switch result {
     case .success:
       Issue.record("Property should fail")
+
     case .failure(let shrinkResult):
       #expect(shrinkResult.minimalCounterexample >= 100)
       #expect(shrinkResult.minimalCounterexample <= shrinkResult.originalValue)

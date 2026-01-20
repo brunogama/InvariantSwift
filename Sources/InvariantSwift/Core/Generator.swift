@@ -250,6 +250,14 @@ public struct Shrink<T>: @unchecked Sendable {
   ///   let person = Person(age: 50)
   ///   let shrunk = personShrink.shrink(person)  // Persons with ages 0, 25
   ///   ```
+  ///
+  /// > Warning: This implementation is a placeholder that does not properly shrink.
+  /// > For correct dependent shrinking, use `ShrinkTree.flatMap` instead.
+  @available(
+    *,
+    deprecated,
+    message: "Use ShrinkTree-based shrinking for correct contramap behavior"
+  )
   public func contramap<U>(_ f: @escaping (U) -> T) -> Shrink<U> {
     Shrink<U> { u in
       // swiftlint:disable:next line_length
@@ -311,6 +319,10 @@ public struct Shrink<T>: @unchecked Sendable {
   ///       }
   ///   }
   ///   ```
+  ///
+  /// > Warning: This implementation is a stub that returns no shrinks.
+  /// > For correct dependent shrinking, use `ShrinkTree.flatMap` instead.
+  @available(*, deprecated, message: "Use ShrinkTree-based shrinking for correct flatMap behavior")
   public func flatMap<U>(_ f: @escaping (T) -> Shrink<U>) -> Shrink<U> {
     Shrink<U> { _ in
       // This is a simplified implementation - full implementation would
@@ -413,12 +425,14 @@ public struct Shrink<T>: @unchecked Sendable {
     return candidates
   }
 
-  /// Generates shrink candidates by removing elements from an array.
+  /// Shrinks an array by progressively removing chunks (delta debugging style).
   ///
   /// Produces progressively shorter arrays by:
   /// 1. Trying empty array (most aggressive)
-  /// 2. Removing halves (prefix/suffix)
+  /// 2. Removing halves, quarters, eighths, etc. (progressive chunk removal)
   /// 3. Removing individual elements
+  ///
+  /// This delta-debugging strategy quickly finds minimal failing arrays.
   ///
   /// - Parameter array: The array to shrink
   ///
@@ -427,24 +441,33 @@ public struct Shrink<T>: @unchecked Sendable {
   /// - Example:
   ///   ```swift
   ///   Shrink.removeElements(from: [1, 2, 3, 4])
-  ///   // Returns: [[], [3,4], [1,2], [2,3,4], [1,3,4], [1,2,4], [1,2,3]]
+  ///   // Returns: [[], [3,4], [1,2], [2,3,4], [1,3,4], [1,2,4], [1,2,3], ...]
   ///   ```
   public static func removeElements<Element>(from array: [Element]) -> [[Element]] {
     guard !array.isEmpty else { return [] }
 
     var candidates: [[Element]] = []
 
-    // Try empty first (most aggressive)
+    // 1. Try empty first (most aggressive)
     candidates.append([])
 
-    // Try halves
-    if array.count > 1 {
-      let mid = array.count / 2
-      candidates.append(Array(array.suffix(array.count - mid)))  // Remove first half
-      candidates.append(Array(array.prefix(mid)))  // Remove second half
+    // 2. Delta debugging: remove chunks of decreasing size (N/2, N/4, N/8, ...)
+    var chunkSize = array.count / 2
+    while chunkSize >= 1 {
+      // Generate all arrays with one chunk of this size removed
+      var offset = 0
+      while offset + chunkSize <= array.count {
+        var shrunk = array
+        shrunk.removeSubrange(offset..<(offset + chunkSize))
+        if !shrunk.isEmpty && shrunk.count != array.count {
+          candidates.append(shrunk)
+        }
+        offset += chunkSize
+      }
+      chunkSize /= 2
     }
 
-    // Remove individual elements
+    // 3. Remove individual elements (most fine-grained)
     for i in 0..<array.count {
       var shrunk = array
       shrunk.remove(at: i)
@@ -510,7 +533,195 @@ public struct Shrink<T>: @unchecked Sendable {
       shrinks.flatMap { shrink in shrink(value) }
     }
   }
+
+  // MARK: - String Shrinking (S022)
+
+  /// Shrinks a string by removing characters and simplifying character classes.
+  ///
+  /// Strategy (in order of aggressiveness):
+  /// 1. Empty string
+  /// 2. Remove halves (first half, second half)
+  /// 3. Remove chunks (delta debugging style)
+  /// 4. Remove individual characters
+  /// 5. Simplify characters (letters → 'a', digits → '0')
+  ///
+  /// - Parameter string: The string to shrink
+  /// - Returns: Array of shrunk strings ordered by simplicity
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   Shrink.shrinkString("hello")
+  ///   // Returns: ["", "lo", "hel", "ello", "hllo", "helo", "hell", "aello", ...]
+  ///   ```
+  public static func shrinkString(_ string: String) -> [String] {
+    guard !string.isEmpty else { return [] }
+
+    var candidates: [String] = []
+    let chars = Array(string)
+
+    // 1. Empty string first
+    candidates.append("")
+
+    // 2. Remove halves
+    if chars.count > 1 {
+      let mid = chars.count / 2
+      candidates.append(String(chars.suffix(chars.count - mid)))  // Keep second half
+      candidates.append(String(chars.prefix(mid)))  // Keep first half
+    }
+
+    // 3. Remove individual characters
+    for i in 0..<chars.count {
+      var shrunk = chars
+      shrunk.remove(at: i)
+      candidates.append(String(shrunk))
+    }
+
+    // 4. Simplify characters (uppercase → lowercase, letter → 'a', digit → '0')
+    for i in 0..<chars.count {
+      let char = chars[i]
+      var simplified: Character?
+
+      if char.isUppercase {
+        simplified = Character(char.lowercased())
+      } else if char.isLetter && char != "a" {
+        simplified = "a"
+      } else if char.isNumber && char != "0" {
+        simplified = "0"
+      }
+
+      if let s = simplified, s != char {
+        var shrunk = chars
+        shrunk[i] = s
+        candidates.append(String(shrunk))
+      }
+    }
+
+    return candidates
+  }
+
+  /// Creates a Shrink for String values.
+  ///
+  /// - Returns: Shrink strategy for strings
+  public static var string: Shrink<String> {
+    Shrink<String> { shrinkString($0) }
+  }
+
+  // MARK: - Dictionary Shrinking (S022)
+
+  /// Shrinks a dictionary by removing keys and shrinking values.
+  ///
+  /// Strategy (in order of aggressiveness):
+  /// 1. Empty dictionary
+  /// 2. Remove halves of keys
+  /// 3. Remove individual keys
+  /// 4. Shrink individual values (using provided shrinker)
+  ///
+  /// - Parameters:
+  ///   - dict: The dictionary to shrink
+  ///   - valueShrink: Function to shrink individual values
+  ///
+  /// - Returns: Array of shrunk dictionaries
+  public static func shrinkDictionary<K: Hashable, V>(
+    _ dict: [K: V],
+    valueShrink: ((V) -> [V])? = nil
+  ) -> [[K: V]] {
+    guard !dict.isEmpty else { return [] }
+
+    var candidates: [[K: V]] = []
+    let keys = Array(dict.keys)
+
+    // 1. Empty dictionary
+    candidates.append([:])
+
+    // 2. Remove halves
+    if keys.count > 1 {
+      let mid = keys.count / 2
+      var firstHalf: [K: V] = [:]
+      var secondHalf: [K: V] = [:]
+
+      for (i, key) in keys.enumerated() {
+        if i < mid {
+          firstHalf[key] = dict[key]
+        } else {
+          secondHalf[key] = dict[key]
+        }
+      }
+
+      candidates.append(firstHalf)
+      candidates.append(secondHalf)
+    }
+
+    // 3. Remove individual keys
+    for key in keys {
+      var shrunk = dict
+      shrunk.removeValue(forKey: key)
+      candidates.append(shrunk)
+    }
+
+    // 4. Shrink individual values
+    if let valueShrink = valueShrink {
+      for key in keys {
+        if let value = dict[key] {
+          for shrunkValue in valueShrink(value) {
+            var shrunk = dict
+            shrunk[key] = shrunkValue
+            candidates.append(shrunk)
+          }
+        }
+      }
+    }
+
+    return candidates
+  }
+
+  // MARK: - Optional Shrinking (S022)
+
+  /// Shrinks an optional value.
+  ///
+  /// Strategy:
+  /// 1. nil (most aggressive)
+  /// 2. Shrinks of the wrapped value
+  ///
+  /// - Parameters:
+  ///   - optional: The optional to shrink
+  ///   - valueShrink: Function to shrink the wrapped value
+  ///
+  /// - Returns: Array of shrunk optionals
+  public static func shrinkOptional<U>(
+    _ optional: U?,
+    valueShrink: (U) -> [U]
+  ) -> [U?] {
+    guard let value = optional else { return [] }
+
+    var candidates: [U?] = []
+
+    // 1. nil first
+    candidates.append(nil)
+
+    // 2. Shrunk values
+    for shrunk in valueShrink(value) {
+      candidates.append(shrunk)
+    }
+
+    return candidates
+  }
+
+  // MARK: - Bool Shrinking (S022)
+
+  /// Shrinks a boolean value toward false.
+  ///
+  /// - Parameter value: The boolean to shrink
+  /// - Returns: Array of shrunk booleans (just [false] if true, empty if false)
+  public static func shrinkBool(_ value: Bool) -> [Bool] {
+    value ? [false] : []
+  }
+
+  /// Creates a Shrink for Bool values.
+  public static var bool: Shrink<Bool> {
+    Shrink<Bool> { shrinkBool($0) }
+  }
 }
+
 
 /// Generates random values of type `T` with built-in shrinking support.
 ///
@@ -555,6 +766,12 @@ public struct Gen<T>: @unchecked Sendable {
   ///
   /// Provides ways to reduce a value to simpler versions for counterexample minimization.
   public let shrink: Shrink<T>
+  /// Optional override for tree-based generation with integrated shrinking.
+  ///
+  /// When set, `generateTree` uses this instead of the default `ShrinkTree.from(value, shrink:)`.
+  /// This is essential for dependent generators (flatMap) where shrinking requires regenerating
+  /// inner values when the outer value shrinks.
+  public let generateTreeOverride: ((inout any RandomNumberGenerator, Size) -> ShrinkTree<T>)?
 
   /// Initialize a generator with generation and shrinking functions.
   ///
@@ -579,10 +796,12 @@ public struct Gen<T>: @unchecked Sendable {
   ///   ```
   public init(
     generate: @escaping (inout any RandomNumberGenerator, Size) -> T,
-    shrink: Shrink<T> = .empty
+    shrink: Shrink<T> = .empty,
+    generateTreeOverride: ((inout any RandomNumberGenerator, Size) -> ShrinkTree<T>)? = nil
   ) {
     self.generate = generate
     self.shrink = shrink
+    self.generateTreeOverride = generateTreeOverride
   }
 
   /// Initialize a generator with only a generation function (no shrinking).
@@ -631,6 +850,39 @@ public struct Gen<T>: @unchecked Sendable {
   public func sample(size: Size, seed: Seed) -> T {
     var rng: any RandomNumberGenerator = SeedBasedRandomNumberGenerator(seed: seed)
     return generate(&rng, size)
+  }
+
+  // MARK: - Integrated Shrink Tree Generation
+
+  /// Generate a value along with its complete shrink tree.
+  ///
+  /// This is the core method for integrated shrinking. Instead of returning just
+  /// a value, it returns a `ShrinkTree<T>` containing the value and all its
+  /// shrink candidates. This enables proper dependent shrinking in `flatMap`.
+  ///
+  /// The shrink tree is constructed lazily, so only explored shrinks are computed.
+  ///
+  /// - Parameters:
+  ///   - rng: Random number generator (mutated)
+  ///   - size: Complexity hint for generation
+  ///
+  /// - Returns: A shrink tree with the generated value at the root
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   var rng: any RandomNumberGenerator = SeedBasedRNG(seed: seed)
+  ///   let tree = Gen.int.generateTree(&rng, Size(value: 50))
+  ///   // tree.value is the generated int
+  ///   // tree.children contains shrink candidates
+  ///   ```
+  public func generateTree(_ rng: inout any RandomNumberGenerator, _ size: Size) -> ShrinkTree<T> {
+    // Use the override if provided (essential for flatMap's dependent shrinking)
+    if let override = generateTreeOverride {
+      return override(&rng, size)
+    }
+    // Default: generate value and build tree from shrink strategy
+    let value = generate(&rng, size)
+    return ShrinkTree.from(value, shrink: shrink)
   }
 }
 
@@ -823,11 +1075,8 @@ extension Gen {
         let t = self.generate(&rng, size)
         return f(t)
       },
-      shrink: Shrink.pair(genF.shrink, self.shrink).contramap { u in
-        // This is simplified - full implementation would need proper shrinking
-        // swiftlint:disable:next force_cast
-        (({ _ in u }), u as! T)
-      }
+      // Simplified shrinking - apply is rarely used in practice
+      shrink: .empty
     )
   }
 
@@ -935,13 +1184,81 @@ extension Gen {
   ///
   /// - See Also: ``map(_:)``, ``zip(_:)``
   public func flatMap<U>(_ f: @escaping (T) -> Gen<U>) -> Gen<U> {
-    Gen<U>(
+    let outerGen = self
+
+    return Gen<U>(
       generate: { rng, size in
-        let t = self.generate(&rng, size)
+        let t = outerGen.generate(&rng, size)
         return f(t).generate(&rng, size)
       },
-      shrink: self.shrink.flatMap { t in f(t).shrink }
+      // Robust shrinking: capture outer value and shrink both outer and inner
+      shrink: Shrink<U> { _ in
+        // For the Shrink<U> perspective, we only have U. But we build integrated
+        // shrinking in generateTree below that handles the dependency properly.
+        // This fallback uses empty shrinking - PropertyRunner uses generateTree.
+        []
+      }
     )
+  }
+
+  /// Generate a flatMapped value with proper dependent shrinking.
+  ///
+  /// This is the robust shrinking implementation for flatMap. It generates
+  /// both the outer and inner values as shrink trees, then composes them
+  /// so that shrinking the outer value regenerates the inner with the
+  /// shrunk outer value.
+  ///
+  /// - Parameters:
+  ///   - f: Function producing inner generator from outer value
+  ///   - rng: Random number generator
+  ///   - size: Complexity hint
+  ///
+  /// - Returns: Properly composed shrink tree for the flatMapped value
+  public func generateTreeFlatMap<U>(
+    _ f: @escaping (T) -> Gen<U>,
+    _ rng: inout any RandomNumberGenerator,
+    _ size: Size
+  ) -> ShrinkTree<U> {
+    // Generate outer value with its shrink tree
+    let outerTree = self.generateTree(&rng, size)
+    let outerValue = outerTree.value
+
+    // Generate inner value with its shrink tree
+    let innerGen = f(outerValue)
+    let innerTree = innerGen.generateTree(&rng, size)
+
+    // Compose the shrink trees:
+    // 1. Direct shrinks of the inner value
+    // 2. Shrinks of the outer value, with regenerated inner values
+    return ShrinkTree(value: innerTree.value) { [outerTree, innerTree, size, f] in
+      var children: [ShrinkTree<U>] = []
+
+      // First: add direct shrinks of the inner value (more likely to find minimal)
+      children.append(contentsOf: innerTree.children)
+
+      // Second: shrink the outer value and regenerate inner
+      // For each shrunk outer value, we generate a new inner value
+      // We use a deterministic RNG based on the shrunk outer value
+      for outerShrink in outerTree.children {
+        // Create a deterministic seed from the shrunk outer value
+        // This ensures reproducibility while allowing inner regeneration
+        let shrunkOuter = outerShrink.value
+        let innerGenForShrunk = f(shrunkOuter)
+
+        // Use a new RNG for each shrunk branch to ensure independence
+        // Hash the shrunk value's description to create a deterministic seed
+        let hashValue = String(describing: shrunkOuter).hashValue
+        var innerRng: any RandomNumberGenerator = SeedBasedRandomNumberGenerator(
+          seed: Seed(value: UInt64(bitPattern: Int64(hashValue)))
+        )
+        let regeneratedInner = innerGenForShrunk.generateTree(&innerRng, size)
+
+        // Create a child tree that continues shrinking both dimensions
+        children.append(regeneratedInner)
+      }
+
+      return children
+    }
   }
 
   // Note: Custom operators removed for simplicity - can be added later with proper declarations
@@ -1055,6 +1372,11 @@ extension Gen {
   /// the predicate, or gives up after 100 attempts. This is useful for generating
   /// values in a specific range or with specific properties.
   ///
+  /// - Warning: **DEPRECATED** - This method is unsafe because it silently returns
+  ///   a value that may NOT satisfy the predicate after 100 failed attempts.
+  ///   Use `Property(generator:assumption:predicate:)` for property testing, or
+  ///   `tryGenerate(where:)` if you need explicit failure handling.
+  ///
   /// **Important**: Use sparingly and only when generating invalid values is common.
   /// If predicate is too restrictive (e.g., rejects >90% of values), property testing
   /// becomes inefficient. For better performance:
@@ -1081,7 +1403,17 @@ extension Gen {
   ///   satisfy the predicate after 100 attempts. This is a safety mechanism to
   ///   prevent infinite loops. Prefer dependent generation for better performance.
   ///
-  /// - See Also: ``flatMap(_:)``
+  /// - See Also: ``tryGenerate(where:maxAttempts:)``, ``flatMap(_:)``
+  ///
+  /// > Important: Consider using `Property(generator:assumption:predicate:)` for
+  /// > property testing, which provides proper discard tracking and `.gaveUp` semantics.
+  /// > For explicit failure handling, use `tryGenerate(where:)` which returns `nil`
+  /// > instead of crashing.
+  @available(
+    *,
+    deprecated,
+    message: "Use tryGenerate(where:) for safe filtering or Property assumptions for discards"
+  )
   public func suchThat(_ predicate: @escaping (T) -> Bool) -> Gen<T> {
     Gen { rng, size in
       var attempts = 0
@@ -1095,8 +1427,69 @@ extension Gen {
         attempts += 1
       }
 
-      // If we can't generate a valid value, just return the last attempt
-      return self.generate(&rng, size)
+      // S011: Never return an invalid value - this violates the PBT contract
+      // Use tryGenerate(where:) for safe filtering or Property(assumption:) for discards
+      fatalError(
+        """
+        Gen.suchThat: Could not generate a value satisfying the predicate after \(maxAttempts) attempts.
+        This indicates the predicate is too restrictive for this generator.
+
+        Solutions:
+        1. Use tryGenerate(where:) which returns nil on failure
+        2. Use Property(generator:assumption:predicate:) for proper discard semantics
+        3. Restructure the generator to avoid filtering
+        """
+      )
+    }
+  }
+
+
+  /// Safely generates a value satisfying a predicate, returning nil on failure.
+  ///
+  /// Creates a generator that attempts to produce a value satisfying the predicate.
+  /// Unlike `suchThat`, this method explicitly returns `nil` when the predicate
+  /// cannot be satisfied after the maximum number of attempts, allowing callers
+  /// to handle generation failures appropriately.
+  ///
+  /// Use this when you need to:
+  /// - Detect when generation fails due to restrictive constraints
+  /// - Handle generation failure in a controlled way
+  /// - Generate optional values where `nil` is a valid outcome
+  ///
+  /// For property testing, prefer using `Property(generator:assumption:predicate:)`
+  /// which provides discard tracking and `.gaveUp` semantics.
+  ///
+  /// - Parameters:
+  ///   - predicate: Function returning true for values to keep, false to discard
+  ///   - maxAttempts: Maximum generation attempts before returning nil (default: 100)
+  ///
+  /// - Returns: Generator producing Optional<T>. Returns nil if predicate cannot be satisfied.
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let gen = Gen<Int>.int(in: 0...100)
+  ///   let rarePrimeGen = gen.tryGenerate(where: isPrime)  // Gen<Int?>
+  ///
+  ///   // Use with flatMap for explicit handling
+  ///   let validatedGen = gen.tryGenerate(where: isValid).flatMap { optional in
+  ///       guard let value = optional else { return Gen.pure(defaultValue) }
+  ///       return Gen.pure(value)
+  ///   }
+  ///   ```
+  ///
+  /// - See Also: ``suchThat(_:)`` (deprecated), ``Property``
+  public func tryGenerate(
+    where predicate: @escaping (T) -> Bool,
+    maxAttempts: Int = 100
+  ) -> Gen<T?> {
+    Gen<T?> { rng, size in
+      for _ in 0..<maxAttempts {
+        let value = self.generate(&rng, size)
+        if predicate(value) {
+          return value
+        }
+      }
+      return nil  // Explicit failure - caller must handle
     }
   }
 

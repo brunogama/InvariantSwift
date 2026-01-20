@@ -1,5 +1,5 @@
 import Foundation
-
+import InvariantCore
 /// Automatically derives StateMachine conformance for model-based testing.
 ///
 /// `@StateMachine` enables automatic generation of command enums and state machine
@@ -41,16 +41,7 @@ import Foundation
 ///
 /// - See Also: ``Command``, ``StateMachine``, ``ModelTestRunner``
 @attached(member, names: arbitrary, named(initialState), named(generateCommand), named(invariant))
-@attached(
-  extension,
-  conformances: StateMachine,
-  Command,
-  names: named(State),
-  named(precondition),
-  named(execute),
-  named(apply),
-  named(postcondition)
-)
+@attached(extension, conformances: RuleBasedStateMachine)
 public macro StateMachine() =
   #externalMacro(module: "InvariantSwiftMacros", type: "StateMachineMacro")
 

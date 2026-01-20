@@ -541,6 +541,7 @@ public struct TestGenerator: Sendable {
     lines.append("")
     lines.append("import Testing")
     lines.append("import Foundation")
+    lines.append("import InvariantCore")
     lines.append("@testable import InvariantSwift")
     lines.append("")
 

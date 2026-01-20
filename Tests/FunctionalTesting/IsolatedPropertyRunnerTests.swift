@@ -1,5 +1,6 @@
 import Testing
 import Foundation
+@testable import InvariantCore
 @testable import InvariantSwift
 
 /// Phase 7: Process Isolation Tests

@@ -1,5 +1,5 @@
 import Foundation
-
+import InvariantCore
 // MARK: - @BusinessRule Macro Declaration
 
 /// **@BusinessRule - Transform business logic functions into property-based tests**

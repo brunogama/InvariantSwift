@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+@testable import InvariantCore
 @testable import InvariantSwift
 
 @Suite("PrettyPrinter Enhancement Tests")
@@ -17,6 +18,7 @@ struct PrettyPrinterEnhancementTests {
     switch result {
     case .firstVisit(let id):
       #expect(id == 1)
+
     case .cycleDetected:
       Issue.record("Expected first visit, got cycle detected")
     }
@@ -33,6 +35,7 @@ struct PrettyPrinterEnhancementTests {
     switch result {
     case .firstVisit:
       Issue.record("Expected cycle detected, got first visit")
+
     case .cycleDetected(let refID):
       #expect(refID == 1)
     }
@@ -56,6 +59,7 @@ struct PrettyPrinterEnhancementTests {
       #expect(id1 == 1)
       #expect(id2 == 2)
       #expect(id3 == 3)
+
     default:
       Issue.record("Expected sequential first visits")
     }
@@ -73,6 +77,7 @@ struct PrettyPrinterEnhancementTests {
     switch result {
     case .cycleDetected:
       Issue.record("Should allow revisit after endVisit")
+
     case .firstVisit:
       break
     }

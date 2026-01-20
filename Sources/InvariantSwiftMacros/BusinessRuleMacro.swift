@@ -177,7 +177,7 @@ private func extractBusinessRuleConfig(
       return content.content.text
     }
     return nil
-  // swiftlint:disable:next multiline_function_chains
+    // swiftlint:disable:next multiline_function_chains
   }.joined()
 
   var config = BusinessRuleConfig(description: description)
@@ -423,7 +423,7 @@ private func buildPropertyDecl(
               expression: DeclReferenceExprSyntax(baseName: .identifier("Property")),
               genericArgumentClause: GenericArgumentClauseSyntax {
                 GenericArgumentSyntax(
-                  argument: IdentifierTypeSyntax(name: .identifier(propertyType))
+                  argument: .type(TypeSyntax(IdentifierTypeSyntax(name: .identifier(propertyType))))
                 )
               }
             ),

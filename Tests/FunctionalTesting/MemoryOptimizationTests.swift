@@ -1,5 +1,6 @@
 import Testing
 import Foundation
+@testable import InvariantCore
 @testable import InvariantSwift
 
 /// Comprehensive tests for memory optimizations in the Property system.

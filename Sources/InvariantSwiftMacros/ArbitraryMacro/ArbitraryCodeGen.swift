@@ -106,7 +106,7 @@ enum ArbitraryCodeGen {
         name: .identifier("Gen"),
         genericArgumentClause: GenericArgumentClauseSyntax {
           GenericArgumentSyntax(
-            argument: IdentifierTypeSyntax(name: .identifier(typeName))
+            argument: .type(TypeSyntax(IdentifierTypeSyntax(name: .identifier(typeName))))
           )
         }
       )
@@ -119,7 +119,7 @@ enum ArbitraryCodeGen {
         name: .identifier("Shrink"),
         genericArgumentClause: GenericArgumentClauseSyntax {
           GenericArgumentSyntax(
-            argument: IdentifierTypeSyntax(name: .identifier(typeName))
+            argument: .type(TypeSyntax(IdentifierTypeSyntax(name: .identifier(typeName))))
           )
         }
       )
@@ -810,7 +810,9 @@ enum ArbitraryCodeGen {
         base: GenericSpecializationExprSyntax(
           expression: DeclReferenceExprSyntax(baseName: .identifier("Gen")),
           genericArgumentClause: GenericArgumentClauseSyntax {
-            GenericArgumentSyntax(argument: IdentifierTypeSyntax(name: .identifier("Int")))
+            GenericArgumentSyntax(
+              argument: .type(TypeSyntax(IdentifierTypeSyntax(name: .identifier("Int"))))
+            )
           }
         ),
         declName: DeclReferenceExprSyntax(baseName: .identifier("int"))
@@ -854,7 +856,9 @@ enum ArbitraryCodeGen {
           base: GenericSpecializationExprSyntax(
             expression: DeclReferenceExprSyntax(baseName: .identifier("Gen")),
             genericArgumentClause: GenericArgumentClauseSyntax {
-              GenericArgumentSyntax(argument: IdentifierTypeSyntax(name: .identifier("Int")))
+              GenericArgumentSyntax(
+                argument: .type(TypeSyntax(IdentifierTypeSyntax(name: .identifier("Int"))))
+              )
             }
           ),
           declName: DeclReferenceExprSyntax(baseName: .identifier("int"))
@@ -878,7 +882,9 @@ enum ArbitraryCodeGen {
         base: GenericSpecializationExprSyntax(
           expression: DeclReferenceExprSyntax(baseName: .identifier("Gen")),
           genericArgumentClause: GenericArgumentClauseSyntax {
-            GenericArgumentSyntax(argument: IdentifierTypeSyntax(name: .identifier("String")))
+            GenericArgumentSyntax(
+              argument: .type(TypeSyntax(IdentifierTypeSyntax(name: .identifier("String"))))
+            )
           }
         ),
         declName: DeclReferenceExprSyntax(baseName: .identifier("string"))

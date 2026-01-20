@@ -1,4 +1,5 @@
 import Testing
+@testable import InvariantCore
 @testable import InvariantSwift
 
 /// Dogfooding tests: Using FunctionalTesting to test itself

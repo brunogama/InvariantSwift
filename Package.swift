@@ -1,4 +1,4 @@
-// swift-tools-version: 6.1
+// swift-tools-version: 6.2
 // swiftlint:disable all
 
 import PackageDescription
@@ -24,6 +24,10 @@ let package = Package(
       name: "InvariantSwift",
       targets: ["InvariantSwift"]
     ),
+    .library(
+      name: "InvariantCore",
+      targets: ["InvariantCore"]
+    ),
     .executable(
       name: "FuncTestCLI",
       targets: ["FuncTestCLI"]
@@ -39,23 +43,46 @@ let package = Package(
   ],
   dependencies: [
     .package(url: "https://github.com/pointfreeco/swift-custom-dump", from: "1.3.3"),
-    // Swift-syntax uses major version matching Swift version (600=6.0, 601=6.1, 602=6.2)
-    .package(url: "https://github.com/swiftlang/swift-syntax", "600.0.1"..<"700.0.0"),
+    .package(url: "https://github.com/swiftlang/swift-syntax", exact: "602.0.0"),
   ],
   targets: [
-    // MARK: - Main Library Targets
+    // MARK: - Core Library Target (No SwiftSyntax)
 
-    /// Main functional testing library target
+    /// Core property-based testing library without macro dependencies
+    /// Use this target directly if you don't need macro support
     .target(
-      name: "InvariantSwift",
-      dependencies: [
-        "InvariantSwiftMacros"
-      ],
+      name: "InvariantCore",
+      dependencies: [],
       path: "Sources/InvariantSwift",
       exclude: [
         "Macros/LawGeneration.swift.disabled",
         "CLAUDE.md",
         "AGENTS.md",
+        "Macros",  // Exclude macro-related code from Core
+        "SwiftTesting",  // Has macro declarations (PropertyTestIntegration)
+      ],
+      swiftSettings: commonSwiftSettings + [
+        .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
+      ]
+    ),
+
+    // MARK: - Main Library Targets
+
+    /// Main functional testing library target (includes macros)
+    /// Includes Core + Macros + SwiftTesting for full functionality
+    .target(
+      name: "InvariantSwift",
+      dependencies: [
+        "InvariantCore",
+        "InvariantSwiftMacros",
+      ],
+      path: "Sources/InvariantSwift",
+      exclude: [
+        "Macros/LawGeneration.swift.disabled"
+      ],
+      sources: [
+        "Macros",
+        "SwiftTesting",
       ],
       swiftSettings: commonSwiftSettings + [
         .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
@@ -104,11 +131,7 @@ let package = Package(
           description: "Run property-based tests with advanced features"
         ),
         permissions: [
-          .writeToPackageDirectory(reason: "Generate test reports and coverage data"),
-          .allowNetworkConnections(
-            scope: .all(ports: []),
-            reason: "Upload telemetry and coverage data"
-          ),
+          .writeToPackageDirectory(reason: "Generate test reports and local artifacts")
         ]
       ),
       dependencies: [

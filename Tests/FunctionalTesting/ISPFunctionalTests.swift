@@ -5,6 +5,7 @@
 
 import Testing
 
+import InvariantCore
 @testable import InvariantSwift
 
 // MARK: - ISP-0003: Rule-Based Stateful Testing
@@ -68,16 +69,14 @@ struct RuleBasedStatefulTests {
 struct MockStateMachine: RuleBasedStateMachine, Sendable {
   var value: Int = 0
 
-  init() {}
-
-  static var rules: [AnyRule<MockStateMachine>] {
+  static var rules: [AnyRule<Self>] {
     [
       AnyRule(name: "increment", precondition: { $0.value < 100 }, execute: { $0.value += 1 }),
       AnyRule(name: "decrement", precondition: { $0.value > 0 }, execute: { $0.value -= 1 }),
     ]
   }
 
-  static var invariants: [(String, (MockStateMachine) -> Bool)] {
+  static var invariants: [(String, (Self) -> Bool)] {
     [
       ("value >= 0", { $0.value >= 0 }),
       ("value <= 100", { $0.value <= 100 }),
@@ -190,7 +189,7 @@ struct ExampleDatabaseTests {
     await db.markFixed(testID: testID, example: example)
     let retrieved = await db.examples(for: testID)
 
-    #expect(retrieved.count == 0)
+    #expect(retrieved.isEmpty)
   }
 
   @Test("ReproduceReport generates formatted output")

@@ -1,5 +1,6 @@
 import Testing
 import Foundation
+@testable import InvariantCore
 @testable import InvariantSwift
 
 /// Comprehensive tests for numeric generators to achieve 99%+ code coverage

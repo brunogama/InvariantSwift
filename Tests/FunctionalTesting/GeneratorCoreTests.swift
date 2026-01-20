@@ -1,5 +1,6 @@
 import Testing
 import Foundation
+import InvariantCore
 @testable import InvariantSwift
 
 /// Comprehensive tests for core Generator functions to achieve 99%+ code coverage
@@ -222,13 +223,15 @@ struct GeneratorCoreTests {
     #expect(result.isEmpty, "Empty shrink should produce no values")
   }
 
-  @Test("Shrink contramap behavior")
-  func shrinkContramapBehavior() async {
-    let intShrink = Shrink<Int> { n in n == 0 ? [] : [0] }
-    let stringShrink = intShrink.contramap { (s: String) in s.count }
+  @Test("Shrink tree BFS behavior")
+  func shrinkTreeBFSBehavior() async {
+    // Test ShrinkTree BFS search (replaces deprecated contramap test)
+    let intShrink = Shrink<Int> { n in n == 0 ? [] : [0, n / 2] }
+    let tree = ShrinkTree.from(100, shrink: intShrink)
 
-    let result = stringShrink.shrink("hello")
-    #expect(result.allSatisfy { $0 == "hello" }, "Contramap shrink behavior")
+    let minimal = tree.findMinimal(budget: 50) { $0 >= 0 }
+    #expect(minimal != nil, "ShrinkTree should find minimal value")
+    #expect(minimal == 0, "BFS should find 0 as the minimal value >= 0")
   }
 
   @Test("Shrink pair behavior")

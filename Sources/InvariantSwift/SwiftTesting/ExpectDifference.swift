@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-
+import InvariantCore
 // MARK: - Diff-Based Test Assertions
 
 /// Assert that two values have no difference.

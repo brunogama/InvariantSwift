@@ -1,3 +1,4 @@
+import InvariantCore
 import InvariantSwift
 import Testing
 
@@ -31,6 +32,7 @@ struct PropertyMacroIntegrationTests {
       break  // Expected
     case .failure:
       Issue.record("Property should have succeeded")
+
     case .gaveUp:
       Issue.record("Property should not have given up")
     }
@@ -40,7 +42,7 @@ struct PropertyMacroIntegrationTests {
   func propertyTestStringSucceeds() throws {
     let generator = Gen<String>.string
     let property = Property(generator: generator) { (s: String) in
-      s.count >= 0  // String count is always non-negative
+      s.isEmpty  // String count is always non-negative
     }
 
     let config = PropertyConfig(iterations: 100, maxShrinks: 100)
@@ -51,6 +53,7 @@ struct PropertyMacroIntegrationTests {
       break  // Expected
     case .failure:
       Issue.record("Property should have succeeded")
+
     case .gaveUp:
       Issue.record("Property should not have given up")
     }
@@ -69,8 +72,10 @@ struct PropertyMacroIntegrationTests {
     switch result {
     case .success:
       break
+
     case .failure:
       Issue.record("Property should have succeeded")
+
     case .gaveUp:
       Issue.record("Property should not have given up")
     }
@@ -96,8 +101,10 @@ struct PropertyMacroIntegrationTests {
     switch result {
     case .success:
       break
+
     case .failure:
       Issue.record("Property should have succeeded")
+
     case .gaveUp:
       Issue.record("Property should not have given up")
     }
@@ -112,7 +119,7 @@ struct PropertyMacroIntegrationTests {
     )
     let property = Property(generator: generator) { (tuple: (Int, String, Bool)) in
       let (_, s, _) = tuple
-      return s.count >= 0  // Always true
+      return s.isEmpty  // Always true
     }
 
     let config = PropertyConfig(iterations: 50, maxShrinks: 50)
@@ -121,8 +128,10 @@ struct PropertyMacroIntegrationTests {
     switch result {
     case .success:
       break
+
     case .failure:
       Issue.record("Property should have succeeded")
+
     case .gaveUp:
       Issue.record("Property should not have given up")
     }
@@ -135,7 +144,7 @@ struct PropertyMacroIntegrationTests {
     // Simulates: @PropertyTest func test(arr: [Int]) { ... }
     let generator = Gen.array(Gen<Int>.int)
     let property = Property<[Int]>(generator: generator) { arr in
-      arr.count >= 0  // Arrays always have non-negative count
+      arr.isEmpty  // Arrays always have non-negative count
     }
 
     let config = PropertyConfig(iterations: 50, maxShrinks: 50)
@@ -144,8 +153,10 @@ struct PropertyMacroIntegrationTests {
     switch result {
     case .success:
       break
+
     case .failure:
       Issue.record("Property should have succeeded")
+
     case .gaveUp:
       Issue.record("Property should not have given up")
     }
@@ -155,7 +166,7 @@ struct PropertyMacroIntegrationTests {
   func propertyTestSetInt() throws {
     let generator = Gen.set(Gen<Int>.int)
     let property = Property<Set<Int>>(generator: generator) { set in
-      set.count >= 0
+      set.isEmpty
     }
 
     let config = PropertyConfig(iterations: 50, maxShrinks: 50)
@@ -164,8 +175,10 @@ struct PropertyMacroIntegrationTests {
     switch result {
     case .success:
       break
+
     case .failure:
       Issue.record("Property should have succeeded")
+
     case .gaveUp:
       Issue.record("Property should not have given up")
     }
@@ -175,7 +188,7 @@ struct PropertyMacroIntegrationTests {
   func propertyTestDictionary() throws {
     let generator = Gen.dictionary(Gen<String>.string, Gen<Int>.int)
     let property = Property<[String: Int]>(generator: generator) { dict in
-      dict.count >= 0
+      dict.isEmpty
     }
 
     let config = PropertyConfig(iterations: 50, maxShrinks: 50)
@@ -184,8 +197,10 @@ struct PropertyMacroIntegrationTests {
     switch result {
     case .success:
       break
+
     case .failure:
       Issue.record("Property should have succeeded")
+
     case .gaveUp:
       Issue.record("Property should not have given up")
     }
@@ -207,8 +222,10 @@ struct PropertyMacroIntegrationTests {
     switch result {
     case .success:
       break
+
     case .failure:
       Issue.record("Property should have succeeded")
+
     case .gaveUp:
       Issue.record("Property should not have given up")
     }
@@ -230,6 +247,7 @@ struct PropertyMacroIntegrationTests {
     switch result {
     case .success:
       Issue.record("Property should have found a counterexample")
+
     case .failure(let counterexample, let iterations, let shrunk, _, _):
       #expect(iterations > 0, "Should have run at least one iteration")
       // The shrunk counterexample should be minimal (likely 0 or -1)
@@ -255,9 +273,11 @@ struct PropertyMacroIntegrationTests {
     case .success:
       // May succeed if no value >= 100 was generated
       break
+
     case .failure(_, _, let shrunk, _, _):
       // If found, shrunk should be exactly 100 (minimal failing value)
       #expect(shrunk == 100, "Shrunk counterexample should be 100, got \(shrunk)")
+
     case .gaveUp:
       Issue.record("Property should not have given up")
     }
@@ -339,8 +359,10 @@ struct PropertyMacroIntegrationTests {
     switch result {
     case .success:
       break
+
     case .failure:
       Issue.record("Property should have succeeded for all Int values")
+
     case .gaveUp:
       Issue.record("Property should not have given up")
     }
@@ -389,7 +411,7 @@ struct GeneratorInferenceIntegrationTests {
     // Gen.array(OptionalGen.optional(valueGen: Gen<Int>.int))
     let generator = Gen.array(OptionalGen.optional(valueGen: Gen<Int>.int))
     let property = Property<[Int?]>(generator: generator) { arr in
-      arr.count >= 0
+      arr.isEmpty
     }
 
     let result = runPropertySynchronously(
