@@ -1,56 +1,21 @@
-# Plugins Specification
+# Capability: pbt-plugins
 
 ## Purpose
+Define contracts for SwiftPM plugins and CLI tooling used by InvariantSwift.
 
-Document SwiftPM plugin behavior and required permissions for InvariantSwift tooling.
+## ADDED Requirements
+### Requirement: No default network permissions
+Plugins MUST NOT request network permissions by default.
 
----
+#### Scenario: Minimal permissions
+Given the package manifest defines a plugin
+When permissions are declared
+Then only required permissions (e.g., write to package directory) MUST be granted.
 
-## Requirements
+### Requirement: Stable CLI output format
+CLI tools used by plugins MUST provide a stable output format suitable for machine parsing.
 
-### Requirement: Minimal Plugin Permissions
-
-Plugins MUST request only the minimal permissions required to perform their work.
-
-#### Scenario: Plugins request no network permissions
-
-- GIVEN the current `Package.swift`
-- WHEN inspecting plugin permissions
-- THEN neither plugin requests network access
-
-### Requirement: Deterministic Outputs
-
-Plugin-generated files MUST be deterministic given the same inputs.
-
-#### Scenario: Ghostwriter produces stable snapshots
-
-- GIVEN a stable set of input types
-- WHEN running Ghostwriter twice
-- THEN the generated files are byte-identical
-
-### Requirement: Plugins Are Optional
-
-Core library functionality MUST NOT require plugins.
-
-#### Scenario: Tests run without plugin invocation
-
-- GIVEN the core library
-- WHEN running `swift test`
-- THEN no plugin execution is required
-
----
-
-## Plugin Catalog
-
-| Plugin | Verb | Purpose | Permissions |
-|--------|------|---------|-------------|
-| `InvariantSwiftPlugin` | `invariant` | Run property tests with advanced features | `writeToPackageDirectory` |
-| `GhostwriterPlugin` | `ghostwrite` | Generate property tests from source | `writeToPackageDirectory` |
-
----
-
-## Notes
-
-- Both plugins request `writeToPackageDirectory` only
-- If a future feature requires network access, it MUST be explicitly opt-in and documented
-- Plugins depend on their respective CLI executables (`FuncTestCLI`, `GhostwriterCLI`)
+#### Scenario: JSON report
+Given the CLI is invoked with `--format json`
+When it completes
+Then it MUST emit a JSON report with a documented schema.

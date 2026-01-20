@@ -523,7 +523,8 @@ public struct PropertyConfig: Sendable {
 @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
 public actor PropertyRunner {
   private var rng: any RandomNumberGenerator
-  private let seed: Seed
+  /// Internal seed for extensions to access during property execution.
+  let seed: Seed
 
   /// Initializes a property runner with optional seed.
   ///

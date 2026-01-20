@@ -180,3 +180,79 @@ extension FailureReport {
     }
   }
 }
+
+// MARK: - Classifying Property Report
+
+extension FailureReport {
+
+  /// Creates a failure report from a ClassifyingPropertyResult.
+  ///
+  /// Includes classification distribution in the formatted output.
+  ///
+  /// - Parameters:
+  ///   - result: The classifying property result
+  ///   - propertyName: Optional name for the property
+  ///   - config: The configuration that was used
+  /// - Returns: FailureReport, or nil if not a failure
+  public static func from<T>(
+    _ result: ClassifyingPropertyResult<T>,
+    propertyName: String? = nil,
+    config: PropertyConfig
+  ) -> ClassifyingFailureReport? {
+    guard
+      let baseReport = FailureReport.from(
+        result.result,
+        propertyName: propertyName,
+        config: config
+      )
+    else { return nil }
+
+    return ClassifyingFailureReport(
+      base: baseReport,
+      classification: result.classification
+    )
+  }
+}
+
+/// A failure report that includes classification data.
+///
+/// Extends `FailureReport` with classification statistics from a `ClassifyingProperty` run.
+public struct ClassifyingFailureReport: Sendable {
+
+  /// The base failure report.
+  public let base: FailureReport
+
+  /// Classification statistics from the test run.
+  public let classification: ClassificationReport
+
+  public init(base: FailureReport, classification: ClassificationReport) {
+    self.base = base
+    self.classification = classification
+  }
+
+  /// Formats the report for console output, including classification data.
+  public func format() -> String {
+    var output = base.format()
+
+    // Insert classification before the final separator
+    let classificationSection = classification.format()
+    if !classificationSection.isEmpty {
+      // Find the last separator and insert before it
+      if let range = output.range(
+        of: "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+        options: .backwards
+      ) {
+        output.insert(contentsOf: "\n\(classificationSection)\n", at: range.lowerBound)
+      }
+    }
+
+    return output
+  }
+
+  /// Returns a compact summary including classification status.
+  public var summary: String {
+    let baseSummary = base.summary
+    let classificationSummary = classification.summary
+    return "\(baseSummary) | \(classificationSummary)"
+  }
+}

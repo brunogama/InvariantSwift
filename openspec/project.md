@@ -1,31 +1,28 @@
-# Project Context: InvariantSwift
 
-## Summary
-InvariantSwift is a Swift property-based testing (PBT) framework built as a SwiftPM package. The project includes a runtime engine (`InvariantSwift`), SwiftSyntax-based macros (`InvariantSwiftMacros`), a functional test runner CLI (`FuncTestCLI`), a code generation CLI (`GhostwriterCLI`), and SwiftPM plugins under `Plugins/`.
+# Project: InvariantSwift
 
-This repository is currently in an MVP/experimental state and contains advanced feature ambitions (coverage guidance, model-based testing, state machines). The immediate goal is to make the *core PBT contract* correct and trustworthy: deterministic replay, correct discard semantics, and high-quality shrinking.
+## Domain
+Property-based testing (PBT) framework for Swift (SwiftPM). Includes:
+- core PBT engine (generators, shrinking, runner, replay)
+- Swift Testing integration and macros
+- optional tooling (CLI, plugins, ghostwriter)
 
-## Tech stack
-- SwiftPM (Swift 6.x toolchain)
-- SwiftSyntax macros (heavy toolchain-coupled dependency)
-- Swift Testing integration target(s)
-- Optional plugins that run local tools during builds/tests
+## Non-negotiables (project demands)
+1. Determinism: same seed + config => same generated values and shrink path.
+2. Contract correctness: assumptions/discards must never silently test invalid inputs.
+3. Shrinking quality: minimal counterexamples with predictable search strategy.
+4. Ergonomics: Swift Testing output must be readable and reproducible.
+5. Trust: plugins must not request network permission by default.
+6. Modularity: macros/build-time deps must not leak into runtime/core.
+
+## Codebase reality (as of 2026-01-20)
+- Core types exist under `Sources/InvariantSwift/Core/` (Gen, ShrinkTree, ReplayToken, Property).
+- Advanced/experimental modules exist under `Sources/InvariantSwift/Advanced/` and `Fuzzing/`.
+- Generators exist under `Sources/InvariantSwift/Generators/`.
+- CLI & plugins exist under `Sources/FuncTestCLI/` and `Plugins/`.
 
 ## Conventions
-- Prefer deterministic behavior and stable output over micro-optimizations.
-- Avoid runtime crashes and forced casts in core PBT engine.
-- Separate build-time concerns (macros, plugins) from runtime where possible.
-- Public API stability: avoid breaking renames without a deprecation path.
-
-## Definitions
-- **Iteration**: one generated test input evaluated by a property.
-- **Discard**: generated value that does not satisfy assumptions/preconditions.
-- **Gave Up**: property run stopped because discards exceeded `maxDiscarded`.
-- **Shrink**: process of reducing a failing input to a smaller counterexample.
-- **Replay Token**: opaque string that reproduces the exact failing run.
-
-## Acceptance bar (for P0 correctness changes)
-- Deterministic reproduction from a single replay token.
-- Assumptions NEVER allow invalid values to pass silently.
-- Shrinking is deterministic and produces monotonically "smaller" counterexamples.
-- No forced casts in core shrink logic.
+- Requirements use MUST/SHALL language.
+- Every requirement has at least one Scenario.
+- Prefer adding/modifying requirements instead of creating new capabilities unless truly distinct.
+- Changes are verb-led kebab-case ids (e.g., `add-classification-reporting`).
