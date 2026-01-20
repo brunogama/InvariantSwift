@@ -184,6 +184,7 @@ let package = Package(
     .testTarget(
       name: "InvariantSwiftMacroTests",
       dependencies: [
+        "InvariantCore",
         "InvariantSwiftMacros",
         .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
       ],

@@ -55,7 +55,7 @@ public struct CompositeMacro: BodyMacro {
     }
 
     // Collect all draw calls in order
-    let collector = DrawCallCollector()
+    var collector = DrawCallCollector()
     collector.walk(body)
 
     // If no draw calls, return original body
@@ -205,15 +205,25 @@ struct DrawCallInfo {
   let location: AbsolutePosition
 }
 
-/// Syntax walker that collects #draw calls
-final class DrawCallCollector: SyntaxVisitor {
+/// Collects #draw calls from syntax using manual traversal
+/// (avoids SyntaxVisitor subclassing which has ABI issues with swift-syntax 602)
+struct DrawCallCollector {
   var drawCalls: [DrawCallInfo] = []
 
-  init() {
-    super.init(viewMode: .sourceAccurate)
+  /// Walk a syntax node and all its children to collect draw calls
+  mutating func walk(_ node: some SyntaxProtocol) {
+    // Check if this is a variable declaration with a draw call
+    if let varDecl = node.as(VariableDeclSyntax.self) {
+      collectDrawCalls(from: varDecl)
+    }
+
+    // Recursively walk all children
+    for child in node.children(viewMode: .sourceAccurate) {
+      walk(child)
+    }
   }
 
-  override func visit(_ node: VariableDeclSyntax) -> SyntaxVisitorContinueKind {
+  private mutating func collectDrawCalls(from node: VariableDeclSyntax) {
     // Look for: let x = #draw(...)
     for binding in node.bindings {
       guard let initializer = binding.initializer else { continue }
@@ -256,8 +266,6 @@ final class DrawCallCollector: SyntaxVisitor {
         }
       }
     }
-
-    return .visitChildren
   }
 }
 

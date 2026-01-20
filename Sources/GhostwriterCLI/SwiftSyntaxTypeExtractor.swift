@@ -74,7 +74,7 @@ public final class SwiftSyntaxTypeExtractor {
   /// Analyze Swift source code.
   public func analyze(source: String, filePath: String) -> AnalysisResult {
     let sourceFile = Parser.parse(source: source)
-    let visitor = TypeVisitor(filePath: filePath)
+    var visitor = TypeVisitor(filePath: filePath)
     visitor.walk(sourceFile)
 
     return AnalysisResult(
@@ -86,9 +86,10 @@ public final class SwiftSyntaxTypeExtractor {
   }
 }
 
-// MARK: - Syntax Visitor
+// MARK: - Syntax Visitor (Manual Traversal)
+// Uses manual traversal to avoid SyntaxVisitor subclassing ABI issues with swift-syntax 602
 
-private final class TypeVisitor: SyntaxVisitor {
+private struct TypeVisitor {
   let filePath: String
   var types: [ExtractedTypeInfo] = []
   var extensionConformances: [String: [String]] = [:]
@@ -96,20 +97,41 @@ private final class TypeVisitor: SyntaxVisitor {
 
   init(filePath: String) {
     self.filePath = filePath
-    super.init(viewMode: .sourceAccurate)
+  }
+
+  /// Walk a syntax node and all its children
+  mutating func walk(_ node: some SyntaxProtocol) {
+    // Handle specific node types
+    if let importDecl = node.as(ImportDeclSyntax.self) {
+      visitImport(importDecl)
+    } else if let structDecl = node.as(StructDeclSyntax.self) {
+      visitStruct(structDecl)
+    } else if let classDecl = node.as(ClassDeclSyntax.self) {
+      visitClass(classDecl)
+    } else if let enumDecl = node.as(EnumDeclSyntax.self) {
+      visitEnum(enumDecl)
+    } else if let actorDecl = node.as(ActorDeclSyntax.self) {
+      visitActor(actorDecl)
+    } else if let extensionDecl = node.as(ExtensionDeclSyntax.self) {
+      visitExtension(extensionDecl)
+    }
+
+    // Recursively walk all children
+    for child in node.children(viewMode: .sourceAccurate) {
+      walk(child)
+    }
   }
 
   // MARK: - Import Extraction
 
-  override func visit(_ node: ImportDeclSyntax) -> SyntaxVisitorContinueKind {
+  private mutating func visitImport(_ node: ImportDeclSyntax) {
     let importPath = node.path.map { $0.name.text }.joined(separator: ".")
     imports.append(importPath)
-    return .skipChildren
   }
 
   // MARK: - Struct Extraction
 
-  override func visit(_ node: StructDeclSyntax) -> SyntaxVisitorContinueKind {
+  private mutating func visitStruct(_ node: StructDeclSyntax) {
     let typeInfo = extractTypeInfo(
       name: node.name.text,
       kind: "struct",
@@ -121,12 +143,11 @@ private final class TypeVisitor: SyntaxVisitor {
       startPosition: node.positionAfterSkippingLeadingTrivia
     )
     types.append(typeInfo)
-    return .visitChildren  // Visit nested types
   }
 
   // MARK: - Class Extraction
 
-  override func visit(_ node: ClassDeclSyntax) -> SyntaxVisitorContinueKind {
+  private mutating func visitClass(_ node: ClassDeclSyntax) {
     let typeInfo = extractTypeInfo(
       name: node.name.text,
       kind: "class",
@@ -138,12 +159,11 @@ private final class TypeVisitor: SyntaxVisitor {
       startPosition: node.positionAfterSkippingLeadingTrivia
     )
     types.append(typeInfo)
-    return .visitChildren
   }
 
   // MARK: - Enum Extraction
 
-  override func visit(_ node: EnumDeclSyntax) -> SyntaxVisitorContinueKind {
+  private mutating func visitEnum(_ node: EnumDeclSyntax) {
     let typeInfo = extractTypeInfo(
       name: node.name.text,
       kind: "enum",
@@ -155,12 +175,11 @@ private final class TypeVisitor: SyntaxVisitor {
       startPosition: node.positionAfterSkippingLeadingTrivia
     )
     types.append(typeInfo)
-    return .visitChildren
   }
 
   // MARK: - Actor Extraction
 
-  override func visit(_ node: ActorDeclSyntax) -> SyntaxVisitorContinueKind {
+  private mutating func visitActor(_ node: ActorDeclSyntax) {
     let typeInfo = extractTypeInfo(
       name: node.name.text,
       kind: "actor",
@@ -172,12 +191,11 @@ private final class TypeVisitor: SyntaxVisitor {
       startPosition: node.positionAfterSkippingLeadingTrivia
     )
     types.append(typeInfo)
-    return .visitChildren
   }
 
   // MARK: - Extension Extraction
 
-  override func visit(_ node: ExtensionDeclSyntax) -> SyntaxVisitorContinueKind {
+  private mutating func visitExtension(_ node: ExtensionDeclSyntax) {
     let typeName = node.extendedType.trimmedDescription
 
     // Extract conformances from extension
@@ -187,8 +205,6 @@ private final class TypeVisitor: SyntaxVisitor {
       }
       extensionConformances[typeName, default: []].append(contentsOf: protocols)
     }
-
-    return .visitChildren
   }
 
   // MARK: - Type Extraction Helper

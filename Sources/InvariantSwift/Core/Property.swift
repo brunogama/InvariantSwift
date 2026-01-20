@@ -644,7 +644,9 @@ public actor PropertyRunner {
 
     while successfulIterations < config.iterations {
       let size = Size(value: min(successfulIterations, 100))
-      let testCase = property.generator.generate(&rng, size)
+      // Generate tree for proper shrinking (essential for flatMap)
+      let tree = property.generator.generateTree(&rng, size)
+      let testCase = tree.value
 
       // Check assumption first
       if !property.assumption(testCase) {
@@ -658,11 +660,10 @@ public actor PropertyRunner {
       // Assumption passed, check the predicate
       do {
         if try !property.predicate(testCase) {
-          // Predicate returned false
-          let shrunkCase = shrinkThrowingFailure(
-            testCase,
+          // Predicate returned false - use tree-based shrinking
+          let shrunkCase = shrinkThrowingFailureWithTree(
+            tree,
             property: property,
-            failureReason: .predicateFailed,
             maxShrinks: config.maxShrinks
           )
           return .failure(
@@ -674,12 +675,11 @@ public actor PropertyRunner {
           )
         }
       } catch {
-        // Predicate threw an error
+        // Predicate threw an error - use tree-based shrinking
         let errorDescription = String(describing: error)
-        let shrunkCase = shrinkThrowingFailure(
-          testCase,
+        let shrunkCase = shrinkThrowingFailureWithTree(
+          tree,
           property: property,
-          failureReason: .threwError(errorDescription),
           maxShrinks: config.maxShrinks
         )
         return .failure(
@@ -727,7 +727,9 @@ public actor PropertyRunner {
 
     while successfulIterations < config.iterations {
       let size = Size(value: min(successfulIterations, 100))
-      let testCase = property.generator.generate(&rng, size)
+      // Generate tree for proper shrinking (essential for flatMap)
+      let tree = property.generator.generateTree(&rng, size)
+      let testCase = tree.value
 
       // Evaluate the property - may return pass, fail, or discard
       let evaluation = property.evaluate(testCase)
@@ -743,9 +745,9 @@ public actor PropertyRunner {
         }
 
       case .fail(let reason):
-        // Shrink the failing case
-        let shrunkCase = shrinkEvaluatingFailure(
-          testCase,
+        // Shrink the failing case using tree-based shrinking
+        let shrunkCase = shrinkEvaluatingFailureWithTree(
+          tree,
           property: property,
           maxShrinks: config.maxShrinks
         )
@@ -770,7 +772,18 @@ public actor PropertyRunner {
     maxShrinks: Int
   ) -> T {
     let tree = ShrinkTree.from(failingCase, shrink: property.generator.shrink)
+    return shrinkEvaluatingFailureWithTree(tree, property: property, maxShrinks: maxShrinks)
+  }
 
+  /// Shrink an evaluating property failure using a pre-built shrink tree.
+  ///
+  /// This version uses the tree generated during test execution, enabling
+  /// proper shrinking for dependent generators created via flatMap.
+  private func shrinkEvaluatingFailureWithTree<T>(
+    _ tree: ShrinkTree<T>,
+    property: EvaluatingProperty<T>,
+    maxShrinks: Int
+  ) -> T {
     // Filter to only values that don't discard
     let filteredTree = tree.filter { candidate in
       if case .discard = property.evaluate(candidate) {
@@ -787,7 +800,7 @@ public actor PropertyRunner {
       return false
     }
 
-    return minimal ?? failingCase
+    return minimal ?? tree.value
   }
 
   /// Shrink a failing test case for a throwing property using BFS.
@@ -858,6 +871,30 @@ public actor PropertyRunner {
     return minimal ?? tree.value
   }
 
+  /// Shrink a throwing property failure using a pre-built shrink tree.
+  ///
+  /// This version uses the tree generated during test execution, enabling
+  /// proper shrinking for dependent generators created via flatMap.
+  private func shrinkThrowingFailureWithTree<T: Sendable>(
+    _ tree: ShrinkTree<T>,
+    property: ThrowingProperty<T>,
+    maxShrinks: Int
+  ) -> T {
+    // Filter tree to respect assumptions
+    let filteredTree = tree.filter { property.assumption($0) }
+
+    // BFS search for minimal counterexample that still fails (returns false or throws)
+    let minimal = filteredTree.findMinimal(budget: maxShrinks) { candidate in
+      do {
+        return try !property.predicate(candidate)
+      } catch {
+        return true  // Throws = still fails
+      }
+    }
+
+    return minimal ?? tree.value
+  }
+
   // MARK: - Timeout-Enforced Property Testing
 
   /// Run a property test with per-iteration timeout enforcement.
@@ -895,7 +932,9 @@ public actor PropertyRunner {
 
     while successfulIterations < config.iterations {
       let size = Size(value: min(successfulIterations, 100))
-      let testCase = property.generator.generate(&rng, size)
+      // Generate tree for proper shrinking (essential for flatMap)
+      let tree = property.generator.generateTree(&rng, size)
+      let testCase = tree.value
 
       // Check assumption first - discarded values never reach the predicate
       if !property.assumption(testCase) {
@@ -922,9 +961,9 @@ public actor PropertyRunner {
       }
 
       if !passed {
-        // Property failed - begin shrinking
-        let shrunkCase = shrinkFailure(
-          testCase,
+        // Property failed - use tree-based shrinking
+        let shrunkCase = shrinkFailureWithTree(
+          tree,
           property: property,
           maxShrinks: config.maxShrinks
         )
@@ -1264,7 +1303,9 @@ public func runPropertySynchronously<T>(
 
   while successfulIterations < config.iterations {
     let size = Size(value: min(successfulIterations, 100))
-    let testCase = property.generator.generate(&rng, size)
+    // Generate tree for proper shrinking (essential for flatMap)
+    let tree = property.generator.generateTree(&rng, size)
+    let testCase = tree.value
 
     // Check assumption first - discarded values never reach the predicate
     if !property.assumption(testCase) {
@@ -1277,8 +1318,9 @@ public func runPropertySynchronously<T>(
 
     // Assumption passed, check the predicate
     if !property.predicate(testCase) {
-      let shrunkCase = shrinkFailureSynchronously(
-        testCase,
+      // Use tree-based shrinking for proper dependent generator support
+      let shrunkCase = shrinkFailureWithTreeSynchronously(
+        tree,
         property: property,
         maxShrinks: config.maxShrinks
       )
@@ -1306,6 +1348,22 @@ public func runPropertyAsync<T: Sendable>(
   return await runner.runProperty(property, config: config)
 }
 
+private func shrinkFailureWithTreeSynchronously<T>(
+  _ tree: ShrinkTree<T>,
+  property: Property<T>,
+  maxShrinks: Int
+) -> T {
+  // Filter tree to respect assumptions
+  let filteredTree = tree.filter { property.assumption($0) }
+
+  // BFS search for minimal counterexample that still fails the predicate
+  let minimal = filteredTree.findMinimal(budget: maxShrinks) { candidate in
+    !property.predicate(candidate)
+  }
+
+  return minimal ?? tree.value
+}
+
 private func shrinkFailureSynchronously<T>(
   _ failingCase: T,
   property: Property<T>,
@@ -1314,15 +1372,8 @@ private func shrinkFailureSynchronously<T>(
   // Build shrink tree from the failing case
   let tree = ShrinkTree.from(failingCase, shrink: property.generator.shrink)
 
-  // Filter tree to respect assumptions, then search for minimal failing case
-  let filteredTree = tree.filter { property.assumption($0) }
-
-  // BFS search for minimal counterexample that still fails the predicate
-  let minimal = filteredTree.findMinimal(budget: maxShrinks) { candidate in
-    !property.predicate(candidate)
-  }
-
-  return minimal ?? failingCase
+  // Use tree-based shrinking
+  return shrinkFailureWithTreeSynchronously(tree, property: property, maxShrinks: maxShrinks)
 }
 
 /// Run a throwing property test synchronously.
