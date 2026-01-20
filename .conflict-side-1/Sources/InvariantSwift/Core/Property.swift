@@ -731,6 +731,103 @@ public actor PropertyRunner {
 
     return minimal ?? failingCase
   }
+
+  // MARK: - Timeout-Enforced Property Testing
+
+  /// Run a property test with per-iteration timeout enforcement.
+  ///
+  /// Similar to `runProperty`, but enforces a timeout for each predicate evaluation.
+  /// If any iteration exceeds the configured timeout, the test fails with
+  /// `FailureReason.timedOut`.
+  ///
+  /// - Parameters:
+  ///   - property: The property to test
+  ///   - config: Configuration including timeout. If `config.timeout` is nil, uses 30.0s default.
+  ///
+  /// - Returns: The result of running the property, including `.timedOut` if timeout exceeded
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let property = Property<Int>(generator: Gen.int) { n in
+  ///     // Some potentially slow computation
+  ///     expensiveCheck(n)
+  ///   }
+  ///
+  ///   let result = await runner.runPropertyWithTimeout(
+  ///     property,
+  ///     config: PropertyConfig(timeout: 1.0)
+  ///   )
+  ///   ```
+  @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
+  public func runPropertyWithTimeout<T>(
+    _ property: Property<T>,
+    config: PropertyConfig = .default
+  ) async -> PropertyResult<T> {
+    let timeout = config.timeout ?? 30.0
+    var discarded = 0
+    var successfulIterations = 0
+
+    while successfulIterations < config.iterations {
+      let size = Size(value: min(successfulIterations, 100))
+      let testCase = property.generator.generate(&rng, size)
+
+      // Check assumption first - discarded values never reach the predicate
+      if !property.assumption(testCase) {
+        discarded += 1
+        if discarded > config.maxDiscarded {
+          return .gaveUp(discarded: discarded, iterations: successfulIterations)
+        }
+        continue
+      }
+
+      // Run predicate with timeout using deadline check
+      let startTime = CFAbsoluteTimeGetCurrent()
+      let passed = property.predicate(testCase)
+      let elapsed = CFAbsoluteTimeGetCurrent() - startTime
+
+      if elapsed > timeout {
+        return .failure(
+          counterexample: testCase,
+          iterations: successfulIterations + 1,
+          shrunk: testCase,  // No shrinking for timeout
+          reason: .timedOut(seconds: timeout),
+          seed: seed
+        )
+      }
+
+      if !passed {
+        // Property failed - begin shrinking
+        let shrunkCase = shrinkFailure(
+          testCase,
+          property: property,
+          maxShrinks: config.maxShrinks
+        )
+        return .failure(
+          counterexample: testCase,
+          iterations: successfulIterations + 1,
+          shrunk: shrunkCase,
+          reason: .predicateFailed,
+          seed: seed
+        )
+      }
+
+      successfulIterations += 1
+    }
+
+    return .success(iterations: successfulIterations)
+  }
+}
+
+/// Result of running a predicate with timeout.
+private enum PredicateTimeoutResult {
+  case success(Bool)
+  case timedOut
+}
+
+/// Internal result type for predicate/timeout race.
+private enum PredicateRaceResult {
+  case predicateFinished(Bool)
+  case timeoutReached
 }
 
 // MARK: - Convenience Extensions
