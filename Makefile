@@ -1,7 +1,8 @@
 # InvariantSwift Makefile
 
 .PHONY: test-linux test-macos test-ios test-swift test-safe test-tvos format test-all clean \
-	doc-check doc-check-json doc-diagrams doc-api doc-examples docs-gen docs-validate
+	doc-check doc-check-json doc-diagrams doc-api doc-examples docs-gen docs-validate \
+	benchmark benchmark-json
 
 # Test on Linux using Docker
 test-linux:
@@ -98,6 +99,14 @@ validate: lint test-swift
 # Install dependencies
 setup:
 	brew install swiftlint swift-format xcbeautify
+
+# Run benchmarks (release mode for accurate results)
+benchmark:
+	swift run -c release Benchmarks
+
+# Run benchmarks with JSON output
+benchmark-json:
+	swift run -c release Benchmarks --format json
 
 # Coverage report
 coverage:

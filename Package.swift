@@ -44,6 +44,7 @@ let package = Package(
   dependencies: [
     .package(url: "https://github.com/pointfreeco/swift-custom-dump", from: "1.3.3"),
     .package(url: "https://github.com/swiftlang/swift-syntax", exact: "602.0.0"),
+    .package(url: "https://github.com/google/swift-benchmark", from: "0.1.2"),
   ],
   targets: [
     // MARK: - Core Library Target (No SwiftSyntax)
@@ -166,6 +167,19 @@ let package = Package(
         .product(name: "SwiftSyntax", package: "swift-syntax"),
       ],
       path: "Sources/GhostwriterCLI",
+      swiftSettings: commonSwiftSettings
+    ),
+
+    // MARK: - Benchmark Target
+
+    /// Performance benchmarks using google/swift-benchmark
+    .executableTarget(
+      name: "Benchmarks",
+      dependencies: [
+        "InvariantCore",
+        .product(name: "Benchmark", package: "swift-benchmark"),
+      ],
+      path: "Benchmarks",
       swiftSettings: commonSwiftSettings
     ),
 
