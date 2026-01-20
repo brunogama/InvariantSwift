@@ -1,5 +1,5 @@
 import Foundation
-
+import InvariantCore
 // MARK: - @Property Macro Declaration
 
 /// A macro that generates Swift Testing-compatible property-based tests with automatic generation.

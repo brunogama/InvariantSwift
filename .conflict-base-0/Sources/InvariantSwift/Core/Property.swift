@@ -41,6 +41,86 @@ public enum FailureReason: Sendable, Equatable, CustomStringConvertible {
   }
 }
 
+// MARK: - Property Evaluation (S012)
+
+/// Outcome of evaluating a single property test case.
+///
+/// `PropertyEvaluation` enables explicit assumptions inside property bodies,
+/// providing proper discard tracking without relying on generator filtering.
+///
+/// - Cases:
+///   - `.pass`: The property holds for this input
+///   - `.fail(reason:)`: The property failed with optional explanation
+///   - `.discard(reason:)`: The input should be discarded (assumption violated)
+///
+/// - Example:
+///   ```swift
+///   let property = Property(generator: Gen.int) { n -> PropertyEvaluation in
+///       guard n > 0 else { return .discard(reason: "need positive") }
+///       guard n.isMultiple(of: 2) else { return .discard(reason: "need even") }
+///       return n * 2 > n ? .pass : .fail(reason: "doubling should increase")
+///   }
+///   ```
+///
+/// - See Also: ``assume(_:reason:)``, ``Property``
+public enum PropertyEvaluation: Sendable, Equatable {
+  /// The property holds for this input.
+  case pass
+
+  /// The property failed for this input.
+  ///
+  /// - Parameter reason: Optional explanation of why it failed
+  case fail(reason: String?)
+
+  /// The input should be discarded (assumption violated).
+  ///
+  /// Discarded inputs are not counted as failures. The runner tracks discards
+  /// and returns `.gaveUp` if too many inputs are discarded.
+  ///
+  /// - Parameter reason: Optional explanation of why it was discarded
+  case discard(reason: String?)
+}
+
+/// Express an assumption inside a property body.
+///
+/// If the condition is false, the current test case is discarded (not failed).
+/// This enables filtering at the property level with proper discard tracking,
+/// avoiding the problems with generator-level filtering (`Gen.suchThat`).
+///
+/// - Parameters:
+///   - condition: If false, the test case is discarded
+///   - reason: Optional explanation for debug output
+///
+/// - Returns: `.pass` if condition is true, `.discard` if false
+///
+/// - Example:
+///   ```swift
+///   let property = Property(generator: Gen.int) { n -> PropertyEvaluation in
+///       try assume(n > 0, reason: "need positive number")
+///       try assume(n < 100, reason: "need small number")
+///       return n * 2 > n ? .pass : .fail(reason: nil)
+///   }
+///   ```
+///
+/// - See Also: ``PropertyEvaluation``
+public func assume(_ condition: Bool, reason: String? = nil) -> PropertyEvaluation {
+  condition ? .pass : .discard(reason: reason)
+}
+
+/// Express a requirement that must hold or the property fails.
+///
+/// Unlike `assume()`, if the condition is false, the property *fails* (not discards).
+/// Use this for postconditions and invariants that should always hold.
+///
+/// - Parameters:
+///   - condition: If false, the property fails
+///   - reason: Optional explanation for debug output
+///
+/// - Returns: `.pass` if condition is true, `.fail` if false
+public func require(_ condition: Bool, reason: String? = nil) -> PropertyEvaluation {
+  condition ? .pass : .fail(reason: reason)
+}
+
 // swiftlint:disable:next orphaned_doc_comment
 /// Outcome of executing a property-based test.
 ///
@@ -301,6 +381,46 @@ public struct ThrowingProperty<T>: @unchecked Sendable {
     self.generator = generator
     self.assumption = assumption
     self.predicate = predicate
+  }
+}
+
+// MARK: - Evaluating Property (S012)
+
+/// A property with a predicate returning explicit evaluation outcomes.
+///
+/// `EvaluatingProperty<T>` enables explicit assumptions and failures inside the
+/// property body using `PropertyEvaluation`. This provides proper discard tracking
+/// without relying on generator filtering.
+///
+/// Advantages over `Property`:
+/// - **Explicit discards**: Use `.discard` directly instead of separate assumption function
+/// - **Rich failure reasons**: Attach explanation to failures
+/// - **Fine-grained control**: Handle edge cases explicitly in the property body
+///
+/// - Example:
+///   ```swift
+///   let property = EvaluatingProperty(generator: Gen.int) { n in
+///       guard n > 0 else { return .discard(reason: "need positive") }
+///       guard n.isMultiple(of: 2) else { return .discard(reason: "need even") }
+///       return n * 2 > n ? .pass : .fail(reason: "doubling should increase")
+///   }
+///   ```
+///
+/// - See Also: ``PropertyEvaluation``, ``assume(_:reason:)``, ``require(_:reason:)``
+public struct EvaluatingProperty<T>: @unchecked Sendable {
+  /// The generator producing test values for this property.
+  public let generator: Gen<T>
+  /// The predicate returning explicit evaluation outcomes.
+  public let evaluate: (T) -> PropertyEvaluation
+
+  /// Initializes an evaluating property with a generator and evaluation function.
+  ///
+  /// - Parameters:
+  ///   - generator: Source of test values
+  ///   - evaluate: Function returning pass/fail/discard for each value
+  public init(generator: Gen<T>, evaluate: @escaping (T) -> PropertyEvaluation) {
+    self.generator = generator
+    self.evaluate = evaluate
   }
 }
 
@@ -682,6 +802,99 @@ public actor PropertyRunner {
     }
 
     return .success(iterations: successfulIterations)
+  }
+
+  // MARK: - Evaluating Property Runner (S012)
+
+  /// Run an evaluating property test and return the result.
+  ///
+  /// Supports properties with explicit `PropertyEvaluation` outcomes, enabling
+  /// assumptions and failures to be expressed directly in the property body.
+  ///
+  /// - Parameters:
+  ///   - property: The evaluating property to test
+  ///   - config: Configuration for test execution
+  ///
+  /// - Returns: The result of running the property
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let property = EvaluatingProperty(generator: Gen.int) { n in
+  ///       guard n > 0 else { return .discard(reason: "need positive") }
+  ///       return n * 2 > n ? .pass : .fail(reason: "doubling should increase")
+  ///   }
+  ///   let result = runner.runEvaluatingProperty(property)
+  ///   ```
+  public func runEvaluatingProperty<T>(
+    _ property: EvaluatingProperty<T>,
+    config: PropertyConfig = .default
+  ) -> PropertyResult<T> {
+    var discarded = 0
+    var successfulIterations = 0
+
+    while successfulIterations < config.iterations {
+      let size = Size(value: min(successfulIterations, 100))
+      let testCase = property.generator.generate(&rng, size)
+
+      // Evaluate the property - may return pass, fail, or discard
+      let evaluation = property.evaluate(testCase)
+
+      switch evaluation {
+      case .pass:
+        successfulIterations += 1
+
+      case .discard:
+        discarded += 1
+        if discarded > config.maxDiscarded {
+          return .gaveUp(discarded: discarded, iterations: successfulIterations)
+        }
+
+      case .fail(let reason):
+        // Shrink the failing case
+        let shrunkCase = shrinkEvaluatingFailure(
+          testCase,
+          property: property,
+          maxShrinks: config.maxShrinks
+        )
+        let failureReason: FailureReason = reason.map { .threwError($0) } ?? .predicateFailed
+        return .failure(
+          counterexample: testCase,
+          iterations: successfulIterations + 1,
+          shrunk: shrunkCase,
+          reason: failureReason,
+          seed: seed
+        )
+      }
+    }
+
+    return .success(iterations: successfulIterations)
+  }
+
+  /// Shrink a failing test case for an evaluating property using BFS.
+  private func shrinkEvaluatingFailure<T>(
+    _ failingCase: T,
+    property: EvaluatingProperty<T>,
+    maxShrinks: Int
+  ) -> T {
+    let tree = ShrinkTree.from(failingCase, shrink: property.generator.shrink)
+
+    // Filter to only values that don't discard
+    let filteredTree = tree.filter { candidate in
+      if case .discard = property.evaluate(candidate) {
+        return false
+      }
+      return true
+    }
+
+    // Find minimal case that still fails
+    let minimal = filteredTree.findMinimal(budget: maxShrinks) { candidate in
+      if case .fail = property.evaluate(candidate) {
+        return true
+      }
+      return false
+    }
+
+    return minimal ?? failingCase
   }
 
   /// Shrink a failing test case for a throwing property using BFS.

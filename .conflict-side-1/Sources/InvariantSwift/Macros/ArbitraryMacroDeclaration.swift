@@ -1,5 +1,5 @@
 import Foundation
-
+import InvariantCore
 /// Automatically derives a generator and shrinker for custom types.
 ///
 /// `@Arbitrary` enables automatic generation of test values for structs and enums.
