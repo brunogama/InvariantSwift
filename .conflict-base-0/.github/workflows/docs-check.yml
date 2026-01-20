@@ -1,0 +1,135 @@
+# Documentation Quality Check Workflow
+# Runs on PRs to enforce documentation standards
+
+name: Documentation Check
+
+on:
+  pull_request:
+    paths:
+      - 'Sources/**/*.swift'
+      - 'docs/**'
+      - 'Package.swift'
+  push:
+    branches:
+      - main
+    paths:
+      - 'Sources/**/*.swift'
+      - 'docs/**'
+      - 'Package.swift'
+  workflow_dispatch:
+
+concurrency:
+  group: docs-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  documentation-coverage:
+    name: Documentation Coverage
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Check Documentation Coverage
+        id: coverage
+        run: |
+          echo "## 📚 Documentation Coverage Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Run coverage check and capture output
+          python3 check_docs.py --json --output docs_report.json > /dev/null 2>&1 || true
+
+          # Extract metrics from JSON
+          COVERAGE=$(python3 -c "import json; d=json.load(open('docs_report.json')); print(d['summary']['coverage_percent'])")
+          TOTAL=$(python3 -c "import json; d=json.load(open('docs_report.json')); print(d['summary']['total_symbols'])")
+          DOCUMENTED=$(python3 -c "import json; d=json.load(open('docs_report.json')); print(d['summary']['documented_symbols'])")
+          EXAMPLES=$(python3 -c "import json; d=json.load(open('docs_report.json')); print(d['summary']['with_examples'])")
+
+          echo "### Coverage: ${COVERAGE}%" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Total Symbols | ${TOTAL} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Documented | ${DOCUMENTED} |" >> $GITHUB_STEP_SUMMARY
+          echo "| With Examples | ${EXAMPLES} |" >> $GITHUB_STEP_SUMMARY
+
+          echo "coverage=${COVERAGE}" >> $GITHUB_OUTPUT
+
+      - name: Upload Coverage Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: documentation-report
+          path: docs_report.json
+
+      # Optional: Fail if coverage drops below threshold
+      # Uncomment and adjust threshold as needed
+      # - name: Enforce Minimum Coverage
+      #   run: |
+      #     python3 check_docs.py --threshold 50
+
+  generate-diagrams:
+    name: Verify Architecture Diagrams
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Generate Architecture Diagrams
+        run: |
+          python3 Scripts/generate_architecture_diagrams.py
+
+          echo "## 📊 Architecture Diagrams" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Diagrams generated successfully" >> $GITHUB_STEP_SUMMARY
+
+      - name: Check for Diagram Changes
+        run: |
+          if git diff --exit-code docs/architecture/generated-diagrams.md; then
+            echo "✅ Diagrams are up-to-date"
+          else
+            echo "⚠️ Architecture diagrams need updating. Run:"
+            echo "   python3 Scripts/generate_architecture_diagrams.py"
+            echo "   git add docs/architecture/generated-diagrams.md"
+            # Note: This is a warning, not a failure
+          fi
+
+  generate-api-reference:
+    name: Generate API Reference
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Generate API Reference
+        run: |
+          python3 Scripts/generate_api_reference.py
+
+          SYMBOLS=$(grep -c "^\|" docs/API_REFERENCE_GENERATED.md | head -1 || echo "0")
+
+          echo "## 📖 API Reference" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ API reference generated with symbols documented" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload API Reference
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-reference
+          path: docs/API_REFERENCE_GENERATED.md

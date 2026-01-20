@@ -1,0 +1,22 @@
+version: 1
+
+builder:
+  configs:
+    - documentation_targets: [FunctionalTesting]
+      scheme: FunctionalTesting
+  
+  dependencies:
+    - swift-custom-dump
+    - swift-syntax
+
+documentation:
+  hosting_base_url: "https://your-org.github.io/FunctionalTesting/"
+  
+platforms:
+  - iOS: "16.0"
+  - macOS: "13.0"  
+  - tvOS: "16.0"
+  - watchOS: "9.0"
+
+swift_versions:
+  - "6.0"

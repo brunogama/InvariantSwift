@@ -1,0 +1,3 @@
+ancestorEntries = ["Package.swift", "Sources/InvariantSwift/Core/Seed.swift"]
+ourEntries = ["Package.swift", "Sources/InvariantSwift/Core/Seed.swift", "Sources/InvariantSwiftUmbrella/InvariantSwift.swift"]
+theirEntries = ["Package.swift", "Sources/InvariantSwift/Core/Seed.swift", "Sources/InvariantSwiftUmbrella/InvariantSwift.swift"]
