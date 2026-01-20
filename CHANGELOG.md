@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * `Scripts/validate_doc_examples.py` - Code example validation with syntax checking
   * `.github/workflows/docs-check.yml` - CI workflow for documentation enforcement
   * Makefile targets: `doc-check`, `doc-diagrams`, `doc-api`, `doc-examples`, `docs-gen`, `docs-validate`
+- **OpenSpec Proposals**:
+  * `add-diff-engine` - Proposal for stable, readable diff output in failure reports (Strings, Collections, Reflection)
 - **Documentation Tutorials**:
   * `docs/FUZZING.md` - LibFuzzer integration guide (FuzzTarget, FuzzDataProvider, crash detection)
   * Linearizability Testing section in ADVANCED.md (Wing-Gong algorithm, concurrent data structures)

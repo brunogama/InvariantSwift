@@ -1,12 +1,18 @@
 # Tasks
 
-## Implementation
-- [ ] 1. Define `Diffable` protocol + default implementations for standard types
-- [ ] 2. Implement string and collection diffs with stable formatting
-- [ ] 3. Integrate into FailureReport rendering
-- [ ] 4. Add tests for deterministic diff output
-
-## Validation
-- [ ] Run unit tests for affected targets
-- [ ] Add/adjust tests to cover new requirements and scenarios
-- [ ] Ensure failure output includes replay token when applicable
+- [ ] 1. Create `DiffEngine` module in `Presentation`
+  - [ ] Implement String diffing (Myers/LCS)
+  - [ ] Implement Collection diffing (Array)
+  - [ ] Implement Dictionary diffing (Key-based)
+  - [ ] Implement Reflection diffing (Struct/Class)
+- [ ] 2. Add `diff` field to `FailureReport`
+  - [ ] Update struct definition
+  - [ ] Update `init` and `Builder`
+- [ ] 3. Integrate into `FailureReporter`
+  - [ ] Update `formatVerboseMessage` to show diff
+- [ ] 4. Update `expectNoDifference`
+  - [ ] Use `DiffEngine` to generate message
+- [ ] 5. Add tests for `DiffEngine`
+  - [ ] Test string diffs
+  - [ ] Test nested struct diffs
+  - [ ] Verify stability (sorting)
