@@ -425,12 +425,14 @@ public struct Shrink<T>: @unchecked Sendable {
     return candidates
   }
 
-  /// Generates shrink candidates by removing elements from an array.
+  /// Shrinks an array by progressively removing chunks (delta debugging style).
   ///
   /// Produces progressively shorter arrays by:
   /// 1. Trying empty array (most aggressive)
-  /// 2. Removing halves (prefix/suffix)
+  /// 2. Removing halves, quarters, eighths, etc. (progressive chunk removal)
   /// 3. Removing individual elements
+  ///
+  /// This delta-debugging strategy quickly finds minimal failing arrays.
   ///
   /// - Parameter array: The array to shrink
   ///
@@ -439,24 +441,33 @@ public struct Shrink<T>: @unchecked Sendable {
   /// - Example:
   ///   ```swift
   ///   Shrink.removeElements(from: [1, 2, 3, 4])
-  ///   // Returns: [[], [3,4], [1,2], [2,3,4], [1,3,4], [1,2,4], [1,2,3]]
+  ///   // Returns: [[], [3,4], [1,2], [2,3,4], [1,3,4], [1,2,4], [1,2,3], ...]
   ///   ```
   public static func removeElements<Element>(from array: [Element]) -> [[Element]] {
     guard !array.isEmpty else { return [] }
 
     var candidates: [[Element]] = []
 
-    // Try empty first (most aggressive)
+    // 1. Try empty first (most aggressive)
     candidates.append([])
 
-    // Try halves
-    if array.count > 1 {
-      let mid = array.count / 2
-      candidates.append(Array(array.suffix(array.count - mid)))  // Remove first half
-      candidates.append(Array(array.prefix(mid)))  // Remove second half
+    // 2. Delta debugging: remove chunks of decreasing size (N/2, N/4, N/8, ...)
+    var chunkSize = array.count / 2
+    while chunkSize >= 1 {
+      // Generate all arrays with one chunk of this size removed
+      var offset = 0
+      while offset + chunkSize <= array.count {
+        var shrunk = array
+        shrunk.removeSubrange(offset..<(offset + chunkSize))
+        if !shrunk.isEmpty && shrunk.count != array.count {
+          candidates.append(shrunk)
+        }
+        offset += chunkSize
+      }
+      chunkSize /= 2
     }
 
-    // Remove individual elements
+    // 3. Remove individual elements (most fine-grained)
     for i in 0..<array.count {
       var shrunk = array
       shrunk.remove(at: i)
@@ -522,7 +533,195 @@ public struct Shrink<T>: @unchecked Sendable {
       shrinks.flatMap { shrink in shrink(value) }
     }
   }
+
+  // MARK: - String Shrinking (S022)
+
+  /// Shrinks a string by removing characters and simplifying character classes.
+  ///
+  /// Strategy (in order of aggressiveness):
+  /// 1. Empty string
+  /// 2. Remove halves (first half, second half)
+  /// 3. Remove chunks (delta debugging style)
+  /// 4. Remove individual characters
+  /// 5. Simplify characters (letters → 'a', digits → '0')
+  ///
+  /// - Parameter string: The string to shrink
+  /// - Returns: Array of shrunk strings ordered by simplicity
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   Shrink.shrinkString("hello")
+  ///   // Returns: ["", "lo", "hel", "ello", "hllo", "helo", "hell", "aello", ...]
+  ///   ```
+  public static func shrinkString(_ string: String) -> [String] {
+    guard !string.isEmpty else { return [] }
+
+    var candidates: [String] = []
+    let chars = Array(string)
+
+    // 1. Empty string first
+    candidates.append("")
+
+    // 2. Remove halves
+    if chars.count > 1 {
+      let mid = chars.count / 2
+      candidates.append(String(chars.suffix(chars.count - mid)))  // Keep second half
+      candidates.append(String(chars.prefix(mid)))  // Keep first half
+    }
+
+    // 3. Remove individual characters
+    for i in 0..<chars.count {
+      var shrunk = chars
+      shrunk.remove(at: i)
+      candidates.append(String(shrunk))
+    }
+
+    // 4. Simplify characters (uppercase → lowercase, letter → 'a', digit → '0')
+    for i in 0..<chars.count {
+      let char = chars[i]
+      var simplified: Character?
+
+      if char.isUppercase {
+        simplified = Character(char.lowercased())
+      } else if char.isLetter && char != "a" {
+        simplified = "a"
+      } else if char.isNumber && char != "0" {
+        simplified = "0"
+      }
+
+      if let s = simplified, s != char {
+        var shrunk = chars
+        shrunk[i] = s
+        candidates.append(String(shrunk))
+      }
+    }
+
+    return candidates
+  }
+
+  /// Creates a Shrink for String values.
+  ///
+  /// - Returns: Shrink strategy for strings
+  public static var string: Shrink<String> {
+    Shrink<String> { shrinkString($0) }
+  }
+
+  // MARK: - Dictionary Shrinking (S022)
+
+  /// Shrinks a dictionary by removing keys and shrinking values.
+  ///
+  /// Strategy (in order of aggressiveness):
+  /// 1. Empty dictionary
+  /// 2. Remove halves of keys
+  /// 3. Remove individual keys
+  /// 4. Shrink individual values (using provided shrinker)
+  ///
+  /// - Parameters:
+  ///   - dict: The dictionary to shrink
+  ///   - valueShrink: Function to shrink individual values
+  ///
+  /// - Returns: Array of shrunk dictionaries
+  public static func shrinkDictionary<K: Hashable, V>(
+    _ dict: [K: V],
+    valueShrink: ((V) -> [V])? = nil
+  ) -> [[K: V]] {
+    guard !dict.isEmpty else { return [] }
+
+    var candidates: [[K: V]] = []
+    let keys = Array(dict.keys)
+
+    // 1. Empty dictionary
+    candidates.append([:])
+
+    // 2. Remove halves
+    if keys.count > 1 {
+      let mid = keys.count / 2
+      var firstHalf: [K: V] = [:]
+      var secondHalf: [K: V] = [:]
+
+      for (i, key) in keys.enumerated() {
+        if i < mid {
+          firstHalf[key] = dict[key]
+        } else {
+          secondHalf[key] = dict[key]
+        }
+      }
+
+      candidates.append(firstHalf)
+      candidates.append(secondHalf)
+    }
+
+    // 3. Remove individual keys
+    for key in keys {
+      var shrunk = dict
+      shrunk.removeValue(forKey: key)
+      candidates.append(shrunk)
+    }
+
+    // 4. Shrink individual values
+    if let valueShrink = valueShrink {
+      for key in keys {
+        if let value = dict[key] {
+          for shrunkValue in valueShrink(value) {
+            var shrunk = dict
+            shrunk[key] = shrunkValue
+            candidates.append(shrunk)
+          }
+        }
+      }
+    }
+
+    return candidates
+  }
+
+  // MARK: - Optional Shrinking (S022)
+
+  /// Shrinks an optional value.
+  ///
+  /// Strategy:
+  /// 1. nil (most aggressive)
+  /// 2. Shrinks of the wrapped value
+  ///
+  /// - Parameters:
+  ///   - optional: The optional to shrink
+  ///   - valueShrink: Function to shrink the wrapped value
+  ///
+  /// - Returns: Array of shrunk optionals
+  public static func shrinkOptional<U>(
+    _ optional: U?,
+    valueShrink: (U) -> [U]
+  ) -> [U?] {
+    guard let value = optional else { return [] }
+
+    var candidates: [U?] = []
+
+    // 1. nil first
+    candidates.append(nil)
+
+    // 2. Shrunk values
+    for shrunk in valueShrink(value) {
+      candidates.append(shrunk)
+    }
+
+    return candidates
+  }
+
+  // MARK: - Bool Shrinking (S022)
+
+  /// Shrinks a boolean value toward false.
+  ///
+  /// - Parameter value: The boolean to shrink
+  /// - Returns: Array of shrunk booleans (just [false] if true, empty if false)
+  public static func shrinkBool(_ value: Bool) -> [Bool] {
+    value ? [false] : []
+  }
+
+  /// Creates a Shrink for Bool values.
+  public static var bool: Shrink<Bool> {
+    Shrink<Bool> { shrinkBool($0) }
+  }
 }
+
 
 /// Generates random values of type `T` with built-in shrinking support.
 ///
@@ -980,7 +1179,7 @@ extension Gen {
         return f(t).generate(&rng, size)
       },
       // Robust shrinking: capture outer value and shrink both outer and inner
-      shrink: Shrink<U> { u in
+      shrink: Shrink<U> { _ in
         // For the Shrink<U> perspective, we only have U. But we build integrated
         // shrinking in generateTree below that handles the dependency properly.
         // This fallback uses empty shrinking - PropertyRunner uses generateTree.
@@ -1196,7 +1395,12 @@ extension Gen {
   /// > Important: Consider using `Property(generator:assumption:predicate:)` for
   /// > property testing, which provides proper discard tracking and `.gaveUp` semantics.
   /// > For explicit failure handling, use `tryGenerate(where:)` which returns `nil`
-  /// > instead of silently returning an invalid value.
+  /// > instead of crashing.
+  @available(
+    *,
+    deprecated,
+    message: "Use tryGenerate(where:) for safe filtering or Property assumptions for discards"
+  )
   public func suchThat(_ predicate: @escaping (T) -> Bool) -> Gen<T> {
     Gen { rng, size in
       var attempts = 0
@@ -1210,10 +1414,22 @@ extension Gen {
         attempts += 1
       }
 
-      // If we can't generate a valid value, just return the last attempt
-      return self.generate(&rng, size)
+      // S011: Never return an invalid value - this violates the PBT contract
+      // Use tryGenerate(where:) for safe filtering or Property(assumption:) for discards
+      fatalError(
+        """
+        Gen.suchThat: Could not generate a value satisfying the predicate after \(maxAttempts) attempts.
+        This indicates the predicate is too restrictive for this generator.
+
+        Solutions:
+        1. Use tryGenerate(where:) which returns nil on failure
+        2. Use Property(generator:assumption:predicate:) for proper discard semantics
+        3. Restructure the generator to avoid filtering
+        """
+      )
     }
   }
+
 
   /// Safely generates a value satisfying a predicate, returning nil on failure.
   ///

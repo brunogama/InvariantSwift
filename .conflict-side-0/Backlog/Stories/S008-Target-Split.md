@@ -3,7 +3,7 @@ id: S008
 epic: E004
 priority: P1
 title: Split runtime core from macros/CLI to reduce dependency leakage
-status: todo
+status: done
 owners: ["llm"]
 dependencies: ["S005"]
 files:

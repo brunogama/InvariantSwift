@@ -24,6 +24,10 @@ let package = Package(
       name: "InvariantSwift",
       targets: ["InvariantSwift"]
     ),
+    .library(
+      name: "InvariantCore",
+      targets: ["InvariantCore"]
+    ),
     .executable(
       name: "FuncTestCLI",
       targets: ["FuncTestCLI"]
@@ -43,20 +47,36 @@ let package = Package(
     .package(url: "https://github.com/swiftlang/swift-syntax", "600.0.1"..<"700.0.0"),
   ],
   targets: [
-    // MARK: - Main Library Targets
+    // MARK: - Core Library Target (No SwiftSyntax)
 
-    /// Main functional testing library target
+    /// Core property-based testing library without macro dependencies
+    /// Use this target directly if you don't need macro support
     .target(
-      name: "InvariantSwift",
-      dependencies: [
-        "InvariantSwiftMacros"
-      ],
+      name: "InvariantCore",
+      dependencies: [],
       path: "Sources/InvariantSwift",
       exclude: [
         "Macros/LawGeneration.swift.disabled",
         "CLAUDE.md",
         "AGENTS.md",
+        "Macros",  // Exclude macro-related code from Core
+        "SwiftTesting",  // Has macro declarations (PropertyTestIntegration)
       ],
+      swiftSettings: commonSwiftSettings + [
+        .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
+      ]
+    ),
+
+    // MARK: - Main Library Targets
+
+    /// Main functional testing library target (includes macros)
+    .target(
+      name: "InvariantSwift",
+      dependencies: [
+        "InvariantCore",
+        "InvariantSwiftMacros",
+      ],
+      path: "Sources/InvariantSwiftUmbrella",
       swiftSettings: commonSwiftSettings + [
         .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
       ]
@@ -104,7 +124,7 @@ let package = Package(
           description: "Run property-based tests with advanced features"
         ),
         permissions: [
-          .writeToPackageDirectory(reason: "Generate test reports and local artifacts"),
+          .writeToPackageDirectory(reason: "Generate test reports and local artifacts")
         ]
       ),
       dependencies: [

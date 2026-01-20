@@ -50,8 +50,4 @@ public enum ArbitraryShrinkStrategy: Sendable {
   case dropFields
 }
 
-/// Protocol for types that can generate instances.
-public protocol Generatable {
-  associatedtype GeneratorType
-  static var arbitrary: GeneratorType { get }
-}
+// Generatable protocol is now in Core/Generatable.swift
