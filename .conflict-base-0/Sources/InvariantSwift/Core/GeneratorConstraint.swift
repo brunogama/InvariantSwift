@@ -393,11 +393,17 @@ extension Gen {
   /// ```swift
   /// let positiveGen = Gen<Int>.int.constrained(by: .greaterThan(0))
   /// ```
+  ///
+  /// - Note: For property testing, consider using `Property(generator:assumption:predicate:)`
+  ///   which provides proper discard tracking and `.gaveUp` semantics.
   public func constrained(by constraint: GeneratorConstraint<T>) -> Gen<T> where T: Sendable {
     self.suchThat(constraint.predicate)
   }
 
   /// Apply multiple constraints to the generator
+  ///
+  /// - Note: For property testing, consider using `Property(generator:assumption:predicate:)`
+  ///   which provides proper discard tracking and `.gaveUp` semantics.
   public func constrained(by constraints: [GeneratorConstraint<T>]) -> Gen<T> where T: Sendable {
     constraints.reduce(self) { gen, constraint in
       gen.suchThat(constraint.predicate)

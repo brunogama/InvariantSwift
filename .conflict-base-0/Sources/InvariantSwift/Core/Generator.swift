@@ -1055,6 +1055,11 @@ extension Gen {
   /// the predicate, or gives up after 100 attempts. This is useful for generating
   /// values in a specific range or with specific properties.
   ///
+  /// - Warning: **DEPRECATED** - This method is unsafe because it silently returns
+  ///   a value that may NOT satisfy the predicate after 100 failed attempts.
+  ///   Use `Property(generator:assumption:predicate:)` for property testing, or
+  ///   `tryGenerate(where:)` if you need explicit failure handling.
+  ///
   /// **Important**: Use sparingly and only when generating invalid values is common.
   /// If predicate is too restrictive (e.g., rejects >90% of values), property testing
   /// becomes inefficient. For better performance:
@@ -1081,7 +1086,12 @@ extension Gen {
   ///   satisfy the predicate after 100 attempts. This is a safety mechanism to
   ///   prevent infinite loops. Prefer dependent generation for better performance.
   ///
-  /// - See Also: ``flatMap(_:)``
+  /// - See Also: ``tryGenerate(where:maxAttempts:)``, ``flatMap(_:)``
+  ///
+  /// > Important: Consider using `Property(generator:assumption:predicate:)` for
+  /// > property testing, which provides proper discard tracking and `.gaveUp` semantics.
+  /// > For explicit failure handling, use `tryGenerate(where:)` which returns `nil`
+  /// > instead of silently returning an invalid value.
   public func suchThat(_ predicate: @escaping (T) -> Bool) -> Gen<T> {
     Gen { rng, size in
       var attempts = 0
@@ -1097,6 +1107,55 @@ extension Gen {
 
       // If we can't generate a valid value, just return the last attempt
       return self.generate(&rng, size)
+    }
+  }
+
+  /// Safely generates a value satisfying a predicate, returning nil on failure.
+  ///
+  /// Creates a generator that attempts to produce a value satisfying the predicate.
+  /// Unlike `suchThat`, this method explicitly returns `nil` when the predicate
+  /// cannot be satisfied after the maximum number of attempts, allowing callers
+  /// to handle generation failures appropriately.
+  ///
+  /// Use this when you need to:
+  /// - Detect when generation fails due to restrictive constraints
+  /// - Handle generation failure in a controlled way
+  /// - Generate optional values where `nil` is a valid outcome
+  ///
+  /// For property testing, prefer using `Property(generator:assumption:predicate:)`
+  /// which provides discard tracking and `.gaveUp` semantics.
+  ///
+  /// - Parameters:
+  ///   - predicate: Function returning true for values to keep, false to discard
+  ///   - maxAttempts: Maximum generation attempts before returning nil (default: 100)
+  ///
+  /// - Returns: Generator producing Optional<T>. Returns nil if predicate cannot be satisfied.
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let gen = Gen<Int>.int(in: 0...100)
+  ///   let rarePrimeGen = gen.tryGenerate(where: isPrime)  // Gen<Int?>
+  ///
+  ///   // Use with flatMap for explicit handling
+  ///   let validatedGen = gen.tryGenerate(where: isValid).flatMap { optional in
+  ///       guard let value = optional else { return Gen.pure(defaultValue) }
+  ///       return Gen.pure(value)
+  ///   }
+  ///   ```
+  ///
+  /// - See Also: ``suchThat(_:)`` (deprecated), ``Property``
+  public func tryGenerate(
+    where predicate: @escaping (T) -> Bool,
+    maxAttempts: Int = 100
+  ) -> Gen<T?> {
+    Gen<T?> { rng, size in
+      for _ in 0..<maxAttempts {
+        let value = self.generate(&rng, size)
+        if predicate(value) {
+          return value
+        }
+      }
+      return nil  // Explicit failure - caller must handle
     }
   }
 

@@ -245,7 +245,65 @@ public struct Property<T>: @unchecked Sendable {
   }
 }
 
-/// Configuration parameters controlling property test execution.
+// MARK: - Throwing Property
+
+/// A property with a predicate that can throw errors.
+///
+/// `ThrowingProperty<T>` extends the property concept to predicates that may throw.
+/// When the predicate throws, the failure is classified as `.threwError` with the
+/// error description, enabling better diagnostics.
+///
+/// Use this when:
+/// - Your property test calls code that may throw errors
+/// - You want to distinguish between "returned false" and "threw an error"
+/// - You need to test error-throwing code paths as failures
+///
+/// - Example:
+///   ```swift
+///   let property = ThrowingProperty(generator: Gen.string) { string in
+///       // This may throw if the string is invalid
+///       try validateEmail(string)
+///       return true
+///   }
+///   ```
+///
+/// - See Also: ``Property``, ``PropertyResult``, ``FailureReason``
+public struct ThrowingProperty<T>: @unchecked Sendable {
+  /// The generator producing test values for this property.
+  public let generator: Gen<T>
+  /// The assumption (precondition) that filters valid test cases.
+  public let assumption: (T) -> Bool
+  /// The predicate that should hold for all generated values. May throw.
+  public let predicate: (T) throws -> Bool
+
+  /// Initializes a throwing property with a generator and throwing predicate.
+  ///
+  /// - Parameters:
+  ///   - generator: Source of test values
+  ///   - predicate: Function checking the property. May throw.
+  public init(generator: Gen<T>, predicate: @escaping (T) throws -> Bool) {
+    self.generator = generator
+    self.assumption = { _ in true }
+    self.predicate = predicate
+  }
+
+  /// Initializes a throwing property with a generator, assumption, and throwing predicate.
+  ///
+  /// - Parameters:
+  ///   - generator: Source of test values
+  ///   - assumption: Filter determining which generated values are valid.
+  ///   - predicate: Function checking the property on valid values. May throw.
+  public init(
+    generator: Gen<T>,
+    assumption: @escaping (T) -> Bool,
+    predicate: @escaping (T) throws -> Bool
+  ) {
+    self.generator = generator
+    self.assumption = assumption
+    self.predicate = predicate
+  }
+}
+
 ///
 /// `PropertyConfig` specifies how property tests run:
 /// - How many test cases to generate (`iterations`)
@@ -552,6 +610,113 @@ public actor PropertyRunner {
     }
 
     return .success(iterations: successfulIterations)
+  }
+
+  /// Run a throwing property test and return the result.
+  ///
+  /// Similar to `runProperty`, but supports predicates that may throw errors.
+  /// Thrown errors are caught and classified as `.threwError` failures.
+  ///
+  /// - Parameters:
+  ///   - property: The throwing property to test
+  ///   - config: Configuration for test execution
+  ///
+  /// - Returns: The result of running the property
+  public func runThrowingProperty<T>(
+    _ property: ThrowingProperty<T>,
+    config: PropertyConfig = .default
+  ) -> PropertyResult<T> {
+    var discarded = 0
+    var successfulIterations = 0
+
+    while successfulIterations < config.iterations {
+      let size = Size(value: min(successfulIterations, 100))
+      let testCase = property.generator.generate(&rng, size)
+
+      // Check assumption first
+      if !property.assumption(testCase) {
+        discarded += 1
+        if discarded > config.maxDiscarded {
+          return .gaveUp(discarded: discarded, iterations: successfulIterations)
+        }
+        continue
+      }
+
+      // Assumption passed, check the predicate
+      do {
+        if try !property.predicate(testCase) {
+          // Predicate returned false
+          let shrunkCase = shrinkThrowingFailure(
+            testCase,
+            property: property,
+            failureReason: .predicateFailed,
+            maxShrinks: config.maxShrinks
+          )
+          return .failure(
+            counterexample: testCase,
+            iterations: successfulIterations + 1,
+            shrunk: shrunkCase,
+            reason: .predicateFailed,
+            seed: seed
+          )
+        }
+      } catch {
+        // Predicate threw an error
+        let errorDescription = String(describing: error)
+        let shrunkCase = shrinkThrowingFailure(
+          testCase,
+          property: property,
+          failureReason: .threwError(errorDescription),
+          maxShrinks: config.maxShrinks
+        )
+        return .failure(
+          counterexample: testCase,
+          iterations: successfulIterations + 1,
+          shrunk: shrunkCase,
+          reason: .threwError(errorDescription),
+          seed: seed
+        )
+      }
+
+      successfulIterations += 1
+    }
+
+    return .success(iterations: successfulIterations)
+  }
+
+  /// Shrink a failing test case for a throwing property
+  private func shrinkThrowingFailure<T>(
+    _ failingCase: T,
+    property: ThrowingProperty<T>,
+    failureReason: FailureReason,
+    maxShrinks: Int
+  ) -> T {
+    var current = failingCase
+    var shrinkAttempts = 0
+
+    while shrinkAttempts < maxShrinks {
+      let candidates = property.generator.shrink.shrink(current)
+
+      // Find the first shrunk value that passes assumption and still fails
+      let nextFailure = candidates.first { candidate in
+        guard property.assumption(candidate) else { return false }
+        do {
+          return try !property.predicate(candidate)
+        } catch {
+          // If it throws, it still "fails" the property
+          return true
+        }
+      }
+
+      if let nextFailure = nextFailure {
+        current = nextFailure
+        shrinkAttempts += 1
+      } else {
+        break
+      }
+    }
+
+    return current
   }
 
   /// Shrink a failing test case to find the minimal counterexample
@@ -885,6 +1050,110 @@ private func shrinkFailureSynchronously<T>(
 
     let nextFailure = candidates.first { candidate in
       property.assumption(candidate) && !property.predicate(candidate)
+    }
+
+    if let nextFailure = nextFailure {
+      current = nextFailure
+      shrinkAttempts += 1
+    } else {
+      break
+    }
+  }
+
+  return current
+}
+
+/// Run a throwing property test synchronously.
+///
+/// Similar to `runPropertySynchronously`, but supports predicates that may throw.
+/// Thrown errors are caught and classified as `.threwError` failures.
+///
+/// - Parameters:
+///   - property: The throwing property to test
+///   - config: Configuration for test execution
+///
+/// - Returns: The result of running the property
+public func runThrowingPropertySynchronously<T>(
+  _ property: ThrowingProperty<T>,
+  config: PropertyConfig = .default
+) -> PropertyResult<T> {
+  let actualSeed = config.seed ?? Seed.random
+  var rng: any RandomNumberGenerator = SeedBasedRandomNumberGenerator(seed: actualSeed)
+
+  var discarded = 0
+  var successfulIterations = 0
+
+  while successfulIterations < config.iterations {
+    let size = Size(value: min(successfulIterations, 100))
+    let testCase = property.generator.generate(&rng, size)
+
+    // Check assumption first
+    if !property.assumption(testCase) {
+      discarded += 1
+      if discarded > config.maxDiscarded {
+        return .gaveUp(discarded: discarded, iterations: successfulIterations)
+      }
+      continue
+    }
+
+    // Assumption passed, check the predicate
+    do {
+      if try !property.predicate(testCase) {
+        // Predicate returned false
+        let shrunkCase = shrinkThrowingFailureSynchronously(
+          testCase,
+          property: property,
+          maxShrinks: config.maxShrinks
+        )
+        return .failure(
+          counterexample: testCase,
+          iterations: successfulIterations + 1,
+          shrunk: shrunkCase,
+          reason: .predicateFailed,
+          seed: actualSeed
+        )
+      }
+    } catch {
+      // Predicate threw an error
+      let errorDescription = String(describing: error)
+      let shrunkCase = shrinkThrowingFailureSynchronously(
+        testCase,
+        property: property,
+        maxShrinks: config.maxShrinks
+      )
+      return .failure(
+        counterexample: testCase,
+        iterations: successfulIterations + 1,
+        shrunk: shrunkCase,
+        reason: .threwError(errorDescription),
+        seed: actualSeed
+      )
+    }
+
+    successfulIterations += 1
+  }
+
+  return .success(iterations: successfulIterations)
+}
+
+private func shrinkThrowingFailureSynchronously<T>(
+  _ failingCase: T,
+  property: ThrowingProperty<T>,
+  maxShrinks: Int
+) -> T {
+  var current = failingCase
+  var shrinkAttempts = 0
+
+  while shrinkAttempts < maxShrinks {
+    let candidates = property.generator.shrink.shrink(current)
+
+    let nextFailure = candidates.first { candidate in
+      guard property.assumption(candidate) else { return false }
+      do {
+        return try !property.predicate(candidate)
+      } catch {
+        return true  // Throws = still fails
+      }
     }
 
     if let nextFailure = nextFailure {

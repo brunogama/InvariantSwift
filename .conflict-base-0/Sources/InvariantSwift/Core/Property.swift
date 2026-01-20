@@ -164,6 +164,12 @@ public enum PropertyResult<T>: Sendable where T: Sendable {
 public struct Property<T>: @unchecked Sendable {
   /// The generator producing test values for this property.
   public let generator: Gen<T>
+  /// The assumption (precondition) that filters valid test cases.
+  ///
+  /// Values failing the assumption are discarded and don't count toward
+  /// the required number of successful tests. The runner tracks discards
+  /// and returns `.gaveUp` if too many are discarded.
+  public let assumption: (T) -> Bool
   /// The predicate that should hold for all generated values.
   public let predicate: (T) -> Bool
 
@@ -190,6 +196,7 @@ public struct Property<T>: @unchecked Sendable {
   /// - See Also: ``init(generator:assumption:predicate:)``
   public init(generator: Gen<T>, predicate: @escaping (T) -> Bool) {
     self.generator = generator
+    self.assumption = { _ in true }
     self.predicate = predicate
   }
 
@@ -232,7 +239,8 @@ public struct Property<T>: @unchecked Sendable {
     assumption: @escaping (T) -> Bool = { _ in true },
     predicate: @escaping (T) -> Bool
   ) {
-    self.generator = generator.suchThat(assumption)
+    self.generator = generator
+    self.assumption = assumption
     self.predicate = predicate
   }
 }
@@ -507,11 +515,23 @@ public actor PropertyRunner {
     _ property: Property<T>,
     config: PropertyConfig = .default
   ) -> PropertyResult<T> {
-    for iteration in 0..<config.iterations {
-      let size = Size(value: min(iteration, 100))
+    var discarded = 0
+    var successfulIterations = 0
+
+    while successfulIterations < config.iterations {
+      let size = Size(value: min(successfulIterations, 100))
       let testCase = property.generator.generate(&rng, size)
 
-      // Check if the property holds
+      // Check assumption first - discarded values never reach the predicate
+      if !property.assumption(testCase) {
+        discarded += 1
+        if discarded > config.maxDiscarded {
+          return .gaveUp(discarded: discarded, iterations: successfulIterations)
+        }
+        continue
+      }
+
+      // Assumption passed, check the predicate
       if !property.predicate(testCase) {
         // Property failed - begin shrinking
         let shrunkCase = shrinkFailure(
@@ -521,15 +541,17 @@ public actor PropertyRunner {
         )
         return .failure(
           counterexample: testCase,
-          iterations: iteration + 1,
+          iterations: successfulIterations + 1,
           shrunk: shrunkCase,
           reason: .predicateFailed,
           seed: seed
         )
       }
+
+      successfulIterations += 1
     }
 
-    return .success(iterations: config.iterations)
+    return .success(iterations: successfulIterations)
   }
 
   /// Shrink a failing test case to find the minimal counterexample
@@ -544,9 +566,9 @@ public actor PropertyRunner {
     while shrinkAttempts < maxShrinks {
       let candidates = property.generator.shrink.shrink(current)
 
-      // Find the first shrunk value that still fails the property
+      // Find the first shrunk value that passes assumption and still fails predicate
       let nextFailure = candidates.first { candidate in
-        !property.predicate(candidate)
+        property.assumption(candidate) && !property.predicate(candidate)
       }
 
       if let nextFailure = nextFailure {
@@ -724,7 +746,15 @@ extension Property {
   ///   let positiveOnly = prop.filter { $0 > 0 }
   ///   ```
   public func filter(_ condition: @escaping (T) -> Bool) -> Property<T> {
-    Property(generator: self.generator.suchThat(condition), predicate: self.predicate)
+    // Combine the filter condition with the existing assumption
+    let combinedAssumption: (T) -> Bool = { value in
+      self.assumption(value) && condition(value)
+    }
+    return Property(
+      generator: self.generator,
+      assumption: combinedAssumption,
+      predicate: self.predicate
+    )
   }
 
   /// Attach a descriptive label to this property for better failure messages.
@@ -795,10 +825,23 @@ public func runPropertySynchronously<T>(
   let actualSeed = config.seed ?? Seed.random
   var rng: any RandomNumberGenerator = SeedBasedRandomNumberGenerator(seed: actualSeed)
 
-  for iteration in 0..<config.iterations {
-    let size = Size(value: min(iteration, 100))
+  var discarded = 0
+  var successfulIterations = 0
+
+  while successfulIterations < config.iterations {
+    let size = Size(value: min(successfulIterations, 100))
     let testCase = property.generator.generate(&rng, size)
 
+    // Check assumption first - discarded values never reach the predicate
+    if !property.assumption(testCase) {
+      discarded += 1
+      if discarded > config.maxDiscarded {
+        return .gaveUp(discarded: discarded, iterations: successfulIterations)
+      }
+      continue
+    }
+
+    // Assumption passed, check the predicate
     if !property.predicate(testCase) {
       let shrunkCase = shrinkFailureSynchronously(
         testCase,
@@ -807,15 +850,17 @@ public func runPropertySynchronously<T>(
       )
       return .failure(
         counterexample: testCase,
-        iterations: iteration + 1,
+        iterations: successfulIterations + 1,
         shrunk: shrunkCase,
         reason: .predicateFailed,
         seed: actualSeed
       )
     }
+
+    successfulIterations += 1
   }
 
-  return .success(iterations: config.iterations)
+  return .success(iterations: successfulIterations)
 }
 
 @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
@@ -839,7 +884,7 @@ private func shrinkFailureSynchronously<T>(
     let candidates = property.generator.shrink.shrink(current)
 
     let nextFailure = candidates.first { candidate in
-      !property.predicate(candidate)
+      property.assumption(candidate) && !property.predicate(candidate)
     }
 
     if let nextFailure = nextFailure {

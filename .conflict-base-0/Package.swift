@@ -104,11 +104,7 @@ let package = Package(
           description: "Run property-based tests with advanced features"
         ),
         permissions: [
-          .writeToPackageDirectory(reason: "Generate test reports and coverage data"),
-          .allowNetworkConnections(
-            scope: .all(ports: []),
-            reason: "Upload telemetry and coverage data"
-          ),
+          .writeToPackageDirectory(reason: "Generate test reports and local artifacts"),
         ]
       ),
       dependencies: [

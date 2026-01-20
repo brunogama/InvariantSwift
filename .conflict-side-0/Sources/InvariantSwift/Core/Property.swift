@@ -1325,6 +1325,8 @@ public actor PropertyRunner {
       } catch {
         return true  // Throws = still fails
       }
+
+      successfulIterations += 1
     }
 
     return minimal ?? failingCase
@@ -1997,6 +1999,15 @@ public func runPropertySynchronously<T>(
     // Generate tree for proper shrinking (essential for flatMap)
     let tree = property.generator.generateTree(&rng, size)
     let testCase = tree.value
+
+    // Check assumption first - discarded values never reach the predicate
+    if !property.assumption(testCase) {
+      discarded += 1
+      if discarded > config.maxDiscarded {
+        return .gaveUp(discarded: discarded, iterations: successfulIterations)
+      }
+      continue
+    }
 
     // Check assumption first - discarded values never reach the predicate
     if !property.assumption(testCase) {
