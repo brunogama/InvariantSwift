@@ -3,7 +3,7 @@ id: S020
 title: Introduce `ShrinkTree` model
 epic: E002
 priority: P0
-status: todo
+status: done
 dependencies: []
 ---
 

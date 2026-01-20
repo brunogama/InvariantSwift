@@ -1166,39 +1166,29 @@ public actor PropertyRunner {
     return .success(iterations: successfulIterations)
   }
 
-  /// Shrink a failing test case for a throwing property
+  /// Shrink a failing test case for a throwing property using BFS.
   private func shrinkThrowingFailure<T>(
     _ failingCase: T,
     property: ThrowingProperty<T>,
     failureReason: FailureReason,
     maxShrinks: Int
   ) -> T {
-    var current = failingCase
-    var shrinkAttempts = 0
+    // Build shrink tree from the failing case
+    let tree = ShrinkTree.from(failingCase, shrink: property.generator.shrink)
 
-    while shrinkAttempts < maxShrinks {
-      let candidates = property.generator.shrink.shrink(current)
+    // Filter tree to respect assumptions
+    let filteredTree = tree.filter { property.assumption($0) }
 
-      // Find the first shrunk value that passes assumption and still fails
-      let nextFailure = candidates.first { candidate in
-        guard property.assumption(candidate) else { return false }
-        do {
-          return try !property.predicate(candidate)
-        } catch {
-          // If it throws, it still "fails" the property
-          return true
-        }
-      }
-
-      if let nextFailure = nextFailure {
-        current = nextFailure
-        shrinkAttempts += 1
-      } else {
-        break
+    // BFS search for minimal counterexample that still fails (returns false or throws)
+    let minimal = filteredTree.findMinimal(budget: maxShrinks) { candidate in
+      do {
+        return try !property.predicate(candidate)
+      } catch {
+        return true  // Throws = still fails
       }
     }
 
-    return current
+    return minimal ?? failingCase
   }
 
   /// Run a throwing property test and return the result.

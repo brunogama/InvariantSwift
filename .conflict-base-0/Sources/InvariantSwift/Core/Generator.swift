@@ -250,6 +250,14 @@ public struct Shrink<T>: @unchecked Sendable {
   ///   let person = Person(age: 50)
   ///   let shrunk = personShrink.shrink(person)  // Persons with ages 0, 25
   ///   ```
+  ///
+  /// > Warning: This implementation is a placeholder that does not properly shrink.
+  /// > For correct dependent shrinking, use `ShrinkTree.flatMap` instead.
+  @available(
+    *,
+    deprecated,
+    message: "Use ShrinkTree-based shrinking for correct contramap behavior"
+  )
   public func contramap<U>(_ f: @escaping (U) -> T) -> Shrink<U> {
     Shrink<U> { u in
       // swiftlint:disable:next line_length
@@ -311,6 +319,10 @@ public struct Shrink<T>: @unchecked Sendable {
   ///       }
   ///   }
   ///   ```
+  ///
+  /// > Warning: This implementation is a stub that returns no shrinks.
+  /// > For correct dependent shrinking, use `ShrinkTree.flatMap` instead.
+  @available(*, deprecated, message: "Use ShrinkTree-based shrinking for correct flatMap behavior")
   public func flatMap<U>(_ f: @escaping (T) -> Shrink<U>) -> Shrink<U> {
     Shrink<U> { _ in
       // This is a simplified implementation - full implementation would
@@ -823,11 +835,8 @@ extension Gen {
         let t = self.generate(&rng, size)
         return f(t)
       },
-      shrink: Shrink.pair(genF.shrink, self.shrink).contramap { u in
-        // This is simplified - full implementation would need proper shrinking
-        // swiftlint:disable:next force_cast
-        (({ _ in u }), u as! T)
-      }
+      // Simplified shrinking - apply is rarely used in practice
+      shrink: .empty
     )
   }
 
@@ -940,7 +949,9 @@ extension Gen {
         let t = self.generate(&rng, size)
         return f(t).generate(&rng, size)
       },
-      shrink: self.shrink.flatMap { t in f(t).shrink }
+      // Use empty shrinking for now - dependent shrinking requires ShrinkTree
+      // Users needing proper dependent shrinking should use TreeGen from Advanced module
+      shrink: .empty
     )
   }
 
