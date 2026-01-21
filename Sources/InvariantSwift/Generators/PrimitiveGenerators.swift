@@ -201,55 +201,77 @@ extension Gen where T == Bool {
 }
 
 extension Gen where T == Double {
-  /// Generate Double floating-point values including special values (infinity, NaN).
+  /// Generate Double floating-point values (finite only by default).
   ///
-  /// Produces random Double values with comprehensive coverage of the IEEE 754 floating-point spec,
-  /// including edge cases like infinity, negative infinity, and NaN. This generator is essential
-  /// for thorough testing of numerical code.
+  /// Produces random Double values with deterministic shrinking toward zero.
+  /// By default, generates only finite values to ensure predictable behavior.
   ///
-  /// **Generation Strategy:**
-  /// - For small sizes (≤ 5): Biases toward edge cases (0.0, 1.0, -1.0, infinity, -infinity, NaN)
+  /// **Generation Strategy (GEN-FLOAT-001):**
+  /// - Default mode: `finiteOnly` - no NaN, no infinity (safest)
+  /// - For small sizes (≤ 5): Biases toward edge cases (0.0, 1.0, -1.0)
   /// - For larger sizes: Generates values in range [-size...size]
-  /// - Edge cases included probabilistically (50% chance when size ≤ 5)
   ///
-  /// **Special Values Handled:**
-  /// - Infinity (positive and negative)
-  /// - NaN (not-a-number) - note: NaN != NaN in IEEE 754
-  /// - Subnormal numbers (very small values near zero)
-  /// - Zero (both positive and negative, though equivalent)
+  /// **Shrinking Strategy (SHRINK-FLOAT-001):**
+  /// Deterministic convergence toward 0.0:
+  /// 1. Shrinks to 0.0 (simplest value)
+  /// 2. Shrinks by binary division (d/2)
+  /// 3. Shrinks to ±1.0 for values outside [-1, 1]
   ///
-  /// **Shrinking Strategy:**
-  /// Special values shrink to simple values (0.0, 1.0, -1.0):
-  /// 1. Infinity/NaN shrink to [0.0, 1.0, -1.0]
-  /// 2. Regular values shrink toward 0.0
-  /// 3. Values > 1.0 shrink by binary division, then to 1.0
-  /// 4. Values < -1.0 shrink similarly but preserve sign
+  /// **Special Value Handling:**
+  /// - Use `double(mode: .allowInfinity)` for ±infinity
+  /// - Use `double(mode: .allowNaN)` for all IEEE 754 values
+  /// - See ``FloatingPointMode`` for details
   ///
-  /// **Precision Considerations:**
-  /// - Floating-point comparisons in properties should use tolerance (e.g., abs(a - b) < 1e-10)
-  /// - NaN comparisons require special handling: use `value.isNaN` instead of `==`
-  /// - Precision may vary between platforms and optimization levels
+  /// **Cross-Platform Determinism:**
+  /// - Same seed/size produces same sequence on all platforms
+  /// - Follows IEEE 754 exactly for portable results
   ///
-  /// - Returns: Generator producing Double values with built-in shrinking
-  ///
-  /// - Important: Properties using Double should account for floating-point precision.
-  ///   Avoid exact equality checks; use tolerance-based comparisons instead.
+  /// - Returns: Generator producing finite Double values with deterministic shrinking
   ///
   /// - Example:
   ///   ```swift
   ///   let gen = Gen<Double>.double
   ///   let property = Property(generator: gen) { value in
-  ///       #expect(!value.isNaN || value == Double.nan)  // NaN special case
+  ///       #expect(value.isFinite)
   ///   }
   ///   ```
   ///
-  /// - See Also: ``Gen.double(in:)``, ``Gen.float``, ``Gen.probability``
+  /// - See Also: ``Gen.double(in:)``, ``Gen.double(mode:)``, ``FloatingPointMode``
   public static var double: Gen<Double> {
+    double(mode: .finiteOnly)
+  }
+
+  /// Generate Double floating-point values with explicit special value handling.
+  ///
+  /// - Parameters:
+  ///   - mode: Controls whether to generate NaN/infinity
+  ///
+  /// - Returns: Generator producing Double values according to the specified mode
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   let finiteGen = Gen<Double>.double(mode: .finiteOnly)
+  ///   let withInf = Gen<Double>.double(mode: .allowInfinity)
+  ///   let withNaN = Gen<Double>.double(mode: .allowNaN)
+  ///   ```
+  // swiftlint:disable:next cyclomatic_complexity
+  public static func double(mode: FloatingPointMode) -> Gen<Double> {
     Gen<Double>(
       generate: { rng, size in
-        // Include edge cases
         if size.value <= 5 {
-          let edgeCases = [0.0, 1.0, -1.0, Double.infinity, -Double.infinity, Double.nan]
+          var edgeCases = [0.0, 1.0, -1.0]
+
+          switch mode {
+          case .finiteOnly:
+            break
+
+          case .allowInfinity:
+            edgeCases.append(contentsOf: [Double.infinity, -Double.infinity])
+
+          case .allowNaN:
+            edgeCases.append(contentsOf: [Double.infinity, -Double.infinity, Double.nan])
+          }
+
           if Bool.random(using: &rng) {
             return edgeCases.randomElement(using: &rng)!
           }
@@ -261,17 +283,14 @@ extension Gen where T == Double {
       shrink: Shrink { d in
         var shrunk: [Double] = []
 
-        // Handle special values
         if d.isInfinite || d.isNaN {
           return [0.0, 1.0, -1.0]
         }
 
-        // Shrink towards zero
         if d != 0.0 {
           shrunk.append(0.0)
         }
 
-        // Shrink by halving
         if abs(d) > 1.0 {
           let half = d / 2.0
           if half != d {
@@ -279,7 +298,6 @@ extension Gen where T == Double {
           }
         }
 
-        // Shrink to simple values
         if d > 1.0 {
           shrunk.append(1.0)
         } else if d < -1.0 {

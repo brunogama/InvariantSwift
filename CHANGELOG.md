@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Floating-point generation with configurable modes (GEN-FLOAT-001):
+  * `FloatingPointMode` enum: `.finiteOnly`, `.allowInfinity`, `.allowNaN`
+  * Default generators produce finite values only for predictable behavior
+  * Deterministic shrinking that converges to 0 monotonically (SHRINK-FLOAT-001)
+  * `FloatingPointTolerance` helpers for approximate comparisons (`.absolute()`, `.relative()`, `.ulp()`)
+  * Comprehensive cross-platform determinism tests
 - Crash isolation for property tests on macOS via subprocess execution (CORE-CRASH-001)
 - SubprocessIsolation.swift with IPC protocol for safe inter-process communication
 - PropertyTestHelper executable target for isolated test execution
@@ -24,6 +30,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Array shrinking now uses two-phase strategy: chunk removal (O(log n)) before element shrinking (O(n²))
 - Dictionary shrinking uses sorted key-value pairs for deterministic candidate ordering
 - Updated shrinking documentation to reflect delta-debugging strategy and performance characteristics
+
+### Fixed
+- Package.swift type-checking timeout by splitting large initialization into helper variables
 
 
 ### Added

@@ -288,18 +288,35 @@ extension Gen where T == UInt64 {
 // MARK: - Floating Point Generators
 
 extension Gen where T == Float {
-  /// Generate Float with comprehensive edge cases including NaN and infinity
+  /// Generate Float with finite values only (default, per GEN-FLOAT-001).
   public static var float: Gen<Float> {
+    float(mode: .finiteOnly)
+  }
+
+  /// Generate Float with explicit special value handling.
+  ///
+  /// - Parameters:
+  ///   - mode: Controls whether to generate NaN/infinity
+  ///
+  /// - Returns: Generator producing Float values according to the specified mode
+  // swiftlint:disable:next cyclomatic_complexity
+  public static func float(mode: FloatingPointMode) -> Gen<Float> {
     Gen<Float>(
       generate: { rng, size in
         if size.value <= 5 {
-          let edgeCases: [Float] = [
-            0.0, 1.0, -1.0, Float.infinity, -Float.infinity, Float.nan,
-            Float.greatestFiniteMagnitude, -Float.greatestFiniteMagnitude,
-            Float.leastNormalMagnitude, -Float.leastNormalMagnitude,
-            Float.leastNonzeroMagnitude, -Float.leastNonzeroMagnitude,
-            Float.pi, -Float.pi, Float.ulpOfOne,
-          ]
+          var edgeCases: [Float] = [0.0, 1.0, -1.0]
+
+          switch mode {
+          case .finiteOnly:
+            break
+
+          case .allowInfinity:
+            edgeCases.append(contentsOf: [Float.infinity, -Float.infinity])
+
+          case .allowNaN:
+            edgeCases.append(contentsOf: [Float.infinity, -Float.infinity, Float.nan])
+          }
+
           if Bool.random(using: &rng) {
             return edgeCases.randomElement(using: &rng)!
           }
@@ -311,7 +328,6 @@ extension Gen where T == Float {
       shrink: Shrink { f in
         var shrunk: [Float] = []
 
-        // Handle special values
         if f.isInfinite || f.isNaN {
           return [0.0, 1.0, -1.0]
         }
