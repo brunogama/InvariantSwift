@@ -221,28 +221,87 @@ public actor IsolatedPropertyRunner {
 
   /// Execute a single test iteration with crash detection
   ///
-  /// Note: True crash isolation (fatalError, precondition) requires subprocess isolation.
-  /// This method provides basic failure detection but cannot catch true crashes in-process.
-  /// For full crash isolation, use `runPropertyInSubprocess` when available.
+  /// On macOS with isolation enabled, uses subprocess execution for true crash isolation.
+  /// On other platforms, falls back to in-process execution.
   private func executeWithCrashDetection<T: Sendable>(
     property: Property<T>,
     value: T
   ) async -> TestOutcome {
-    // In-process execution - cannot truly catch fatalError/precondition failures
-    // Those would terminate the entire process before we can handle them.
-    //
-    // For true crash detection:
-    // 1. Serialize the test input
-    // 2. Fork/spawn a child process
-    // 3. Run the test in the child
-    // 4. Parent monitors exit status
-    //
-    // This simplified version just runs the predicate and catches thrown errors.
+    #if os(macOS)
+    if let helperPath = findHelperExecutable() {
+      return await executeInSubprocess(property: property, value: value, helperPath: helperPath)
+    }
+    #endif
 
-    // Execute property predicate
     let passed = property.predicate(value)
     return passed ? .success : .failure(reason: "Property returned false")
   }
+
+  #if os(macOS)
+  /// Find the property test helper executable
+  ///
+  /// Searches in common locations for the helper binary
+  private func findHelperExecutable() -> URL? {
+    let candidates = [
+      Bundle.main.bundleURL.appendingPathComponent("Contents/MacOS/PropertyTestHelper"),
+      Bundle.main.bundleURL.appendingPathComponent("PropertyTestHelper"),
+      URL(fileURLWithPath: ".build/debug/PropertyTestHelper"),
+      URL(fileURLWithPath: ".build/release/PropertyTestHelper"),
+    ]
+
+    for candidate in candidates where FileManager.default.isExecutableFile(atPath: candidate.path) {
+      return candidate
+    }
+
+    return nil
+  }
+
+  /// Execute property test in subprocess for crash isolation
+  private func executeInSubprocess<T: Sendable>(
+    property: Property<T>,
+    value: T,
+    helperPath: URL
+  ) async -> TestOutcome {
+    do {
+      let encoder = JSONEncoder()
+      let testInputData = try encoder.encode(AnyCodable(value))
+
+      let request = PropertyEvaluationRequest(
+        testId: UUID(),
+        seed: 0,
+        size: 0,
+        testInput: testInputData,
+        generatorType: String(describing: T.self)
+      )
+
+      let executor = SubprocessPropertyExecutor(
+        helperExecutablePath: helperPath,
+        timeout: 5.0
+      )
+
+      let result = await executor.execute(request: request)
+
+      switch result {
+      case .passed:
+        return .success
+
+      case .failed(let reason):
+        return .failure(reason: reason)
+
+      case .crashed(let signal, _):
+        return .crashed(signal: signal)
+
+      case .timedOut:
+        return .failure(reason: "Timed out")
+
+      case .spawnError(let error):
+        return .failure(reason: "Spawn error: \(error)")
+      }
+    } catch {
+      return .failure(reason: "Serialization error: \(error)")
+    }
+  }
+  #endif
 
   /// Shrink a failing input with isolation
   private func shrinkWithIsolation<T: Sendable>(

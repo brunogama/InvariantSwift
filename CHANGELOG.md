@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Crash isolation for property tests on macOS via subprocess execution (CORE-CRASH-001)
+- SubprocessIsolation.swift with IPC protocol for safe inter-process communication
+- PropertyTestHelper executable target for isolated test execution
+- AnyCodable for type-erased test input serialization
+- IsolatedPropertyRunner with real subprocess support on macOS (fallback to in-process on other platforms)
+- Integration tests for fatalError isolation and parent process survival
+- Comprehensive documentation in docs/CRASH_ISOLATION.md
 - Collection shrinking v2 (SHRINK-COLL-001): delta-debugging chunk removal strategy for arrays and dictionaries
 - Deterministic shrinking: hash-based key sorting for dictionaries ensures reproducible shrink sequences
 - `CollectionShrinkingV2Tests`: comprehensive test coverage for chunk removal and determinism

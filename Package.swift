@@ -246,6 +246,14 @@ let package = Package(
       swiftSettings: commonSwiftSettings
     ),
 
+    /// Property test helper for subprocess crash isolation (macOS only)
+    .executableTarget(
+      name: "PropertyTestHelper",
+      dependencies: [],
+      path: "Sources/PropertyTestHelper",
+      swiftSettings: commonSwiftSettings
+    ),
+
     // MARK: - Test Targets
 
     .testTarget(
