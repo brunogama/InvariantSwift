@@ -305,7 +305,7 @@ extension Gen where T == Float {
           }
         }
 
-        let range = Float(size.value)
+        let range = Float(abs(size.value))
         return Float.random(in: -range...range, using: &rng)
       },
       shrink: Shrink { f in
@@ -349,7 +349,7 @@ extension Gen where T == Double {
           }
         }
 
-        let range = Double(size.value)
+        let range = Double(abs(size.value))
         return Double.random(in: -range...range, using: &rng)
       },
       shrink: Shrink { d in
@@ -392,7 +392,7 @@ extension Gen where T == Float16 {
           }
         }
 
-        let range = Float16(min(size.value, 100))  // Float16 has limited range
+        let range = Float16(min(abs(size.value), 100))  // Float16 has limited range
         return Float16.random(in: -range...range, using: &rng)
       },
       shrink: Shrink { f in
@@ -435,7 +435,7 @@ extension Gen where T == CGFloat {
           }
         }
 
-        let range = CGFloat(size.value)
+        let range = CGFloat(abs(size.value))
         return CGFloat.random(in: -range...range, using: &rng)
       },
       shrink: Shrink { f in
@@ -541,7 +541,7 @@ extension Gen {
           }
         }
 
-        let range = min(size.value, 1000)
+        let range = min(abs(size.value), 1000)
         let value = Int.random(in: -range...range, using: &rng)
         return U(value)
       },
@@ -576,7 +576,7 @@ extension Gen {
           }
         }
 
-        let range = U(size.value)
+        let range = U(abs(size.value))
         return U.random(in: -range...range, using: &rng)
       },
       shrink: Shrink { f in

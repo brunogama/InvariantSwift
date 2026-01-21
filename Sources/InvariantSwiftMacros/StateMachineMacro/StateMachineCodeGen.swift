@@ -493,7 +493,7 @@ enum StateMachineCodeGen {
   ) -> FunctionDeclSyntax {
 
     let switchCases = SwitchCaseListSyntax {
-      for method in commandMethods {
+      for (index, method) in commandMethods.enumerated() {
         SwitchCaseSyntax(
           label: .case(
             SwitchCaseLabelSyntax(
@@ -520,6 +520,7 @@ enum StateMachineCodeGen {
             }
           }
         )
+        .with(\.leadingTrivia, index > 0 ? .newlines(2) : [])
       }
     }
 
@@ -589,7 +590,7 @@ enum StateMachineCodeGen {
   ) -> FunctionDeclSyntax {
 
     let switchCases = SwitchCaseListSyntax {
-      for method in commandMethods {
+      for (index, method) in commandMethods.enumerated() {
         SwitchCaseSyntax(
           label: .case(
             SwitchCaseLabelSyntax(
@@ -605,6 +606,7 @@ enum StateMachineCodeGen {
             stateFields: stateFields
           )
         )
+        .with(\.leadingTrivia, index > 0 ? .newlines(2) : [])
       }
     }
 

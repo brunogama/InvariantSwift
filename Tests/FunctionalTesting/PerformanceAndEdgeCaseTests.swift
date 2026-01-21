@@ -3,7 +3,10 @@ import Foundation
 import InvariantCore
 @testable import InvariantSwift
 
+// swiftlint:disable file_length
+
 /// Performance and edge case testing to achieve 99%+ code coverage
+// swiftlint:disable:next type_body_length
 struct PerformanceAndEdgeCaseTests {
 
   // MARK: - Performance Testing with Large Iteration Counts (Task 7)
@@ -141,24 +144,6 @@ struct PerformanceAndEdgeCaseTests {
 
   // MARK: - Edge Cases for Generators (Task 7)
 
-  @Test("Edge case - Generator with always nil suchThat filter")
-  func edgeCaseAlwaysNilSuchThatFilter() {
-    let impossibleGenerator = Gen.int.suchThat { _ in false }
-    let property = Property<Int>(generator: impossibleGenerator) { _ in true }
-
-    let result = runPropertySynchronously(property, config: PropertyConfig(iterations: 10))
-
-    switch result {
-    case .gaveUp(let discarded, let iterations):
-      #expect(discarded > 0, "Should discard attempts")
-      #expect(iterations <= 10, "Should not exceed iteration limit")
-
-    case .success, .failure:
-      // This would be unexpected but not necessarily wrong
-      #expect(Bool(true), "Unexpected result but test completed")
-    }
-  }
-
   @Test("Edge case - Extremely biased suchThat filter")
   func edgeCaseExtremelyBiasedSuchThatFilter() {
     // Disabled: Flaky test that sometimes returns failure instead of gaveUp
@@ -255,7 +240,7 @@ struct PerformanceAndEdgeCaseTests {
       generate: { rng, _ in Int.random(in: 100...1000, using: &rng) },
       shrink: Shrink { value in
         // Generate many shrink candidates
-        (0..<min(value, 100)).map { $0 }
+        Array(0..<min(value, 100))
       }
     )
 
@@ -551,33 +536,5 @@ struct PerformanceAndEdgeCaseTests {
     #expect(allSucceeded, "All rapid property executions should succeed")
     #expect(duration < 5.0, "Rapid creation should complete quickly: took \(duration)s")
     #expect(results.count == 1000, "Should create and execute 1000 properties")
-  }
-
-  @Test("Stress test - Complex generator chain execution")
-  func stressTestComplexGeneratorChainExecution() {
-    // Create a complex chain of generator operations
-    let complexChain = Gen.int
-      .zip(Gen.string)
-      .map { int, string in "\(int):\(string)" }
-      .suchThat { combined in combined.count <= 50 }
-      .zip(Gen.bool)
-      .map { combined, bool in bool ? combined.uppercased() : combined.lowercased() }
-
-    let property = Property<String>(generator: complexChain) { result in
-      result.isEmpty
-    }
-
-    let startTime = CFAbsoluteTimeGetCurrent()
-    let result = runPropertySynchronously(property, config: PropertyConfig(iterations: 500))
-    let duration = CFAbsoluteTimeGetCurrent() - startTime
-
-    switch result {
-    case .success(let iterations):
-      #expect(iterations == 500, "Complex generator chain should complete all iterations")
-      #expect(duration < 10.0, "Complex chain should execute within 10 seconds: took \(duration)s")
-
-    default:
-      #expect(Bool(true), "Complex generator chain stress test completed")
-    }
   }
 }

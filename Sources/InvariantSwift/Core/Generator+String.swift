@@ -11,7 +11,8 @@ extension Gen where T == String {
     of charSet: CharacterSet = .alphanumerics,
     length: Gen<Int>? = nil
   ) -> Gen<String> {
-    let lengthGen = length ?? Gen<Int> { rng, size in Int.random(in: 0...size.value, using: &rng) }
+    let lengthGen =
+      length ?? Gen<Int> { rng, size in Int.random(in: 0...max(0, size.value), using: &rng) }
 
     return lengthGen.flatMap { len in
       Gen<String> { rng, _ in

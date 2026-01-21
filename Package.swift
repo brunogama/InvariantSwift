@@ -28,6 +28,10 @@ let package = Package(
       name: "InvariantCore",
       targets: ["InvariantCore"]
     ),
+    .library(
+      name: "InvariantSwiftDomainGenerators",
+      targets: ["InvariantSwiftDomainGenerators"]
+    ),
     .executable(
       name: "FuncTestCLI",
       targets: ["FuncTestCLI"]
@@ -103,6 +107,21 @@ let package = Package(
         "CLAUDE.md",
         "AGENTS.md",
       ],
+      swiftSettings: commonSwiftSettings + [
+        .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
+      ]
+    ),
+
+    // MARK: - Domain Generators Target
+
+    /// Domain-specific generators (Email, Address, etc.)
+    /// Optional target to avoid bloating core
+    .target(
+      name: "InvariantSwiftDomainGenerators",
+      dependencies: [
+        "InvariantCore"
+      ],
+      path: "Sources/InvariantSwiftDomainGenerators",
       swiftSettings: commonSwiftSettings + [
         .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
       ]
@@ -186,6 +205,18 @@ let package = Package(
     // MARK: - Test Targets
 
     .testTarget(
+      name: "InvariantSwiftDomainGeneratorsTests",
+      dependencies: [
+        "InvariantSwiftDomainGenerators",
+        "InvariantSwift",  // For Property testing support
+      ],
+      path: "Tests/InvariantSwiftDomainGeneratorsTests",
+      swiftSettings: commonSwiftSettings + [
+        .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
+      ]
+    ),
+
+    .testTarget(
       name: "FunctionalTesting",
       dependencies: ["InvariantSwift"],
       path: "Tests/FunctionalTesting",
@@ -203,6 +234,12 @@ let package = Package(
         .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
       ],
       path: "Tests/InvariantSwiftMacroTests",
+      exclude: [
+        "Resources"
+      ],
+      resources: [
+        .copy("Resources")
+      ],
       swiftSettings: commonSwiftSettings + [
         .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
       ]

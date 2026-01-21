@@ -635,8 +635,8 @@ private func buildResultSwitch(config: BusinessRuleConfig) -> SwitchExprSyntax {
     subject: DeclReferenceExprSyntax(baseName: .identifier("result")),
     cases: SwitchCaseListSyntax {
       buildSuccessCase()
-      buildFailureCase(config: config)
-      buildGaveUpCase(config: config)
+      buildFailureCase(config: config).with(\.leadingTrivia, .newlines(2))
+      buildGaveUpCase(config: config).with(\.leadingTrivia, .newlines(2))
     }
   )
 }

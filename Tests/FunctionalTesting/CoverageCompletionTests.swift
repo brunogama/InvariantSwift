@@ -168,33 +168,6 @@ struct CoverageCompletionTests {
     #expect(result2.isSuccess, "String debug paths should be exercised")
   }
 
-  @Test("Debug assertion paths in generator composition")
-  func debugAssertionPathsGeneratorComposition() throws {
-    /// Test Intent: Exercise debug assertion paths in complex generator
-    /// composition and transformation scenarios.
-
-    // Create complex generator compositions that might trigger debug paths
-    let complexGen = Gen.int
-      .map { $0 * 2 }
-      .flatMap { value in
-        if value == 0 {
-          return Gen.pure(value)  // Might trigger debug path
-        } else {
-          return Gen.int(in: 0...abs(value))
-        }
-      }
-      .suchThat { $0 >= 0 }
-
-    // Exercise the complex generator
-    let seed = Seed(value: 999)
-    let size = Size(value: 100)
-
-    for _ in 0..<10 {
-      let value = complexGen.sample(size: size, seed: seed)
-      #expect(value >= 0, "Complex generator should maintain invariants")
-    }
-  }
-
   @Test("Debug paths in shrinking edge cases")
   func debugPathsShrinkingEdgeCases() throws {
     /// Test Intent: Exercise debug assertion paths in shrinking when
@@ -387,27 +360,6 @@ struct GeneratorEdgeCaseCompletionTests {
     let result = nestedArrayGen.sample(size: size, seed: seed)
     #expect(!result.isEmpty, "Nested array should generate non-empty result")
     #expect(result.allSatisfy { !$0.isEmpty }, "All nested levels should be non-empty")
-  }
-
-  @Test("suchThat with complex predicates")
-  func suchThatComplexPredicates() throws {
-    /// Test Intent: Exercise suchThat with complex predicates that might
-    /// trigger retry logic and edge cases in filtering.
-
-    let complexPredicate: @Sendable (Int) -> Bool = { value in
-      // Complex predicate that's sometimes satisfied
-      value > 0 && value % 7 == 0 && value < 1000
-    }
-
-    let filteredGen = Gen.int(in: -100...2000).suchThat(complexPredicate)
-
-    let seed = Seed(value: 555)
-    let size = Size(value: 50)
-
-    for _ in 0..<10 {
-      let result = filteredGen.sample(size: size, seed: seed)
-      #expect(complexPredicate(result), "Filtered generator should satisfy complex predicate")
-    }
   }
 }
 

@@ -24,6 +24,16 @@ jobs:
       - name: Test on Linux
         run: swift test | xcbeautify || true
 
+  macro-golden-tests:
+    name: Macro Golden Tests
+    runs-on: ubuntu-latest
+    container:
+      image: swift:6.0-jammy
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Macro Golden Tests
+        run: swift test --filter MacroGoldenTests
+
   xcodebuild-latest:
     name: xcodebuild (16.4)
     runs-on: macos-15

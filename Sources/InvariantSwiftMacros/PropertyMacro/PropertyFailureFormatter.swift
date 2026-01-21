@@ -120,25 +120,12 @@ public enum PropertyFailureFormatter {
   }
 
   private static func buildSeedAccessExpression() -> ExprSyntax {
-    let configSeed = OptionalChainingExprSyntax(
-      expression: MemberAccessExprSyntax(
-        base: DeclReferenceExprSyntax(baseName: .identifier("config")),
-        declName: DeclReferenceExprSyntax(baseName: .identifier("seed"))
-      )
-    )
-
     let seedValue = MemberAccessExprSyntax(
-      base: ExprSyntax(configSeed),
-      declName: DeclReferenceExprSyntax(baseName: .identifier("value"))
+      base: DeclReferenceExprSyntax(baseName: .identifier("seed")),
+      declName: DeclReferenceExprSyntax(baseName: .identifier("rawValue"))
     )
 
-    let nilCoalescing = InfixOperatorExprSyntax(
-      leftOperand: ExprSyntax(seedValue),
-      operator: BinaryOperatorExprSyntax(operator: .binaryOperator("??")),
-      rightOperand: StringLiteralExprSyntax(content: "random")
-    )
-
-    return ExprSyntax(nilCoalescing)
+    return ExprSyntax(seedValue)
   }
 
   /// Builds the Issue.record call with formatted failure message.

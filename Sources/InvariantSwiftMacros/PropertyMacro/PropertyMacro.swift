@@ -174,7 +174,7 @@ public struct PropertyMacro: PeerMacro {
     isAsync: Bool
   ) -> CodeBlockSyntax {
     let labels = PropertyFailureFormatter.extractLabels(from: parameters)
-    let hasSeed = config.seed != nil
+    let hasSeed = true
 
     return CodeBlockSyntax {
       buildGeneratorDeclaration(parameters: parameters)
@@ -546,7 +546,12 @@ public struct PropertyMacro: PeerMacro {
         LabeledExprSyntax(
           label: .identifier("seed"),
           colon: .colonToken(),
-          expression: DiscardAssignmentExprSyntax()
+          expression: PatternExprSyntax(
+            pattern: ValueBindingPatternSyntax(
+              bindingSpecifier: .keyword(.let),
+              pattern: IdentifierPatternSyntax(identifier: .identifier("seed"))
+            )
+          )
         )
       },
       rightParen: .rightParenToken()

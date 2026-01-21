@@ -68,7 +68,7 @@ extension Gen where T == [Any] {
           }
         }
 
-        let count = Int.random(in: 0...min(size.value, 100), using: &rng)
+        let count = Int.random(in: 0...min(max(0, size.value), 100), using: &rng)
         return (0..<count).map { _ in elementGen.generate(&rng, size) }
       },
       shrink: Shrink { array in
@@ -180,7 +180,7 @@ extension Gen {
         }
 
         // Generate more elements than needed to account for duplicates
-        let targetCount = Int.random(in: 0...min(size.value, 50), using: &rng)
+        let targetCount = Int.random(in: 0...min(max(0, size.value), 50), using: &rng)
         let overGenerate = targetCount * 2 + 10
 
         var elements: Set<Element> = []
@@ -302,7 +302,7 @@ extension Gen {
           }
         }
 
-        let targetCount = Int.random(in: 0...min(size.value, 50), using: &rng)
+        let targetCount = Int.random(in: 0...min(max(0, size.value), 50), using: &rng)
         var dict: [Key: Value] = [:]
 
         // Generate with oversampling to handle key collisions
@@ -407,9 +407,9 @@ extension Gen where T == Range<Int> {
   public static var intRange: Gen<Range<Int>> {
     Gen<Range<Int>>(
       generate: { rng, size in
-        let maxRange = min(size.value * 10, 1000)
+        let maxRange = min(max(0, size.value) * 10, 1000)
         let start = Int.random(in: -maxRange...maxRange, using: &rng)
-        let length = Int.random(in: 0...min(size.value, 100), using: &rng)
+        let length = Int.random(in: 0...min(max(0, size.value), 100), using: &rng)
         let end = start + length
 
         // Handle edge cases
@@ -502,9 +502,9 @@ extension Gen where T == ClosedRange<Int> {
   public static var intClosedRange: Gen<ClosedRange<Int>> {
     Gen<ClosedRange<Int>>(
       generate: { rng, size in
-        let maxRange = min(size.value * 10, 1000)
+        let maxRange = min(max(0, size.value) * 10, 1000)
         let start = Int.random(in: -maxRange...maxRange, using: &rng)
-        let length = Int.random(in: 0...min(size.value, 100), using: &rng)
+        let length = Int.random(in: 0...min(max(0, size.value), 100), using: &rng)
         let end = start + length
 
         // Handle edge cases
@@ -600,7 +600,7 @@ extension Gen where T == PartialRangeFrom<Int> {
   public static var intPartialRangeFrom: Gen<PartialRangeFrom<Int>> {
     Gen<PartialRangeFrom<Int>>(
       generate: { rng, size in
-        let maxRange = min(size.value * 10, 1000)
+        let maxRange = min(max(0, size.value) * 10, 1000)
         let start = Int.random(in: -maxRange...maxRange, using: &rng)
 
         // Edge cases
@@ -691,7 +691,7 @@ extension Gen where T == PartialRangeUpTo<Int> {
   public static var intPartialRangeUpTo: Gen<PartialRangeUpTo<Int>> {
     Gen<PartialRangeUpTo<Int>>(
       generate: { rng, size in
-        let maxRange = min(size.value * 10, 1000)
+        let maxRange = min(max(0, size.value) * 10, 1000)
         let end = Int.random(in: -maxRange...maxRange, using: &rng)
 
         // Edge cases
@@ -783,7 +783,7 @@ extension Gen where T == PartialRangeThrough<Int> {
   public static var intPartialRangeThrough: Gen<PartialRangeThrough<Int>> {
     Gen<PartialRangeThrough<Int>>(
       generate: { rng, size in
-        let maxRange = min(size.value * 10, 1000)
+        let maxRange = min(max(0, size.value) * 10, 1000)
         let end = Int.random(in: -maxRange...maxRange, using: &rng)
 
         // Edge cases
