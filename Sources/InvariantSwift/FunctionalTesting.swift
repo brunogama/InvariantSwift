@@ -106,3 +106,6 @@
 //     let result = 5 |> addOne |> double  // Pipeline operator: 5 -> 6 -> 12
 
 // Note: Macros are available as separate import - import FunctionalTestingMacros
+
+// Re-export core functionality
+public import InvariantSwiftCore

@@ -21,12 +21,24 @@ let package = Package(
   ],
   products: [
     .library(
+      name: "InvariantSwiftCore",
+      targets: ["InvariantSwiftCore"]
+    ),
+    .library(
       name: "InvariantSwift",
       targets: ["InvariantSwift"]
     ),
     .library(
-      name: "InvariantCore",
-      targets: ["InvariantCore"]
+      name: "InvariantSwiftMacros",
+      targets: ["InvariantSwiftMacros"]
+    ),
+    .library(
+      name: "InvariantSwiftTesting",
+      targets: ["InvariantSwiftTesting"]
+    ),
+    .library(
+      name: "InvariantSwiftExperimental",
+      targets: ["InvariantSwiftExperimental"]
     ),
     .library(
       name: "InvariantSwiftDomainGenerators",
@@ -53,18 +65,13 @@ let package = Package(
   targets: [
     // MARK: - Core Library Target (No SwiftSyntax)
 
-    /// Core property-based testing library without macro dependencies
-    /// Use this target directly if you don't need macro support
+    /// Core property-based testing primitives: Gen, ShrinkTree, Property, ReplayToken, FailureReport
     .target(
-      name: "InvariantCore",
+      name: "InvariantSwiftCore",
       dependencies: [],
       path: "Sources/InvariantSwift",
-      exclude: [
-        "Macros/LawGeneration.swift.disabled",
-        "CLAUDE.md",
-        "AGENTS.md",
-        "Macros",  // Exclude macro-related code from Core
-        "SwiftTesting",  // Has macro declarations (PropertyTestIntegration)
+      sources: [
+        "Core"
       ],
       swiftSettings: commonSwiftSettings + [
         .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
@@ -73,28 +80,25 @@ let package = Package(
 
     // MARK: - Main Library Targets
 
-    /// Main functional testing library target (includes macros)
-    /// Includes Core + Macros + SwiftTesting for full functionality
+    /// Main functional testing library: re-exports core + stable generator set
     .target(
       name: "InvariantSwift",
       dependencies: [
-        "InvariantCore",
-        "InvariantSwiftMacros",
+        "InvariantSwiftCore"
       ],
       path: "Sources/InvariantSwift",
-      exclude: [
-        "Macros/LawGeneration.swift.disabled"
-      ],
       sources: [
-        "Macros",
-        "SwiftTesting",
+        "Generators",  // Stable generators
+        "Presentation",  // Pretty printing, shrinking traces
+        "Persistence",  // Failing examples, example database
+        "FunctionalTesting.swift",  // Main exports
       ],
       swiftSettings: commonSwiftSettings + [
         .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
       ]
     ),
 
-    /// Macro implementation target
+    /// Macro implementation target (build-time only)
     .macro(
       name: "InvariantSwiftMacros",
       dependencies: [
@@ -112,6 +116,45 @@ let package = Package(
       ]
     ),
 
+    /// Swift Testing adapters and integration
+    .target(
+      name: "InvariantSwiftTesting",
+      dependencies: [
+        "InvariantSwiftCore",
+        "InvariantSwiftMacros",
+      ],
+      path: "Sources/InvariantSwift",
+      sources: [
+        "SwiftTesting",  // Testing framework adapters
+        "Macros",  // Macro declarations that depend on SwiftTesting
+      ],
+      exclude: [
+        "Macros/LawGeneration.swift.disabled"
+      ],
+      swiftSettings: commonSwiftSettings + [
+        .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
+      ]
+    ),
+
+    /// Experimental features: coverage-guided, SMT, linearizability, etc.
+    .target(
+      name: "InvariantSwiftExperimental",
+      dependencies: [
+        "InvariantSwiftCore"
+      ],
+      path: "Sources/InvariantSwift",
+      sources: [
+        "Advanced",  // SMT, linearizability, coverage-guided, DICE
+        "Coverage",  // Coverage analysis
+        "Fuzzing",  // LibFuzzer integration
+        "Reliability",  // Flake hunter, regression bank
+        "Observability",  // Telemetry system
+      ],
+      swiftSettings: commonSwiftSettings + [
+        .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
+      ]
+    ),
+
     // MARK: - Domain Generators Target
 
     /// Domain-specific generators (Email, Address, etc.)
@@ -119,7 +162,7 @@ let package = Package(
     .target(
       name: "InvariantSwiftDomainGenerators",
       dependencies: [
-        "InvariantCore"
+        "InvariantSwiftCore"
       ],
       path: "Sources/InvariantSwiftDomainGenerators",
       swiftSettings: commonSwiftSettings + [
@@ -134,6 +177,7 @@ let package = Package(
       name: "FuncTestCLI",
       dependencies: [
         "InvariantSwift",
+        "InvariantSwiftTesting",  // For Swift Testing integration
         .product(name: "CustomDump", package: "swift-custom-dump"),
       ],
       path: "Sources/FuncTestCLI",
@@ -195,7 +239,7 @@ let package = Package(
     .executableTarget(
       name: "Benchmarks",
       dependencies: [
-        "InvariantCore",
+        "InvariantSwiftCore",
         .product(name: "Benchmark", package: "swift-benchmark"),
       ],
       path: "Benchmarks",
@@ -229,7 +273,7 @@ let package = Package(
     .testTarget(
       name: "InvariantSwiftMacroTests",
       dependencies: [
-        "InvariantCore",
+        "InvariantSwiftCore",
         "InvariantSwiftMacros",
         .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
       ],
@@ -270,6 +314,23 @@ let package = Package(
       name: "GeneratedPropertyTests",
       dependencies: ["InvariantSwift"],
       path: "Tests/Generated",
+      swiftSettings: commonSwiftSettings + [
+        .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
+      ]
+    ),
+
+    // MARK: - Smoke Tests
+
+    .testTarget(
+      name: "SmokeTests",
+      dependencies: [
+        "InvariantSwiftCore",
+        "InvariantSwift",
+        "InvariantSwiftMacros",
+        "InvariantSwiftTesting",
+        "InvariantSwiftExperimental",
+      ],
+      path: "Tests/SmokeTests",
       swiftSettings: commonSwiftSettings + [
         .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
       ]
