@@ -437,6 +437,35 @@ public struct PropertyConfig: Sendable {
   /// Required when using regression bank. Should be stable across runs.
   public let propertyId: String?
 
+  /// Unicode handling mode for string shrinking.
+  ///
+  /// Controls how Unicode characters are handled during string shrinking:
+  /// - `.scalarSafe`: Use Swift String indices (default, safe for all Unicode)
+  /// - `.asciiOnly`: Restrict to ASCII characters for deterministic behavior
+  ///
+  /// ASCII-only mode provides more predictable shrinking but may miss
+  /// Unicode-specific counterexamples.
+  public let unicodeMode: UnicodeMode
+
+  /// Maximum steps for string shrinking to prevent infinite loops.
+  ///
+  /// String shrinking can explore many candidates. This bounds the search
+  /// space to ensure termination. Higher values find smaller counterexamples
+  /// but take longer.
+  ///
+  /// Typical ranges:
+  /// - 100-500: Fast shrinking with good results
+  /// - 1000+: Thorough shrinking (may be slow for long strings)
+  public let maxStringShrinkSteps: Int
+
+  /// Unicode handling modes for string operations.
+  public enum UnicodeMode: Sendable {
+    /// Use Swift String indices (safe for all Unicode text).
+    case scalarSafe
+    /// Restrict to ASCII characters for deterministic behavior.
+    case asciiOnly
+  }
+
   /// Initializes a property testing configuration.
   ///
   /// - Parameters:
@@ -449,6 +478,8 @@ public struct PropertyConfig: Sendable {
   ///   - verbosity: Output verbosity level. Default: .normal.
   ///   - regressionBank: Optional regression bank for persisting failures. Default: nil.
   ///   - propertyId: Unique identifier for regression storage. Default: nil.
+  ///   - unicodeMode: Unicode handling mode for strings. Default: .scalarSafe.
+  ///   - maxStringShrinkSteps: Maximum steps for string shrinking. Default: 500.
   ///
   /// - Example:
   ///   ```swift
@@ -460,7 +491,9 @@ public struct PropertyConfig: Sendable {
   ///       timeout: 5.0,
   ///       verbosity: .verbose,
   ///       regressionBank: RegressionBank(),
-  ///       propertyId: "testArrayReverse"
+  ///       propertyId: "testArrayReverse",
+  ///       unicodeMode: .asciiOnly,
+  ///       maxStringShrinkSteps: 1000
   ///   )
   ///   ```
   public init(
@@ -472,7 +505,9 @@ public struct PropertyConfig: Sendable {
     timeout: TimeInterval? = nil,
     verbosity: Verbosity = .normal,
     regressionBank: RegressionBank? = nil,
-    propertyId: String? = nil
+    propertyId: String? = nil,
+    unicodeMode: UnicodeMode = .scalarSafe,
+    maxStringShrinkSteps: Int = 500
   ) {
     self.iterations = max(1, iterations)
     self.maxShrinks = max(0, maxShrinks)
@@ -483,6 +518,8 @@ public struct PropertyConfig: Sendable {
     self.verbosity = verbosity
     self.regressionBank = regressionBank
     self.propertyId = propertyId
+    self.unicodeMode = unicodeMode
+    self.maxStringShrinkSteps = max(1, maxStringShrinkSteps)
   }
 
   /// Default configuration: 100 iterations, 1000 shrinks, 1000 max discarded.

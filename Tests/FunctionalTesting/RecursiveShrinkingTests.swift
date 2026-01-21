@@ -149,8 +149,7 @@ struct RecursiveShrinkingTests {
     /// algorithms satisfy fundamental mathematical properties about minimization.
 
     // Property: Shrinking should be idempotent (shrinking shrunk values yields same or smaller results)
-    let idempotencyProperty = Property<[String]>(generator: Gen.array(Gen.string)) {
-      originalArray in
+    let idempotencyProperty = Property<[String]>(generator: Gen.array(Gen.string)) { originalArray in
       guard !originalArray.isEmpty else { return true }
 
       let arrayShrink = Shrink<[String]> { array in
@@ -558,6 +557,141 @@ func shrinkAutomaticWorksWithComplexTypes() {
 /// - Invariant-preserving shrinking: Maintaining properties during minimization
 /// - Recursive data shrinking: Trees, graphs, and other recursive structures
 ///
+// MARK: - Advanced String Shrinking Tests
+
+@Test("StringShrinkTree produces deterministic results")
+func stringShrinkTreeDeterminism() {
+  let testString = "hello world test"
+
+  // Create multiple trees from same input
+  let tree1 = stringShrinkTree(testString)
+  let tree2 = stringShrinkTree(testString)
+
+  // BFS traversal should be identical
+  let bfs1 = tree1.breadthFirst()
+  let bfs2 = tree2.breadthFirst()
+
+  #expect(bfs1 == bfs2, "StringShrinkTree should produce deterministic BFS traversal")
+}
+
+@Test("StringShrinkTree finds smaller counterexamples than old shrinking")
+func stringShrinkTreeBetterMinimality() {
+  // Test case: property fails when string contains "error"
+  let failingPredicate: (String) -> Bool = { !$0.contains("error") }
+
+  let testCases = [
+    "prefix error suffix",
+    "error in the middle",
+    "multiple error error instances",
+  ]
+
+  for original in testCases {
+    // Old shrinking method (individual character removal)
+    let oldShrink = Shrink<String> { string in
+      guard !string.isEmpty else { return [] }
+      var candidates: [String] = [""]
+
+      let chars = Array(string)
+      for i in 0..<chars.count {
+        var shrunk = chars
+        shrunk.remove(at: i)
+        candidates.append(String(shrunk))
+      }
+      return candidates
+    }
+
+    // New ShrinkTree method
+    let newTree = stringShrinkTree(original)
+
+    // Find minimal counterexamples
+    let oldMinimal = ShrinkTree.from(original, shrink: oldShrink)
+      .findMinimal(budget: 1000, satisfying: failingPredicate)
+
+    let newMinimal = newTree.findMinimal(budget: 1000, satisfying: failingPredicate)
+
+    // Both should find counterexamples (strings that still contain "error")
+    #expect(oldMinimal != nil, "Old shrinking should find counterexample for \(original)")
+    #expect(newMinimal != nil, "New shrinking should find counterexample for \(original)")
+
+    if let oldMin = oldMinimal, let newMin = newMinimal {
+      // New method should find equal or smaller counterexamples
+      #expect(
+        newMin.count <= oldMin.count,
+        "New shrinking should produce smaller or equal counterexample. Old: '\(oldMin)' (\(oldMin.count) chars), New: '\(newMin)' (\(newMin.count) chars)"
+      )
+
+      // Both should still fail the predicate
+      #expect(failingPredicate(oldMin), "Old minimal should still fail predicate")
+      #expect(failingPredicate(newMin), "New minimal should still fail predicate")
+    }
+  }
+}
+
+@Test("StringShrinkTree handles edge cases correctly")
+func stringShrinkTreeEdgeCases() {
+  // Empty string
+  let emptyTree = stringShrinkTree("")
+  #expect(emptyTree.children.isEmpty, "Empty string should have no shrink candidates")
+
+  // Single character
+  let singleTree = stringShrinkTree("a")
+  let singleCandidates = singleTree.breadthFirst()
+  #expect(singleCandidates.contains(""), "Single char should shrink to empty string")
+  #expect(!singleCandidates.contains("a"), "Single char should not contain itself in shrinks")
+
+  // Unicode string
+  let unicodeString = "héllo wörld"
+  let unicodeTree = stringShrinkTree(unicodeString)
+  let unicodeCandidates = unicodeTree.breadthFirst()
+
+  // Should still find empty string and smaller versions
+  #expect(unicodeCandidates.contains(""), "Unicode string should shrink to empty")
+  #expect(
+    unicodeCandidates.contains(where: { $0.count < unicodeString.count }),
+    "Unicode string should have smaller candidates"
+  )
+}
+
+@Test("StringShrinkTree respects chunk-based shrinking strategy")
+func stringShrinkTreeChunkStrategy() {
+  let longString = "abcdefghijklmnopqrstuvwxyz"
+
+  let tree = stringShrinkTree(longString)
+  let candidates = tree.breadthFirst()
+
+  // Should include half removals
+  let firstHalf = String(longString.prefix(longString.count / 2))
+  let secondHalf = String(longString.suffix(longString.count - longString.count / 2))
+
+  #expect(candidates.contains(firstHalf), "Should include first half removal")
+  #expect(candidates.contains(secondHalf), "Should include second half removal")
+
+  // Should include chunk removals (removing quarters, eighths, etc.)
+  let quarterSize = longString.count / 4
+  let hasChunkRemovals = candidates.contains { candidate in
+    candidate.count < longString.count && candidate.count >= longString.count - quarterSize
+  }
+  #expect(hasChunkRemovals, "Should include chunk-based removals")
+}
+
+@Test("StringShrinkTree character simplification works")
+func stringShrinkTreeCharacterSimplification() {
+  // Test uppercase to lowercase
+  let upperTree = stringShrinkTree("HELLO")
+  let upperCandidates = upperTree.breadthFirst()
+  #expect(upperCandidates.contains("hello"), "Should simplify uppercase to lowercase")
+
+  // Test digits to 0
+  let digitTree = stringShrinkTree("abc123")
+  let digitCandidates = digitTree.breadthFirst()
+  #expect(digitCandidates.contains("abc000"), "Should simplify digits to 0")
+
+  // Test letters to 'a'
+  let mixedTree = stringShrinkTree("Xyz")
+  let mixedCandidates = mixedTree.breadthFirst()
+  #expect(mixedCandidates.contains("aaa"), "Should simplify letters to 'a'")
+}
+
 /// **References**:
 /// - *QuickCheck: A Lightweight Tool for Random Testing of Haskell Programs* by Claessen & Hughes
 /// - *Shrinking and showing functions* by Runciman et al.

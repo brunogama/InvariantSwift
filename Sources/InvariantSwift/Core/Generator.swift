@@ -257,7 +257,7 @@ public struct Shrink<T>: @unchecked Sendable {
     *,
     unavailable,
     message:
-      "Use ShrinkTree.flatMap for correct dependent shrinking. Shrink<T> cannot support flatMap correctly."
+      "Use ShrinkTree.flatMap for correct dependent shrinking."
   )
   public func flatMap<U>(_ f: @escaping (T) -> Shrink<U>) -> Shrink<U> {
     fatalError("Unavailable")
@@ -544,11 +544,15 @@ public struct Shrink<T>: @unchecked Sendable {
     return candidates
   }
 
-  /// Creates a Shrink for String values.
+
+  /// Creates a Shrink for String values using advanced ShrinkTree-based strategy.
   ///
   /// - Returns: Shrink strategy for strings
   public static var string: Shrink<String> {
-    Shrink<String> { shrinkString($0) }
+    Shrink<String> { string in
+      let tree = stringShrinkTree(string)
+      return Array(tree.breadthFirst().dropFirst())  // Drop the root (original string)
+    }
   }
 
   // MARK: - Dictionary Shrinking (S022)
@@ -667,6 +671,106 @@ public struct Shrink<T>: @unchecked Sendable {
   }
 }
 
+// MARK: - Advanced String Shrinking
+
+/// Creates a structured ShrinkTree for String values with advanced shrinking strategies.
+///
+/// Strategy order:
+/// 1. Reduce length by removing halves (delta-debugging)
+/// 2. Reduce length by removing smaller chunks
+/// 3. Simplify remaining characters by class (whitespace → alnum → minimal ascii)
+///
+/// - Parameter string: The string to shrink
+/// - Returns: ShrinkTree containing structured shrink candidates
+public func stringShrinkTree(_ string: String) -> ShrinkTree<String> {
+  ShrinkTree(value: string) {
+    var children: [ShrinkTree<String>] = []
+
+    // Add all shrinking strategies
+    children.append(contentsOf: stringLengthShrinks(for: string))
+    children.append(contentsOf: stringCharacterShrinks(for: string))
+
+    return children
+  }
+}
+
+/// Generate length-reducing shrinks for a string.
+private func stringLengthShrinks(for string: String) -> [ShrinkTree<String>] {
+  var children: [ShrinkTree<String>] = []
+  let chars = Array(string)
+
+  // 1. Empty string (most aggressive)
+  if !string.isEmpty {
+    children.append(.leaf(""))
+  }
+
+  // 2. Reduce length by removing halves (delta-debugging)
+  if chars.count > 1 {
+    let mid = chars.count / 2
+    children.append(stringShrinkTree(String(chars.suffix(chars.count - mid))))
+    children.append(stringShrinkTree(String(chars.prefix(mid))))
+  }
+
+  // 3. Reduce length by removing smaller chunks (delta-debugging style)
+  var chunkSize = max(1, chars.count / 4)
+  while chunkSize >= 1 {
+    for start in stride(from: 0, to: chars.count, by: chunkSize) {
+      let end = min(start + chunkSize, chars.count)
+      if start < end && end < chars.count {
+        let before = chars.prefix(start)
+        let after = chars.suffix(chars.count - end)
+        let shrunk = String(before + after)
+        children.append(stringShrinkTree(shrunk))
+      }
+    }
+    chunkSize /= 2
+    if chunkSize < 1 { break }
+  }
+
+  // 4. Remove individual characters (fallback for small strings)
+  if chars.count <= 16 {
+    for i in 0..<chars.count {
+      var shrunk = chars
+      shrunk.remove(at: i)
+      children.append(stringShrinkTree(String(shrunk)))
+    }
+  }
+
+  return children
+}
+
+/// Generate character-simplifying shrinks for a string.
+private func stringCharacterShrinks(for string: String) -> [ShrinkTree<String>] {
+  var children: [ShrinkTree<String>] = []
+  let chars = Array(string)
+
+  // 5. Simplify remaining characters by class
+  for i in 0..<chars.count {
+    if let simplified = simplifiedCharacter(chars[i]), simplified != chars[i] {
+      var shrunk = chars
+      shrunk[i] = simplified
+      children.append(stringShrinkTree(String(shrunk)))
+    }
+  }
+
+  return children
+}
+
+/// Simplify a character to its minimal form.
+private func simplifiedCharacter(_ char: Character) -> Character? {
+  if char.isWhitespace {
+    return " "  // Simplest whitespace
+  } else if char.isUppercase {
+    return Character(char.lowercased())  // Uppercase → lowercase
+  } else if char.isLetter && char != "a" {
+    return "a"  // Letter → 'a'
+  } else if char.isNumber && char != "0" {
+    return "0"  // Digit → '0'
+  } else if !char.isASCII && char != "�" {
+    return "�"  // Non-ASCII → replacement character
+  }
+  return nil  // No simplification needed
+}
 
 /// Generates random values of type `T` with built-in shrinking support.
 ///
@@ -1375,17 +1479,7 @@ extension Gen {
 
       // S011: Never return an invalid value - this violates the PBT contract
       // Use tryGenerate(where:) for safe filtering or Property(assumption:) for discards
-      fatalError(
-        """
-        Gen.suchThat: Could not generate a value satisfying the predicate after \(maxAttempts) attempts.
-        This indicates the predicate is too restrictive for this generator.
-
-        Solutions:
-        1. Use tryGenerate(where:) which returns nil on failure
-        2. Use Property(generator:assumption:predicate:) for proper discard semantics
-        3. Restructure the generator to avoid filtering
-        """
-      )
+    fatalError("Use ShrinkTree.flatMap for correct dependent shrinking.")
     }
   }
 
