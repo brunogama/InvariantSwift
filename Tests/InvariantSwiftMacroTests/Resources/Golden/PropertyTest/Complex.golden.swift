@@ -12,7 +12,7 @@ private enum testComplex_PropertyTest {
         (count, name)
       }
     }
-    let property = Property(generator: generator) { (count: Int, _: String) in
+    let property = Property(generator: generator) { (count: Int, name: String) in
       count >= 0
       return true
     }
@@ -21,7 +21,6 @@ private enum testComplex_PropertyTest {
     switch result {
     case .success:
       break
-
     case .failure(let counterexample, let iterations, let shrunk, reason: _, let seed):
       Issue.record(
         Comment(
@@ -29,8 +28,7 @@ private enum testComplex_PropertyTest {
             "Property failed after \(iterations) iterations. Original: count=\(counterexample), User name=\(counterexample) | Shrunk: count=\(shrunk), User name=\(shrunk) | Seed: \(seed.rawValue)"
         )
       )
-
-    case .gaveUp:
+    case .gaveUp(discarded: _, iterations: _):
       Issue.record(Comment(stringLiteral: "Property test gaveUp"))
     }
   }

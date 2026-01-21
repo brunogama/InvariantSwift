@@ -4,7 +4,7 @@ func testAsync(value: Int) async -> Bool {
 
 private enum testAsync_PropertyTest {
   @Test("testAsync") static func run() async throws {
-    let generator = Gen<Int>.int
+    let generator: Gen<Int> = Gen<Int>.int
     let property = Property(generator: generator) { (value: Int) in
       await someAsyncCheck(value)
       return true
@@ -14,7 +14,6 @@ private enum testAsync_PropertyTest {
     switch result {
     case .success:
       break
-
     case .failure(let counterexample, let iterations, let shrunk, reason: _, let seed):
       Issue.record(
         Comment(
@@ -22,8 +21,7 @@ private enum testAsync_PropertyTest {
             "Property failed after \(iterations) iterations. Original: value=\(counterexample) | Shrunk: value=\(shrunk) | Seed: \(seed.rawValue)"
         )
       )
-
-    case .gaveUp:
+    case .gaveUp(discarded: _, iterations: _):
       Issue.record(Comment(stringLiteral: "Property test gaveUp"))
     }
   }

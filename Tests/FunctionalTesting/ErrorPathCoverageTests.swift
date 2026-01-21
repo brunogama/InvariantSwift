@@ -5,6 +5,7 @@ import InvariantCore
 
 /// Enhanced error path coverage tests to achieve 99%+ code coverage
 /// Focuses on edge cases, boundary conditions, and error handling paths
+// swiftlint:disable type_body_length
 struct ErrorPathCoverageTests {
 
   // MARK: - Generator Error Conditions (Task 8)
@@ -250,12 +251,10 @@ struct ErrorPathCoverageTests {
 
         // Shrink each element
         for i in 0..<array.count {
-          for newValue in [1, array[i] / 2, max(1, array[i] - 1)] {
-            if newValue != array[i] {
-              var candidate = array
-              candidate[i] = newValue
-              candidates.append(candidate)
-            }
+          for newValue in [1, array[i] / 2, max(1, array[i] - 1)] where newValue != array[i] {
+            var candidate = array
+            candidate[i] = newValue
+            candidates.append(candidate)
           }
         }
 
@@ -327,7 +326,8 @@ struct ErrorPathCoverageTests {
 
     // Property with high discard rate due to filtering
     let highDiscardProperty = Property<Int>(
-      generator: Gen.int(in: 1...1000).suchThat { $0 <= 10 },  // Very selective filter
+      generator: Gen.int(in: 1...1000),
+      assumption: { $0 <= 10 },  // High discard rate: only 1% pass
       predicate: { _ in true }
     )
 

@@ -21,7 +21,6 @@ private enum testWithMultipleGen_PropertyTest {
     switch result {
     case .success:
       break
-
     case .failure(let counterexample, let iterations, let shrunk, reason: _, let seed):
       Issue.record(
         Comment(
@@ -29,8 +28,7 @@ private enum testWithMultipleGen_PropertyTest {
             "Property failed after \(iterations) iterations. Original: small=\(counterexample), mediumString=\(counterexample) | Shrunk: small=\(shrunk), mediumString=\(shrunk) | Seed: \(seed.rawValue)"
         )
       )
-
-    case .gaveUp:
+    case .gaveUp(discarded: _, iterations: _):
       Issue.record(Comment(stringLiteral: "Property test gaveUp"))
     }
   }

@@ -605,22 +605,20 @@ public actor PropertyRunner {
     _ property: Property<T>,
     config: PropertyConfig = .default
   ) -> PropertyResult<T> {
-    if #available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *) {
-      if let bank = config.regressionBank, let propertyId = config.propertyId {
-        let semaphore = DispatchSemaphore(value: 0)
-        var result: PropertyResult<T>!
-        Task {
-          result = await runPropertyWithRegressions(
-            property,
-            config: config,
-            bank: bank,
-            propertyId: propertyId
-          )
-          semaphore.signal()
-        }
-        semaphore.wait()
-        return result
+    if let bank = config.regressionBank, let propertyId = config.propertyId {
+      let semaphore = DispatchSemaphore(value: 0)
+      var result: PropertyResult<T>!
+      Task {
+        result = await runPropertyWithRegressions(
+          property,
+          config: config,
+          bank: bank,
+          propertyId: propertyId
+        )
+        semaphore.signal()
       }
+      semaphore.wait()
+      return result
     }
     return runPropertyCore(property, config: config)
   }
@@ -649,7 +647,7 @@ public actor PropertyRunner {
 
     let result = runPropertyCore(property, config: config)
 
-    if case .failure(let counterexample, _, let shrunk, let reason, let seed) = result {
+    if case .failure(_, _, let shrunk, let reason, let seed) = result {
       let iteration = 0
       let counterexampleStr = String(describing: shrunk)
       let entry = FailureEntry(

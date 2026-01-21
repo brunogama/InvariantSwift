@@ -4,7 +4,7 @@ func testBasicProperty(x: Int) {
 
 private enum testBasicProperty_PropertyTest {
   @Test("testBasicProperty") static func run() throws {
-    let generator = Gen<Int>.int
+    let generator: Gen<Int> = Gen<Int>.int
     let property = Property(generator: generator) { (x: Int) in
       x >= Int.min
       return true
@@ -14,7 +14,6 @@ private enum testBasicProperty_PropertyTest {
     switch result {
     case .success:
       break
-
     case .failure(let counterexample, let iterations, let shrunk, reason: _, let seed):
       Issue.record(
         Comment(
@@ -22,8 +21,7 @@ private enum testBasicProperty_PropertyTest {
             "Property failed after \(iterations) iterations. Original: x=\(counterexample) | Shrunk: x=\(shrunk) | Seed: \(seed.rawValue)"
         )
       )
-
-    case .gaveUp:
+    case .gaveUp(discarded: _, iterations: _):
       Issue.record(Comment(stringLiteral: "Property test gaveUp"))
     }
   }

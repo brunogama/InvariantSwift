@@ -91,10 +91,14 @@ struct TestUtilitiesDemo {
   @Test("TestUtilities.expectGaveUp - gave up assertion")
   func testUtilitiesExpectGaveUp() {
     let property = Property<Int>(
-      generator: Gen.int.suchThat { _ in false },  // Impossible condition
+      generator: Gen.int(in: 1...1000),
+      assumption: { _ in false },
       predicate: { _ in true }
     )
-    let result = runPropertySynchronously(property, config: PropertyConfig(iterations: 10))
+    let result = runPropertySynchronously(
+      property,
+      config: PropertyConfig(iterations: 10, maxDiscarded: 15)
+    )
 
     TestUtilities.expectGaveUp(result, minDiscarded: 10)
   }
@@ -245,12 +249,16 @@ struct TestUtilitiesDemo {
   func testUtilitiesAnalyzeResults() {
     let property1 = Property<Int>(generator: Gen.int) { _ in true }
     let property2 = Property<Int>(generator: Gen.int) { _ in false }
-    let property3 = Property<Int>(generator: Gen.int.suchThat { _ in false }) { _ in true }
+    let property3 = Property<Int>(
+      generator: Gen.int(in: 1...1000),
+      assumption: { _ in false },
+      predicate: { _ in true }
+    )
 
     let results = [
       runPropertySynchronously(property1, config: PropertyConfig(iterations: 10)),
       runPropertySynchronously(property2, config: PropertyConfig(iterations: 10)),
-      runPropertySynchronously(property3, config: PropertyConfig(iterations: 10)),
+      runPropertySynchronously(property3, config: PropertyConfig(iterations: 10, maxDiscarded: 15)),
     ]
 
     let analysis = TestUtilities.analyzeResults(results)

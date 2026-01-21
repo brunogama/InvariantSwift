@@ -45,14 +45,15 @@ struct PropertyTestIntegrationTests {
 
   @Test("checkProperty - GaveUp case")
   func checkPropertyGaveUpCase() async throws {
-    let property = Property<Int>(generator: Gen.int.suchThat { _ in false }) { _ in
-      // This generator will never produce values (always filtered out)
-      true
-    }
+    let property = Property<Int>(
+      generator: Gen.int(in: 1...1000),
+      assumption: { _ in false },  // Always discard - triggers gaveUp
+      predicate: { _ in true }
+    )
 
-    // This should result in gaveUp due to filtering
+    // This should result in gaveUp due to assumption always failing
     do {
-      try await checkProperty(property, config: PropertyConfig(iterations: 10))
+      try await checkProperty(property, config: PropertyConfig(iterations: 10, maxDiscarded: 5))
       #expect(Bool(true), "checkProperty should handle gaveUp cases gracefully")
     } catch {
       #expect(Bool(true), "checkProperty may throw on gaveUp")
@@ -100,12 +101,17 @@ struct PropertyTestIntegrationTests {
   @Test("checkPropertyAsync - GaveUp case")
   @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
   func checkPropertyAsyncGaveUpCase() async throws {
-    let property = Property<Int>(generator: Gen.int.suchThat { _ in false }) { _ in
-      true
-    }
+    let property = Property<Int>(
+      generator: Gen.int(in: 1...1000),
+      assumption: { _ in false },
+      predicate: { _ in true }
+    )
 
     do {
-      try await checkPropertyAsync(property, config: PropertyConfig(iterations: 10))
+      try await checkPropertyAsync(
+        property,
+        config: PropertyConfig(iterations: 10, maxDiscarded: 5)
+      )
       #expect(Bool(true), "checkPropertyAsync should handle gaveUp cases gracefully")
     } catch {
       #expect(Bool(true), "checkPropertyAsync may throw on gaveUp")
@@ -218,20 +224,21 @@ struct PropertyTestIntegrationTests {
 
   @Test("Error message formatting - GaveUp message structure")
   func errorMessageFormattingGaveUp() {
-    // Create a property that will give up due to filtering
-    let property = Property<Int>(generator: Gen.int.suchThat { _ in false }) { _ in
-      true
-    }
+    let property = Property<Int>(
+      generator: Gen.int(in: 1...1000),
+      assumption: { _ in false },
+      predicate: { _ in true }
+    )
 
-    let result = runPropertySynchronously(property, config: PropertyConfig(iterations: 5))
+    let result = runPropertySynchronously(
+      property,
+      config: PropertyConfig(iterations: 5, maxDiscarded: 3)
+    )
 
     if case .gaveUp(let discarded, let iterations) = result {
-      // Verify the components are present for message formatting
       #expect(discarded > 0)
       #expect(iterations <= 5)
     } else {
-      // For this specific test, gaveUp is expected, but the exact behavior may vary
-      // so we'll accept any result as this tests the message formatting capability
       #expect(Bool(true), "GaveUp message formatting components are available")
     }
   }
@@ -284,14 +291,11 @@ struct PropertyTestIntegrationTests {
 
   @Test("Nested array generator integration")
   func nestedArrayGeneratorIntegration() async throws {
-    let property = Property<[[String]]>(generator: Gen.array(Gen.array(Gen.string))) {
-      nestedArray in
+    let property = Property<[[String]]>(generator: Gen.array(Gen.array(Gen.string))) { nestedArray in
       // Test that nested array generators produce valid arrays
       // Check structure is valid (arrays of arrays of strings)
       nestedArray.allSatisfy { innerArray in
-        innerArray.allSatisfy { str in
-          str.isEmpty  // Validates structure (strings always have non-negative count)
-        }
+        innerArray.allSatisfy { str in str.isEmpty }  // Validates structure
       }
     }
 

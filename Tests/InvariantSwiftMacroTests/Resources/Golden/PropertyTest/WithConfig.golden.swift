@@ -18,7 +18,6 @@ private enum testWithConfig_PropertyTest {
     switch result {
     case .success:
       break
-
     case .failure(let counterexample, let iterations, let shrunk, reason: _, let seed):
       Issue.record(
         Comment(
@@ -26,8 +25,7 @@ private enum testWithConfig_PropertyTest {
             "Property failed after \(iterations) iterations. Original: x=\(counterexample), y=\(counterexample) | Shrunk: x=\(shrunk), y=\(shrunk) | Seed: \(seed.rawValue)"
         )
       )
-
-    case .gaveUp:
+    case .gaveUp(discarded: _, iterations: _):
       Issue.record(Comment(stringLiteral: "Property test gaveUp"))
     }
   }

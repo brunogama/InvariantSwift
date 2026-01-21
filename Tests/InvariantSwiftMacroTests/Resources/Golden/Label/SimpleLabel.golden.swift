@@ -21,7 +21,6 @@ private enum testUserValidation_PropertyTest {
     switch result {
     case .success:
       break
-
     case .failure(let counterexample, let iterations, let shrunk, reason: _, let seed):
       Issue.record(
         Comment(
@@ -29,8 +28,7 @@ private enum testUserValidation_PropertyTest {
             "Property failed after \(iterations) iterations. Original: User's Age=\(counterexample), Account Balance=\(counterexample) | Shrunk: User's Age=\(shrunk), Account Balance=\(shrunk) | Seed: \(seed.rawValue)"
         )
       )
-
-    case .gaveUp:
+    case .gaveUp(discarded: _, iterations: _):
       Issue.record(Comment(stringLiteral: "Property test gaveUp"))
     }
   }
