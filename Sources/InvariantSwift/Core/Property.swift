@@ -315,6 +315,58 @@ public struct EvaluatingProperty<T: Sendable>: @unchecked Sendable {
   }
 }
 
+// MARK: - Async Property
+
+/// A property with an async predicate.
+///
+/// Supports properties that require asynchronous operations during evaluation,
+/// such as network calls, database queries, or concurrent computations.
+@available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
+public struct AsyncProperty<T: Sendable>: @unchecked Sendable {
+  /// The generator producing test values for this property.
+  public let generator: Gen<T>
+  /// The assumption (precondition) that filters valid test cases.
+  public let assumption: @Sendable (T) -> Bool
+  /// The async predicate that must hold true for all valid test cases.
+  public let predicate: @Sendable (T) async -> Bool
+
+  public init(
+    generator: Gen<T>,
+    assumption: @escaping @Sendable (T) -> Bool = { _ in true },
+    predicate: @escaping @Sendable (T) async -> Bool
+  ) {
+    self.generator = generator
+    self.assumption = assumption
+    self.predicate = predicate
+  }
+}
+
+// MARK: - Async Throwing Property
+
+/// A property with an async predicate that can throw errors.
+///
+/// Combines async operations with error handling. Thrown errors are captured
+/// and reported as failures with `.threwError` reason.
+@available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
+public struct AsyncThrowingProperty<T: Sendable>: @unchecked Sendable {
+  /// The generator producing test values for this property.
+  public let generator: Gen<T>
+  /// The assumption (precondition) that filters valid test cases.
+  public let assumption: @Sendable (T) -> Bool
+  /// The async predicate that must hold true (or not throw).
+  public let predicate: @Sendable (T) async throws -> Bool
+
+  public init(
+    generator: Gen<T>,
+    assumption: @escaping @Sendable (T) -> Bool = { _ in true },
+    predicate: @escaping @Sendable (T) async throws -> Bool
+  ) {
+    self.generator = generator
+    self.assumption = assumption
+    self.predicate = predicate
+  }
+}
+
 ///
 /// `PropertyConfig` specifies how property tests run:
 /// - How many test cases to generate (`iterations`)
@@ -1100,6 +1152,140 @@ public actor PropertyRunner {
     }
 
     return .success(iterations: successfulIterations)
+  }
+
+  @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
+  public func runAsyncProperty<T>(
+    _ property: AsyncProperty<T>,
+    config: PropertyConfig = .default
+  ) async -> PropertyResult<T> {
+    var discarded = 0
+    var successfulIterations = 0
+
+    while successfulIterations < config.iterations {
+      let size = Size(value: min(successfulIterations, 100))
+      let tree = property.generator.generateTree(&rng, size)
+      let testCase = tree.value
+
+      if !property.assumption(testCase) {
+        discarded += 1
+        if discarded > config.maxDiscarded {
+          return .gaveUp(discarded: discarded, iterations: successfulIterations)
+        }
+        continue
+      }
+
+      if await !property.predicate(testCase) {
+        let shrunkCase = await shrinkAsyncFailureWithTree(
+          tree,
+          property: property,
+          maxShrinks: config.maxShrinks
+        )
+        return .failure(
+          counterexample: testCase,
+          iterations: successfulIterations + 1,
+          shrunk: shrunkCase,
+          reason: .predicateFailed,
+          seed: seed
+        )
+      }
+
+      successfulIterations += 1
+    }
+
+    return .success(iterations: successfulIterations)
+  }
+
+  @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
+  public func runAsyncThrowingProperty<T>(
+    _ property: AsyncThrowingProperty<T>,
+    config: PropertyConfig = .default
+  ) async -> PropertyResult<T> {
+    var discarded = 0
+    var successfulIterations = 0
+
+    while successfulIterations < config.iterations {
+      let size = Size(value: min(successfulIterations, 100))
+      let tree = property.generator.generateTree(&rng, size)
+      let testCase = tree.value
+
+      if !property.assumption(testCase) {
+        discarded += 1
+        if discarded > config.maxDiscarded {
+          return .gaveUp(discarded: discarded, iterations: successfulIterations)
+        }
+        continue
+      }
+
+      do {
+        if try await !property.predicate(testCase) {
+          let shrunkCase = await shrinkAsyncThrowingFailureWithTree(
+            tree,
+            property: property,
+            maxShrinks: config.maxShrinks
+          )
+          return .failure(
+            counterexample: testCase,
+            iterations: successfulIterations + 1,
+            shrunk: shrunkCase,
+            reason: .predicateFailed,
+            seed: seed
+          )
+        }
+      } catch {
+        let errorDescription = String(describing: error)
+        let shrunkCase = await shrinkAsyncThrowingFailureWithTree(
+          tree,
+          property: property,
+          maxShrinks: config.maxShrinks
+        )
+        return .failure(
+          counterexample: testCase,
+          iterations: successfulIterations + 1,
+          shrunk: shrunkCase,
+          reason: .threwError(errorDescription),
+          seed: seed
+        )
+      }
+
+      successfulIterations += 1
+    }
+
+    return .success(iterations: successfulIterations)
+  }
+
+  @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
+  private func shrinkAsyncFailureWithTree<T: Sendable>(
+    _ tree: ShrinkTree<T>,
+    property: AsyncProperty<T>,
+    maxShrinks: Int
+  ) async -> T {
+    let filteredTree = tree.filter { property.assumption($0) }
+
+    let minimal = await filteredTree.findMinimalAsync(budget: maxShrinks) { candidate in
+      await !property.predicate(candidate)
+    }
+
+    return minimal ?? tree.value
+  }
+
+  @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
+  private func shrinkAsyncThrowingFailureWithTree<T: Sendable>(
+    _ tree: ShrinkTree<T>,
+    property: AsyncThrowingProperty<T>,
+    maxShrinks: Int
+  ) async -> T {
+    let filteredTree = tree.filter { property.assumption($0) }
+
+    let minimal = await filteredTree.findMinimalAsync(budget: maxShrinks) { candidate in
+      do {
+        return try await !property.predicate(candidate)
+      } catch {
+        return true
+      }
+    }
+
+    return minimal ?? tree.value
   }
 
   // MARK: - Replay from Token

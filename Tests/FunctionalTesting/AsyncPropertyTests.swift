@@ -582,4 +582,260 @@ struct AsyncPropertyTests {
 
     #expect(allSucceeded, "Async property memory usage test should complete successfully")
   }
+
+  // MARK: - AsyncProperty Tests (CORE-ASYNC-001)
+
+  @Test("AsyncProperty success")
+  @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
+  func asyncPropertySuccess() async {
+    let property = AsyncProperty<Int>(generator: Gen.int(in: 1...100)) { value in
+      await Task.yield()
+      return value > 0
+    }
+
+    let result = await PropertyRunner().runAsyncProperty(
+      property,
+      config: PropertyConfig(iterations: 50)
+    )
+
+    switch result {
+    case .success(let iterations):
+      #expect(iterations == 50, "Should complete all iterations")
+
+    case .failure:
+      Issue.record("Property should pass for all positive numbers")
+
+    case .gaveUp:
+      Issue.record("Property should not give up")
+    }
+  }
+
+  @Test("AsyncProperty failure with shrinking")
+  @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
+  func asyncPropertyFailureWithShrinking() async {
+    let property = AsyncProperty<Int>(generator: Gen.int(in: 1...100)) { value in
+      await Task.yield()
+      return value > 50
+    }
+
+    let result = await PropertyRunner(seed: Seed(value: 42)).runAsyncProperty(
+      property,
+      config: PropertyConfig(iterations: 100, maxShrinks: 100)
+    )
+
+    switch result {
+    case .success:
+      break
+
+    case .failure(let counterexample, let iterations, let shrunk, let reason, _):
+      #expect(counterexample >= 1 && counterexample <= 100)
+      #expect(iterations > 0)
+      #expect(shrunk <= counterexample, "Shrunk value should be <= original")
+      #expect(shrunk <= 50, "Shrunk value should still fail the property")
+      if case .predicateFailed = reason {
+        // OK
+      } else {
+        Issue.record("Expected predicateFailed reason, got: \(reason)")
+      }
+
+    case .gaveUp:
+      Issue.record("Property should not give up")
+    }
+  }
+
+  @Test("AsyncProperty with assumption")
+  @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
+  func asyncPropertyWithAssumption() async {
+    let property = AsyncProperty<Int>(
+      generator: Gen.int,
+      assumption: { $0 > 0 },
+      predicate: { value in
+        await Task.yield()
+        return value > 0
+      }
+    )
+
+    let result = await PropertyRunner().runAsyncProperty(
+      property,
+      config: PropertyConfig(iterations: 50)
+    )
+
+    switch result {
+    case .success:
+      break
+
+    case .failure:
+      Issue.record("Property should pass with positive assumption")
+
+    case .gaveUp:
+      break
+    }
+  }
+
+  // MARK: - AsyncThrowingProperty Tests (CORE-THROW-001)
+
+  @Test("AsyncThrowingProperty success")
+  @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
+  func asyncThrowingPropertySuccess() async {
+    let property = AsyncThrowingProperty<Int>(generator: Gen.int(in: 1...100)) { value in
+      await Task.yield()
+      if value <= 0 {
+        throw TestError.invalidValue
+      }
+      return true
+    }
+
+    let result = await PropertyRunner().runAsyncThrowingProperty(
+      property,
+      config: PropertyConfig(iterations: 50)
+    )
+
+    switch result {
+    case .success(let iterations):
+      #expect(iterations == 50, "Should complete all iterations")
+
+    case .failure:
+      Issue.record("Property should pass for all positive numbers")
+
+    case .gaveUp:
+      Issue.record("Property should not give up")
+    }
+  }
+
+  @Test("AsyncThrowingProperty captures thrown errors")
+  @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
+  func asyncThrowingPropertyCapturesErrors() async {
+    let property = AsyncThrowingProperty<Int>(generator: Gen.int(in: -10...10)) { value in
+      await Task.yield()
+      if value < 0 {
+        throw TestError.negativeValue
+      }
+      return true
+    }
+
+    let result = await PropertyRunner(seed: Seed(value: 42)).runAsyncThrowingProperty(
+      property,
+      config: PropertyConfig(iterations: 100, maxShrinks: 100)
+    )
+
+    switch result {
+    case .success:
+      break
+
+    case .failure(let counterexample, let iterations, let shrunk, let reason, _):
+      #expect(counterexample >= -10 && counterexample <= 10)
+      #expect(iterations > 0)
+      #expect(shrunk <= counterexample, "Shrunk value should be <= original in magnitude")
+      if case .threwError(let errorDesc) = reason {
+        #expect(errorDesc.contains("TestError"), "Error description should mention TestError")
+      } else {
+        Issue.record("Expected threwError reason, got: \(reason)")
+      }
+
+    case .gaveUp:
+      Issue.record("Property should not give up")
+    }
+  }
+
+  @Test("AsyncThrowingProperty false predicate")
+  @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
+  func asyncThrowingPropertyFalsePredicate() async {
+    let property = AsyncThrowingProperty<Int>(generator: Gen.int(in: 1...100)) { value in
+      await Task.yield()
+      return value > 50
+    }
+
+    let result = await PropertyRunner(seed: Seed(value: 123)).runAsyncThrowingProperty(
+      property,
+      config: PropertyConfig(iterations: 100, maxShrinks: 100)
+    )
+
+    switch result {
+    case .success:
+      break
+
+    case .failure(let counterexample, _, let shrunk, let reason, _):
+      #expect(counterexample <= 50, "Counterexample should fail the property")
+      #expect(shrunk <= counterexample, "Shrunk value should be <= original")
+      if case .predicateFailed = reason {
+        // OK
+      } else {
+        Issue.record("Expected predicateFailed reason, got: \(reason)")
+      }
+
+    case .gaveUp:
+      Issue.record("Property should not give up")
+    }
+  }
+
+  @Test("AsyncThrowingProperty with assumption")
+  @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
+  func asyncThrowingPropertyWithAssumption() async {
+    let property = AsyncThrowingProperty<Int>(
+      generator: Gen.int,
+      assumption: { $0 > 0 },
+      predicate: { value in
+        await Task.yield()
+        if value <= 0 {
+          throw TestError.invalidValue
+        }
+        return true
+      }
+    )
+
+    let result = await PropertyRunner().runAsyncThrowingProperty(
+      property,
+      config: PropertyConfig(iterations: 50)
+    )
+
+    switch result {
+    case .success:
+      break
+
+    case .failure:
+      Issue.record("Property should pass with positive assumption")
+
+    case .gaveUp:
+      break
+    }
+  }
+
+  // MARK: - FailureReason.threwError Tests
+
+  @Test("FailureReason.threwError formatting is deterministic")
+  func failureReasonThrewErrorDeterministic() {
+    let error1 = TestError.negativeValue
+    let error2 = TestError.negativeValue
+
+    let reason1 = FailureReason.threwError(String(describing: error1))
+    let reason2 = FailureReason.threwError(String(describing: error2))
+
+    #expect(reason1 == reason2, "Same errors should produce equal FailureReasons")
+    #expect(reason1.description == reason2.description, "Descriptions should be identical")
+  }
+
+  @Test("FailureReason.threwError contains error info")
+  func failureReasonThrewErrorContainsInfo() {
+    let error = TestError.invalidValue
+    let reason = FailureReason.threwError(String(describing: error))
+
+    let description = reason.description
+    #expect(description.contains("threw error:"), "Description should mention 'threw error'")
+    #expect(description.contains("TestError"), "Description should contain error type")
+  }
+}
+
+enum TestError: Error, CustomStringConvertible {
+  case invalidValue
+  case negativeValue
+
+  var description: String {
+    switch self {
+    case .invalidValue:
+      return "TestError.invalidValue"
+
+    case .negativeValue:
+      return "TestError.negativeValue"
+    }
+  }
 }

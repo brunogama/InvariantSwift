@@ -197,6 +197,30 @@ extension ShrinkTree {
     return best
   }
 
+  @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
+  public func findMinimalAsync(
+    budget: Int,
+    satisfying predicate: @escaping @Sendable (T) async -> Bool
+  ) async -> T? {
+    guard await predicate(value) else { return nil }
+
+    var best: T = value
+    var queue: [ShrinkTree<T>] = children
+    var visited = 0
+
+    while !queue.isEmpty && visited < budget {
+      let current = queue.removeFirst()
+      visited += 1
+
+      if await predicate(current.value) {
+        best = current.value
+        queue.append(contentsOf: current.children)
+      }
+    }
+
+    return best
+  }
+
   /// Breadth-first traversal of all values in the tree.
   ///
   /// - Returns: Array of values in BFS order
