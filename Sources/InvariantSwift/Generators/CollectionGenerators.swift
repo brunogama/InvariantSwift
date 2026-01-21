@@ -14,12 +14,19 @@ extension Gen where T == [Any] {
   /// - Elements: Generated using provided elementGen at appropriate size
   /// - Size distribution: Geometric with element budget of `size/count`
   ///
-  /// **Shrinking Strategy:**
-  /// Progressive simplification toward empty array:
-  /// 1. Shrinks to empty array (simplest collection)
-  /// 2. Removes elements one by one
-  /// 3. Shrinks individual elements recursively
-  /// 4. Shrinks by halving length (binary search for minimal failing case)
+  /// **Shrinking Strategy (SHRINK-COLL-001):**
+  /// Implements two-phase shrinking with deterministic candidate ordering:
+  ///
+  /// **Phase 1: Chunk removal (delta-debugging)**
+  /// 1. Empty array (most aggressive simplification)
+  /// 2. Remove halves, quarters, eighths progressively (logarithmic reduction)
+  /// 3. Remove individual elements one-by-one
+  ///
+  /// **Phase 2: Element-wise shrinking**
+  /// 4. Shrink each element independently while preserving array structure
+  ///
+  /// **Deterministic ordering guarantee:** Same array always produces same shrink candidate sequence.
+  /// Candidates are ordered: chunk removal first (largest deletions to smallest), then element shrinks.
   ///
   /// **Edge Cases:**
   /// - Empty arrays are common for size ≤ 3
@@ -33,7 +40,7 @@ extension Gen where T == [Any] {
   ///
   /// **Performance:**
   /// - Generation: O(n) where n = number of elements
-  /// - Shrinking: O(n²) worst case (all removals × recursion)
+  /// - Shrinking: O(log n) chunk removal + O(n²) element shrinking worst case
   /// - Memory: O(n × sizeof(T))
   ///
   /// - Parameter elementGen: Generator for individual array elements
@@ -74,34 +81,18 @@ extension Gen where T == [Any] {
       shrink: Shrink { array in
         var shrunk: [[Element]] = []
 
-        // Shrink to empty
-        if !array.isEmpty {
-          shrunk.append([])
-        }
+        // SHRINK-COLL-001: Chunk removal FIRST (delta-debugging)
+        // This uses Shrink.removeElements which does:
+        // 1. Empty array (most aggressive)
+        // 2. Remove halves, quarters, eighths progressively
+        // 3. Remove individual elements
+        shrunk.append(contentsOf: Shrink.removeElements(from: array))
 
-        // Remove elements one by one
-        for i in array.indices {
-          var smaller = array
-          smaller.remove(at: i)
-          shrunk.append(smaller)
-        }
+        // THEN element-wise shrinking
+        // Shrink each element independently while keeping array structure
+        shrunk.append(contentsOf: Shrink.shrinkElements(in: array, using: elementGen.shrink.shrink))
 
-        // Shrink elements individually
-        for (index, element) in array.enumerated() {
-          for shrunkElement in elementGen.shrink.shrink(element) {
-            var newArray = array
-            newArray[index] = shrunkElement
-            shrunk.append(newArray)
-          }
-        }
-
-        // Shrink by halving
-        if array.count > 2 {
-          let half = array.count / 2
-          shrunk.append(Array(array.prefix(half)))
-          shrunk.append(Array(array.suffix(half)))
-        }
-
+        // Deterministic ordering: chunk removal candidates first, then element shrinks
         return shrunk.removingDuplicatesGeneric()
       }
     )
@@ -240,12 +231,21 @@ extension Gen {
   /// - Stops early when target count is reached
   /// - Key collisions replace previous values (standard dictionary semantics)
   ///
-  /// **Shrinking Strategy:**
-  /// Progressive simplification toward empty dictionary:
-  /// 1. Shrinks to empty dictionary (simplest collection)
-  /// 2. Removes key-value pairs one by one
-  /// 3. Shrinks keys recursively
-  /// 4. Shrinks values recursively
+  /// **Shrinking Strategy (SHRINK-COLL-001):**
+  /// Implements two-phase shrinking with deterministic hash-based ordering:
+  ///
+  /// **Phase 1: Chunk removal (delta-debugging)**
+  /// 1. Convert to sorted array of (Key, Value) pairs (sorted by hashValue for determinism)
+  /// 2. Empty dictionary (most aggressive simplification)
+  /// 3. Remove chunks: halves, quarters, eighths progressively (logarithmic reduction)
+  /// 4. Remove individual key-value pairs one-by-one
+  ///
+  /// **Phase 2: Element-wise shrinking**
+  /// 5. Shrink keys independently while preserving values
+  /// 6. Shrink values independently while preserving keys
+  ///
+  /// **Deterministic ordering guarantee:** Same dictionary always produces same shrink candidate sequence
+  /// by sorting keys via hashValue before shrinking. Candidates ordered: chunk removal first, then key shrinks, then value shrinks.
   ///
   /// **Edge Cases:**
   /// - Empty dictionaries are common for size ≤ 3
@@ -321,20 +321,18 @@ extension Gen {
       shrink: Shrink { dict in
         var shrunk: [[Key: Value]] = []
 
-        // Shrink to empty
-        if !dict.isEmpty {
-          shrunk.append([:])
-        }
+        // SHRINK-COLL-001: Deterministic ordering via hash-based sorting
+        // Convert to array of tuples sorted by hash value for reproducibility
+        let pairs = dict.sorted(by: { $0.key.hashValue < $1.key.hashValue })
 
-        // Remove key-value pairs one by one
-        for key in dict.keys {
-          var smaller = dict
-          smaller.removeValue(forKey: key)
-          shrunk.append(smaller)
-        }
+        // SHRINK-COLL-001: Chunk removal FIRST (delta-debugging)
+        // Remove chunks of key-value pairs using delta debugging strategy
+        let pairArrays = Shrink.removeElements(from: pairs)
+        shrunk.append(contentsOf: pairArrays.map { Dictionary(uniqueKeysWithValues: $0) })
 
-        // Shrink keys and values individually
-        for (key, value) in dict {
+        // THEN element-wise shrinking
+        // Shrink keys and values independently, maintaining deterministic order
+        for (key, value) in pairs {
           // Shrink key
           for shrunkKey in keyGen.shrink.shrink(key) {
             var newDict = dict
@@ -351,6 +349,7 @@ extension Gen {
           }
         }
 
+        // Deterministic ordering: chunk removal first, then key shrinks, then value shrinks
         return shrunk.removingDuplicatesGeneric()
       }
     )

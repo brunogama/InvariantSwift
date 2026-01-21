@@ -1,11 +1,23 @@
 # Changelog
 
-All notable changes to InvariantSwift will be documented in this file.
+All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+### Added
+- Collection shrinking v2 (SHRINK-COLL-001): delta-debugging chunk removal strategy for arrays and dictionaries
+- Deterministic shrinking: hash-based key sorting for dictionaries ensures reproducible shrink sequences
+- `CollectionShrinkingV2Tests`: comprehensive test coverage for chunk removal and determinism
+- `CollectionShrinkingBenchmarks`: performance benchmarks for small/medium/large collections
+
+### Changed
+- Array shrinking now uses two-phase strategy: chunk removal (O(log n)) before element shrinking (O(n²))
+- Dictionary shrinking uses sorted key-value pairs for deterministic candidate ordering
+- Updated shrinking documentation to reflect delta-debugging strategy and performance characteristics
+
 
 ### Added
 - AsyncProperty<T> type for properties with async predicates
