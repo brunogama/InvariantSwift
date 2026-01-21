@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **JSON Report Schema for CI/CD Integration** (ISP-0008):
+  * `RunReport` struct with versioned schema (v1) for machine-readable test outputs
+  * Test outcome enum: `.success`, `.failed`, `.gaveUp`
+  * `RunStatistics` with iteration counts, timings, and shrink steps
+  * `FailureDetails` with replay tokens, counterexamples, and optional shrink traces
+  * Factory methods: `RunReport.from(PropertyResult)` and `RunReport.from(ClassifyingPropertyResult)`
+  * JSON I/O methods: `toJSON()`, `fromJSON()`, `writeJSON()`, `readJSON()`
+  * Complete CI integration guide in `docs/JSON_REPORTS.md`
+  * Examples for GitHub Actions, GitLab CI, Jenkins parsing
 - Floating-point generation with configurable modes (GEN-FLOAT-001):
   * `FloatingPointMode` enum: `.finiteOnly`, `.allowInfinity`, `.allowNaN`
   * Default generators produce finite values only for predictable behavior
