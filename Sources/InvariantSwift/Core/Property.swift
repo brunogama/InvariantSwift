@@ -426,6 +426,17 @@ public struct PropertyConfig: Sendable {
     case verbose
   }
 
+  /// Opt-in regression bank for storing and replaying minimal counterexamples.
+  ///
+  /// When enabled, failed test cases are persisted to the regression bank
+  /// and replayed on subsequent runs before random exploration.
+  public let regressionBank: RegressionBank?
+
+  /// Unique identifier for this property, used for regression storage.
+  ///
+  /// Required when using regression bank. Should be stable across runs.
+  public let propertyId: String?
+
   /// Initializes a property testing configuration.
   ///
   /// - Parameters:
@@ -436,6 +447,8 @@ public struct PropertyConfig: Sendable {
   ///   - verbose: Enable verbose output. Default: false.
   ///   - timeout: Optional per-iteration timeout. Default: nil (no timeout).
   ///   - verbosity: Output verbosity level. Default: .normal.
+  ///   - regressionBank: Optional regression bank for persisting failures. Default: nil.
+  ///   - propertyId: Unique identifier for regression storage. Default: nil.
   ///
   /// - Example:
   ///   ```swift
@@ -445,7 +458,9 @@ public struct PropertyConfig: Sendable {
   ///       maxDiscarded: 500,
   ///       seed: Seed(value: 42),
   ///       timeout: 5.0,
-  ///       verbosity: .verbose
+  ///       verbosity: .verbose,
+  ///       regressionBank: RegressionBank(),
+  ///       propertyId: "testArrayReverse"
   ///   )
   ///   ```
   public init(
@@ -455,7 +470,9 @@ public struct PropertyConfig: Sendable {
     seed: Seed? = nil,
     verbose: Bool = false,
     timeout: TimeInterval? = nil,
-    verbosity: Verbosity = .normal
+    verbosity: Verbosity = .normal,
+    regressionBank: RegressionBank? = nil,
+    propertyId: String? = nil
   ) {
     self.iterations = max(1, iterations)
     self.maxShrinks = max(0, maxShrinks)
@@ -464,6 +481,8 @@ public struct PropertyConfig: Sendable {
     self.verbose = verbose
     self.timeout = timeout
     self.verbosity = verbosity
+    self.regressionBank = regressionBank
+    self.propertyId = propertyId
   }
 
   /// Default configuration: 100 iterations, 1000 shrinks, 1000 max discarded.
@@ -521,6 +540,7 @@ public struct PropertyConfig: Sendable {
 ///
 /// - See Also: ``Property``, ``PropertyConfig``, ``PropertyResult``
 @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
+// swiftlint:disable:next type_body_length
 public actor PropertyRunner {
   private var rng: any RandomNumberGenerator
   /// Internal seed for extensions to access during property execution.
@@ -584,6 +604,70 @@ public actor PropertyRunner {
   public func runProperty<T>(
     _ property: Property<T>,
     config: PropertyConfig = .default
+  ) -> PropertyResult<T> {
+    if #available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *) {
+      if let bank = config.regressionBank, let propertyId = config.propertyId {
+        let semaphore = DispatchSemaphore(value: 0)
+        var result: PropertyResult<T>!
+        Task {
+          result = await runPropertyWithRegressions(
+            property,
+            config: config,
+            bank: bank,
+            propertyId: propertyId
+          )
+          semaphore.signal()
+        }
+        semaphore.wait()
+        return result
+      }
+    }
+    return runPropertyCore(property, config: config)
+  }
+
+  @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
+  private func runPropertyWithRegressions<T>(
+    _ property: Property<T>,
+    config: PropertyConfig,
+    bank: RegressionBank,
+    propertyId: String
+  ) async -> PropertyResult<T> {
+    let seedsToReplay = await bank.seedsForProperty(propertyId)
+
+    for regressionSeed in seedsToReplay {
+      let regressionRunner = PropertyRunner(seed: regressionSeed)
+      let regressionResult = await regressionRunner.runProperty(property, config: config)
+
+      switch regressionResult {
+      case .failure:
+        return regressionResult
+
+      case .success, .gaveUp:
+        continue
+      }
+    }
+
+    let result = runPropertyCore(property, config: config)
+
+    if case .failure(let counterexample, _, let shrunk, let reason, let seed) = result {
+      let iteration = 0
+      let counterexampleStr = String(describing: shrunk)
+      let entry = FailureEntry(
+        propertyLabel: propertyId,
+        seedValue: seed.rawValue,
+        counterexampleDescription: counterexampleStr,
+        failureReason: reason.description,
+        failedAtIteration: iteration
+      )
+      try? await bank.recordFailureEntry(entry)
+    }
+
+    return result
+  }
+
+  private func runPropertyCore<T>(
+    _ property: Property<T>,
+    config: PropertyConfig
   ) -> PropertyResult<T> {
     var discarded = 0
     var successfulIterations = 0

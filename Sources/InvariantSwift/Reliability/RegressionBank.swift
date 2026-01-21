@@ -146,6 +146,20 @@ public actor RegressionBank {
     }
   }
 
+  /// Record a failure entry directly.
+  ///
+  /// - Parameter entry: The failure entry to record
+  public func recordFailureEntry(_ entry: FailureEntry) async throws {
+    await ensureLoaded()
+
+    if !cachedFailures.contains(where: {
+      $0.propertyLabel == entry.propertyLabel && $0.seedValue == entry.seedValue
+    }) {
+      cachedFailures.append(entry)
+      try await save()
+    }
+  }
+
   /// Get all seeds that should be replayed for a given property.
   ///
   /// - Parameter propertyLabel: The property identifier
