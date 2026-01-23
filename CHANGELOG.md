@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Planning
+- **Phase 04.2: Expose Missing Macros**: Created phase plan with 3 plans in 2 waves
+  - Plan 01 (Wave 1): Register LawCheckedMacro in MacroPlugin.swift, create LawCheckedMacroDeclaration.swift, create tests
+  - Plan 02 (Wave 1): Create DeriveGenMacroDeclaration.swift, create tests (macro already registered)
+  - Plan 03 (Wave 2): Verify and update docs/MACROS.md accuracy after declarations exposed
+
 ### Added
 - **Phase 04.4 Research: Property Assertion Macros**: Completed domain research for @Idempotent, @Deterministic, and @Pure macros
   - Identified standard stack: SwiftSyntax 600.0.1+, existing InvariantSwift infrastructure
