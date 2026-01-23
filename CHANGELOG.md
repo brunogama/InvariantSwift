@@ -19,6 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Proposal ISP-0011 documenting design decisions
 
 ### Changed
+- **[BREAKING]** Renamed Faker to vendor-neutral Domain Data terminology across InvariantSwiftDomainGenerators module
+  - FakerType → DataType (164 data category cases)
+  - FakerLocale → DataLocale (23 locale definitions)
+  - FakerData → DomainDataStore (thread-safe locale data storage)
+  - Gen.faker() → Gen.domainData() (domain data generator API)
+  - Old Faker API completely removed (no deprecated aliases)
 - **Test Target Renamed**: Renamed test target from `FunctionalTesting` to `InvariantSwiftTests` to align with Swift package naming conventions where test targets should be named `<PackageName>Tests`
   - Updated Package.swift test target definition
   - Moved all 66 test files while preserving git history using git mv
