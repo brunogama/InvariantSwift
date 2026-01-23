@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Phase 6 Research Documentation** in `.planning/phases/06-documentation-examples/06-RESEARCH.md`:
+  * Research on Swift DocC documentation compiler and framework documentation patterns
+  * Three-tier documentation structure: Quick Start → Cookbook → Migration Guide
+  * Recipe-based documentation patterns with Problem/Solution/Discussion format
+  * Migration guide patterns from QuickCheck/Hypothesis to InvariantSwift
+  * Accessibility strategies for non-FP developers (avoid functor/monad jargon)
+  * Common pitfalls: FP terminology barriers, missing migration paths, example complexity
+  * Standard stack: Swift DocC, Markdown, Swift-DocC-Plugin
+  * Estimated 1 week implementation (3 days authoring + 2 days tutorials + 2 days review)
 - **Implication Operator `==>` (Phase 03-01)**: QuickCheck-style conditional properties
   - `Bool ==> Bool` overload for simple precondition checks
   - `Bool ==> PropertyEvaluation` overload for explicit control
