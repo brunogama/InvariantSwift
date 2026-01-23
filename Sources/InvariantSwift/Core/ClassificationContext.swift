@@ -42,6 +42,9 @@ public final class ClassificationContext: @unchecked Sendable {
   /// Total number of iterations observed
   private var iterationCount: Int = 0
 
+  /// Counterexample message closures (lazy evaluation)
+  private var counterexampleClosures: [Any] = []
+
   // MARK: - Initialization
 
   /// Creates a new empty classification context.
@@ -180,6 +183,44 @@ public final class ClassificationContext: @unchecked Sendable {
   /// Convenience for single-label tabulation.
   public func tabulate(_ category: String, label: String) {
     tabulate(category, labels: [label])
+  }
+
+  // MARK: - Counterexample Messages
+
+  /// Register a counterexample message closure.
+  ///
+  /// Messages are NOT evaluated immediately. They are stored and computed only
+  /// when the property fails, ensuring zero overhead for passing tests.
+  ///
+  /// - Parameter messageClosure: Closure that computes explanatory message from failing input
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   ctx.addCounterexample { (n: Int) in "Expected positive, got: \(n)" }
+  ///   ```
+  public func addCounterexample<T>(_ messageClosure: @escaping @Sendable (T) -> String) {
+    lock.lock()
+    defer { lock.unlock() }
+    counterexampleClosures.append(messageClosure)
+  }
+
+  /// Compute all counterexample messages for a failing value.
+  ///
+  /// This method is called ONLY when a property fails. It evaluates all registered
+  /// counterexample closures with the shrunk (minimal) failing value.
+  ///
+  /// - Parameter value: The failing input value
+  /// - Returns: Array of computed custom messages
+  func computeCounterexampleMessages<T>(_ value: T) -> [String] {
+    lock.lock()
+    defer { lock.unlock() }
+
+    return counterexampleClosures.compactMap { closure in
+      guard let typedClosure = closure as? (T) -> String else {
+        return nil
+      }
+      return typedClosure(value)
+    }
   }
 
   // MARK: - Internal API

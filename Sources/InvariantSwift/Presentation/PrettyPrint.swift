@@ -1041,7 +1041,7 @@ public func formatCoverageStatus(_ result: ClassificationReport.CoverageResult) 
 }
 
 /// **Helper function to separate documents**
-func separatedBy(_ separator: Doc, _ docs: [Dog]) -> Doc {
+func separatedBy(_ separator: Doc, _ docs: [Doc]) -> Doc {
   Doc.separatedBy(separator, docs)
   // swiftlint:disable:next file_length
 }
