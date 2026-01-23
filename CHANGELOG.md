@@ -8,6 +8,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Phase 2 Execution Plans** in `.planning/phases/02-enhanced-reporting/`:
+  * 02-01-PLAN.md: Value Collection (collect) with histogram tracking
+    - Property<T>.collect() extension for value distribution tracking
+    - ClassificationContext.collect() with thread-safe histogram storage
+    - ClassificationReport.collectedValues with formatted histogram output
+    - bucketNumeric() helper for readable numeric ranges (0, 1-9, 10-99, etc.)
+  * 02-02-PLAN.md: Multi-dimensional Tabulation and Phase 1 API
+    - Property<T>.tabulate() for multi-label categorization
+    - ClassificationContext.tabulate() reusing labels dictionary
+    - Complete fluent API: cover(), classify(), label(), collect(), tabulate()
+    - Depends on 02-01 for Property+Classification.swift foundation
+  * 02-03-PLAN.md: Counterexample Messages and Enhanced Formatting
+    - Property<T>.counterexample() for custom failure messages
+    - ClassificationContext.addCounterexample() with lazy evaluation
+    - PropertyRunner integration for counterexample message flow
+    - PrettyPrint enhancements: formatHistogram(), formatPropertyFailure()
+  * 02-04-PLAN.md: Comprehensive Test Suite and Quality Verification
+    - CollectTests.swift, TabulateTests.swift, CounterexampleTests.swift
+    - MacroIntegrationTests.swift for @PropertyTest + fluent API
+    - QR-1: 100% coverage verification with swift test --enable-code-coverage
+    - QR-2: 20% dogfooding threshold with 6+ property-based tests
+    - QR-3: Macro integration tests for all Phase 2 features
 - **Phase 1 Execution Plans** in `.planning/phases/01-test-observability/`:
   * 01-01-PLAN.md: Fluent Classification API (Property+Classification.swift)
     - Property<T>.cover(), .classify(), .label() extensions returning ClassifyingProperty<T>
