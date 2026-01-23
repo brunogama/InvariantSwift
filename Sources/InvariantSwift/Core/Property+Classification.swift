@@ -1,6 +1,17 @@
 import Foundation
 
 // MARK: - Property Classification Extensions
+//
+// This file provides fluent API extensions for property classification and observation:
+//
+// - **classify**: Single boolean condition -> single label (e.g., "45% positive")
+// - **tabulate**: Multiple labels per input -> multi-dimensional analysis
+// - **cover**: Enforce minimum percentage coverage for conditions
+// - **label**: Unconditional labeling of all test cases
+// - **collect**: Histogram tracking of extracted values
+//
+// Use `classify` for binary categories (true/false conditions).
+// Use `tabulate` for value distributions and multi-dimensional correlations.
 
 extension Property {
 
@@ -141,6 +152,50 @@ extension Property {
       return self.predicate(value)
     }
   }
+
+  // MARK: - Multi-Dimensional Tabulation
+
+  /// Track multiple independent classification categories.
+  ///
+  /// Use `tabulate` to analyze correlations across dimensions. Unlike `classify`,
+  /// tabulate allows multiple labels per input within a category.
+  ///
+  /// - Parameters:
+  ///   - category: Category name for this dimension (e.g., "magnitude", "sign")
+  ///   - labels: Closure returning array of labels for this input
+  ///
+  /// - Returns: ClassifyingProperty that tracks the tabulation
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   Property(generator: Gen.int) { n in abs(n) >= 0 }
+  ///     .tabulate("magnitude") { n in
+  ///       [abs(n) < 10 ? "small" : "large"]
+  ///     }
+  ///     .tabulate("sign") { n in
+  ///       [n > 0 ? "positive" : n < 0 ? "negative" : "zero"]
+  ///     }
+  ///   ```
+  public func tabulate(
+    _ category: String,
+    labels: @escaping @Sendable (T) -> [String]
+  ) -> ClassifyingProperty<T> {
+    ClassifyingProperty(
+      generator: self.generator,
+      assumption: self.assumption
+    ) { value, ctx in
+      ctx.tabulate(category, labels: labels(value))
+      return self.predicate(value)
+    }
+  }
+
+  /// Convenience for single-label tabulation.
+  public func tabulate(
+    _ category: String,
+    label: @escaping @Sendable (T) -> String
+  ) -> ClassifyingProperty<T> {
+    tabulate(category, labels: { [label($0)] })
+  }
 }
 
 // MARK: - ClassifyingProperty Extensions
@@ -158,6 +213,28 @@ extension ClassifyingProperty {
       ctx.collect(extracted)
       return self.predicate(value, ctx)
     }
+  }
+
+  /// Add tabulation to an existing classifying property.
+  public func tabulate(
+    _ category: String,
+    labels: @escaping @Sendable (T) -> [String]
+  ) -> ClassifyingProperty<T> {
+    ClassifyingProperty(
+      generator: self.generator,
+      assumption: self.assumption
+    ) { value, ctx in
+      ctx.tabulate(category, labels: labels(value))
+      return self.predicate(value, ctx)
+    }
+  }
+
+  /// Convenience for single-label tabulation.
+  public func tabulate(
+    _ category: String,
+    label: @escaping @Sendable (T) -> String
+  ) -> ClassifyingProperty<T> {
+    tabulate(category, labels: { [label($0)] })
   }
 }
 
