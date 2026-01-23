@@ -6,6 +6,15 @@
 - **Created:** 2025-01-17
 - **Swift Version:** 6.0+
 
+> **Terminology Note (2026-01):** This proposal uses "Faker" terminology historically.
+> The implementation has been renamed to vendor-neutral "Domain Data" naming:
+> - `FakerType` -> `DataType`
+> - `FakerLocale` -> `DataLocale`
+> - `FakerData` -> `DomainDataStore`
+> - `Gen.faker()` -> `Gen.domainData()`
+>
+> The old Faker API has been completely replaced (no deprecated aliases).
+
 ## Summary
 
 Introduce built-in faker generators for producing realistic test data like names, emails, addresses, and domain-specific values while preserving property-based testing shrinking capabilities.

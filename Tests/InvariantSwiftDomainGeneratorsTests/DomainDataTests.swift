@@ -1,5 +1,5 @@
-// MARK: - ISP-0010: Faker Tests
-// Tests for faker data generators.
+// MARK: - ISP-0010: Domain Data Tests
+// Tests for domain data generators.
 // swiftlint:disable file_length
 
 import Foundation
@@ -9,113 +9,113 @@ import InvariantSwiftCore
 @testable import InvariantSwiftDomainGenerators
 @testable import InvariantSwift
 
-@Suite("Faker Tests")
-struct FakerTests {  // swiftlint:disable:this type_body_length
+@Suite("Domain Data Tests")
+struct DomainDataTests {  // swiftlint:disable:this type_body_length
 
   // MARK: - Locale Tests
 
-  @Test("FakerLocale has correct raw values")
-  func localeRawValues() {
-    #expect(FakerLocale.enUS.rawValue == "en_US")
-    #expect(FakerLocale.ptBR.rawValue == "pt_BR")
-    #expect(FakerLocale.deDE.rawValue == "de_DE")
-    #expect(FakerLocale.jaJP.rawValue == "ja_JP")
+  @Test("DataLocale has correct raw values")
+  func dataLocaleRawValues() {
+    #expect(DataLocale.enUS.rawValue == "en_US")
+    #expect(DataLocale.ptBR.rawValue == "pt_BR")
+    #expect(DataLocale.deDE.rawValue == "de_DE")
+    #expect(DataLocale.jaJP.rawValue == "ja_JP")
   }
 
-  @Test("FakerLocale default is enUS")
-  func localeDefault() {
-    #expect(FakerLocale.default == .enUS)
+  @Test("DataLocale default is enUS")
+  func dataLocaleDefault() {
+    #expect(DataLocale.default == .enUS)
   }
 
-  @Test("FakerLocale has language and country codes")
-  func localeCodeExtraction() {
-    #expect(FakerLocale.enUS.languageCode == "en")
-    #expect(FakerLocale.enUS.countryCode == "US")
-    #expect(FakerLocale.ptBR.languageCode == "pt")
-    #expect(FakerLocale.ptBR.countryCode == "BR")
+  @Test("DataLocale has language and country codes")
+  func dataLocaleCodeExtraction() {
+    #expect(DataLocale.enUS.languageCode == "en")
+    #expect(DataLocale.enUS.countryCode == "US")
+    #expect(DataLocale.ptBR.languageCode == "pt")
+    #expect(DataLocale.ptBR.countryCode == "BR")
   }
 
-  // MARK: - FakerData Tests
+  // MARK: - DomainDataStore Tests
 
-  @Test("FakerData loads English data")
-  func fakerDataEnglish() {
-    let data = FakerData.shared.data(for: .enUS)
+  @Test("DomainDataStore loads English data")
+  func domainDataStoreEnglish() {
+    let data = DomainDataStore.shared.data(for: .enUS)
     #expect(!data.firstNames.isEmpty)
     #expect(!data.lastNames.isEmpty)
     #expect(!data.cities.isEmpty)
     #expect(!data.emailDomains.isEmpty)
   }
 
-  @Test("FakerData loads Brazilian Portuguese data")
-  func fakerDataBrazilian() {
-    let data = FakerData.shared.data(for: .ptBR)
+  @Test("DomainDataStore loads Brazilian Portuguese data")
+  func domainDataStoreBrazilian() {
+    let data = DomainDataStore.shared.data(for: .ptBR)
     #expect(data.locale == .ptBR)
     #expect(data.firstNames.contains("João"))
     #expect(data.lastNames.contains("Silva"))
     #expect(data.cities.contains("São Paulo"))
   }
 
-  @Test("FakerData caches loaded locales")
-  func fakerDataCaching() {
-    let data1 = FakerData.shared.data(for: .deDE)
-    let data2 = FakerData.shared.data(for: .deDE)
+  @Test("DomainDataStore caches loaded locales")
+  func domainDataStoreCaching() {
+    let data1 = DomainDataStore.shared.data(for: .deDE)
+    let data2 = DomainDataStore.shared.data(for: .deDE)
     // Same reference means caching works
     #expect(data1.locale == data2.locale)
   }
 
   // MARK: - Name Generator Tests
 
-  @Test("Faker generates names")
-  func fakerName() {
-    let gen = Gen<String>.faker(.name)
+  @Test("DomainData generates names")
+  func domainDataName() {
+    let gen = Gen<String>.domainData(.name)
     let name = gen.sample(size: .medium, seed: Seed(value: 42))
     #expect(!name.isEmpty)
     #expect(name.contains(" "))  // First and last name separated by space
   }
 
-  @Test("Faker generates first names")
-  func fakerFirstName() {
-    let gen = Gen<String>.faker(.firstName)
+  @Test("DomainData generates first names")
+  func domainDataFirstName() {
+    let gen = Gen<String>.domainData(.firstName)
     let name = gen.sample(size: .medium, seed: Seed(value: 42))
     #expect(!name.isEmpty)
     #expect(!name.contains(" "))  // Single name, no space
   }
 
-  @Test("Faker generates last names")
-  func fakerLastName() {
-    let gen = Gen<String>.faker(.lastName)
+  @Test("DomainData generates last names")
+  func domainDataLastName() {
+    let gen = Gen<String>.domainData(.lastName)
     let name = gen.sample(size: .medium, seed: Seed(value: 42))
     #expect(!name.isEmpty)
   }
 
   // MARK: - Internet Generator Tests
 
-  @Test("Faker generates emails")
-  func fakerEmail() {
-    let gen = Gen<String>.faker(.email)
+  @Test("DomainData generates emails")
+  func domainDataEmail() {
+    let gen = Gen<String>.domainData(.email)
     let email = gen.sample(size: .medium, seed: Seed(value: 42))
     #expect(email.contains("@"))
     #expect(email.contains("."))
   }
 
-  @Test("Faker generates usernames")
-  func fakerUsername() {
-    let gen = Gen<String>.faker(.username)
+  @Test("DomainData generates usernames")
+  func domainDataUsername() {
+    let gen = Gen<String>.domainData(.username)
     let username = gen.sample(size: .medium, seed: Seed(value: 42))
     #expect(!username.isEmpty)
     #expect(!username.contains("@"))
   }
 
-  @Test("Faker generates URLs")
-  func fakerURL() {
-    let gen = Gen<String>.faker(.url)
+  @Test("DomainData generates URLs")
+  func domainDataURL() {
+    let gen = Gen<String>.domainData(.url)
     let url = gen.sample(size: .medium, seed: Seed(value: 42))
     #expect(url.hasPrefix("https://"))
   }
 
-  @Test("Faker generates IPv4 addresses")
-  func fakerIPv4() {
-    let gen = Gen<String>.faker(.ipv4)
+  @Test("DomainData generates IPv4 addresses")
+  func domainDataIPv4() {
+    let gen = Gen<String>.domainData(.ipv4)
     let ip = gen.sample(size: .medium, seed: Seed(value: 42))
     let parts = ip.split(separator: ".")
     #expect(parts.count == 4)
@@ -126,17 +126,17 @@ struct FakerTests {  // swiftlint:disable:this type_body_length
     }
   }
 
-  @Test("Faker generates IPv6 addresses")
-  func fakerIPv6() {
-    let gen = Gen<String>.faker(.ipv6)
+  @Test("DomainData generatesIPv6 addresses")
+  func domainDataIPv6() {
+    let gen = Gen<String>.domainData(.ipv6)
     let ip = gen.sample(size: .medium, seed: Seed(value: 42))
     let parts = ip.split(separator: ":")
     #expect(parts.count == 8)
   }
 
-  @Test("Faker generates MAC addresses")
-  func fakerMACAddress() {
-    let gen = Gen<String>.faker(.macAddress)
+  @Test("DomainData generatesMAC addresses")
+  func domainDataMACAddress() {
+    let gen = Gen<String>.domainData(.macAddress)
     let mac = gen.sample(size: .medium, seed: Seed(value: 42))
     let parts = mac.split(separator: ":")
     #expect(parts.count == 6)
@@ -144,17 +144,17 @@ struct FakerTests {  // swiftlint:disable:this type_body_length
 
   // MARK: - Password Generator Tests
 
-  @Test("Faker generates weak passwords")
-  func fakerWeakPassword() {
-    let gen = Gen<String>.faker(.password(strength: .weak))
+  @Test("DomainData generatesweak passwords")
+  func domainDataWeakPassword() {
+    let gen = Gen<String>.domainData(.password(strength: .weak))
     let password = gen.sample(size: .medium, seed: Seed(value: 42))
     #expect(password.count >= 6)
     #expect(password.count <= 8)
   }
 
-  @Test("Faker generates strong passwords")
-  func fakerStrongPassword() {
-    let gen = Gen<String>.faker(.password(strength: .strong))
+  @Test("DomainData generatesstrong passwords")
+  func domainDataStrongPassword() {
+    let gen = Gen<String>.domainData(.password(strength: .strong))
     let password = gen.sample(size: .medium, seed: Seed(value: 42))
     #expect(password.count >= 12)
     #expect(password.count <= 16)
@@ -162,9 +162,9 @@ struct FakerTests {  // swiftlint:disable:this type_body_length
 
   // MARK: - Address Generator Tests
 
-  @Test("Faker generates street addresses")
-  func fakerStreetAddress() {
-    let gen = Gen<String>.faker(.streetAddress)
+  @Test("DomainData generatesstreet addresses")
+  func domainDataStreetAddress() {
+    let gen = Gen<String>.domainData(.streetAddress)
     let address = gen.sample(size: .medium, seed: Seed(value: 42))
     #expect(!address.isEmpty)
     // Should have a number at the start
@@ -172,39 +172,39 @@ struct FakerTests {  // swiftlint:disable:this type_body_length
     #expect(firstChar.isNumber)
   }
 
-  @Test("Faker generates cities")
-  func fakerCity() {
-    let gen = Gen<String>.faker(.city)
+  @Test("DomainData generatescities")
+  func domainDataCity() {
+    let gen = Gen<String>.domainData(.city)
     let city = gen.sample(size: .medium, seed: Seed(value: 42))
     #expect(!city.isEmpty)
   }
 
-  @Test("Faker generates ZIP codes")
-  func fakerZipCode() {
-    let gen = Gen<String>.faker(.zipCode)
+  @Test("DomainData generatesZIP codes")
+  func domainDataZipCode() {
+    let gen = Gen<String>.domainData(.zipCode)
     let zip = gen.sample(size: .medium, seed: Seed(value: 42))
     #expect(zip.count == 5)
     #expect(Int(zip) != nil)
   }
 
-  @Test("Faker generates full addresses")
-  func fakerFullAddress() {
-    let gen = Gen<String>.faker(.fullAddress)
+  @Test("DomainData generatesfull addresses")
+  func domainDataFullAddress() {
+    let gen = Gen<String>.domainData(.fullAddress)
     let address = gen.sample(size: .medium, seed: Seed(value: 42))
     #expect(address.contains(","))  // Contains separators
   }
 
-  @Test("Faker generates latitude")
-  func fakerLatitude() {
-    let gen = Gen<String>.faker(.latitude)
+  @Test("DomainData generateslatitude")
+  func domainDataLatitude() {
+    let gen = Gen<String>.domainData(.latitude)
     let lat = gen.sample(size: .medium, seed: Seed(value: 42))
     let value = Double(lat)!
     #expect(value >= -90.0 && value <= 90.0)
   }
 
-  @Test("Faker generates longitude")
-  func fakerLongitude() {
-    let gen = Gen<String>.faker(.longitude)
+  @Test("DomainData generateslongitude")
+  func domainDataLongitude() {
+    let gen = Gen<String>.domainData(.longitude)
     let lng = gen.sample(size: .medium, seed: Seed(value: 42))
     let value = Double(lng)!
     #expect(value >= -180.0 && value <= 180.0)
@@ -212,49 +212,49 @@ struct FakerTests {  // swiftlint:disable:this type_body_length
 
   // MARK: - Company Generator Tests
 
-  @Test("Faker generates company names")
-  func fakerCompanyName() {
-    let gen = Gen<String>.faker(.companyName)
+  @Test("DomainData generatescompany names")
+  func domainDataCompanyName() {
+    let gen = Gen<String>.domainData(.companyName)
     let company = gen.sample(size: .medium, seed: Seed(value: 42))
     #expect(!company.isEmpty)
   }
 
-  @Test("Faker generates job titles")
-  func fakerJobTitle() {
-    let gen = Gen<String>.faker(.jobTitle)
+  @Test("DomainData generatesjob titles")
+  func domainDataJobTitle() {
+    let gen = Gen<String>.domainData(.jobTitle)
     let title = gen.sample(size: .medium, seed: Seed(value: 42))
     #expect(!title.isEmpty)
   }
 
   // MARK: - Lorem Generator Tests
 
-  @Test("Faker generates words")
-  func fakerWord() {
-    let gen = Gen<String>.faker(.word)
+  @Test("DomainData generateswords")
+  func domainDataWord() {
+    let gen = Gen<String>.domainData(.word)
     let word = gen.sample(size: .medium, seed: Seed(value: 42))
     #expect(!word.isEmpty)
     #expect(!word.contains(" "))
   }
 
-  @Test("Faker generates multiple words")
-  func fakerWords() {
-    let gen = Gen<String>.faker(.words(count: 5))
+  @Test("DomainData generatesmultiple words")
+  func domainDataWords() {
+    let gen = Gen<String>.domainData(.words(count: 5))
     let words = gen.sample(size: .medium, seed: Seed(value: 42))
     let wordArray = words.split(separator: " ")
     #expect(wordArray.count == 5)
   }
 
-  @Test("Faker generates sentences")
-  func fakerSentence() {
-    let gen = Gen<String>.faker(.sentence)
+  @Test("DomainData generatessentences")
+  func domainDataSentence() {
+    let gen = Gen<String>.domainData(.sentence)
     let sentence = gen.sample(size: .medium, seed: Seed(value: 42))
     #expect(sentence.hasSuffix("."))
     #expect(sentence.first?.isUppercase == true)
   }
 
-  @Test("Faker generates paragraphs")
-  func fakerParagraph() {
-    let gen = Gen<String>.faker(.paragraph)
+  @Test("DomainData generatesparagraphs")
+  func domainDataParagraph() {
+    let gen = Gen<String>.domainData(.paragraph)
     let paragraph = gen.sample(size: .medium, seed: Seed(value: 42))
     #expect(paragraph.contains("."))
     #expect(paragraph.count > 50)
@@ -262,100 +262,100 @@ struct FakerTests {  // swiftlint:disable:this type_body_length
 
   // MARK: - Finance Generator Tests
 
-  @Test("Faker generates credit card numbers")
-  func fakerCreditCard() {
-    let gen = Gen<String>.faker(.creditCardNumber)
+  @Test("DomainData generatescredit card numbers")
+  func domainDataCreditCard() {
+    let gen = Gen<String>.domainData(.creditCardNumber)
     let cc = gen.sample(size: .medium, seed: Seed(value: 42))
     #expect(cc.count == 16)
     #expect(cc.hasPrefix("4"))  // Visa format
   }
 
-  @Test("Faker generates CVV")
-  func fakerCVV() {
-    let gen = Gen<String>.faker(.cvv)
+  @Test("DomainData generatesCVV")
+  func domainDataCVV() {
+    let gen = Gen<String>.domainData(.cvv)
     let cvv = gen.sample(size: .medium, seed: Seed(value: 42))
     #expect(cvv.count == 3)
     #expect(Int(cvv) != nil)
   }
 
-  @Test("Faker generates credit card expiry")
-  func fakerCreditCardExpiry() {
-    let gen = Gen<String>.faker(.creditCardExpiry)
+  @Test("DomainData generatescredit card expiry")
+  func domainDataCreditCardExpiry() {
+    let gen = Gen<String>.domainData(.creditCardExpiry)
     let expiry = gen.sample(size: .medium, seed: Seed(value: 42))
     #expect(expiry.contains("/"))
     let parts = expiry.split(separator: "/")
     #expect(parts.count == 2)
   }
 
-  @Test("Faker generates IBAN")
-  func fakerIBAN() {
-    let gen = Gen<String>.faker(.iban)
+  @Test("DomainData generatesIBAN")
+  func domainDataIBAN() {
+    let gen = Gen<String>.domainData(.iban)
     let iban = gen.sample(size: .medium, seed: Seed(value: 42))
     #expect(iban.count == 22)
     #expect(iban.prefix(2).allSatisfy { $0.isLetter })
   }
 
-  @Test("Faker generates Bitcoin addresses")
-  func fakerBitcoinAddress() {
-    let gen = Gen<String>.faker(.bitcoinAddress)
+  @Test("DomainData generatesBitcoin addresses")
+  func domainDataBitcoinAddress() {
+    let gen = Gen<String>.domainData(.bitcoinAddress)
     let address = gen.sample(size: .medium, seed: Seed(value: 42))
     #expect(address.hasPrefix("1") || address.hasPrefix("3") || address.hasPrefix("bc1"))
   }
 
   // MARK: - Date/Time Generator Tests
 
-  @Test("Faker generates past dates")
-  func fakerPastDate() {
-    let gen = Gen<String>.faker(.pastDate)
+  @Test("DomainData generatespast dates")
+  func domainDataPastDate() {
+    let gen = Gen<String>.domainData(.pastDate)
     let dateStr = gen.sample(size: .medium, seed: Seed(value: 42))
     #expect(!dateStr.isEmpty)
     // ISO8601 format contains T
     #expect(dateStr.contains("T"))
   }
 
-  @Test("Faker generates future dates")
-  func fakerFutureDate() {
-    let gen = Gen<String>.faker(.futureDate)
+  @Test("DomainData generatesfuture dates")
+  func domainDataFutureDate() {
+    let gen = Gen<String>.domainData(.futureDate)
     let dateStr = gen.sample(size: .medium, seed: Seed(value: 42))
     #expect(!dateStr.isEmpty)
   }
 
-  @Test("Faker generates timezones")
-  func fakerTimeZone() {
-    let gen = Gen<String>.faker(.timeZone)
+  @Test("DomainData generatestimezones")
+  func domainDataTimeZone() {
+    let gen = Gen<String>.domainData(.timeZone)
     let tz = gen.sample(size: .medium, seed: Seed(value: 42))
     #expect(TimeZone.knownTimeZoneIdentifiers.contains(tz))
   }
 
   // MARK: - File Generator Tests
 
-  @Test("Faker generates file names")
-  func fakerFileName() {
-    let gen = Gen<String>.faker(.fileName)
+  @Test("DomainData generatesfile names")
+  func domainDataFileName() {
+    let gen = Gen<String>.domainData(.fileName)
     let name = gen.sample(size: .medium, seed: Seed(value: 42))
     #expect(name.contains("."))
   }
 
-  @Test("Faker generates MIME types")
-  func fakerMimeType() {
-    let gen = Gen<String>.faker(.mimeType)
+  @Test("DomainData generatesMIME types")
+  func domainDataMimeType() {
+    let gen = Gen<String>.domainData(.mimeType)
     let mime = gen.sample(size: .medium, seed: Seed(value: 42))
     #expect(mime.contains("/"))
   }
 
   // MARK: - Color Generator Tests
 
-  @Test("Faker generates hex colors")
-  func fakerHexColor() {
-    let gen = Gen<String>.faker(.hexColor)
+  @Test("DomainData generateshex colors")
+  func domainDataHexColor() {
+    let gen = Gen<String>.domainData(.hexColor)
     let color = gen.sample(size: .medium, seed: Seed(value: 42))
     #expect(color.hasPrefix("#"))
     #expect(color.count == 7)
   }
 
-  @Test("Faker generates RGB colors")
-  func fakerRGBColor() {
-    let gen = Gen<String>.faker(.rgbColor)
+  @Test("DomainData generatesRGB colors")
+  func domainDataRGBColor() {
+    let gen = Gen<String>.domainData(.rgbColor)
     let color = gen.sample(size: .medium, seed: Seed(value: 42))
     #expect(color.hasPrefix("rgb("))
     #expect(color.hasSuffix(")"))
@@ -363,23 +363,23 @@ struct FakerTests {  // swiftlint:disable:this type_body_length
 
   // MARK: - ID Generator Tests
 
-  @Test("Faker generates UUIDs")
-  func fakerUUID() {
-    let gen = Gen<String>.faker(.uuid)
+  @Test("DomainData generatesUUIDs")
+  func domainDataUUID() {
+    let gen = Gen<String>.domainData(.uuid)
     let uuid = gen.sample(size: .medium, seed: Seed(value: 42))
     #expect(UUID(uuidString: uuid) != nil)
   }
 
-  @Test("Faker generates ISBN-13")
-  func fakerISBN13() {
-    let gen = Gen<String>.faker(.isbn13)
+  @Test("DomainData generatesISBN-13")
+  func domainDataISBN13() {
+    let gen = Gen<String>.domainData(.isbn13)
     let isbn = gen.sample(size: .medium, seed: Seed(value: 42))
     #expect(isbn.hasPrefix("978-"))
   }
 
-  @Test("Faker generates EAN-13")
-  func fakerEAN13() {
-    let gen = Gen<String>.faker(.ean13)
+  @Test("DomainData generatesEAN-13")
+  func domainDataEAN13() {
+    let gen = Gen<String>.domainData(.ean13)
     let ean = gen.sample(size: .medium, seed: Seed(value: 42))
     #expect(ean.count == 13)
     #expect(ean.allSatisfy { $0.isNumber })
@@ -387,88 +387,88 @@ struct FakerTests {  // swiftlint:disable:this type_body_length
 
   // MARK: - Misc Generator Tests
 
-  @Test("Faker generates emojis")
-  func fakerEmoji() {
-    let gen = Gen<String>.faker(.emoji)
+  @Test("DomainData generatesemojis")
+  func domainDataEmoji() {
+    let gen = Gen<String>.domainData(.emoji)
     let emoji = gen.sample(size: .medium, seed: Seed(value: 42))
     #expect(!emoji.isEmpty)
   }
 
-  @Test("Faker generates booleans")
-  func fakerBoolean() {
-    let gen = Gen<String>.faker(.boolean)
+  @Test("DomainData generatesbooleans")
+  func domainDataBoolean() {
+    let gen = Gen<String>.domainData(.boolean)
     let bool = gen.sample(size: .medium, seed: Seed(value: 42))
     #expect(bool == "true" || bool == "false")
   }
 
   // MARK: - Domain Faker Tests
 
-  @Test("Domain faker generates medical conditions")
+  @Test("DomainData generatesmedical conditions")
   func domainMedicalCondition() {
-    let gen = Gen<String>.faker(domain: .medicalCondition)
+    let gen = Gen<String>.domainData(domain: .medicalCondition)
     let condition = gen.sample(size: .medium, seed: Seed(value: 42))
     #expect(!condition.isEmpty)
   }
 
-  @Test("Domain faker generates blood types")
+  @Test("DomainData generatesblood types")
   func domainBloodType() {
-    let gen = Gen<String>.faker(domain: .bloodType)
+    let gen = Gen<String>.domainData(domain: .bloodType)
     let blood = gen.sample(size: .medium, seed: Seed(value: 42))
     let validTypes = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]
     #expect(validTypes.contains(blood))
   }
 
-  @Test("Domain faker generates product names")
+  @Test("DomainData generatesproduct names")
   func domainProductName() {
-    let gen = Gen<String>.faker(domain: .productName)
+    let gen = Gen<String>.domainData(domain: .productName)
     let product = gen.sample(size: .medium, seed: Seed(value: 42))
     #expect(product.contains(" "))  // Adjective + Noun
   }
 
-  @Test("Domain faker generates SKUs")
+  @Test("DomainData generatesSKUs")
   func domainSKU() {
-    let gen = Gen<String>.faker(domain: .sku)
+    let gen = Gen<String>.domainData(domain: .sku)
     let sku = gen.sample(size: .medium, seed: Seed(value: 42))
     #expect(sku.contains("-"))
     #expect(sku.count >= 8)
   }
 
-  @Test("Domain faker generates prices")
+  @Test("DomainData generatesprices")
   func domainPrice() {
-    let gen = Gen<String>.faker(domain: .price())
+    let gen = Gen<String>.domainData(domain: .price())
     let price = gen.sample(size: .medium, seed: Seed(value: 42))
     let value = Double(price)
     #expect(value != nil)
     #expect(value! >= 0.01 && value! <= 1000.0)
   }
 
-  @Test("Domain faker generates HTTP methods")
+  @Test("DomainData generatesHTTP methods")
   func domainHTTPMethod() {
-    let gen = Gen<String>.faker(domain: .httpMethod)
+    let gen = Gen<String>.domainData(domain: .httpMethod)
     let method = gen.sample(size: .medium, seed: Seed(value: 42))
     let validMethods = ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]
     #expect(validMethods.contains(method))
   }
 
-  @Test("Domain faker generates semantic versions")
+  @Test("DomainData generatessemantic versions")
   func domainSemanticVersion() {
-    let gen = Gen<String>.faker(domain: .semanticVersion)
+    let gen = Gen<String>.domainData(domain: .semanticVersion)
     let version = gen.sample(size: .medium, seed: Seed(value: 42))
     let parts = version.split(separator: ".")
     #expect(parts.count == 3)
   }
 
-  @Test("Domain faker generates git commit hashes")
+  @Test("DomainData generatesgit commit hashes")
   func domainGitCommitHash() {
-    let gen = Gen<String>.faker(domain: .gitCommitHash)
+    let gen = Gen<String>.domainData(domain: .gitCommitHash)
     let hash = gen.sample(size: .medium, seed: Seed(value: 42))
     #expect(hash.count == 40)
     #expect(hash.allSatisfy { $0.isHexDigit })
   }
 
-  @Test("Domain faker generates branch names")
+  @Test("DomainData generatesbranch names")
   func domainBranchName() {
-    let gen = Gen<String>.faker(domain: .branchName)
+    let gen = Gen<String>.domainData(domain: .branchName)
     let branch = gen.sample(size: .medium, seed: Seed(value: 42))
     #expect(branch.contains("/"))
     #expect(branch.contains("TICKET-"))
@@ -476,71 +476,71 @@ struct FakerTests {  // swiftlint:disable:this type_body_length
 
   // MARK: - New Domain Categories Tests
 
-  @Test("Domain faker generates car makes")
+  @Test("DomainData generatescar makes")
   func domainCarMake() {
-    let gen = Gen<String>.faker(domain: .carMake)
+    let gen = Gen<String>.domainData(domain: .carMake)
     let make = gen.sample(size: .medium, seed: Seed(value: 42))
     #expect(!make.isEmpty)
   }
 
-  @Test("Domain faker generates movie titles")
+  @Test("DomainData generatesmovie titles")
   func domainMovieTitle() {
-    let gen = Gen<String>.faker(domain: .movieTitle)
+    let gen = Gen<String>.domainData(domain: .movieTitle)
     let title = gen.sample(size: .medium, seed: Seed(value: 42))
     #expect(!title.isEmpty)
   }
 
-  @Test("Domain faker generates airline names")
+  @Test("DomainData generatesairline names")
   func domainAirlineName() {
-    let gen = Gen<String>.faker(domain: .airlineName)
+    let gen = Gen<String>.domainData(domain: .airlineName)
     let airline = gen.sample(size: .medium, seed: Seed(value: 42))
     #expect(!airline.isEmpty)
   }
 
-  @Test("Domain faker generates airport codes")
+  @Test("DomainData generatesairport codes")
   func domainAirportCode() {
-    let gen = Gen<String>.faker(domain: .airportCode)
+    let gen = Gen<String>.domainData(domain: .airportCode)
     let code = gen.sample(size: .medium, seed: Seed(value: 42))
     #expect(code.count == 3)
     #expect(code.allSatisfy { $0.isUppercase })
   }
 
-  @Test("Domain faker generates Ethereum addresses")
+  @Test("DomainData generatesEthereum addresses")
   func domainEthereumAddress() {
-    let gen = Gen<String>.faker(domain: .ethereumAddress)
+    let gen = Gen<String>.domainData(domain: .ethereumAddress)
     let address = gen.sample(size: .medium, seed: Seed(value: 42))
     #expect(address.hasPrefix("0x"))
     #expect(address.count == 42)
   }
 
-  @Test("Domain faker generates bundle IDs")
+  @Test("DomainData generatesbundle IDs")
   func domainBundleId() {
-    let gen = Gen<String>.faker(domain: .bundleId)
+    let gen = Gen<String>.domainData(domain: .bundleId)
     let bundleId = gen.sample(size: .medium, seed: Seed(value: 42))
     #expect(bundleId.contains("."))
     let parts = bundleId.split(separator: ".")
     #expect(parts.count >= 2)
   }
 
-  @Test("Domain faker generates iOS versions")
+  @Test("DomainData generatesiOS versions")
   func domainIOSVersion() {
-    let gen = Gen<String>.faker(domain: .iosVersion)
+    let gen = Gen<String>.domainData(domain: .iosVersion)
     let version = gen.sample(size: .medium, seed: Seed(value: 42))
     #expect(version.contains("."))
     let parts = version.split(separator: ".")
     #expect(parts.count == 2)
   }
 
-  @Test("Domain faker generates AWS regions")
+  @Test("DomainData generatesAWS regions")
   func domainAWSRegion() {
-    let gen = Gen<String>.faker(domain: .awsRegion)
+    let gen = Gen<String>.domainData(domain: .awsRegion)
     let region = gen.sample(size: .medium, seed: Seed(value: 42))
     #expect(region.contains("-"))
   }
 
-  @Test("Domain faker generates log levels")
+  @Test("DomainData generateslog levels")
   func domainLogLevel() {
-    let gen = Gen<String>.faker(domain: .logLevel)
+    let gen = Gen<String>.domainData(domain: .logLevel)
     let level = gen.sample(size: .medium, seed: Seed(value: 42))
     let validLevels = ["DEBUG", "INFO", "WARN", "ERROR", "FATAL", "TRACE"]
     #expect(validLevels.contains(level))
@@ -550,7 +550,7 @@ struct FakerTests {  // swiftlint:disable:this type_body_length
 
   @Test("Same seed produces same output")
   func determinism() {
-    let gen = Gen<String>.faker(.email)
+    let gen = Gen<String>.domainData(.email)
     let seed = Seed(value: 12345)
 
     let email1 = gen.sample(size: .medium, seed: seed)
@@ -561,7 +561,7 @@ struct FakerTests {  // swiftlint:disable:this type_body_length
 
   @Test("Different seeds produce different output")
   func differentSeeds() {
-    let gen = Gen<String>.faker(.name)
+    let gen = Gen<String>.domainData(.name)
 
     let name1 = gen.sample(size: .medium, seed: Seed(value: 1))
     let name2 = gen.sample(size: .medium, seed: Seed(value: 2))
@@ -576,7 +576,7 @@ struct FakerTests {  // swiftlint:disable:this type_body_length
 
   @Test("Brazilian locale generates Brazilian names")
   func brazilianLocale() {
-    let gen = Gen<String>.faker(.firstName, locale: .ptBR)
+    let gen = Gen<String>.domainData(.firstName, locale: .ptBR)
     // Sample multiple times to increase chance of seeing locale-specific names
     var foundBrazilian = false
     for i in 0..<100 {
@@ -591,7 +591,7 @@ struct FakerTests {  // swiftlint:disable:this type_body_length
 
   @Test("Japanese locale generates Japanese cities")
   func japaneseLocale() {
-    let gen = Gen<String>.faker(.city, locale: .jaJP)
+    let gen = Gen<String>.domainData(.city, locale: .jaJP)
     var foundJapanese = false
     for i in 0..<100 {
       let city = gen.sample(size: .medium, seed: Seed(value: UInt64(i)))
