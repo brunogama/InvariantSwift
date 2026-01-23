@@ -201,6 +201,29 @@ struct GhostwriterCLI {
       if skipped > 0 {
         print("⚠️  Skipped \(skipped) type(s) without @Arbitrary or known generators")
       }
+
+      // Show partial generation info
+      var fullyGenerated = 0
+      var partiallyGenerated = 0
+      for type in testableTypes
+      where !type.hasArbitraryAttribute
+        && !isKnownGeneratableType(type.name)
+      {
+        if generator.canFullyGenerateArbitrary(for: type) {
+          fullyGenerated += 1
+        } else if generator.canAutoGenerateArbitrary(for: type) {
+          partiallyGenerated += 1
+        }
+      }
+
+      if fullyGenerated > 0 {
+        print("✅ \(fullyGenerated) type(s) can be fully auto-generated")
+      }
+      if partiallyGenerated > 0 {
+        print(
+          "⚠️  \(partiallyGenerated) type(s) partially generated (some properties need manual generators)"
+        )
+      }
     }
 
     // Group by source file

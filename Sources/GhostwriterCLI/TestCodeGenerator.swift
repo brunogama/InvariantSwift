@@ -26,6 +26,31 @@ public enum GhostwriterTestPattern: String, CaseIterable, Codable, Sendable {
   }
 }
 
+// MARK: - Generator Result
+
+/// Result of attempting to generate an Arbitrary conformance for a property.
+public enum GeneratorResult: Sendable {
+  /// Generator can be automatically created.
+  case success(String)
+  /// Generator cannot be automatically created; requires user input.
+  case todoRequired(typeName: String, reason: String)
+}
+
+/// Result of generating an Arbitrary extension with TODO tracking.
+public struct ArbitraryGenerationResult: Sendable {
+  /// The generated extension code.
+  public let code: String
+  /// Property names that require TODO comments.
+  public let todoProperties: [String]
+  /// Whether the extension was fully auto-generated.
+  public var isFullyGenerated: Bool { todoProperties.isEmpty }
+
+  public init(code: String, todoProperties: [String]) {
+    self.code = code
+    self.todoProperties = todoProperties
+  }
+}
+
 // MARK: - Test Generator
 
 /// Generates property test code from extracted types.
@@ -130,13 +155,24 @@ public struct TestCodeGenerator {
     return lines.joined(separator: "\n")
   }
 
-  /// Generate Arbitrary extension for a type.
-  public func generateArbitraryExtension(for type: ExtractedTypeInfo) -> String {
+  /// Generate Arbitrary extension for a type with TODO tracking.
+  public func generateArbitraryExtensionResult(
+    for type: ExtractedTypeInfo
+  ) -> ArbitraryGenerationResult {
+    var todoProperties: [String] = []
     let propGenerators = type.properties.map { prop in
-      "\(prop.name): \(generatorExpression(for: prop.typeName))"
+      let result = generatorResult(for: prop.typeName)
+      switch result {
+      case .success(let expr):
+        return "\(prop.name): \(expr)"
+      case .todoRequired(let typeName, _):
+        todoProperties.append(prop.name)
+        return
+          "\(prop.name): /* TODO: supply generator for \(typeName) */ composer.generate(using: \(typeName).arbitrary)"
+      }
     }
 
-    return """
+    let code = """
       extension \(type.name): Arbitrary {
         public static var arbitrary: Gen<\(type.name)> {
           Gen.compose { composer in
@@ -147,10 +183,64 @@ public struct TestCodeGenerator {
         }
       }
       """
+
+    return ArbitraryGenerationResult(code: code, todoProperties: todoProperties)
   }
 
-  /// Generate the Gen expression for a type.
-  private func generatorExpression(for typeName: String) -> String {
+  /// Generate Arbitrary extension for a type.
+  /// Backward compatible method that uses generateArbitraryExtensionResult internally.
+  public func generateArbitraryExtension(for type: ExtractedTypeInfo) -> String {
+    generateArbitraryExtensionResult(for: type).code
+  }
+
+  // MARK: - Generator Result Analysis
+
+  /// Known types that have built-in generators.
+  private static let knownGeneratableTypes: Set<String> = [
+    // Primitives
+    "Int", "Int8", "Int16", "Int32", "Int64",
+    "UInt", "UInt8", "UInt16", "UInt32", "UInt64",
+    "Double", "Float", "Bool", "String", "Character",
+    // Foundation types
+    "Date", "UUID", "URL", "Data",
+    // Core types
+    "Seed", "Size",
+  ]
+
+  /// Check if a type can have Arbitrary auto-generated (at least one property generatable).
+  public func canAutoGenerateArbitrary(for type: ExtractedTypeInfo) -> Bool {
+    // Must have at least one property
+    guard !type.properties.isEmpty else { return false }
+
+    // At least one property must be generatable
+    return type.properties.contains { prop in
+      let result = generatorResult(for: prop.typeName)
+      if case .success = result {
+        return true
+      }
+      return false
+    }
+  }
+
+  /// Check if a type can be fully auto-generated (all properties generatable).
+  public func canFullyGenerateArbitrary(for type: ExtractedTypeInfo) -> Bool {
+    // Must have at least one property
+    guard !type.properties.isEmpty else { return false }
+
+    // All properties must be generatable
+    return type.properties.allSatisfy { prop in
+      let result = generatorResult(for: prop.typeName)
+      if case .success = result {
+        return true
+      }
+      return false
+    }
+  }
+
+  /// Determine generator result for a property type.
+  /// Returns `.success(expr)` with generator expression if generatable,
+  /// or `.todoRequired` with reason if not.
+  public func generatorResult(for typeName: String) -> GeneratorResult {
     var cleanedType =
       typeName
       .replacingOccurrences(of: "?", with: "")
@@ -164,38 +254,90 @@ public struct TestCodeGenerator {
       cleanedType = String(cleanedType.dropFirst(9).dropLast())
     }
 
-    let baseExpr: String
+    // Recursively check inner type
+    let innerResult: GeneratorResult
 
     // Handle Array<T> or [T]
     if cleanedType.hasPrefix("Array<") && cleanedType.hasSuffix(">") {
       let inner = String(cleanedType.dropFirst(6).dropLast())
-      baseExpr = "composer.generate(using: Gen.array(of: \(inner).arbitrary))"
+      let innerCheck = generatorResult(for: inner)
+      switch innerCheck {
+      case .success:
+        innerResult = .success("composer.generate(using: Gen.array(of: \(inner).arbitrary))")
+      case .todoRequired(let typeName, let reason):
+        return .todoRequired(
+          typeName: "[\(typeName)]",
+          reason: "Array element type cannot be generated: \(reason)"
+        )
+      }
     } else if cleanedType.hasPrefix("[") && cleanedType.hasSuffix("]") && !cleanedType.contains(":")
     {
       let inner = String(cleanedType.dropFirst().dropLast())
-      baseExpr = "composer.generate(using: Gen.array(of: \(inner).arbitrary))"
+      let innerCheck = generatorResult(for: inner)
+      switch innerCheck {
+      case .success:
+        innerResult = .success("composer.generate(using: Gen.array(of: \(inner).arbitrary))")
+      case .todoRequired(let typeName, let reason):
+        return .todoRequired(
+          typeName: "[\(typeName)]",
+          reason: "Array element type cannot be generated: \(reason)"
+        )
+      }
     }
     // Handle Set<T>
     else if cleanedType.hasPrefix("Set<") && cleanedType.hasSuffix(">") {
       let inner = String(cleanedType.dropFirst(4).dropLast())
-      baseExpr = "Set(composer.generate(using: Gen.array(of: \(inner).arbitrary)))"
+      let innerCheck = generatorResult(for: inner)
+      switch innerCheck {
+      case .success:
+        innerResult = .success("Set(composer.generate(using: Gen.array(of: \(inner).arbitrary)))")
+      case .todoRequired(let typeName, let reason):
+        return .todoRequired(
+          typeName: "Set<\(typeName)>",
+          reason: "Set element type cannot be generated: \(reason)"
+        )
+      }
     }
-    // Handle Dictionary
+    // Handle Dictionary (not supported yet - requires TODO)
     else if cleanedType.hasPrefix("Dictionary<")
       || (cleanedType.hasPrefix("[") && cleanedType.contains(":"))
     {
-      baseExpr = "[:]"  // Empty dictionary as fallback
+      return .todoRequired(
+        typeName: cleanedType,
+        reason: "Dictionary generation not yet supported"
+      )
     }
     // Standard types
-    else {
-      baseExpr = "composer.generate(using: \(cleanedType).arbitrary)"
+    else if Self.knownGeneratableTypes.contains(cleanedType) {
+      innerResult = .success("composer.generate(using: \(cleanedType).arbitrary)")
+    } else {
+      return .todoRequired(
+        typeName: cleanedType,
+        reason: "Type does not have a known generator"
+      )
     }
 
+    // Wrap in Optional if needed
     if isOptional {
-      return "composer.generate(using: Gen.optional(\(cleanedType).arbitrary))"
+      if case .success = innerResult {
+        return .success("composer.generate(using: Gen.optional(\(cleanedType).arbitrary))")
+      }
     }
 
-    return baseExpr
+    return innerResult
+  }
+
+  /// Generate the Gen expression for a type.
+  /// Backward compatible method that uses generatorResult internally.
+  private func generatorExpression(for typeName: String) -> String {
+    let result = generatorResult(for: typeName)
+    switch result {
+    case .success(let expr):
+      return expr
+    case .todoRequired(let type, _):
+      // Emit TODO comment for ungeneratable types (Hypothesis pattern)
+      return "/* TODO: supply generator for \(type) */ composer.generate(using: \(type).arbitrary)"
+    }
   }
 
   // MARK: - Individual Test Generation
