@@ -85,6 +85,23 @@ extension Property {
     }
   }
 
+  /// Add a conditional classification label in a specific category.
+  public func classify(
+    _ category: String,
+    when predicate: @escaping @Sendable (T) -> Bool,
+    label: String
+  ) -> ClassifyingProperty<T> {
+    ClassifyingProperty(
+      generator: self.generator,
+      assumption: self.assumption
+    ) { value, ctx in
+      if predicate(value) {
+        ctx.classify(category, label)
+      }
+      return self.predicate(value)
+    }
+  }
+
   /// Add an unconditional label to this property.
   ///
   /// Attaches a label to every test iteration. This is useful for:
@@ -107,6 +124,17 @@ extension Property {
       assumption: self.assumption
     ) { value, ctx in
       ctx.label(text)
+      return self.predicate(value)
+    }
+  }
+
+  /// Attach a dynamic label computed from the input.
+  public func label(_ compute: @escaping @Sendable (T) -> String) -> ClassifyingProperty<T> {
+    ClassifyingProperty(
+      generator: self.generator,
+      assumption: self.assumption
+    ) { value, ctx in
+      ctx.label(compute(value))
       return self.predicate(value)
     }
   }
