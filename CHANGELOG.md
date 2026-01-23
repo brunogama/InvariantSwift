@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Phase 3 Research Documentation** in `.planning/phases/03-discard-syntax-sugar/03-RESEARCH.md`:
+  * Research on QuickCheck implication operator (`==>`) semantics and implementation
+  * Discard ratio tracking patterns for preventing over-filtering
+  * Custom operator precedence and associativity for Swift
+  * Integration with existing PropertyEvaluation.discard infrastructure
+  * Common pitfalls: over-restrictive preconditions, `==>` vs `&&` confusion
+  * Estimated 3-5 days implementation
 - **PropertyTestMacroClassificationTests (Phase 01-03)**: Macro integration tests
   - Verifies @PropertyTest macro generates code compatible with ClassifyingProperty
   - Documents workaround for using classification with macros
