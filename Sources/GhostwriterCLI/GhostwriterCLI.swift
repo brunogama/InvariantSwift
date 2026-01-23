@@ -42,6 +42,11 @@ struct GhostwriterCLI {
     print("   • Testable Types: \(result.testableTypes)")
     print("   • Tests Generated: \(result.testsGenerated)")
 
+    if result.skippedCompile > 0 {
+      print("\n⚠️  Skipped \(result.skippedCompile) file(s) due to compilation errors")
+      print("   Run with --verbose to see details or --skip-compile-test to write anyway")
+    }
+
     if config.dryRun {
       print("\n📝 Dry run complete. No files were written.")
     } else if result.testsGenerated > 0 {
@@ -62,6 +67,7 @@ struct GhostwriterCLI {
     var verbose: Bool = false
     var showHelp: Bool = false
     var includeInternal: Bool = false
+    var skipCompileTest: Bool = false
   }
 
   static func parseArguments(_ arguments: [String]) -> Config {
@@ -90,6 +96,8 @@ struct GhostwriterCLI {
         config.showHelp = true
       case "--include-internal":
         config.includeInternal = true
+      case "--skip-compile-test":
+        config.skipCompileTest = true
       default:
         if !arg.hasPrefix("-") {
           config.sources.append(arg)
@@ -121,6 +129,7 @@ struct GhostwriterCLI {
           --dry-run               Preview without writing files
           --verbose, -v           Enable verbose output
           --include-internal      Include internal types (default: only public/open)
+          --skip-compile-test     Skip compile verification (faster but may generate invalid code)
           --help, -h              Show this help
 
       EXAMPLES:
@@ -139,6 +148,7 @@ struct GhostwriterCLI {
     var testableTypes: Int = 0
     var testsGenerated: Int = 0
     var generatedFiles: [String] = []
+    var skippedCompile: Int = 0
   }
 
   static func run(config: Config) async throws -> RunResult {
@@ -255,9 +265,40 @@ struct GhostwriterCLI {
     }
 
     // Generate tests
+    let verifier = CompileVerifier(verbose: config.verbose)
+
     for (sourceFile, types) in typesByFile {
       let testCode = generator.generateTestFile(types: types, sourceFile: sourceFile)
       let testsInFile = types.reduce(0) { $0 + generator.detectPatterns(for: $1).count }
+
+      // Verify compilation before writing (unless skipped)
+      if !config.skipCompileTest && !config.dryRun {
+        let fileName = URL(fileURLWithPath: sourceFile)
+          .deletingPathExtension()
+          .lastPathComponent
+        let testFileName = "\(fileName)PropertyTests.swift"
+
+        let verifyResult = verifier.verify(code: testCode, fileName: testFileName)
+
+        if !verifyResult.success {
+          print("⚠️  Compilation errors in generated test for \(sourceFile):")
+          for error in verifyResult.errors {
+            if let line = error.line, let col = error.column {
+              print("  Line \(line):\(col): \(error.message)")
+            } else {
+              print("  \(error.message)")
+            }
+          }
+          if config.verbose {
+            print("\nFull output:")
+            print(verifyResult.output)
+          }
+          print("  Skipping \(sourceFile) (use --skip-compile-test to write anyway)")
+          result.skippedCompile += 1
+          continue  // Skip this file
+        }
+      }
+
       result.testsGenerated += testsInFile
 
       if config.dryRun {
