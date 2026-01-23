@@ -1,21 +1,21 @@
-// MARK: - ISP-0010: Faker Data
-// Locale-specific data for fake data generation.
+// MARK: - ISP-0010: Domain Data Store
+// Locale-specific data for domain data generation.
 
 import Foundation
 
-// MARK: - Faker Data
+// MARK: - Domain Data Store
 
-/// Thread-safe lazy-loaded faker data storage.
-public final class FakerData: @unchecked Sendable {
-  public static let shared = FakerData()
+/// Thread-safe lazy-loaded domain data storage.
+public final class DomainDataStore: @unchecked Sendable {
+  public static let shared = DomainDataStore()
 
-  private var loadedLocales: [FakerLocale: LocaleData] = [:]
+  private var loadedLocales: [DataLocale: LocaleData] = [:]
   private let lock = NSLock()
 
   private init() {}
 
   /// Get locale data, loading lazily if needed.
-  public func data(for locale: FakerLocale) -> LocaleData {
+  public func data(for locale: DataLocale) -> LocaleData {
     lock.lock()
     defer { lock.unlock() }
 
@@ -38,7 +38,7 @@ public final class FakerData: @unchecked Sendable {
 /// Data for a specific locale.
 // swiftlint:disable:next type_body_length
 public struct LocaleData: Sendable {
-  public let locale: FakerLocale
+  public let locale: DataLocale
 
   // Names
   public let firstNames: [String]
@@ -70,7 +70,7 @@ public struct LocaleData: Sendable {
   public let loremWords: [String]
 
   // Create locale data
-  public static func create(for locale: FakerLocale) -> Self {
+  public static func create(for locale: DataLocale) -> Self {
     switch locale {
     case .ptBR:
       return createBrazilianPortuguese()

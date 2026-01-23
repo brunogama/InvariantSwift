@@ -1,21 +1,21 @@
-// MARK: - ISP-0010: Faker Generator
-// Fake data generators that integrate with Gen<T>.
+// MARK: - ISP-0010: Domain Data Generator
+// Domain-specific data generators that integrate with Gen<T>.
 
 import Foundation
 import InvariantSwiftCore
 
-// MARK: - Faker Generator Extension
+// MARK: - Domain Data Generator Extension
 
 extension Gen {
 
   // swiftlint:disable:next orphaned_doc_comment
-  /// Create a faker generator for the specified type.
+  /// Create a domain data generator for the specified type.
   // swiftlint:disable:next cyclomatic_complexity function_body_length
-  public static func faker(
-    _ type: FakerType,
-    locale: FakerLocale = .enUS
+  public static func domainData(
+    _ type: DataType,
+    locale: DataLocale = .enUS
   ) -> Gen<String> {
-    let data = FakerData.shared.data(for: locale)
+    let data = DomainDataStore.shared.data(for: locale)
 
     switch type {
     // MARK: - Names
@@ -494,7 +494,7 @@ extension Gen {
 
     case .locale:
       return Gen<String> { rng, _ in
-        FakerLocale.allCases.randomElement(using: &rng)?.rawValue ?? "en_US"
+        DataLocale.allCases.randomElement(using: &rng)?.rawValue ?? "en_US"
       }
 
     case .countryISOCode:
@@ -506,9 +506,9 @@ extension Gen {
   }
 
   // swiftlint:disable:next orphaned_doc_comment
-  /// Create a domain-specific faker generator.
+  /// Create a domain-specific data generator.
   // swiftlint:disable:next cyclomatic_complexity function_body_length
-  public static func faker(domain: DomainFaker, locale: FakerLocale = .enUS) -> Gen<String> {
+  public static func domainData(domain: DomainData, locale: DataLocale = .enUS) -> Gen<String> {
     switch domain {
     // Healthcare
     case .medicalCondition:
@@ -598,7 +598,7 @@ extension Gen {
 
     case .mention:
       return Gen<String> { rng, _ in
-        let data = FakerData.shared.data(for: locale)
+        let data = DomainDataStore.shared.data(for: locale)
         let first = data.firstNames.randomElement(using: &rng)?.lowercased() ?? "user"
         let num = Int.random(in: 1...99, using: &rng)
         return "@\(first)\(num)"
@@ -606,7 +606,7 @@ extension Gen {
 
     case .tweetText:
       return Gen<String> { rng, _ in
-        let data = FakerData.shared.data(for: locale)
+        let data = DomainDataStore.shared.data(for: locale)
         let words = (0..<8).map { _ in data.loremWords.randomElement(using: &rng) ?? "lorem" }
         var sentence = words.joined(separator: " ")
         if let first = sentence.first {
@@ -618,7 +618,7 @@ extension Gen {
 
     case .postContent:
       return Gen<String> { rng, _ in
-        let data = FakerData.shared.data(for: locale)
+        let data = DomainDataStore.shared.data(for: locale)
         return (0..<3).map { _ in
           let words = (0..<10).map { _ in data.loremWords.randomElement(using: &rng) ?? "lorem" }
           var sentence = words.joined(separator: " ")
