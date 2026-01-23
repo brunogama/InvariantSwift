@@ -35,6 +35,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * ARCHITECTURE.md - Integration patterns showing existing ClassificationContext infrastructure
   * PITFALLS.md - Critical pitfalls (shrinking loops, recursive generators, FP terminology barriers)
   * SUMMARY.md - Research synthesis with 6-phase roadmap implications and technology decisions
+- **Requirements Documentation** in `.planning/REQUIREMENTS.md`:
+  * QR-1: 100% test coverage mandate for all new code in Phases 1-6
+  * QR-2: Dogfood tests using InvariantSwift to test itself with property tests
+  * QR-3: Integration macro tests with SwiftSyntaxMacrosTestSupport verification
+  * Functional requirements by phase: 6 phases covering QuickCheck feature parity
+  * Phase 1: Test observability (cover, classify, label) - MVP blocker
+  * Phase 2: Enhanced reporting (collect, tabulate, counterexample) - QuickCheck parity
+  * Phase 3: Discard improvements and ==> operator - DX polish
+  * Phase 4: Ghostwriter fixes (auto-generate @Arbitrary, filter private types) - production-ready
+  * Phase 5: Enhanced error messages, progress indicators, seed logging - accessibility
+  * Phase 6: XCTest migration guide, terminology glossary, expanded cookbook - documentation
+  * Non-functional requirements: <10% performance overhead, thread-safe actors, bounded memory
+  * Success metrics: 90%+ QuickCheck parity, 100% coverage, 20%+ dogfood tests
 - **JSON Report Schema for CI/CD Integration** (ISP-0008):
   * `RunReport` struct with versioned schema (v1) for machine-readable test outputs
   * Test outcome enum: `.success`, `.failed`, `.gaveUp`
