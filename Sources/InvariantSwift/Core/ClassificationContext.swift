@@ -150,6 +150,38 @@ public final class ClassificationContext: @unchecked Sendable {
     classify(category, String(describing: value))
   }
 
+  /// Track multiple labels for a category in a single call.
+  ///
+  /// Unlike `classify` which tracks a single boolean condition, `tabulate`
+  /// tracks multiple labels per input for multi-dimensional analysis.
+  /// Labels can overlap within a category.
+  ///
+  /// - Parameters:
+  ///   - category: Category name for grouping (e.g., "characteristics")
+  ///   - labels: Array of labels to apply for this input
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   // Track multiple characteristics of a value
+  ///   ctx.tabulate("properties", labels: [
+  ///     n.isMultiple(of: 2) ? "even" : "odd",
+  ///     abs(n) < 10 ? "small" : "large"
+  ///   ])
+  ///   ```
+  public func tabulate(_ category: String, labels: [String]) {
+    lock.lock()
+    defer { lock.unlock() }
+
+    for label in labels {
+      self.labels[category, default: [:]][label, default: 0] += 1
+    }
+  }
+
+  /// Convenience for single-label tabulation.
+  public func tabulate(_ category: String, label: String) {
+    tabulate(category, labels: [label])
+  }
+
   // MARK: - Internal API
 
   /// Record that an iteration has been observed.
