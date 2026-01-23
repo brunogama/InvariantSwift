@@ -518,6 +518,75 @@ public struct PropertyConfig: Sendable {
     case asciiOnly
   }
 
+  // MARK: - Coverage Configuration
+
+  /// Configuration options for coverage tracking during property tests.
+  ///
+  /// Controls how coverage thresholds are enforced and what happens when
+  /// they are not met.
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   var config = PropertyConfig.default
+  ///   config.coverage.enforceCoverage = true  // Fail on unmet thresholds
+  ///   config.coverage.warnOnLowCoverage = true  // Also warn on close misses
+  ///   config.coverage.maxLabels = 500  // Limit memory usage
+  ///   ```
+  public struct CoverageConfig: Sendable, Equatable {
+
+    /// Whether to fail the test when coverage thresholds are unmet.
+    ///
+    /// When `true`, the property test fails if any `.cover()` requirement
+    /// is not satisfied after all iterations complete.
+    ///
+    /// Default: `true` (strict enforcement)
+    public var enforceCoverage: Bool
+
+    /// Whether to emit a warning when coverage is below threshold.
+    ///
+    /// When `true`, logs a warning for each unmet threshold even if
+    /// `enforceCoverage` is false (the test still passes).
+    ///
+    /// Default: `true`
+    public var warnOnLowCoverage: Bool
+
+    /// Maximum number of unique labels to track per category.
+    ///
+    /// Prevents unbounded memory growth when `.collect()` is used
+    /// with high-cardinality values. Labels beyond this limit are
+    /// dropped with a warning.
+    ///
+    /// Default: `1000`
+    public var maxLabels: Int
+
+    /// Default coverage configuration.
+    public static let `default` = Self(
+      enforceCoverage: true,
+      warnOnLowCoverage: true,
+      maxLabels: 1000
+    )
+
+    /// Lenient configuration that warns but doesn't fail.
+    public static let lenient = Self(
+      enforceCoverage: false,
+      warnOnLowCoverage: true,
+      maxLabels: 1000
+    )
+
+    public init(
+      enforceCoverage: Bool = true,
+      warnOnLowCoverage: Bool = true,
+      maxLabels: Int = 1000
+    ) {
+      self.enforceCoverage = enforceCoverage
+      self.warnOnLowCoverage = warnOnLowCoverage
+      self.maxLabels = maxLabels
+    }
+  }
+
+  /// Coverage tracking configuration.
+  public var coverage: CoverageConfig
+
   /// Initializes a property testing configuration.
   ///
   /// - Parameters:
@@ -559,7 +628,8 @@ public struct PropertyConfig: Sendable {
     regressionBank: RegressionBank? = nil,
     propertyId: String? = nil,
     unicodeMode: UnicodeMode = .scalarSafe,
-    maxStringShrinkSteps: Int = 500
+    maxStringShrinkSteps: Int = 500,
+    coverage: CoverageConfig = .default
   ) {
     self.iterations = max(1, iterations)
     self.maxShrinks = max(0, maxShrinks)
@@ -572,6 +642,7 @@ public struct PropertyConfig: Sendable {
     self.propertyId = propertyId
     self.unicodeMode = unicodeMode
     self.maxStringShrinkSteps = max(1, maxStringShrinkSteps)
+    self.coverage = coverage
   }
 
   /// Default configuration: 100 iterations, 1000 shrinks, 1000 max discarded.
@@ -1778,100 +1849,6 @@ private func shrinkThrowingFailureSynchronously<T>(
   return minimal ?? failingCase
 }
 
-// MARK: - Coverage-Guided Property Testing Extensions
-
-@available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
-extension PropertyRunner {
-  /// Run property with coverage guidance
-  public func runPropertyWithCoverageGuidance<T>(
-    _ property: Property<T>,
-    collector: CoverageCollector,
-    config: PropertyConfig = .default,
-    coverageConfig: CoverageConfig = .default,
-    coverageStrategy: CoverageStrategy = .frequency
-  ) async -> (PropertyResult<T>, CoverageReport) {
-
-    // Phase 1: Baseline execution to establish initial coverage
-    let baselineIterations = min(20, config.iterations / 5)
-    let baselineResult = self.runProperty(
-      property,
-      config: PropertyConfig(
-        iterations: baselineIterations,
-        maxShrinks: config.maxShrinks,
-        maxDiscarded: config.maxDiscarded,
-        seed: config.seed
-      )
-    )
-
-    // Record baseline execution
-    let baselineCoverage = await collector.currentBudget()
-    let initialCoverage = baselineCoverage.coveragePercentage
-
-    // Phase 2: Coverage-guided execution
-    let remainingIterations = config.iterations - baselineIterations
-    var finalResult = baselineResult
-
-    if remainingIterations > 0 && !baselineResult.isFailure {
-      let currentBudget = await collector.currentBudget()
-      let guidedProperty = property.withCoverageGuidance(
-        budget: currentBudget,
-        strategy: coverageStrategy,
-        config: coverageConfig
-      )
-
-      let guidedResult = self.runProperty(
-        guidedProperty,
-        config: PropertyConfig(
-          iterations: remainingIterations,
-          maxShrinks: config.maxShrinks,
-          maxDiscarded: config.maxDiscarded,
-          seed: config.seed
-        )
-      )
-
-      // Use the guided result if baseline succeeded
-      if case .success = baselineResult {
-        finalResult = guidedResult
-      }
-    }
-
-    // Generate coverage report
-    let finalBudget = await collector.currentBudget()
-    let finalCoverage = finalBudget.coveragePercentage
-    let report = CoverageReport(
-      initialCoverage: initialCoverage,
-      finalCoverage: finalCoverage,
-      improvement: finalCoverage - initialCoverage,
-      executionCount: config.iterations,
-      uncoveredSymbols: Array(finalBudget.uncoveredSymbols).sorted()
-    )
-
-    return (finalResult, report)
-  }
-
-  /// Run property with automatic coverage tracking
-  public func runPropertyWithCoverageTracking<T>(
-    _ property: Property<T>,
-    knownSymbols: Set<String> = [],
-    config: PropertyConfig = .default,
-    coverageConfig: CoverageConfig = .default
-  ) async -> (PropertyResult<T>, CoverageReport) {
-
-    let collector = CoverageCollector(config: coverageConfig)
-
-    // Add known symbols if provided
-    if !knownSymbols.isEmpty {
-      await collector.addKnownSymbols(knownSymbols)
-    }
-
-    return await runPropertyWithCoverageGuidance(
-      property,
-      collector: collector,
-      config: config,
-      coverageConfig: coverageConfig
-    )
-  }
-}
 
 extension PropertyResult {
   /// Check if the property result represents a failure
