@@ -6,8 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+## [Unreleased]
 
 ### Added
+- **Implication Operator `==>` (Phase 03-01)**: QuickCheck-style conditional properties
+  - `Bool ==> Bool` overload for simple precondition checks
+  - `Bool ==> PropertyEvaluation` overload for explicit control
+  - `ImplicationPrecedence` precedence group (right-associative, between comparison and assignment)
+  - Short-circuit evaluation via `@autoclosure`
+  - False precondition returns `.discard` (not `.fail`)
+- **PropertyRunner+Discard (Phase 03-02)**: Discard ratio checking and enforcement logic
+- **PropertyRunner+Discard (Phase 03-02)**: Discard ratio checking and enforcement logic
+  - `checkDiscardRatio()` validates ratio against configured thresholds
+  - Actionable warning and error messages with specific fix suggestions
+  - Non-isolated methods compatible with PropertyRunner actor isolation
 - **PropertyConfig.DiscardConfig (Phase 03-02)**: Configurable discard ratio tracking and enforcement
   - `warnRatio`, `failRatio`, and `enforceRatio` properties for controlling discard behavior
   - Static presets: `.default` (5x/10x), `.lenient` (10x/50x), `.disabled`
