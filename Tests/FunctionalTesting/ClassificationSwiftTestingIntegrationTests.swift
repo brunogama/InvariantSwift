@@ -291,7 +291,7 @@ struct ClassificationSwiftTestingIntegrationTests {
 
   // MARK: - Helper for Result Checking
 
-  @Test("PropertyResult extension isSuccess works correctly")
+  @Test("PropertyResult isSuccess property works correctly")
   func testPropertyResultIsSuccess() {
     let successResult: PropertyResult<Int> = .success(iterations: 100)
     #expect(successResult.isSuccess, "Success result should return true")
@@ -307,16 +307,5 @@ struct ClassificationSwiftTestingIntegrationTests {
 
     let gaveUpResult: PropertyResult<Int> = .gaveUp(discarded: 10, iterations: 100)
     #expect(!gaveUpResult.isSuccess, "GaveUp result should return false")
-  }
-}
-
-// MARK: - PropertyResult Extension
-
-extension PropertyResult {
-  var isSuccess: Bool {
-    if case .success = self {
-      return true
-    }
-    return false
   }
 }
