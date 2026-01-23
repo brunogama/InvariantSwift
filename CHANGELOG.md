@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Test Target Renamed**: Renamed test target from `FunctionalTesting` to `InvariantSwiftTests` to align with Swift package naming conventions where test targets should be named `<PackageName>Tests`
+  - Updated Package.swift test target definition
+  - Moved all 66 test files while preserving git history using git mv
+  - Updated documentation references in CLAUDE.md files
+  - Added permissive SwiftLint configuration for Tests directory (allows longer files and types for comprehensive test coverage)
+
 ### Added
 - **Compile Verification Infrastructure (Phase 04-03)**: Verifies generated code compiles before writing to disk
   - `CompileVerifier` struct with swiftc -typecheck integration
