@@ -61,6 +61,7 @@ struct GhostwriterCLI {
     var dryRun: Bool = false
     var verbose: Bool = false
     var showHelp: Bool = false
+    var includeInternal: Bool = false
   }
 
   static func parseArguments(_ arguments: [String]) -> Config {
@@ -87,6 +88,8 @@ struct GhostwriterCLI {
         config.verbose = true
       case "--help", "-h":
         config.showHelp = true
+      case "--include-internal":
+        config.includeInternal = true
       default:
         if !arg.hasPrefix("-") {
           config.sources.append(arg)
@@ -117,6 +120,7 @@ struct GhostwriterCLI {
           --output, -o <path>     Output directory (default: Tests/Generated/)
           --dry-run               Preview without writing files
           --verbose, -v           Enable verbose output
+          --include-internal      Include internal types (default: only public/open)
           --help, -h              Show this help
 
       EXAMPLES:
@@ -181,12 +185,16 @@ struct GhostwriterCLI {
     result.typesFound = mergedTypes.count
 
     // Filter to testable types:
-    // 1. Must be public (accessible in tests), AND
+    // 1. Must have appropriate access level (public/open by default, or internal if --include-internal), AND
     // 2. Has @Arbitrary attribute, OR is a known primitive type, OR has generatable properties
     let testableTypes = mergedTypes.filter { type in
       let patterns = generator.detectPatterns(for: type)
       guard !patterns.isEmpty else { return false }
-      guard type.isPublic else { return false }  // Skip internal types
+
+      // Filter by access level
+      let accessOK = config.includeInternal || type.accessLevel.isPubliclyAccessible
+      guard accessOK else { return false }
+
       return type.hasArbitraryAttribute
         || isKnownGeneratableType(type.name)
         || canAutoGenerateArbitrary(for: type)
@@ -200,6 +208,20 @@ struct GhostwriterCLI {
       let skipped = mergedTypes.count - testableTypes.count
       if skipped > 0 {
         print("⚠️  Skipped \(skipped) type(s) without @Arbitrary or known generators")
+      }
+
+      // Show skipped types due to access level
+      let skippedAccess = mergedTypes.filter {
+        !config.includeInternal && !$0.accessLevel.isPubliclyAccessible
+      }
+      if !skippedAccess.isEmpty {
+        print("  Skipped \(skippedAccess.count) non-public type(s)")
+        for type in skippedAccess.prefix(5) {
+          print("    - \(type.name) (\(type.accessLevel.rawValue))")
+        }
+        if skippedAccess.count > 5 {
+          print("    ... and \(skippedAccess.count - 5) more")
+        }
       }
 
       // Show partial generation info
