@@ -2,6 +2,13 @@ import Foundation
 
 // MARK: - Classification Context
 
+/// Tracks a single coverage check with its threshold.
+private struct CoverageCheck: Sendable {
+  var hits: Int
+  var checks: Int
+  var threshold: Double
+}
+
 /// Collects classification labels and coverage data during property execution.
 ///
 /// `ClassificationContext` enables inline classification within property bodies,
@@ -29,8 +36,8 @@ public final class ClassificationContext: @unchecked Sendable {
   /// Category -> Label -> Count
   private var labels: [String: [String: Int]] = [:]
 
-  /// Coverage check name -> (hits, total checks, threshold percentage)
-  private var coverageChecks: [String: (hits: Int, checks: Int, threshold: Double)] = [:]
+  /// Coverage check name -> check data
+  private var coverageChecks: [String: CoverageCheck] = [:]
 
   /// Total number of iterations observed
   private var iterationCount: Int = 0
@@ -88,7 +95,7 @@ public final class ClassificationContext: @unchecked Sendable {
     lock.lock()
     defer { lock.unlock() }
 
-    var check = coverageChecks[name] ?? (hits: 0, checks: 0, threshold: threshold)
+    var check = coverageChecks[name] ?? CoverageCheck(hits: 0, checks: 0, threshold: threshold)
     check.checks += 1
     if result {
       check.hits += 1
@@ -98,6 +105,49 @@ public final class ClassificationContext: @unchecked Sendable {
     coverageChecks[name] = check
 
     return result
+  }
+
+  /// Record a label for the current iteration.
+  ///
+  /// This is a convenience method for unconditional labeling without a category.
+  /// Labels are tracked under the "labels" category.
+  ///
+  /// Use this to attach descriptive labels to test iterations for reporting purposes.
+  ///
+  /// - Parameter text: The label to attach to this iteration
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   ctx.label("edge case: empty array")
+  ///   ctx.label("typical input")
+  ///   ```
+  public func label(_ text: String) {
+    classify("labels", text)
+  }
+
+  /// Collect a value for histogram tracking.
+  ///
+  /// Collected values are converted to strings and tracked as labels.
+  /// Use bucketing for continuous values to prevent unbounded label sets.
+  ///
+  /// This is useful for tracking distributions of computed values (e.g., array lengths,
+  /// numeric ranges) without manually creating buckets.
+  ///
+  /// - Parameters:
+  ///   - value: The value to collect
+  ///   - category: The category name (default: "collected")
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   // Track array length distribution
+  ///   ctx.collect(array.count, category: "array_length")
+  ///
+  ///   // Track bucketed numeric ranges
+  ///   let bucket = n < 0 ? "negative" : n < 10 ? "small" : n < 100 ? "medium" : "large"
+  ///   ctx.collect(bucket, category: "magnitude")
+  ///   ```
+  public func collect<U: CustomStringConvertible>(_ value: U, category: String = "collected") {
+    classify(category, String(describing: value))
   }
 
   // MARK: - Internal API

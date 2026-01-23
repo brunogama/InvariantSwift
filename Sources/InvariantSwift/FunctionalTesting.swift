@@ -108,4 +108,4 @@
 // Note: Macros are available as separate import - import FunctionalTestingMacros
 
 // Re-export core functionality
-public import InvariantSwiftCore
+@_exported import InvariantSwiftCore
