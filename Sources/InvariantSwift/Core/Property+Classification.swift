@@ -224,6 +224,33 @@ extension Property {
   ) -> ClassifyingProperty<T> {
     tabulate(category, labels: { [label($0)] })
   }
+
+  // MARK: - Counterexample Messages
+
+  /// Add custom explanatory message for failures.
+  ///
+  /// Messages are computed lazily - only when a failure occurs. This ensures
+  /// zero overhead for passing tests.
+  ///
+  /// - Parameter message: Closure computing message from failing input
+  /// - Returns: ClassifyingProperty with custom message
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   Property(generator: Gen.int) { n in n > 0 }
+  ///     .counterexample { n in "Expected positive, got: \(n)" }
+  ///   ```
+  public func counterexample(
+    _ message: @escaping @Sendable (T) -> String
+  ) -> ClassifyingProperty<T> {
+    ClassifyingProperty(
+      generator: self.generator,
+      assumption: self.assumption
+    ) { value, ctx in
+      ctx.addCounterexample(message)
+      return self.predicate(value)
+    }
+  }
 }
 
 // MARK: - ClassifyingProperty Extensions
@@ -333,6 +360,32 @@ extension ClassifyingProperty {
     label: @escaping @Sendable (T) -> String
   ) -> ClassifyingProperty<T> {
     tabulate(category, labels: { [label($0)] })
+  }
+
+  /// Add custom explanatory message for failures to existing classifying property.
+  ///
+  /// Messages are computed lazily - only when a failure occurs. This ensures
+  /// zero overhead for passing tests.
+  ///
+  /// - Parameter message: Closure computing message from failing input
+  /// - Returns: ClassifyingProperty with custom message
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   Property(generator: Gen.int) { n in n > 0 }
+  ///     .classify(when: { $0 > 100 }, label: "large")
+  ///     .counterexample { n in "Expected positive, got: \(n)" }
+  ///   ```
+  public func counterexample(
+    _ message: @escaping @Sendable (T) -> String
+  ) -> ClassifyingProperty<T> {
+    ClassifyingProperty(
+      generator: self.generator,
+      assumption: self.assumption
+    ) { value, ctx in
+      ctx.addCounterexample(message)
+      return self.predicate(value, ctx)
+    }
   }
 }
 
