@@ -20,6 +20,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `--include-internal` command-line argument parsing
   - Access level-based filtering in type selection
   - Verbose logging shows skipped non-public types with access levels
+- **Access Level Tests (Phase 04-01)**: Comprehensive test suite for access level extraction
+  - 14 tests covering all 5 access levels (private, fileprivate, internal, public, open)
+  - Tests for enum properties (Comparable, isPubliclyAccessible)
+  - Tests for AST extraction from structs, classes, and properties
+  - Tests for CLI flag parsing and default behavior
+  - Tests for mixed access levels and explicit vs implicit internal
 - **Phase 5 Execution Plans** in `.planning/phases/5-error-messages-and-progress/`:
   * 5-01-PLAN.md: Progress Tracking and INVARIANT_SEED Environment Variable
     - ProgressReporter struct with time-based throttling
