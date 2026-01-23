@@ -16,14 +16,22 @@ public struct ClassifyingPropertyResult<T: Sendable>: Sendable {
   /// Classification report from the test run.
   public let classification: ClassificationReport
 
+  /// Custom counterexample messages (empty for success/gaveUp).
+  public let customMessages: [String]
+
   /// Whether all coverage thresholds were met.
   public var coverageThresholdsMet: Bool {
     classification.allCoverageThresholdsMet
   }
 
-  public init(result: PropertyResult<T>, classification: ClassificationReport) {
+  public init(
+    result: PropertyResult<T>,
+    classification: ClassificationReport,
+    customMessages: [String] = []
+  ) {
     self.result = result
     self.classification = classification
+    self.customMessages = customMessages
   }
 }
 
@@ -105,6 +113,9 @@ extension PropertyRunner {
           maxShrinks: config.maxShrinks
         )
 
+        // Compute custom counterexample messages for the shrunk (minimal) failing value
+        let customMessages = context.computeCounterexampleMessages(shrunkCase)
+
         let report = context.report()
         return ClassifyingPropertyResult(
           result: .failure(
@@ -114,7 +125,8 @@ extension PropertyRunner {
             reason: .predicateFailed,
             seed: seed
           ),
-          classification: report
+          classification: report,
+          customMessages: customMessages
         )
       }
 
@@ -189,6 +201,7 @@ extension PropertyRunner {
             maxShrinks: config.maxShrinks
           )
 
+          let customMessages = context.computeCounterexampleMessages(shrunkCase)
           let report = context.report()
           return ClassifyingPropertyResult(
             result: .failure(
@@ -198,7 +211,8 @@ extension PropertyRunner {
               reason: .predicateFailed,
               seed: seed
             ),
-            classification: report
+            classification: report,
+            customMessages: customMessages
           )
         }
       } catch {
@@ -209,6 +223,7 @@ extension PropertyRunner {
           maxShrinks: config.maxShrinks
         )
 
+        let customMessages = context.computeCounterexampleMessages(shrunkCase)
         let report = context.report()
         return ClassifyingPropertyResult(
           result: .failure(
@@ -218,7 +233,8 @@ extension PropertyRunner {
             reason: .threwError(String(describing: error)),
             seed: seed
           ),
-          classification: report
+          classification: report,
+          customMessages: customMessages
         )
       }
 
@@ -291,6 +307,7 @@ extension PropertyRunner {
           maxShrinks: config.maxShrinks
         )
 
+        let customMessages = context.computeCounterexampleMessages(shrunkCase)
         let failureReason: FailureReason = reason.map { .threwError($0) } ?? .predicateFailed
         let report = context.report()
         return ClassifyingPropertyResult(
@@ -301,7 +318,8 @@ extension PropertyRunner {
             reason: failureReason,
             seed: seed
           ),
-          classification: report
+          classification: report,
+          customMessages: customMessages
         )
       }
     }

@@ -924,6 +924,27 @@ public actor PropertyRunner {
       successfulIterations += 1
     }
 
+    // Check discard ratio before returning success
+    let discardCheck = checkDiscardRatio(
+      discarded: discarded,
+      successful: successfulIterations,
+      config: config
+    )
+    switch discardCheck {
+    case .ok:
+      break
+
+    case .warn(let message):
+      // Log warning but continue with success
+      if config.verbose || config.verbosity == .verbose {
+        print(message)  // swiftlint:disable:this no_print
+      }
+
+    case .fail:
+      // Return gaveUp since test couldn't be adequately tested
+      return .gaveUp(discarded: discarded, iterations: successfulIterations)
+    }
+
     return .success(iterations: successfulIterations)
   }
 
@@ -996,6 +1017,25 @@ public actor PropertyRunner {
       successfulIterations += 1
     }
 
+    // Check discard ratio before returning success
+    let discardCheck = checkDiscardRatio(
+      discarded: discarded,
+      successful: successfulIterations,
+      config: config
+    )
+    switch discardCheck {
+    case .ok:
+      break
+
+    case .warn(let message):
+      if config.verbose || config.verbosity == .verbose {
+        print(message)  // swiftlint:disable:this no_print
+      }
+
+    case .fail:
+      return .gaveUp(discarded: discarded, iterations: successfulIterations)
+    }
+
     return .success(iterations: successfulIterations)
   }
 
@@ -1062,6 +1102,25 @@ public actor PropertyRunner {
           seed: seed
         )
       }
+    }
+
+    // Check discard ratio before returning success
+    let discardCheck = checkDiscardRatio(
+      discarded: discarded,
+      successful: successfulIterations,
+      config: config
+    )
+    switch discardCheck {
+    case .ok:
+      break
+
+    case .warn(let message):
+      if config.verbose || config.verbosity == .verbose {
+        print(message)  // swiftlint:disable:this no_print
+      }
+
+    case .fail:
+      return .gaveUp(discarded: discarded, iterations: successfulIterations)
     }
 
     return .success(iterations: successfulIterations)
@@ -1281,6 +1340,25 @@ public actor PropertyRunner {
       successfulIterations += 1
     }
 
+    // Check discard ratio before returning success
+    let discardCheck = checkDiscardRatio(
+      discarded: discarded,
+      successful: successfulIterations,
+      config: config
+    )
+    switch discardCheck {
+    case .ok:
+      break
+
+    case .warn(let message):
+      if config.verbose || config.verbosity == .verbose {
+        print(message)  // swiftlint:disable:this no_print
+      }
+
+    case .fail:
+      return .gaveUp(discarded: discarded, iterations: successfulIterations)
+    }
+
     return .success(iterations: successfulIterations)
   }
 
@@ -1321,6 +1399,25 @@ public actor PropertyRunner {
       }
 
       successfulIterations += 1
+    }
+
+    // Check discard ratio before returning success
+    let discardCheck = checkDiscardRatio(
+      discarded: discarded,
+      successful: successfulIterations,
+      config: config
+    )
+    switch discardCheck {
+    case .ok:
+      break
+
+    case .warn(let message):
+      if config.verbose || config.verbosity == .verbose {
+        print(message)  // swiftlint:disable:this no_print
+      }
+
+    case .fail:
+      return .gaveUp(discarded: discarded, iterations: successfulIterations)
     }
 
     return .success(iterations: successfulIterations)
@@ -1379,6 +1476,25 @@ public actor PropertyRunner {
       }
 
       successfulIterations += 1
+    }
+
+    // Check discard ratio before returning success
+    let discardCheck = checkDiscardRatio(
+      discarded: discarded,
+      successful: successfulIterations,
+      config: config
+    )
+    switch discardCheck {
+    case .ok:
+      break
+
+    case .warn(let message):
+      if config.verbose || config.verbosity == .verbose {
+        print(message)  // swiftlint:disable:this no_print
+      }
+
+    case .fail:
+      return .gaveUp(discarded: discarded, iterations: successfulIterations)
     }
 
     return .success(iterations: successfulIterations)
