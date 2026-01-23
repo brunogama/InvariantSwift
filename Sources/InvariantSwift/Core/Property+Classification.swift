@@ -229,6 +229,76 @@ extension Property {
 // MARK: - ClassifyingProperty Extensions
 
 extension ClassifyingProperty {
+  /// Add coverage check to existing classifying property.
+  public func cover(
+    _ percentage: Double,
+    when predicate: @escaping @Sendable (T) -> Bool,
+    label: String
+  ) -> ClassifyingProperty<T> {
+    ClassifyingProperty(
+      generator: self.generator,
+      assumption: self.assumption
+    ) { value, ctx in
+      ctx.cover(label, percentage: percentage) { predicate(value) }
+      return self.predicate(value, ctx)
+    }
+  }
+
+  /// Add classification to existing classifying property.
+  public func classify(
+    when predicate: @escaping @Sendable (T) -> Bool,
+    label: String
+  ) -> ClassifyingProperty<T> {
+    ClassifyingProperty(
+      generator: self.generator,
+      assumption: self.assumption
+    ) { value, ctx in
+      if predicate(value) {
+        ctx.classify("categories", label)
+      }
+      return self.predicate(value, ctx)
+    }
+  }
+
+  /// Add classification in a specific category.
+  public func classify(
+    _ category: String,
+    when predicate: @escaping @Sendable (T) -> Bool,
+    label: String
+  ) -> ClassifyingProperty<T> {
+    ClassifyingProperty(
+      generator: self.generator,
+      assumption: self.assumption
+    ) { value, ctx in
+      if predicate(value) {
+        ctx.classify(category, label)
+      }
+      return self.predicate(value, ctx)
+    }
+  }
+
+  /// Add static label to existing classifying property.
+  public func label(_ text: String) -> ClassifyingProperty<T> {
+    ClassifyingProperty(
+      generator: self.generator,
+      assumption: self.assumption
+    ) { value, ctx in
+      ctx.label(text)
+      return self.predicate(value, ctx)
+    }
+  }
+
+  /// Add dynamic label to existing classifying property.
+  public func label(_ compute: @escaping @Sendable (T) -> String) -> ClassifyingProperty<T> {
+    ClassifyingProperty(
+      generator: self.generator,
+      assumption: self.assumption
+    ) { value, ctx in
+      ctx.label(compute(value))
+      return self.predicate(value, ctx)
+    }
+  }
+
   /// Add value collection to an existing classifying property.
   public func collect<U: CustomStringConvertible & Sendable>(
     _ extract: @escaping @Sendable (T) -> U
