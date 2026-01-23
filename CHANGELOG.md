@@ -6,12 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-## [Unreleased]
 
 ### Added
+- **Phase 5 Execution Plans** in `.planning/phases/5-error-messages-and-progress/`:
+  * 5-01-PLAN.md: Progress Tracking and INVARIANT_SEED Environment Variable
+    - ProgressReporter struct with time-based throttling
+    - PropertyConfig.showProgress and progressInterval settings
+    - INVARIANT_SEED env var reading in PropertyRunner (with INVARIANT_SWIFT_SEED compat)
+    - Progress suppression for fast tests (< 5 seconds)
+  * 5-02-PLAN.md: Enhanced Failure Messages
+    - Comprehensive verbose message format with sections (header, counterexample, stats, reproduction)
+    - Both env var and @PropertyTest macro reproduction syntax
+    - Shrinking metrics display (attempts, successful, reduction)
+    - Classification included when present
+  * 5-03-PLAN.md: PropertyRunner Progress Integration
+    - ProgressReporter integration in runProperty iteration loop
+    - Seed logging in verbose mode and always on failure
+    - Swift Testing integration with seed in failure messages
 - **Phase 6 Research Documentation** in `.planning/phases/06-documentation-examples/06-RESEARCH.md`:
   * Research on Swift DocC documentation compiler and framework documentation patterns
-  * Three-tier documentation structure: Quick Start → Cookbook → Migration Guide
+  * Three-tier documentation structure: Quick Start -> Cookbook -> Migration Guide
   * Recipe-based documentation patterns with Problem/Solution/Discussion format
   * Migration guide patterns from QuickCheck/Hypothesis to InvariantSwift
   * Accessibility strategies for non-FP developers (avoid functor/monad jargon)
@@ -24,7 +38,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `ImplicationPrecedence` precedence group (right-associative, between comparison and assignment)
   - Short-circuit evaluation via `@autoclosure`
   - False precondition returns `.discard` (not `.fail`)
-- **PropertyRunner+Discard (Phase 03-02)**: Discard ratio checking and enforcement logic
 - **PropertyRunner+Discard (Phase 03-02)**: Discard ratio checking and enforcement logic
   - `checkDiscardRatio()` validates ratio against configured thresholds
   - Actionable warning and error messages with specific fix suggestions
