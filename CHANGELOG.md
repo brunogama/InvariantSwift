@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Phase 1 Research Documentation** in `.planning/phases/01-test-observability/01-RESEARCH.md`:
+  * Research on QuickCheck test observability features (cover, classify, label, collect)
+  * Verified existing ClassificationContext infrastructure (90% already implemented)
+  * Non-breaking integration strategy via fluent API extensions
+  * Performance analysis: <10% overhead target for classification tracking
+  * Common pitfalls: over-filtering, unbounded label sets, performance considerations
+  * Estimated 1 week implementation (3-5 days code + 2-3 days testing)
 - **Project Configuration** in `.planning/config.json`:
   * Workflow mode: YOLO (auto-approve execution)
   * Planning depth: Standard (5-8 phases, 3-5 plans each)
@@ -98,4 +105,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Deprecated
 - LensExtensions.swift removed (optics not core to PBT)
-- RegressionBank.swift moved from Reliability/ to Core/ (consolidated)
+- RegressionBank.swift in Advanced/ moved to Core/ for consistency
+
+## [1.0.0] - 2024-XX-XX
+
+### Added
+- Initial release with core property-based testing features
+- Generator combinators for all Swift standard library types
+- Property test runner with configurable iterations
+- Shrinking strategies for minimal counterexamples
+- Swift Testing integration
+- Macro support (@PropertyTest, @Arbitrary, @StateMachine)
+
+[Unreleased]: https://github.com/yourorg/InvariantSwift/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/yourorg/InvariantSwift/releases/tag/v1.0.0
