@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Ghostwriter Arbitrary Auto-Generation (Phase 04-02)**: Enhanced Arbitrary generation with TODO tracking
+  - `GeneratorResult` enum with `success` and `todoRequired` cases for property-level generation tracking
+  - `ArbitraryGenerationResult` struct tracking TODO properties and full vs partial generation status
+  - `generatorResult(for:)` method with recursive type analysis for primitives, optionals, arrays, sets
+  - Hypothesis-pattern TODO comments: `/* TODO: supply generator for TypeName */`
+  - `canAutoGenerateArbitrary` checks for at least one generatable property (partial generation allowed)
+  - `canFullyGenerateArbitrary` checks all properties are generatable
+  - Dictionary types return `todoRequired` (not yet supported)
+  - Verbose output shows fully generated vs partially generated type counts
+  - 15+ comprehensive tests covering all generation scenarios
 - **AccessLevel Enum (Phase 04-01)**: Full Swift access level extraction for Ghostwriter
   - `AccessLevel` enum with all 5 Swift levels (private, fileprivate, internal, public, open)
   - `Comparable` conformance for access level ordering
