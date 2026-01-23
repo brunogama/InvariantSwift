@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **CoverageConfig**: Added `CoverageConfig` nested type to `PropertyConfig` with `enforceCoverage`, `warnOnLowCoverage`, and `maxLabels` options for configurable coverage enforcement (Phase 01-02)
 - **Enhanced ClassifyingPropertyRunner**: Config-driven coverage enforcement with clear error messages and warning support
+- **Enhanced ClassificationReport formatting**: QuickCheck-style output with percentage-sorted labels and clear coverage status indicators
 - **Phase 2 Execution Plans** in `.planning/phases/02-enhanced-reporting/`:
   * 02-01-PLAN.md: Value Collection (collect) with histogram tracking
     - Property<T>.collect() extension for value distribution tracking

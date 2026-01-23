@@ -125,44 +125,50 @@ public struct ClassificationReport: Sendable, Codable, Equatable {
 
   /// Formats the report for human-readable output.
   ///
-  /// Produces a multi-line report with:
-  /// - Classification distribution tables per category
-  /// - Coverage check results with pass/fail indicators
+  /// Produces QuickCheck-style output:
+  /// ```
+  /// +++ OK, passed 100 tests.
+  ///
+  /// Labels (100 iterations):
+  ///   sign:
+  ///     48.0% positive
+  ///     45.0% negative
+  ///      7.0% zero
+  ///
+  /// Coverage:
+  ///   ✓ extremes: 12.5% (required ≥10.0%)
+  ///   ✗ boundaries: 3.2% (required ≥5.0%) FAILED
+  /// ```
   ///
   /// - Returns: Formatted report string
   public func format() -> String {
-    var lines: [String] = []
-
-    // Header
-    if !labelDistribution.isEmpty || !coverageResults.isEmpty {
-      lines.append("")
-      lines.append("Classification Report (\(totalIterations) iterations):")
-      lines.append("─────────────────────────────────────────")
+    // Empty report - silent
+    if labelDistribution.isEmpty && coverageResults.isEmpty {
+      return ""
     }
 
-    // Label distributions (sorted for determinism)
+    var lines: [String] = []
+
+    // Label distributions (sorted by percentage, highest first)
     if !labelDistribution.isEmpty {
       lines.append("")
-      lines.append("Labels:")
+      lines.append("Labels (\(totalIterations) iterations):")
 
       for category in labelDistribution.keys.sorted() {
         lines.append("  \(category):")
         if let categoryLabels = labelDistribution[category] {
-          // Sort by count descending, then by name
+          // Sort by percentage descending (highest first), then by name
           let sortedLabels = categoryLabels.sorted { first, second in
-            if first.value.count != second.value.count {
-              return first.value.count > second.value.count
+            if first.value.percentage != second.value.percentage {
+              return first.value.percentage > second.value.percentage
             }
             return first.key < second.key
           }
 
-          // Calculate padding for alignment
-          let maxLabelLength = sortedLabels.map(\.key.count).max() ?? 0
-
+          // Calculate padding for percentage alignment
           for (label, stats) in sortedLabels {
-            let paddedLabel = label.padding(toLength: maxLabelLength, withPad: " ", startingAt: 0)
-            let percentStr = String(format: "%.1f", stats.percentage)
-            lines.append("    \(paddedLabel): \(stats.count) (\(percentStr)%)")
+            let percentStr = String(format: "%5.1f", stats.percentage)
+            lines.append("    \(percentStr)% \(label)")
           }
         }
       }
@@ -178,13 +184,45 @@ public struct ClassificationReport: Sendable, Codable, Equatable {
           let icon = result.met ? "✓" : "✗"
           let percentStr = String(format: "%.1f", result.percentage)
           let thresholdStr = String(format: "%.1f", result.threshold)
-          lines.append("  \(icon) \(name): \(percentStr)% (threshold: \(thresholdStr)%)")
+          let status = result.met ? "" : " FAILED"
+          lines.append("  \(icon) \(name): \(percentStr)% (required ≥\(thresholdStr)%)\(status)")
         }
       }
     }
 
-    if lines.isEmpty {
-      return "  (no classifications recorded)"
+    return lines.joined(separator: "\n")
+  }
+
+  /// Formats the report for inclusion in failure messages.
+  ///
+  /// More verbose than `format()`, includes suggestions for fixing.
+  ///
+  /// - Returns: Verbose formatted report with actionable guidance
+  public func formatForFailure() -> String {
+    var lines: [String] = []
+
+    lines.append("Classification Report:")
+    lines.append("─────────────────────────────────────────")
+
+    // Include standard format
+    let standardFormat = format()
+    if !standardFormat.isEmpty {
+      lines.append(standardFormat)
+    }
+
+    // Add suggestions for unmet coverage
+    let unmet = unmetCoverageChecks
+    if !unmet.isEmpty {
+      lines.append("")
+      lines.append("Suggestions:")
+      for name in unmet {
+        if let result = coverageResults[name] {
+          let gap = result.threshold - result.percentage
+          lines.append("  - \(name): Need \(String(format: "%.1f", gap))% more coverage")
+          lines.append("    Try adjusting the generator to produce more matching values,")
+          lines.append("    or reduce the coverage threshold if too strict.")
+        }
+      }
     }
 
     return lines.joined(separator: "\n")
