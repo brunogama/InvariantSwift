@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Project Initialization** in `.planning/PROJECT.md`:
+  * Project vision: InvariantSwift v2.0 with full QuickCheck feature parity
+  * Core value: Accessible property-based testing for non-FP Swift developers
+  * Validated requirements from existing codebase (core generators, macros, faker, crash isolation)
+  * Active requirements for v2.0 (QuickCheck features, working Ghostwriter, improved macros, code cleanup)
+  * Constraints: Swift 6 strict concurrency, SwiftSyntax 602.0.0, production quality
 - **Codebase Mapping Documentation** in `.planning/codebase/`:
   * STACK.md - Technology stack and dependencies (Swift 6.0+, SwiftSyntax 602.0.0, swift-custom-dump)
   * ARCHITECTURE.md - System design and component interactions (Generator, Property, ShrinkTree, Macros)
