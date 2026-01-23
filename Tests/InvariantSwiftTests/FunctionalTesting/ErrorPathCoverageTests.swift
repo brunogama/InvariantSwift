@@ -5,7 +5,7 @@ import InvariantSwiftCore
 
 /// Enhanced error path coverage tests to achieve 99%+ code coverage
 /// Focuses on edge cases, boundary conditions, and error handling paths
-// swiftlint:disable type_body_length
+// swiftlint:disable:next type_body_length
 struct ErrorPathCoverageTests {
 
   // MARK: - Generator Error Conditions (Task 8)
@@ -531,6 +531,7 @@ struct ErrorPathCoverageTests {
   func arrayGeneratorShrinkingEdgeCases() {
     // Test array shrinking with special cases
     let property = Property<[Int]>(generator: Gen<[Int]>.array(Gen<Int>.int(in: 1...100))) {
+      // swiftlint:disable:next closure_parameter_position
       array in
       // Property that fails for specific array patterns
       !(array.count > 5 && array.contains(42))

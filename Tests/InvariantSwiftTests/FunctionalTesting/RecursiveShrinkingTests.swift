@@ -3,6 +3,8 @@ import Foundation
 @testable import InvariantSwiftCore
 @testable import InvariantSwift
 
+// swiftlint:disable file_length
+
 /// Recursive shrinking validation tests - using shrinking to test shrinking
 ///
 /// These tests implement the recursive principle of using the framework's own
@@ -409,6 +411,7 @@ struct RecursiveShrinkingTests {
 
     // Property: Repeated shrinking should eventually reach a fixed point
     let terminationProperty = Property<[Int]>(generator: Gen<[Int]>.array(Gen<Int>.int)) {
+      // swiftlint:disable:next closure_parameter_position
       originalArray in
       let arrayShrink = Gen<[Int]>.array(Gen<Int>.int).shrink
 

@@ -106,7 +106,7 @@ struct ReproStringTests {
   func parseHandlesEmptyShrunk() {
     let result = ReproString.parse("REPRO:seed=123,iter=1,shrunk=\"\",reason=predicateFailed")
     #expect(result != nil, "Should accept empty shrunk description")
-    #expect(result?.shrunkDescription == "", "Shrunk should be empty string")
+    #expect(result?.shrunkDescription.isEmpty == true, "Shrunk should be empty string")
   }
 
   @Test("ReproString parse handles special characters in shrunk")
@@ -178,9 +178,12 @@ struct ReproStringTests {
 
   @Test("FailureReason equality")
   func failureReasonEquality() {
+    // swiftlint:disable:next identical_operands
     #expect(FailureReason.predicateFailed == FailureReason.predicateFailed)
+    // swiftlint:disable:next identical_operands
     #expect(FailureReason.threwError("a") == FailureReason.threwError("a"))
     #expect(FailureReason.threwError("a") != FailureReason.threwError("b"))
+    // swiftlint:disable:next identical_operands
     #expect(FailureReason.timedOut(seconds: 1.0) == FailureReason.timedOut(seconds: 1.0))
     #expect(FailureReason.timedOut(seconds: 1.0) != FailureReason.timedOut(seconds: 2.0))
   }

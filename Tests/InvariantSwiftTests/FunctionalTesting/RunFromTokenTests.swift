@@ -110,11 +110,8 @@ struct RunFromTokenTests {
       #expect(i1 == i2)
       #expect(i2 == i3)
     case (
-      // swiftlint:disable:next large_tuple
       .failure(let c1, let iter1, let s1, let r1, _),
-      // swiftlint:disable:next large_tuple
       .failure(let c2, let iter2, let s2, let r2, _),
-      // swiftlint:disable:next large_tuple
       .failure(let c3, let iter3, let s3, let r3, _)
     ):
       #expect(c1 == c2)

@@ -24,7 +24,7 @@
 swift build
 
 # Run all library tests
-swift test --filter FunctionalTesting
+swift test --filter InvariantSwiftTests
 
 # Run single test file
 swift test --filter "GeneratorTests"
@@ -37,7 +37,7 @@ swift build -Xswiftc -warnings-as-errors
 
 ```bash
 swift build -Xswiftc -warnings-as-errors && \
-swift test --filter FunctionalTesting && \
+swift test --filter InvariantSwiftTests && \
 swiftlint lint --strict Sources/InvariantSwift/
 ```
 
@@ -249,13 +249,13 @@ rg -n "Lens|Prism|Traversal" Advanced/
 
 ```bash
 # Run all tests
-swift test --filter FunctionalTesting
+swift test --filter InvariantSwiftTests
 
 # Run specific test suite
 swift test --filter GeneratorTests
 
 # Run with coverage
-swift test --filter FunctionalTesting --enable-code-coverage
+swift test --filter InvariantSwiftTests --enable-code-coverage
 ```
 
 ---

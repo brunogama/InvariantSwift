@@ -19,6 +19,8 @@ import Foundation
 import InvariantSwiftCore
 @testable import InvariantSwift
 
+// swiftlint:disable file_length type_body_length
+
 @Suite("Comprehensive Generator Combinator Tests")
 struct ComprehensiveGeneratorTests {
 
@@ -637,6 +639,7 @@ struct ComprehensiveGeneratorTests {
       let stringGen = Gen<String>.pure("test")
       let boolGen = Gen<Bool>.pure(true)
 
+      // swiftlint:disable:next large_tuple
       let zip3Gen = Gen<(Int, String, Bool)>.zip3(intGen, stringGen, boolGen)
 
       var rng: any RandomNumberGenerator = SystemRandomNumberGenerator()
@@ -659,6 +662,7 @@ struct ComprehensiveGeneratorTests {
       let stringGen = Gen<String>.pure("original")
       let boolGen = Gen<Bool>.bool()
 
+      // swiftlint:disable:next large_tuple
       let zip3Gen = Gen<(Int, String, Bool)>.zip3(intGen, stringGen, boolGen)
 
       var rng: any RandomNumberGenerator = SystemRandomNumberGenerator()
@@ -1025,6 +1029,7 @@ struct ComprehensiveGeneratorTests {
     }
   }
 }
+// swiftlint:enable type_body_length
 
 // MARK: - Helper Extensions for Testing
 

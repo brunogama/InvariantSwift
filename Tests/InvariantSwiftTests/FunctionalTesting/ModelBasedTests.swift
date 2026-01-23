@@ -195,7 +195,7 @@ struct ModelBasedTests {
   // MARK: - Deterministic Testing
 
   @Test("Same seed produces same command sequences")
-  func deterministicGenerationTest() async {
+  func deterministicGenerationTest() async {  // swiftlint:disable:this cyclomatic_complexity
     let model = CounterStateMachine()
     let seed = Seed(value: 42)
     let config = ModelTestConfig(maxCommands: 10, iterations: 5, seed: seed)

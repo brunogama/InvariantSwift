@@ -1,0 +1,50 @@
+# SwiftLint Configuration for Tests
+# More permissive rules for test code
+
+# Inherit from parent config
+parent_config: ../.swiftlint.yml
+
+# Relaxed rules for test files
+file_length:
+  warning: 800
+  error: 1200
+
+type_body_length:
+  warning: 500
+  error: 700
+
+function_body_length:
+  warning: 100
+  error: 150
+
+cyclomatic_complexity:
+  warning: 15
+  error: 20
+
+line_length:
+  warning: 120
+  error: 150
+
+# Disable rules that are too strict for tests
+disabled_rules:
+  - force_unwrapping  # Tests often use ! for known values
+  - force_try  # Tests can use try! for known-safe operations
+  - implicitly_unwrapped_optional  # Test fixtures may use IUO
+  - function_parameter_count  # Test helpers may have many parameters
+
+# Paths to include
+included:
+  - ${PWD}
+
+# Opt-in rules that make sense for tests
+opt_in_rules:
+  - empty_count
+  - empty_string
+  - array_init
+  - closure_spacing
+  - contains_over_first_not_nil
+  - explicit_init
+  - first_where
+  - sorted_first_last
+  - toggle_bool
+  - unused_optional_binding
