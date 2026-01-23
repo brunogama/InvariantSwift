@@ -141,8 +141,8 @@ struct GhostwriterGeneratorResultTests {
 
 // MARK: - Arbitrary Generation Result and Helper Tests
 
-@Suite("Ghostwriter ArbitraryGenerationResult and Helper Tests")
-struct GhostwriterArbitraryGenerationResultTests {
+@Suite("Ghostwriter Generation Result Tests")
+struct GhostwriterGenerationResultTests {
 
   @Test("ArbitraryGenerationResult tracks fully generated types")
   func arbitraryGenerationFullyGenerated() {
