@@ -1,12 +1,12 @@
-// MARK: - ISP-0010: Faker Type Definitions
-// Types of fake data that can be generated.
+// MARK: - ISP-0010: Data Type Definitions
+// Types of domain data that can be generated.
 
 import Foundation
 
-// MARK: - Faker Type
+// MARK: - Data Type
 
-/// Types of fake data that can be generated.
-public enum FakerType: Sendable {
+/// Types of domain data that can be generated.
+public enum DataType: Sendable {
   // MARK: - Names
 
   /// Full name (first + last)
@@ -216,10 +216,10 @@ public enum PasswordStrength: Sendable {
   }
 }
 
-// MARK: - Domain Faker
+// MARK: - Domain Data Types
 
-/// Domain-specific faker types for specialized data.
-public enum DomainFaker: Sendable {
+/// Domain-specific data types for specialized data.
+public enum DomainData: Sendable {
   // MARK: - Healthcare
   case medicalCondition
   case drugName

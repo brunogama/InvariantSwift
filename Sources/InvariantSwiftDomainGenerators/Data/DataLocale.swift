@@ -1,12 +1,12 @@
-// MARK: - ISP-0010: Faker Locale Support
+// MARK: - ISP-0010: Data Locale Support
 // Locale definitions for realistic data generation.
 
 import Foundation
 
-// MARK: - Faker Locale
+// MARK: - Data Locale
 
-/// Supported locales for faker data generation.
-public enum FakerLocale: String, Sendable, CaseIterable {
+/// Supported locales for domain data generation.
+public enum DataLocale: String, Sendable, CaseIterable {
   // Americas
   case enUS = "en_US"
   case enCA = "en_CA"
