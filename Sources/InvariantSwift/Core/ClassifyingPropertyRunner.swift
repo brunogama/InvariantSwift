@@ -66,7 +66,6 @@ extension PropertyRunner {
     // Determine coverage enforcement: parameter overrides config if provided
     let shouldEnforceCoverage = enforceCoverageThresholds ?? config.coverage.enforceCoverage
     let shouldWarnOnLowCoverage = config.coverage.warnOnLowCoverage
-    let maxLabels = config.coverage.maxLabels
 
     let context = ClassificationContext()
     var discarded = 0

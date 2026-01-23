@@ -6,7 +6,8 @@
 
 import Foundation
 import Testing
-import InvariantCore
+import InvariantSwiftCore
+import InvariantSwift
 // MARK: - Failure Report
 
 /// Detailed failure report for a property test.
@@ -42,6 +43,9 @@ public struct FailureReport: Sendable {
   /// Total time spent (generation + shrinking).
   public let totalTime: TimeInterval
 
+  /// Optional classification report for classifying property tests.
+  public let classificationReport: String?
+
   /// Creates a new failure report.
   public init(
     testName: String,
@@ -52,7 +56,8 @@ public struct FailureReport: Sendable {
     shrinkAttempts: Int,
     successfulShrinks: Int,
     failureReason: FailureReason,
-    totalTime: TimeInterval
+    totalTime: TimeInterval,
+    classificationReport: String? = nil
   ) {
     self.testName = testName
     self.seed = seed
@@ -63,6 +68,7 @@ public struct FailureReport: Sendable {
     self.successfulShrinks = successfulShrinks
     self.failureReason = failureReason
     self.totalTime = totalTime
+    self.classificationReport = classificationReport
   }
 
   /// Command to reproduce this failure.
@@ -181,43 +187,63 @@ public struct FailureReporter: Sendable {
 
   /// Formats a compact failure message.
   private func formatCompactMessage(_ report: FailureReport) -> String {
-    """
-    Property failed after \(report.iterationsBeforeFailure) tests (\(report.failureReason))
+    var message = """
+      Property failed after \(report.iterationsBeforeFailure) tests (\(report.failureReason))
 
-    Counterexample: \(report.shrunkValue)
+      Counterexample: \(report.shrunkValue)
 
-    Seed: \(report.seed.rawValue)
-    To reproduce: \(report.reproductionCommand)
-    """
+      Seed: \(report.seed.rawValue)
+      To reproduce: \(report.reproductionCommand)
+      """
+
+    if let classificationReport = report.classificationReport, !classificationReport.isEmpty {
+      message += "\n\n" + classificationReport
+    }
+
+    return message
   }
 
   /// Formats a verbose failure message.
   private func formatVerboseMessage(_ report: FailureReport) -> String {
-    """
-    ╔══════════════════════════════════════════════════════════════════════════════╗
-    ║                           PROPERTY TEST FAILURE                              ║
-    ╠══════════════════════════════════════════════════════════════════════════════╣
-    ║ Test: \(report.testName)
-    ║ Failure reason: \(report.failureReason)
-    ╠══════════════════════════════════════════════════════════════════════════════╣
-    ║ COUNTEREXAMPLE (after shrinking):
-    ║   \(report.shrunkValue)
-    ║
-    ║ Original failing value:
-    ║   \(report.originalValue)
-    ╠══════════════════════════════════════════════════════════════════════════════╣
-    ║ Statistics:
-    ║   Iterations before failure: \(report.iterationsBeforeFailure)
-    ║   Shrink attempts: \(report.shrinkAttempts)
-    ║   Successful shrinks: \(report.successfulShrinks)
-    ║   Total time: \(String(format: "%.3f", report.totalTime))s
-    ╠══════════════════════════════════════════════════════════════════════════════╣
-    ║ REPRODUCTION:
-    ║   Seed: \(report.seed.rawValue)
-    ║   Command: \(report.reproductionCommand)
-    ║   Environment: \(report.reproductionEnvVar)
-    ╚══════════════════════════════════════════════════════════════════════════════╝
-    """
+    var message = """
+      ╔══════════════════════════════════════════════════════════════════════════════╗
+      ║                           PROPERTY TEST FAILURE                              ║
+      ╠══════════════════════════════════════════════════════════════════════════════╣
+      ║ Test: \(report.testName)
+      ║ Failure reason: \(report.failureReason)
+      ╠══════════════════════════════════════════════════════════════════════════════╣
+      ║ COUNTEREXAMPLE (after shrinking):
+      ║   \(report.shrunkValue)
+      ║
+      ║ Original failing value:
+      ║   \(report.originalValue)
+      ╠══════════════════════════════════════════════════════════════════════════════╣
+      ║ Statistics:
+      ║   Iterations before failure: \(report.iterationsBeforeFailure)
+      ║   Shrink attempts: \(report.shrinkAttempts)
+      ║   Successful shrinks: \(report.successfulShrinks)
+      ║   Total time: \(String(format: "%.3f", report.totalTime))s
+      ╠══════════════════════════════════════════════════════════════════════════════╣
+      ║ REPRODUCTION:
+      ║   Seed: \(report.seed.rawValue)
+      ║   Command: \(report.reproductionCommand)
+      ║   Environment: \(report.reproductionEnvVar)
+      """
+
+    if let classificationReport = report.classificationReport, !classificationReport.isEmpty {
+      message +=
+        "\n╠══════════════════════════════════════════════════════════════════════════════╣\n"
+      message += "║ CLASSIFICATION:\n"
+      // Indent classification report
+      let lines = classificationReport.split(separator: "\n")
+      for line in lines {
+        message += "║   \(line)\n"
+      }
+    }
+
+    message += "╚══════════════════════════════════════════════════════════════════════════════╝"
+
+    return message
   }
 }
 
@@ -298,6 +324,43 @@ public final class FailureReportBuilder: @unchecked Sendable {
       successfulShrinks: successfulShrinks,
       failureReason: failureReason,
       totalTime: totalTime
+    )
+  }
+}
+
+// MARK: - ClassifyingPropertyResult Integration
+
+extension FailureReport {
+  /// Create a failure report from a classifying property result.
+  ///
+  /// Includes classification data in the failure output when available.
+  ///
+  /// - Parameters:
+  ///   - result: The classifying property result containing failure info
+  ///   - config: Property configuration
+  /// - Returns: A FailureReport if the result is a failure, nil otherwise
+  public static func from<T>(
+    _ result: ClassifyingPropertyResult<T>,
+    config: PropertyConfig
+  ) -> FailureReport? {
+    guard
+      case .failure(let counterexample, let iterations, let shrunk, let reason, let seed) =
+        result.result
+    else {
+      return nil
+    }
+
+    return FailureReport(
+      testName: "ClassifyingProperty",
+      seed: seed,
+      originalValue: String(describing: counterexample),
+      shrunkValue: String(describing: shrunk),
+      iterationsBeforeFailure: iterations,
+      shrinkAttempts: 0,  // Not available in ClassifyingPropertyResult
+      successfulShrinks: 0,  // Not available in ClassifyingPropertyResult
+      failureReason: reason,
+      totalTime: 0,  // Not available in ClassifyingPropertyResult
+      classificationReport: result.classification.formatForFailure()
     )
   }
 }

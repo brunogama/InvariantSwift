@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Swift Testing Classification Integration (Phase 01-03)**: Classification reports now appear in Swift Testing output for both passing and failing tests
+  - `FailureReport.classificationReport` field for including classification data in failure messages
+  - `FailureReport.from(ClassifyingPropertyResult)` factory method for creating reports with classification
+  - `checkProperty(_: ClassifyingProperty)` overload for running classifying properties in Swift Testing
+  - Classification displayed in both compact and verbose failure formats
 - **CoverageConfig**: Added `CoverageConfig` nested type to `PropertyConfig` with `enforceCoverage`, `warnOnLowCoverage`, and `maxLabels` options for configurable coverage enforcement (Phase 01-02)
 - **Enhanced ClassifyingPropertyRunner**: Config-driven coverage enforcement with clear error messages and warning support
 - **Enhanced ClassificationReport formatting**: QuickCheck-style output with percentage-sorted labels and clear coverage status indicators

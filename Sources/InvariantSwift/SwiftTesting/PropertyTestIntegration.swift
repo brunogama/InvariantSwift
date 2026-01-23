@@ -1,6 +1,7 @@
 import Testing
 import Foundation
-import InvariantCore
+import InvariantSwiftCore
+import InvariantSwift
 // MARK: - @PropertyTest Macro Definition
 
 /// A macro that generates Swift Testing-compatible property-based tests with automatic generation.
@@ -552,5 +553,64 @@ extension Gen {
         return candidates
       }
     )
+  }
+}
+
+// MARK: - ClassifyingProperty Integration
+
+/// Execute a classifying property-based test with classification tracking.
+///
+/// This function runs a property test with classification support and integrates
+/// the outcome with Swift Testing's failure reporting. Classification reports
+/// are included in both passing and failing test output.
+///
+/// - Parameters:
+///   - property: The ``ClassifyingProperty`` to check
+///   - config: Configuration controlling test execution behavior
+///   - file: Source file location (captured from call site via #file)
+///   - line: Source line number (captured from call site via #line)
+///
+/// - Throws: Does not throw (all errors are recorded as issues)
+///
+/// - Example:
+///   ```swift
+///   @Test
+///   func testWithClassification() async throws {
+///       let property = Property(generator: Gen.int) { n in n >= 0 }
+///         .cover(50, when: { $0 > 0 }, label: "positive")
+///
+///       try await checkProperty(property)
+///   }
+///   ```
+public func checkProperty<T: Sendable>(
+  _ property: ClassifyingProperty<T>,
+  config: PropertyConfig = .default,
+  file: StaticString = #file,
+  line: UInt = #line
+) async throws {
+  let runner = PropertyRunner(seed: config.seed)
+  let result = await runner.runClassifyingProperty(property, config: config)
+
+  switch result.result {
+  case .success:
+    // Attach classification report as comment if non-empty
+    let report = result.classification.format()
+    if !report.isEmpty {
+      Issue.record(Comment(stringLiteral: report))
+    }
+
+  case .failure:
+    if let failureReport = FailureReport.from(result, config: config) {
+      let reporter = FailureReporter(verbose: true)
+      reporter.recordFailure(failureReport, file: file, line: line)
+    }
+
+  case .gaveUp(let discarded, let iterations):
+    let message = """
+      Property gave up after discarding \(discarded) cases in \(iterations) iterations.
+      This usually means your property predicate is too restrictive.
+      Consider loosening the predicate or using a more focused generator.
+      """
+    Issue.record(Comment(stringLiteral: message))
   }
 }
