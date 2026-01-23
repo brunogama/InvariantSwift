@@ -584,8 +584,65 @@ public struct PropertyConfig: Sendable {
     }
   }
 
+  // MARK: - Discard Configuration
+
+  /// Configuration for discard ratio tracking and enforcement.
+  ///
+  /// Controls when warnings are emitted and when tests fail due to excessive discards.
+  /// A high discard ratio indicates the generator produces many invalid inputs,
+  /// suggesting it should be redesigned.
+  ///
+  /// - Example:
+  ///   ```swift
+  ///   var config = PropertyConfig.default
+  ///   config.discard.warnRatio = 3.0   // Warn if >3 discards per success
+  ///   config.discard.failRatio = 5.0   // Fail if >5 discards per success
+  ///   ```
+  public struct DiscardConfig: Sendable, Equatable {
+    /// Discard ratio above which a warning is emitted.
+    ///
+    /// Ratio = discards / successful iterations.
+    /// Default: 5.0 (warn if more than 5 discards per successful test)
+    public var warnRatio: Double
+
+    /// Discard ratio above which the test fails.
+    ///
+    /// Default: 10.0 (fail if more than 10 discards per successful test)
+    public var failRatio: Double
+
+    /// Enable or disable discard ratio enforcement.
+    ///
+    /// When disabled, only `maxDiscarded` absolute limit is enforced.
+    /// Default: true
+    public var enforceRatio: Bool
+
+    /// Default configuration: warn at 5x, fail at 10x.
+    public static let `default` = Self(warnRatio: 5.0, failRatio: 10.0, enforceRatio: true)
+
+    /// Lenient configuration: warn at 10x, fail at 50x.
+    public static let lenient = Self(warnRatio: 10.0, failRatio: 50.0, enforceRatio: true)
+
+    /// Disabled configuration: no ratio enforcement.
+    public static let disabled = Self(
+      warnRatio: .infinity,
+      failRatio: .infinity,
+      enforceRatio: false
+    )
+
+    public init(warnRatio: Double = 5.0, failRatio: Double = 10.0, enforceRatio: Bool = true) {
+      self.warnRatio = warnRatio
+      self.failRatio = failRatio
+      self.enforceRatio = enforceRatio
+    }
+  }
+
   /// Coverage tracking configuration.
   public var coverage: CoverageConfig
+
+  /// Discard ratio tracking configuration.
+  ///
+  /// Controls warnings and failures for excessive discards.
+  public var discard: DiscardConfig
 
   /// Initializes a property testing configuration.
   ///
@@ -629,7 +686,8 @@ public struct PropertyConfig: Sendable {
     propertyId: String? = nil,
     unicodeMode: UnicodeMode = .scalarSafe,
     maxStringShrinkSteps: Int = 500,
-    coverage: CoverageConfig = .default
+    coverage: CoverageConfig = .default,
+    discard: DiscardConfig = .default
   ) {
     self.iterations = max(1, iterations)
     self.maxShrinks = max(0, maxShrinks)
@@ -643,6 +701,7 @@ public struct PropertyConfig: Sendable {
     self.unicodeMode = unicodeMode
     self.maxStringShrinkSteps = max(1, maxStringShrinkSteps)
     self.coverage = coverage
+    self.discard = discard
   }
 
   /// Default configuration: 100 iterations, 1000 shrinks, 1000 max discarded.

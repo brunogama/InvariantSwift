@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **PropertyConfig.DiscardConfig (Phase 03-02)**: Configurable discard ratio tracking and enforcement
+  - `warnRatio`, `failRatio`, and `enforceRatio` properties for controlling discard behavior
+  - Static presets: `.default` (5x/10x), `.lenient` (10x/50x), `.disabled`
+  - Prevents silent test failures from over-filtering generators
 - **Phase 3 Research Documentation** in `.planning/phases/03-discard-syntax-sugar/03-RESEARCH.md`:
   * Research on QuickCheck implication operator (`==>`) semantics and implementation
   * Discard ratio tracking patterns for preventing over-filtering
