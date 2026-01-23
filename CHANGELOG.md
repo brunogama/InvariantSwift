@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Project Configuration** in `.planning/config.json`:
+  * Workflow mode: YOLO (auto-approve execution)
+  * Planning depth: Standard (5-8 phases, 3-5 plans each)
+  * Parallelization: Enabled (independent plans run simultaneously)
+  * Git tracking: Enabled (planning docs committed to version control)
+  * Model profile: Balanced (Sonnet for most agents, good quality/cost ratio)
+  * Workflow agents: Research, Plan Check, and Verifier all enabled
 - **Project Initialization** in `.planning/PROJECT.md`:
   * Project vision: InvariantSwift v2.0 with full QuickCheck feature parity
   * Core value: Accessible property-based testing for non-FP Swift developers
