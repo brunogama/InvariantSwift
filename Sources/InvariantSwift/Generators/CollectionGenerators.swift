@@ -1,8 +1,9 @@
 import Foundation
+import InvariantSwiftCore
 
 // MARK: - Array Generators
 
-extension Gen where T == [Any] {
+extension Gen {
   /// Generate arrays of values from a given element generator.
   ///
   /// Produces arrays with variable length (0 to size parameter) where each element is generated
@@ -86,11 +87,13 @@ extension Gen where T == [Any] {
         // 1. Empty array (most aggressive)
         // 2. Remove halves, quarters, eighths progressively
         // 3. Remove individual elements
-        shrunk.append(contentsOf: Shrink.removeElements(from: array))
+        shrunk.append(contentsOf: Shrink<[Element]>.removeElements(from: array))
 
         // THEN element-wise shrinking
         // Shrink each element independently while keeping array structure
-        shrunk.append(contentsOf: Shrink.shrinkElements(in: array, using: elementGen.shrink.shrink))
+        shrunk.append(
+          contentsOf: Shrink<[Element]>.shrinkElements(in: array, using: elementGen.shrink.shrink)
+        )
 
         // Deterministic ordering: chunk removal candidates first, then element shrinks
         return shrunk.removingDuplicatesGeneric()
@@ -327,7 +330,7 @@ extension Gen {
 
         // SHRINK-COLL-001: Chunk removal FIRST (delta-debugging)
         // Remove chunks of key-value pairs using delta debugging strategy
-        let pairArrays = Shrink.removeElements(from: pairs)
+        let pairArrays = Shrink<[(key: Key, value: Value)]>.removeElements(from: pairs)
         shrunk.append(contentsOf: pairArrays.map { Dictionary(uniqueKeysWithValues: $0) })
 
         // THEN element-wise shrinking

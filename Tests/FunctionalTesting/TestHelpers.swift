@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+import InvariantSwiftCore
 
 /// Helper utilities for test environment detection and conditional skipping
 enum TestEnvironment {

@@ -1,3 +1,4 @@
+import InvariantSwiftCore
 // MARK: - ISP-0008: Targeted Property Testing Configuration
 // Core configuration types for targeted property testing.
 

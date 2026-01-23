@@ -5,7 +5,7 @@
 
 import Testing
 import Foundation
-import InvariantCore
+import InvariantSwiftCore
 @testable import InvariantSwift
 
 @Suite("Metamorphic Testing")
@@ -143,7 +143,7 @@ struct MetamorphicTests {
     ]
 
     let property = MetamorphicProperty(
-      generator: Gen.array(Gen.int),
+      generator: Gen<[Int]>.array(Gen<Int>.int),
       function: { (arr: [Int]) -> [Int] in arr.sorted() },
       relations: relations
     )
@@ -163,7 +163,7 @@ struct MetamorphicTests {
     let runner = MetamorphicTestRunner()
 
     let property = MetamorphicProperty(
-      generator: Gen.array(Gen.int),
+      generator: Gen<[Int]>.array(Gen<Int>.int),
       function: { (arr: [Int]) -> [Int] in arr.sorted() },
       relations: RelationCatalog.sortingRelations()
     )
@@ -207,7 +207,7 @@ struct MetamorphicTests {
       )
     ]
 
-    let property = Gen.int.metamorphic(
+    let property = Gen<Int>.int.metamorphic(
       function: { $0 * 2 },
       relations: relations
     )
@@ -226,7 +226,7 @@ struct MetamorphicTests {
 
     let discovered = await engine.discover(
       function: identityFunction,
-      generator: Gen.int,
+      generator: Gen<Int>.int,
       sampleSize: 50,
       confidenceThreshold: 0.8
     )

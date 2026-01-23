@@ -1042,7 +1042,8 @@ public struct CounterStateMachine: StateMachine {
   public init() {}
 
   public func generateCommand(state: Int) -> Gen<IncrementCommand> {
-    Gen.int(in: -10...10).map { IncrementCommand(amount: $0) }
+    Gen<Int> { rng, _ in Int.random(in: -10...10, using: &rng) }
+      .map { IncrementCommand(amount: $0) }
   }
 
   public func invariant(state: Int) -> Bool {

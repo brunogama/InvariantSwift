@@ -1,70 +1,7 @@
+import InvariantSwift
+import InvariantSwiftExperimental
+import InvariantSwiftCore
 import Foundation
-import InvariantCore
-// MARK: - @Property Macro Declaration
-
-/// A macro that generates Swift Testing-compatible property-based tests with automatic generation.
-///
-/// `@Property` transforms a function with parameters into a property-based test that:
-/// 1. Infers generators for each parameter type (or uses explicit @Gen annotations)
-/// 2. Creates a Property combining generators and test predicate
-/// 3. Runs iterations with automatic shrinking on failure
-/// 4. Reports results via Swift Testing's Issue API
-///
-/// **Philosophy**: "If you know how to write `@Test`, you know how to write `@Property`"
-///
-/// **Basic Usage:**
-/// ```swift
-/// @Test @Property
-/// func additionCommutes(a: Int, b: Int) {
-///     #expect(a + b == b + a)
-/// }
-/// ```
-///
-/// **With Configuration:**
-/// ```swift
-/// @Test @Property(iterations: 500, seed: 12345)
-/// func sortingPreservesElements(array: [Int]) {
-///     let sorted = array.sorted()
-///     #expect(sorted.count == array.count)
-///     #expect(Set(sorted) == Set(array))
-/// }
-/// ```
-///
-/// **With Explicit Generators:**
-/// ```swift
-/// @Test @Property
-/// func boundedValues(
-///     @Gen(.int(in: 1...100)) x: Int,
-///     @Gen(.string(length: 1...20)) name: String
-/// ) {
-///     #expect(x > 0 && x <= 100)
-///     #expect(name.count >= 1 && name.count <= 20)
-/// }
-/// ```
-///
-/// **With Custom Types:**
-/// Custom types require `@Arbitrary` conformance or explicit `@Gen`:
-/// ```swift
-/// @Arbitrary
-/// struct User {
-///     let name: String
-///     let age: Int
-/// }
-///
-/// @Test @Property
-/// func userValidation(user: User) {
-///     #expect(user.age >= 0)
-///     #expect(!user.name.isEmpty)
-/// }
-/// ```
-///
-/// - Parameters:
-///   - iterations: Number of test iterations to run (default: 100)
-///   - seed: Optional UInt64 seed for reproducible tests
-///   - maxShrinks: Maximum shrinking attempts when failure is found (default: 1000)
-///   - verbose: Enable verbose output for debugging (default: false)
-///
-/// - See Also: ``Gen``, ``Arbitrary``, ``PropertyTest``
 @attached(peer, names: suffixed(_PropertyTest))
 public macro Property(
   iterations: Int = 100,

@@ -5,6 +5,7 @@
 /// identifying patterns that hold consistently across different inputs.
 
 import Foundation
+import InvariantSwiftCore
 
 // MARK: - Core Types
 

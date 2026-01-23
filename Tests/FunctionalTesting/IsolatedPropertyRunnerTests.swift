@@ -1,6 +1,6 @@
 import Testing
 import Foundation
-@testable import InvariantCore
+@testable import InvariantSwiftCore
 @testable import InvariantSwift
 
 /// Phase 7: Process Isolation Tests
@@ -84,7 +84,7 @@ struct IsolatedPropertyRunnerTests {
   @Test("IsolatedPropertyRunner executes property successfully")
   func isolatedPropertyRunnerSuccess() async {
     let runner = IsolatedPropertyRunner()
-    let property = Property<Int>(generator: Gen.int) { _ in
+    let property = Property<Int>(generator: Gen<Int>.int) { _ in
       true  // Always passes
     }
 
@@ -102,7 +102,7 @@ struct IsolatedPropertyRunnerTests {
   @Test("IsolatedPropertyRunner detects property failure")
   func isolatedPropertyRunnerFailure() async {
     let runner = IsolatedPropertyRunner()
-    let property = Property<Int>(generator: Gen.int(in: 50...100)) { value in
+    let property = Property<Int>(generator: Gen<Int>.int(in: 50...100)) { value in
       value < 25  // Always fails for range 50...100
     }
 
@@ -122,7 +122,7 @@ struct IsolatedPropertyRunnerTests {
   func isolatedPropertyRunnerDiscards() async {
     let runner = IsolatedPropertyRunner()
     // Use a simple generator that always passes - tests basic execution
-    let property = Property<Int>(generator: Gen.int(in: 1...10)) { value in
+    let property = Property<Int>(generator: Gen<Int>.int(in: 1...10)) { value in
       value >= 1 && value <= 10  // Always passes for range
     }
 
@@ -167,7 +167,7 @@ struct IsolatedPropertyRunnerTests {
 
   @Test("Multiple isolated runners can execute concurrently")
   func concurrentIsolatedRunners() async {
-    let property = Property<Int>(generator: Gen.int) { _ in true }
+    let property = Property<Int>(generator: Gen<Int>.int) { _ in true }
     let config = PropertyConfig.isolated(iterations: 10)
 
     async let result1 = IsolatedPropertyRunner().runProperty(property, config: config)
@@ -191,7 +191,7 @@ struct IsolatedPropertyRunnerTests {
   @Test("Isolated runner shrinks failing values")
   func isolatedRunnerShrinks() async {
     let runner = IsolatedPropertyRunner()
-    let property = Property<Int>(generator: Gen.int(in: 100...1000)) { value in
+    let property = Property<Int>(generator: Gen<Int>.int(in: 100...1000)) { value in
       value < 50  // Always fails for range
     }
 
@@ -213,7 +213,8 @@ struct IsolatedPropertyRunnerTests {
   @Test("Isolated runner with array shrinking")
   func isolatedRunnerArrayShrinking() async {
     let runner = IsolatedPropertyRunner()
-    let property = Property<[Int]>(generator: Gen.array(Gen.int(in: 1...100))) { array in
+    let property = Property<[Int]>(generator: Gen<[Int]>.array(Gen<Int>.int(in: 1...100))) {
+      array in
       !array.contains(42)  // Fails if array contains 42
     }
 

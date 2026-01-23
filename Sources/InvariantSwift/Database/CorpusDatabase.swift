@@ -21,6 +21,7 @@
 /// - [Hypothesis Database](https://hypothesis.readthedocs.io/en/latest/database.html)
 
 import Foundation
+import InvariantSwiftCore
 import SQLite3
 
 // MARK: - Core Types

@@ -1,5 +1,5 @@
 import Testing
-@testable import InvariantCore
+@testable import InvariantSwiftCore
 @testable import InvariantSwift
 
 @Suite("AnySendable Tests")

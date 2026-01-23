@@ -1,6 +1,8 @@
 import Foundation
 
-struct AnyCodable: Codable, Sendable {
+/// A type-erased Codable wrapper that supports common primitive types.
+/// Uses @unchecked Sendable because the wrapped value is always a Sendable primitive.
+struct AnyCodable: Codable, @unchecked Sendable {
   let value: Any
 
   init<T>(_ value: T) {

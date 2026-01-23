@@ -120,7 +120,7 @@ public enum FloatingPointMode: Sendable, Hashable {
 ///   ```
 ///
 /// - See Also: ``BinaryFloatingPoint/isApproximatelyEqual(to:tolerance:)``
-public enum FloatingPointTolerance<T: BinaryFloatingPoint>: Sendable, Hashable {
+public enum FloatingPointTolerance<T: BinaryFloatingPoint & Sendable>: Sendable, Hashable {
   /// Absolute tolerance: |a - b| <= epsilon.
   ///
   /// Use when comparing values near zero or when the scale is known.

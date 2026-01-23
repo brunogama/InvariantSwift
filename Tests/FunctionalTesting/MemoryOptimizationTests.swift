@@ -1,7 +1,8 @@
 import Testing
 import Foundation
-@testable import InvariantCore
+@testable import InvariantSwiftCore
 @testable import InvariantSwift
+@testable import InvariantSwiftExperimental
 
 /// Comprehensive tests for memory optimizations in the Property system.
 ///
@@ -150,7 +151,7 @@ struct MemoryOptimizationTests {
   func testMemoryUsageStability() async throws {
     // Given: High iteration property test
     let property = Property(
-      generator: Gen.int,
+      generator: Gen<Int>.int,
       predicate: { $0 * $0 >= 0 }  // Always true (perfect squares are non-negative)
     )
 
@@ -267,7 +268,7 @@ struct MemoryOptimizationTests {
   func testCoverageGuidedSendableConstraints() async throws {
     // Given: Property and coverage budget
     let property = Property(
-      generator: Gen.int,
+      generator: Gen<Int>.int,
       predicate: { $0 > 0 }
     )
   

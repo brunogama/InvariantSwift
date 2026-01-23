@@ -1,6 +1,6 @@
 import Testing
 import Foundation
-import InvariantCore
+import InvariantSwiftCore
 @testable import InvariantSwift
 
 /// Comprehensive tests for core Generator functions to achieve 99%+ code coverage
@@ -77,7 +77,7 @@ struct GeneratorCoreTests {
 
   @Test("Generator map Function")
   func generatorMapFunction() async {
-    let property = Property<String>(generator: Gen.int.map { String($0) }) { stringValue in
+    let property = Property<String>(generator: Gen<Int>.int.map { String($0) }) { stringValue in
       Int(stringValue) != nil  // Should be parseable as Int
     }
     let result = await PropertyRunner().runProperty(
@@ -99,7 +99,7 @@ struct GeneratorCoreTests {
   @Test("Generator flatMap Function")
   func generatorFlatMapFunction() async {
     let property = Property<String>(
-      generator: Gen.int.flatMap { n in
+      generator: Gen<Int>.int.flatMap { n in
         Gen.pure("Number: \(n)")
       }
     ) { stringValue in
@@ -124,7 +124,7 @@ struct GeneratorCoreTests {
   @Test("Generator zip Function")
   func generatorZipFunction() async {
     let property = Property<(Int, String)>(
-      generator: Gen.int.zip(Gen.string)
+      generator: Gen<Int>.int.zip(Gen<String>.string)
     ) { _, _ in
       // Basic validation that we got both types
       true
@@ -150,7 +150,7 @@ struct GeneratorCoreTests {
   @Test("Generator suchThat Function")
   func generatorSuchThatFunction() async {
     let property = Property<Int>(
-      generator: Gen.int.suchThat { $0 > 0 }
+      generator: Gen<Int>.int.suchThat { $0 > 0 }
     ) { value in
       value > 0
     }
@@ -177,7 +177,7 @@ struct GeneratorCoreTests {
   func generatorApplyFunction() async {
     let functionGen = Gen.pure { @Sendable (x: Int) in String(x) }
     let property = Property<String>(
-      generator: Gen.int.apply(functionGen)
+      generator: Gen<Int>.int.apply(functionGen)
     ) { stringValue in
       Int(stringValue) != nil  // Should be parseable as Int
     }
@@ -249,7 +249,7 @@ struct GeneratorCoreTests {
   @Test("Nested Generator Composition")
   func nestedGeneratorComposition() async {
     let property = Property<String>(
-      generator: Gen.int
+      generator: Gen<Int>.int
         .map { $0 * 2 }
         .map { String($0) }
         .flatMap { s in Gen.pure("Value: \(s)") }
@@ -278,13 +278,13 @@ struct GeneratorCoreTests {
     // Using flatMap chains instead of recursive local function to avoid Sendable issues
     let nestedListGen = Gen.oneOf([
       Gen.pure([Int]()),
-      Gen.int.map { [$0] },
-      Gen.int.flatMap { n1 in
-        Gen.int.map { n2 in [n1, n2] }
+      Gen<Int>.int.map { [$0] },
+      Gen<Int>.int.flatMap { n1 in
+        Gen<Int>.int.map { n2 in [n1, n2] }
       },
-      Gen.int.flatMap { n1 in
-        Gen.int.flatMap { n2 in
-          Gen.int.map { n3 in [n1, n2, n3] }
+      Gen<Int>.int.flatMap { n1 in
+        Gen<Int>.int.flatMap { n2 in
+          Gen<Int>.int.map { n3 in [n1, n2, n3] }
         }
       },
     ])
@@ -314,7 +314,7 @@ struct GeneratorCoreTests {
 
   @Test("Size Parameter Effects")
   func sizeParameterEffects() async {
-    let property = Property<[Int]>(generator: Gen.array(Gen.int)) { _ in
+    let property = Property<[Int]>(generator: Gen<[Int]>.array(Gen<Int>.int)) { _ in
       // This test exercises size parameter in array generation
       true
     }

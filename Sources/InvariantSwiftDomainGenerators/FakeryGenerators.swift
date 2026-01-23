@@ -1,5 +1,6 @@
 import Foundation
-import InvariantCore
+import InvariantSwiftCore
+import InvariantSwift
 
 // MARK: - Fakery-Style Generators
 //

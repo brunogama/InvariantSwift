@@ -1,6 +1,6 @@
 import Testing
 import Foundation
-@testable import InvariantCore
+@testable import InvariantSwiftCore
 @testable import InvariantSwift
 
 /// Phase 8: CLI and SPM Plugin Tests
@@ -114,9 +114,9 @@ struct CLIPluginTests {
 
   // MARK: - Generator Integration for CLI
 
-  @Test("Gen.int can be used in CLI-style property testing")
+  @Test("Gen<Int>.int can be used in CLI-style property testing")
   func genIntCLIIntegration() async {
-    let property = Property<Int>(generator: Gen.int) { _ in true }
+    let property = Property<Int>(generator: Gen<Int>.int) { _ in true }
     let runner = PropertyRunner()
     let result = await runner.runProperty(
       property,
@@ -134,9 +134,9 @@ struct CLIPluginTests {
 
   @Test("Multiple generator types work with CLI-style testing")
   func multipleGeneratorsCLIIntegration() async {
-    let intProp = Property<Int>(generator: Gen.int) { _ in true }
-    let stringProp = Property<String>(generator: Gen.string) { _ in true }
-    let boolProp = Property<Bool>(generator: Gen.bool) { _ in true }
+    let intProp = Property<Int>(generator: Gen<Int>.int) { _ in true }
+    let stringProp = Property<String>(generator: Gen<String>.string) { _ in true }
+    let boolProp = Property<Bool>(generator: Gen<Bool>.bool) { _ in true }
 
     let runner = PropertyRunner()
     let config = PropertyConfig(iterations: 5)

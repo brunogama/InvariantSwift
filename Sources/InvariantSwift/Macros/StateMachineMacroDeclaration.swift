@@ -1,45 +1,7 @@
+import InvariantSwift
+import InvariantSwiftExperimental
+import InvariantSwiftCore
 import Foundation
-import InvariantCore
-/// Automatically derives StateMachine conformance for model-based testing.
-///
-/// `@StateMachine` enables automatic generation of command enums and state machine
-/// protocol conformance from annotated structs. Methods marked with `@Command`
-/// become cases in the generated command enum.
-///
-/// **Basic Usage:**
-/// ```swift
-/// @StateMachine
-/// struct CounterModel {
-///     var count: Int = 0
-///
-///     @Command
-///     mutating func increment() { count += 1 }
-///
-///     @Command
-///     mutating func decrement() { guard count > 0 else { return }; count -= 1 }
-/// }
-/// ```
-///
-/// **Generated Output:**
-/// - `CounterModelCommand` enum with `increment` and `decrement` cases
-/// - `StateMachine` protocol conformance with `initialState`, `generateCommand`, `invariant`
-/// - `Command` protocol conformance on the generated enum
-///
-/// **With Preconditions:**
-/// ```swift
-/// @StateMachine
-/// struct StackModel<T> {
-///     var items: [T] = []
-///
-///     @Command
-///     mutating func push(_ value: T) { items.append(value) }
-///
-///     @Command(precondition: !items.isEmpty)
-///     mutating func pop() -> T? { items.popLast() }
-/// }
-/// ```
-///
-/// - See Also: ``Command``, ``StateMachine``, ``ModelTestRunner``
 @attached(member, names: arbitrary, named(initialState), named(generateCommand), named(invariant))
 @attached(extension, conformances: RuleBasedStateMachine)
 public macro StateMachine() =

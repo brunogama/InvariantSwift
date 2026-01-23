@@ -5,6 +5,7 @@
 /// Integrates with LLVM coverage tools for precise path tracking.
 
 import Foundation
+import InvariantSwiftCore
 
 // MARK: - Core Coverage Types
 

@@ -1,3 +1,4 @@
+import InvariantSwiftCore
 // MARK: - ISP-0008: Targeted Property Testing
 // Global functions and task-local context for targeted property testing.
 
@@ -8,8 +9,7 @@ import Foundation
 /// Namespace for task-local storage
 public enum TargetedTestingContext {
   /// Thread-local target collector
-  @TaskLocal
-  public static var currentTargetCollector: TargetCollector?
+  @TaskLocal public static var currentTargetCollector: TargetCollector?
 }
 
 /// Global accessor for the current target collector

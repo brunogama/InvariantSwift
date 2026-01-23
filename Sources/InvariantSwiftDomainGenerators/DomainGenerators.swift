@@ -1,5 +1,5 @@
 import Foundation
-import InvariantCore
+import InvariantSwiftCore
 
 // MARK: - Domain-Specific Generators for Advanced Testing
 

@@ -5,7 +5,7 @@
 
 import Testing
 import Foundation
-import InvariantCore
+import InvariantSwiftCore
 @testable import InvariantSwift
 
 @Suite("LibFuzzer Integration")
@@ -164,7 +164,7 @@ struct LibFuzzerTests {
   func testFuzzTargetCreation() {
     let target = FuzzTarget(
       name: "TestTarget",
-      generator: Gen.int,
+      generator: Gen<Int>.int,
       property: { $0 >= Int.min }
     )
 
@@ -174,7 +174,7 @@ struct LibFuzzerTests {
   @Test("FuzzTarget execution with passing property")
   func testFuzzTargetPass() {
     let target = FuzzTarget(
-      generator: Gen.int,
+      generator: Gen<Int>.int,
       property: { _ in true }
     )
 
@@ -191,7 +191,7 @@ struct LibFuzzerTests {
   @Test("FuzzTarget execution with failing property")
   func testFuzzTargetFail() {
     let target = FuzzTarget(
-      generator: Gen.int,
+      generator: Gen<Int>.int,
       property: { _ in false }
     )
 
@@ -270,7 +270,7 @@ struct LibFuzzerTests {
     let runner = FuzzTestRunner()
     let target = FuzzTarget(
       name: "TestTarget",
-      generator: Gen.int,
+      generator: Gen<Int>.int,
       property: { _ in true }
     )
 
@@ -307,7 +307,7 @@ struct LibFuzzerTests {
   @MainActor @Test("FuzzBridge with registered target")
   func testFuzzBridgeWithTarget() {
     let target = FuzzTarget(
-      generator: Gen.int,
+      generator: Gen<Int>.int,
       property: { _ in true }
     )
 
@@ -325,16 +325,16 @@ struct LibFuzzerTests {
   @Test("Gen.fuzz produces value from bytes")
   func testGenFuzz() {
     let data: [UInt8] = Array(repeating: 0x55, count: 32)
-    let value = Gen.int.fuzz(with: data)
+    let value = Gen<Int>.int.fuzz(with: data)
 
     // Value should be deterministic
-    let value2 = Gen.int.fuzz(with: data)
+    let value2 = Gen<Int>.int.fuzz(with: data)
     #expect(value == value2)
   }
 
   @Test("Gen.fuzzTarget creates valid target")
   func testGenFuzzTarget() {
-    let target = Gen.int.fuzzTarget(name: "IntProperty") { _ in true }
+    let target = Gen<Int>.int.fuzzTarget(name: "IntProperty") { _ in true }
 
     #expect(target.name == "IntProperty")
   }
@@ -344,7 +344,7 @@ struct LibFuzzerTests {
   @Test("Property.fuzz executes with bytes")
   func testPropertyFuzz() {
     let property = Property<Int>(
-      generator: Gen.int,
+      generator: Gen<Int>.int,
       predicate: { _ in true }
     )
 

@@ -1,3 +1,4 @@
+import InvariantSwiftCore
 import Foundation
 
 // MARK: - Lens System for Functional Immutable Updates

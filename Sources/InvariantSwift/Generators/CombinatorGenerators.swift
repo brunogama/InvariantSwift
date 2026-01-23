@@ -23,6 +23,7 @@
 /// - [Monad Laws - Wikipedia](https://en.wikipedia.org/wiki/Monad_(functional_programming))
 
 import Foundation
+import InvariantSwiftCore
 
 // MARK: - Advanced Combinator Generators
 

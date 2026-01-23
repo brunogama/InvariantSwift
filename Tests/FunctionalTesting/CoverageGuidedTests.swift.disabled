@@ -1,6 +1,7 @@
 import Testing
-@testable import InvariantCore
+@testable import InvariantSwiftCore
 @testable import InvariantSwift
+@testable import InvariantSwiftExperimental
 
 /// Comprehensive tests for coverage-guided generation functionality
 struct CoverageGuidedTests {
@@ -86,7 +87,7 @@ struct CoverageGuidedTests {
 
   @Test("Gen Biasing with Coverage Budget")
   func generatorBiasing() {
-    let originalGen = Gen.int(in: 1...100)
+    let originalGen = Gen<Int>.int(in: 1...100)
 
     let budget = CoverageBudget(
       uncoveredSymbols: ["boundaryTest"],
@@ -114,7 +115,7 @@ struct CoverageGuidedTests {
 
   @Test("Gen Biasing with Empty Budget")
   func generatorBiasingEmptyBudget() {
-    let originalGen = Gen.int(in: 1...100)
+    let originalGen = Gen<Int>.int(in: 1...100)
     let emptyBudget = CoverageBudget.empty
 
     let biasedGen = originalGen.biased(by: emptyBudget)
@@ -131,7 +132,7 @@ struct CoverageGuidedTests {
 
   @Test("Coverage Strategy Variations")
   func coverageStrategies() {
-    let gen = Gen.int(in: 1...100)
+    let gen = Gen<Int>.int(in: 1...100)
     let budget = CoverageBudget(
       uncoveredSymbols: ["test"],
       coverageMap: ["test": 0.0],
@@ -157,7 +158,7 @@ struct CoverageGuidedTests {
   @Test("Property Coverage Guidance Extension")
   func propertyWithCoverageGuidance() {
     let property = Property(
-      generator: Gen.int(in: 1...100),
+      generator: Gen<Int>.int(in: 1...100),
       predicate: { $0 > 0 }
     )
 
@@ -188,7 +189,7 @@ struct CoverageGuidedTests {
     let runner = PropertyRunner(seed: Seed(value: 42))
 
     let property = Property(
-      generator: Gen.int(in: 1...10),
+      generator: Gen<Int>.int(in: 1...10),
       predicate: { $0 > 0 }  // Should always pass
     )
 
@@ -218,7 +219,7 @@ struct CoverageGuidedTests {
     await collector.addKnownSymbols(["test_function", "validation_check"])
 
     let property = Property(
-      generator: Gen.int(in: 1...100),
+      generator: Gen<Int>.int(in: 1...100),
       predicate: { $0 > 0 }
     )
 
@@ -319,7 +320,7 @@ struct CoverageGuidedTests {
 
     // Create a more complex property
     let property = Property(
-      generator: Gen.array(Gen.int(in: -10...10)),
+      generator: Gen<[Int]>.array(Gen<Int>.int(in: -10...10)),
       predicate: { array in
         // Property: sum of array should be within reasonable bounds
         let sum = array.reduce(0, +)

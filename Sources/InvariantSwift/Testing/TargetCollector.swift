@@ -1,3 +1,4 @@
+import InvariantSwiftCore
 // MARK: - ISP-0008: Target Collector
 // Thread-safe collection of target values during test execution.
 

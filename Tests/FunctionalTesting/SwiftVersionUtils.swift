@@ -8,6 +8,7 @@
 
 import Foundation
 import XCTest
+import InvariantSwiftCore
 
 // MARK: - macOS Version Info
 

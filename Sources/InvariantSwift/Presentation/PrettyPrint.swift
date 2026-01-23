@@ -1,4 +1,5 @@
 import Foundation
+import InvariantSwiftCore
 
 // MARK: - Pretty-Printing and Diff System for Counterexamples
 

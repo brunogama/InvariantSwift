@@ -5,6 +5,7 @@
 /// concurrent and asynchronous code testing.
 
 import Foundation
+import InvariantSwiftCore
 
 // MARK: - Core Async Property Types
 

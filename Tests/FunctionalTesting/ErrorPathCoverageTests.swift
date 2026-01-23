@@ -1,6 +1,6 @@
 import Testing
 import Foundation
-import InvariantCore
+import InvariantSwiftCore
 @testable import InvariantSwift
 
 /// Enhanced error path coverage tests to achieve 99%+ code coverage
@@ -63,7 +63,7 @@ struct ErrorPathCoverageTests {
     #expect(Bool(true), "Test disabled")
     /*
     // Test suchThat with condition that can never be satisfied
-    let impossibleGen = Gen.int(in: 1...10).tryGenerate(where: { _ in false })
+    let impossibleGen = Gen<Int>.int(in: 1...10).tryGenerate(where: { _ in false })
     let property = Property<Int>(generator: impossibleGen) { _ in true }
     
     let result = runPropertySynchronously(
@@ -93,7 +93,7 @@ struct ErrorPathCoverageTests {
     #expect(Bool(true), "Test disabled")
     /*
     // Test suchThat with extremely rare condition
-    let rareGen = Gen.int(in: 1...10000).tryGenerate(where: { $0 == 7777 })
+    let rareGen = Gen<Int>.int(in: 1...10000).tryGenerate(where: { $0 == 7777 })
     let property = Property<Int>(generator: rareGen) { value in
       value == 7777
     }
@@ -292,7 +292,7 @@ struct ErrorPathCoverageTests {
 
   @Test("PropertyConfig with extreme values")
   func propertyConfigWithExtremeValues() {
-    let property = Property<Bool>(generator: Gen.bool) { _ in true }
+    let property = Property<Bool>(generator: Gen<Bool>.bool) { _ in true }
 
     // Test with extremely small values
     let tinyConfig = PropertyConfig(iterations: 1, maxShrinks: 0, maxDiscarded: 1)
@@ -326,7 +326,7 @@ struct ErrorPathCoverageTests {
 
     // Property with high discard rate due to filtering
     let highDiscardProperty = Property<Int>(
-      generator: Gen.int(in: 1...1000),
+      generator: Gen<Int>.int(in: 1...1000),
       assumption: { $0 <= 10 },  // High discard rate: only 1% pass
       predicate: { _ in true }
     )
@@ -350,7 +350,7 @@ struct ErrorPathCoverageTests {
 
   @Test("PropertyRunner with extreme seed values")
   func propertyRunnerWithExtremeSeedValues() async {
-    let property = Property<Int>(generator: Gen.int) { _ in true }
+    let property = Property<Int>(generator: Gen<Int>.int) { _ in true }
 
     // Test with maximum UInt64 seed
     let maxSeedRunner = PropertyRunner(seed: Seed(value: UInt64.max))
@@ -530,7 +530,8 @@ struct ErrorPathCoverageTests {
   @Test("Array generator with shrinking edge cases")
   func arrayGeneratorShrinkingEdgeCases() {
     // Test array shrinking with special cases
-    let property = Property<[Int]>(generator: Gen.array(Gen.int(in: 1...100))) { array in
+    let property = Property<[Int]>(generator: Gen<[Int]>.array(Gen<Int>.int(in: 1...100))) {
+      array in
       // Property that fails for specific array patterns
       !(array.count > 5 && array.contains(42))
     }

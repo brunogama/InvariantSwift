@@ -1,6 +1,7 @@
 import Testing
 import Foundation
 @testable import InvariantSwift
+import InvariantSwiftCore
 
 /// Tests for SHRINK-COLL-001: Collection shrinking v2
 ///
@@ -86,7 +87,7 @@ struct CollectionShrinkingV2Tests {
 
   @Test("Array shrinking minimality: chunk removal finds smaller arrays faster")
   func arrayShrinkingMinimality() {
-    let gen = Gen.array(Gen<Int>.int)
+    let gen = Gen<[Int]>.array(Gen<Int>.int)
     let largeArray = Array(0..<20)
 
     let shrinks = gen.shrink.shrink(largeArray)
@@ -158,7 +159,7 @@ struct CollectionShrinkingV2Tests {
 
   @Test("Empty collections shrink to empty")
   func emptyCollectionsShrinking() {
-    let arrayGen = Gen.array(Gen<Int>.int)
+    let arrayGen = Gen<[Int]>.array(Gen<Int>.int)
     let arrayShrinks = arrayGen.shrink.shrink([])
     #expect(arrayShrinks.isEmpty, "Empty array has no shrinks")
 

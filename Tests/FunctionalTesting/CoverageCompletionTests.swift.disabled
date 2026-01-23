@@ -1,6 +1,6 @@
 import Testing
 import Foundation
-import InvariantCore
+import InvariantSwiftCore
 @testable import InvariantSwift
 
 /// Targeted tests to achieve the final 0.01% coverage needed to reach 99%+ threshold
@@ -22,7 +22,7 @@ struct CoverageCompletionTests {
 
     // Create a property that will fail and test shrinking error paths
     let problematicProperty = Property<[Int]>(
-      generator: Gen.array(Gen.int),
+      generator: Gen<[Int]>.array(Gen<Int>.int),
       predicate: { array in
         // This should fail for arrays with specific patterns
         array.count < 5 || !array.contains { $0 > 100 }
@@ -115,7 +115,7 @@ struct CoverageCompletionTests {
     /// numeric types and their generation/shrinking.
 
     // Test all numeric types to cover platform-specific optimization paths
-    let intGen = Gen.int
+    let intGen = Gen<Int>.int
     let int8Gen = Gen<Int8> { rng, _ in Int8.random(in: Int8.min...Int8.max, using: &rng) }
     let int16Gen = Gen<Int16> { rng, _ in Int16.random(in: Int16.min...Int16.max, using: &rng) }
     let int32Gen = Gen<Int32> { rng, _ in Int32.random(in: Int32.min...Int32.max, using: &rng) }
@@ -142,7 +142,7 @@ struct CoverageCompletionTests {
     /// and test execution logic.
 
     // Create properties that might trigger debug assertions
-    let debugProperty1 = Property<Int>(generator: Gen.int) { value in
+    let debugProperty1 = Property<Int>(generator: Gen<Int>.int) { value in
       // Property that exercises internal validation logic
       if value == Int.min {
         // This path might trigger debug assertions
@@ -151,7 +151,7 @@ struct CoverageCompletionTests {
       return true
     }
 
-    let debugProperty2 = Property<String>(generator: Gen.string) { string in
+    let debugProperty2 = Property<String>(generator: Gen<String>.string) { string in
       // Property that exercises string validation logic
       if string.isEmpty {
         // This might trigger debug paths
@@ -233,7 +233,7 @@ struct CoverageCompletionTests {
 
     // Exercise Gen combinators
     let gen1 = Gen.pure(42)
-    let gen2 = Gen.oneOf([gen1, Gen.int])
+    let gen2 = Gen.oneOf([gen1, Gen<Int>.int])
     let gen3 = Gen.frequency([(1, gen1), (2, gen2)])
 
     let testSeed = Seed(value: 999)
@@ -244,8 +244,8 @@ struct CoverageCompletionTests {
     _ = gen3.sample(size: testSize, seed: testSeed)
 
     // Exercise Property combinators
-    let prop1 = Property(generator: Gen.int, predicate: { $0 > 0 })
-    let prop2 = Property(generator: Gen.int, predicate: { $0 % 2 == 0 })
+    let prop1 = Property(generator: Gen<Int>.int, predicate: { $0 > 0 })
+    let prop2 = Property(generator: Gen<Int>.int, predicate: { $0 % 2 == 0 })
     let combinedProp = prop1.and(prop2)
 
     _ = runPropertySynchronously(combinedProp, config: PropertyConfig(iterations: 10))
@@ -266,7 +266,7 @@ struct CoverageCompletionTests {
     await collector.recordExecution(execution)
 
     let budget = await collector.currentBudget()
-    let biasedGen = Gen.int.biased(by: budget)
+    let biasedGen = Gen<Int>.int.biased(by: budget)
     _ = biasedGen.sample(size: testSize, seed: testSeed)
 
     #expect(Bool(true), "All public APIs exercised successfully")
@@ -285,7 +285,7 @@ struct CoverageCompletionTests {
       PropertyConfig(iterations: -10, maxShrinks: -5, maxDiscarded: -3),  // Should normalize
     ]
 
-    let simpleProperty = Property(generator: Gen.bool, predicate: { _ in true })
+    let simpleProperty = Property(generator: Gen<Bool>.bool, predicate: { _ in true })
 
     for config in configs {
       // Each config should work or normalize gracefully

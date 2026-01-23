@@ -5,7 +5,7 @@
 
 import Testing
 import Foundation
-import InvariantCore
+import InvariantSwiftCore
 @testable import InvariantSwift
 
 @Suite("GeneratorTestHelpers Tests")
@@ -16,7 +16,7 @@ struct GeneratorTestHelpersTests {
   @Test("Boolean distribution check")
   func testBooleanDistribution() {
     let result = GeneratorTestHelpers.checkBooleanDistribution(
-      generator: Gen.bool,
+      generator: Gen<Bool>.bool,
       samples: 10000,
       expectedTrueProportion: 0.5,
       tolerance: 0.1
@@ -53,7 +53,7 @@ struct GeneratorTestHelpersTests {
   @Test("Determinism check passes with same seed")
   func testDeterminismPasses() {
     let result = GeneratorTestHelpers.checkDeterminism(
-      generator: Gen.int,
+      generator: Gen<Int>.int,
       seed: 12345,
       samples: 50,
       runs: 3
@@ -102,11 +102,11 @@ struct GeneratorTestHelpersTests {
   @Test("Constraint check detects violations")
   func testConstraintCheckFails() {
     let (passed, failing) = GeneratorTestHelpers.checkConstraint(
-      generator: Gen.int,
+      generator: Gen<Int>.int,
       samples: 1000
     ) { $0 > 1_000_000 }  // Most ints won't satisfy this
 
-    // This should fail because Gen.int can produce values <= 1_000_000
+    // This should fail because Gen<Int>.int can produce values <= 1_000_000
     #expect(!passed || failing != nil || passed)  // Just verify it runs
   }
 
@@ -115,7 +115,7 @@ struct GeneratorTestHelpersTests {
   @Test("Shrinking terminates check")
   func testShrinkingTerminates() {
     let terminates = GeneratorTestHelpers.checkShrinkingTerminates(
-      generator: Gen.int,
+      generator: Gen<Int>.int,
       value: 100,
       maxSteps: 1000
     )

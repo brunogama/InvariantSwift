@@ -1,5 +1,5 @@
 import Testing
-@testable import InvariantCore
+@testable import InvariantSwiftCore
 @testable import InvariantSwift
 
 /// Comprehensive tests for classification reporting functionality
@@ -176,7 +176,7 @@ struct ClassificationTests {
 
   @Test("ClassifyingProperty basic execution")
   func classifyingPropertyBasicExecution() async {
-    let property = ClassifyingProperty(generator: Gen.int(in: -100...100)) { n, ctx in
+    let property = ClassifyingProperty(generator: Gen<Int>.int(in: -100...100)) { n, ctx in
       ctx.classify("sign", n < 0 ? "negative" : n >= 0 ? "non-negative" : "")
       return n + 0 == n  // Identity property
     }
@@ -201,7 +201,7 @@ struct ClassificationTests {
 
   @Test("ClassifyingProperty with coverage tracking")
   func classifyingPropertyWithCoverage() async {
-    let property = ClassifyingProperty(generator: Gen.int(in: -100...100)) { n, ctx in
+    let property = ClassifyingProperty(generator: Gen<Int>.int(in: -100...100)) { n, ctx in
       // Track extremes coverage
       ctx.cover("extremes", percentage: 1.0) { abs(n) > 90 }
       return true
@@ -222,7 +222,7 @@ struct ClassificationTests {
   @Test("ClassifyingProperty enforces coverage thresholds")
   func classifyingPropertyEnforcesCoverageThresholds() async {
     // Property that checks for impossible coverage (100% extremes when range is wide)
-    let property = ClassifyingProperty(generator: Gen.int(in: -1000...1000)) { n, ctx in
+    let property = ClassifyingProperty(generator: Gen<Int>.int(in: -1000...1000)) { n, ctx in
       // Require 100% extreme values - impossible with uniform distribution
       ctx.cover("impossible", percentage: 100.0) { abs(n) > 999 }
       return true
@@ -246,7 +246,7 @@ struct ClassificationTests {
   @Test("ClassifyingProperty with assumption")
   func classifyingPropertyWithAssumption() async {
     let property = ClassifyingProperty(
-      generator: Gen.int(in: -100...100),
+      generator: Gen<Int>.int(in: -100...100),
       assumption: { $0 != 0 }  // Skip zero
     ) { n, ctx in
       ctx.classify("sign", n > 0 ? "positive" : "negative")
@@ -268,7 +268,7 @@ struct ClassificationTests {
 
   @Test("ClassifyingFailureReport format includes classification")
   func classifyingFailureReportFormat() async {
-    let property = ClassifyingProperty(generator: Gen.int(in: 1...10)) { n, ctx in
+    let property = ClassifyingProperty(generator: Gen<Int>.int(in: 1...10)) { n, ctx in
       ctx.classify("size", n > 5 ? "large" : "small")
       return n < 5  // Will fail on values >= 5
     }

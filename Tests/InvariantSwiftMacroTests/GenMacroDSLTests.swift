@@ -3,7 +3,7 @@ import SwiftSyntaxMacros
 import SwiftSyntaxMacrosTestSupport
 import SwiftParser
 import XCTest
-import InvariantCore
+import InvariantSwiftCore
 @testable import InvariantSwiftMacros
 
 final class GenMacroDSLTests: XCTestCase {

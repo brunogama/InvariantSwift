@@ -5,6 +5,7 @@
 /// This is part of Phase 2: Intelligence & Automation Layer.
 
 import Foundation
+import InvariantSwiftCore
 
 // MARK: - Core PropertyEffect Type
 

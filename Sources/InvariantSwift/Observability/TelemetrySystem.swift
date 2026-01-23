@@ -1,3 +1,4 @@
+import InvariantSwiftCore
 import Foundation
 import Dispatch
 import os

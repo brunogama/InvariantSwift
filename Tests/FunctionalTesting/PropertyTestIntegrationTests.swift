@@ -1,7 +1,8 @@
 import Testing
 import Foundation
-import InvariantCore
+import InvariantSwiftCore
 @testable import InvariantSwift
+@testable import InvariantSwiftTesting
 
 /// Comprehensive tests for Swift Testing integration API to achieve 99%+ code coverage
 struct PropertyTestIntegrationTests {
@@ -10,7 +11,7 @@ struct PropertyTestIntegrationTests {
 
   @Test("checkProperty - Success case")
   func checkPropertySuccessCase() async throws {
-    let property = Property<Int>(generator: Gen.int) { _ in
+    let property = Property<Int>(generator: Gen<Int>.int) { _ in
       // Property that always succeeds
       true
     }
@@ -26,7 +27,7 @@ struct PropertyTestIntegrationTests {
   func checkPropertyFailureCase() async throws {
     // Test that failure detection works correctly by using runPropertySynchronously
     // which doesn't record Issues, allowing us to verify the result
-    let property = Property<Int>(generator: Gen.int(in: 1...100)) { n in
+    let property = Property<Int>(generator: Gen<Int>.int(in: 1...100)) { n in
       n > 200  // Always false for range 1...100
     }
 
@@ -46,7 +47,7 @@ struct PropertyTestIntegrationTests {
   @Test("checkProperty - GaveUp case")
   func checkPropertyGaveUpCase() async throws {
     let property = Property<Int>(
-      generator: Gen.int(in: 1...1000),
+      generator: Gen<Int>.int(in: 1...1000),
       assumption: { _ in false },  // Always discard - triggers gaveUp
       predicate: { _ in true }
     )
@@ -65,7 +66,7 @@ struct PropertyTestIntegrationTests {
   @Test("checkPropertyAsync - Success case")
   @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
   func checkPropertyAsyncSuccessCase() async throws {
-    let property = Property<Int>(generator: Gen.int) { _ in
+    let property = Property<Int>(generator: Gen<Int>.int) { _ in
       // Property that always succeeds
       true
     }
@@ -81,7 +82,7 @@ struct PropertyTestIntegrationTests {
   @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
   func checkPropertyAsyncFailureCase() async throws {
     // Test that failure detection works correctly using async runner
-    let property = Property<Int>(generator: Gen.int(in: 1...100)) { n in
+    let property = Property<Int>(generator: Gen<Int>.int(in: 1...100)) { n in
       n > 200  // Always false for range 1...100
     }
 
@@ -102,7 +103,7 @@ struct PropertyTestIntegrationTests {
   @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
   func checkPropertyAsyncGaveUpCase() async throws {
     let property = Property<Int>(
-      generator: Gen.int(in: 1...1000),
+      generator: Gen<Int>.int(in: 1...1000),
       assumption: { _ in false },
       predicate: { _ in true }
     )
@@ -225,7 +226,7 @@ struct PropertyTestIntegrationTests {
   @Test("Error message formatting - GaveUp message structure")
   func errorMessageFormattingGaveUp() {
     let property = Property<Int>(
-      generator: Gen.int(in: 1...1000),
+      generator: Gen<Int>.int(in: 1...1000),
       assumption: { _ in false },
       predicate: { _ in true }
     )
@@ -253,7 +254,7 @@ struct PropertyTestIntegrationTests {
       seed: Seed(value: 12345)
     )
 
-    let property = Property<Int>(generator: Gen.int) { _ in
+    let property = Property<Int>(generator: Gen<Int>.int) { _ in
       true
     }
 
@@ -265,7 +266,7 @@ struct PropertyTestIntegrationTests {
 
   @Test("Integration API - Default PropertyConfig")
   func integrationApiDefaultPropertyConfig() async throws {
-    let property = Property<String>(generator: Gen.string) { _ in
+    let property = Property<String>(generator: Gen<String>.string) { _ in
       true
     }
 
@@ -279,7 +280,7 @@ struct PropertyTestIntegrationTests {
 
   @Test("Array generator integration")
   func arrayGeneratorIntegration() async throws {
-    let property = Property<[Int]>(generator: Gen.array(Gen.int)) { array in
+    let property = Property<[Int]>(generator: Gen<[Int]>.array(Gen<Int>.int)) { array in
       // Test that array generator produces valid arrays (count always >= 0)
       array.isEmpty
     }
@@ -291,7 +292,9 @@ struct PropertyTestIntegrationTests {
 
   @Test("Nested array generator integration")
   func nestedArrayGeneratorIntegration() async throws {
-    let property = Property<[[String]]>(generator: Gen.array(Gen.array(Gen.string))) { nestedArray in
+    let property = Property<[[String]]>(
+      generator: Gen.array(Gen<[String]>.array(Gen<String>.string))
+    ) { nestedArray in
       // Test that nested array generators produce valid arrays
       // Check structure is valid (arrays of arrays of strings)
       nestedArray.allSatisfy { innerArray in

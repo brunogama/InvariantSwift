@@ -2,7 +2,7 @@
 // Fake data generators that integrate with Gen<T>.
 
 import Foundation
-import InvariantCore
+import InvariantSwiftCore
 
 // MARK: - Faker Generator Extension
 

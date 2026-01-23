@@ -1,6 +1,6 @@
 import Testing
 import Foundation
-@testable import InvariantCore
+@testable import InvariantSwiftCore
 @testable import InvariantSwift
 
 /// Performance tests for property-based testing framework
@@ -11,7 +11,7 @@ struct PropertyPerformanceTests {
 
   @Test("Performance benchmark - basic property execution")
   func performanceBenchmarkBasicPropertyExecution() {
-    let property = Property<Int>(generator: Gen.int) { _ in true }
+    let property = Property<Int>(generator: Gen<Int>.int) { _ in true }
     let config = PropertyConfig(iterations: 1000)
 
     let startTime = CFAbsoluteTimeGetCurrent()
@@ -45,7 +45,7 @@ struct PropertyPerformanceTests {
     let startTime = CFAbsoluteTimeGetCurrent()
 
     for _ in 0..<iterations {
-      _ = Gen.int.generate(&rng, size)
+      _ = Gen<Int>.int.generate(&rng, size)
     }
 
     let duration = CFAbsoluteTimeGetCurrent() - startTime
@@ -65,7 +65,7 @@ struct PropertyPerformanceTests {
   @Test("Performance benchmark - shrinking performance")
   func performanceBenchmarkShrinkingPerformance() {
     // Test shrinking performance with moderately complex structures
-    let property = Property<[Int]>(generator: Gen.array(Gen.int)) { array in
+    let property = Property<[Int]>(generator: Gen<[Int]>.array(Gen<Int>.int)) { array in
       // Property that will likely fail to test shrinking
       !array.contains(42)
     }
@@ -95,7 +95,7 @@ struct PropertyPerformanceTests {
   @Test("Memory performance - large structure handling")
   func memoryPerformanceLargeStructureHandling() {
     let largeArrayProperty = Property<[String]>(
-      generator: Gen.array(Gen.string)
+      generator: Gen<[String]>.array(Gen<String>.string)
     ) { _ in
       // Property that always passes to test memory performance
       true
@@ -141,7 +141,7 @@ struct PropertyPerformanceTests {
   @Test("Concurrent performance - parallel property execution")
   @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
   func concurrentPerformanceParallelPropertyExecution() async {
-    let property = Property<Int>(generator: Gen.int) { _ in true }
+    let property = Property<Int>(generator: Gen<Int>.int) { _ in true }
     let config = PropertyConfig(iterations: 100)
 
     let concurrentTasks = 4

@@ -1,5 +1,5 @@
 import Testing
-import InvariantCore
+import InvariantSwiftCore
 @testable import InvariantSwift
 
 /// Tests for the model-based testing framework
@@ -309,7 +309,7 @@ struct BoundedCounterModel: StateMachine {
   }
 
   func generateCommand(state: Int) -> Gen<IncrementCommand> {
-    Gen.int(in: 1...5).map { IncrementCommand(amount: $0) }
+    Gen<Int>.int(in: 1...5).map { IncrementCommand(amount: $0) }
   }
 
   func invariant(state: Int) -> Bool {
@@ -339,8 +339,8 @@ struct ComplexStateMachine: StateMachine {
     }
 
     return Gen.oneOf([
-      Gen.int(in: 1...10).map { ComplexCommand.increment($0) },
-      Gen.string.map { ComplexCommand.addItem($0) },
+      Gen<Int>.int(in: 1...10).map { ComplexCommand.increment($0) },
+      Gen<String>.string.map { ComplexCommand.addItem($0) },
       Gen.pure(.deactivate),
     ])
   }

@@ -1,4 +1,5 @@
 import Foundation
+import InvariantSwiftCore
 
 // MARK: - Primitive Type Generators
 

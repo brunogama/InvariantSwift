@@ -1,7 +1,8 @@
 import Testing
 import Foundation
-@testable import InvariantCore
+@testable import InvariantSwiftCore
 @testable import InvariantSwift
+@testable import InvariantSwiftTesting
 
 /// Dogfooding Tests: Failure Reporting Verification
 ///
@@ -17,7 +18,7 @@ struct FailureReportingTests {
 
   @Test("ReproString includes seed for reproducibility")
   func reproStringIncludesSeed() {
-    let property = Property<Int>(generator: Gen.int(in: 1...100)) { value in
+    let property = Property<Int>(generator: Gen<Int>.int(in: 1...100)) { value in
       value < 10  // Will fail for most values
     }
 
@@ -121,7 +122,7 @@ struct FailureReportingTests {
 
   @Test("Same seed reproduces same failure")
   func sameSeedReproducesSameFailure() {
-    let property = Property<Int>(generator: Gen.int(in: 1...1000)) { value in
+    let property = Property<Int>(generator: Gen<Int>.int(in: 1...1000)) { value in
       value < 500
     }
 
@@ -157,7 +158,7 @@ struct FailureReportingTests {
 
   @Test("Different seeds produce different sequences")
   func differentSeedsProduceDifferentSequences() {
-    let gen = Gen.int(in: 1...10000)
+    let gen = Gen<Int>.int(in: 1...10000)
     let size = Size(value: 50)
 
     var valuesForSeed1: [Int] = []
@@ -217,7 +218,7 @@ struct GeneratorDistributionTests {
 
   @Test("optional generator produces both nil and values")
   func optionalGeneratorProducesBothCases() {
-    let gen = OptionalGen.optional(valueGen: Gen.int(in: 1...100), nilProbability: 0.3)
+    let gen = OptionalGen.optional(valueGen: Gen<Int>.int(in: 1...100), nilProbability: 0.3)
     var nilCount = 0
     var someCount = 0
 
@@ -242,7 +243,7 @@ struct AsyncPropertyShrinkingTests {
 
   @Test("Async property applies shrinking")
   func asyncPropertyAppliesShrinking() async {
-    let property = Property<Int>(generator: Gen.int(in: 50...1000)) { value in
+    let property = Property<Int>(generator: Gen<Int>.int(in: 50...1000)) { value in
       value < 100  // Will fail for values >= 100
     }
 

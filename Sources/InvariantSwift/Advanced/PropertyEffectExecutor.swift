@@ -4,6 +4,7 @@
 /// isolated, and concurrent execution with comprehensive tracing and validation.
 
 import Foundation
+import InvariantSwiftCore
 
 // MARK: - Core Executor
 

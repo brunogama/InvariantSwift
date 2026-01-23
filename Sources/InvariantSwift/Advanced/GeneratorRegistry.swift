@@ -5,6 +5,7 @@
 // Implements Task 1.7 from the roadmap.
 
 import Foundation
+import InvariantSwiftCore
 
 // MARK: - Generator Registration Types
 

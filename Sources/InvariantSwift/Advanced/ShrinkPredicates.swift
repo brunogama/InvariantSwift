@@ -5,6 +5,7 @@
 // Implements Task 1.13 from the roadmap.
 
 import Foundation
+import InvariantSwiftCore
 
 // MARK: - Shrink Predicate Protocol
 
