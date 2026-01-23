@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **PropertyTestMacroClassificationTests (Phase 01-03)**: Macro integration tests
+  - Verifies @PropertyTest macro generates code compatible with ClassifyingProperty
+  - Documents workaround for using classification with macros
+  - Tests type compatibility between Property and ClassifyingProperty overloads
 - **CoverageEnforcementTests (Phase 01-03)**: 9 tests for coverage threshold enforcement
   - Strict vs lenient mode behavior
   - Multiple coverage thresholds
