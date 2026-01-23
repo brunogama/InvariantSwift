@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **ClassificationFluentAPITests (Phase 01-03)**: 17 comprehensive tests for the fluent classification API
+  - Tests for cover(), classify(), and label() methods
+  - Method chaining and multiple coverage requirements
+  - Edge cases (0%, 100% coverage, empty properties)
+  - 3 dogfood tests using property testing to verify classification correctness
+  - Lenient vs strict mode coverage enforcement tests
 - **Swift Testing Classification Integration (Phase 01-03)**: Classification reports now appear in Swift Testing output for both passing and failing tests
   - `FailureReport.classificationReport` field for including classification data in failure messages
   - `FailureReport.from(ClassifyingPropertyResult)` factory method for creating reports with classification
