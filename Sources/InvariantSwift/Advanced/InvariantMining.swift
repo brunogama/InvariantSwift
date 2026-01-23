@@ -868,7 +868,8 @@ public struct StreamingStats: Sendable {
   }
 
   /// Whether no values have been added
-  public var isEmpty: Bool { isEmpty }
+  // swiftlint:disable:next empty_count
+  public var isEmpty: Bool { count == 0 }
 
   /// Range of values
   public var range: Double {
