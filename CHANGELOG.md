@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **CoverageEnforcementTests (Phase 01-03)**: 9 tests for coverage threshold enforcement
+  - Strict vs lenient mode behavior
+  - Multiple coverage thresholds
+  - Clear error messages with actual vs required percentages
+  - Edge cases (0%, 100% thresholds)
 - **ClassificationFluentAPITests (Phase 01-03)**: 17 comprehensive tests for the fluent classification API
   - Tests for cover(), classify(), and label() methods
   - Method chaining and multiple coverage requirements
