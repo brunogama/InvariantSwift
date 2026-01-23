@@ -48,6 +48,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * Phase 6: XCTest migration guide, terminology glossary, expanded cookbook - documentation
   * Non-functional requirements: <10% performance overhead, thread-safe actors, bounded memory
   * Success metrics: 90%+ QuickCheck parity, 100% coverage, 20%+ dogfood tests
+- **Project Roadmap** in `.planning/ROADMAP.md`:
+  * 6-phase implementation plan with 6-8 weeks total effort
+  * 29 detailed tasks with specific deliverables and file paths
+  * Phase 1: Test Observability (1-2 weeks, P0) - Wire ClassificationContext to PropertyRunner
+  * Phase 2: Enhanced Reporting (1-2 weeks, P1) - Add collect, tabulate, counterexample
+  * Phase 3: Discard & Syntax (3-5 days, P1) - Implement ==> operator and discard tracking
+  * Phase 4: Ghostwriter Fixes (1 week, P1) - Auto-generate @Arbitrary, access filtering
+  * Phase 5: Error Messages (3-5 days, P2) - Enhanced failures, progress, seed logging
+  * Phase 6: Documentation (1 week, P2) - XCTest migration guide, 20+ examples, glossary
+  * Quality gates: 100% coverage, 20%+ dogfood tests, zero warnings enforced per phase
+  * Parallelization opportunities: Phases 3-4 can run concurrently
+  * Dependencies graph and timeline with critical path identified
+  * Success criteria: 90%+ QuickCheck feature parity, user testing with non-FP developers
 - **JSON Report Schema for CI/CD Integration** (ISP-0008):
   * `RunReport` struct with versioned schema (v1) for machine-readable test outputs
   * Test outcome enum: `.success`, `.failed`, `.gaveUp`
