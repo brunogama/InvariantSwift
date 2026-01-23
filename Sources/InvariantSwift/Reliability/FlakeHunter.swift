@@ -1,3 +1,4 @@
+import InvariantSwiftCore
 import Foundation
 import Dispatch
 
@@ -293,7 +294,7 @@ public struct FlakeStatistics: Codable, Sendable {
     let environmentVariance = environmentGroups.values.map { group -> Double in
       let failures = group.filter { $0.result.isFailure }.count
       return Double(failures) / Double(group.count)
-    // swiftlint:disable:next multiline_function_chains
+      // swiftlint:disable:next multiline_function_chains
     }.variance()
 
     score += environmentVariance * 0.3

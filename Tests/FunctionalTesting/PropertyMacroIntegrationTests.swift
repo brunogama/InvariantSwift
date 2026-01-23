@@ -1,4 +1,4 @@
-import InvariantCore
+import InvariantSwiftCore
 import InvariantSwift
 import Testing
 
@@ -142,7 +142,7 @@ struct PropertyMacroIntegrationTests {
   @Test("Property test with Array<Int> parameter")
   func propertyTestArrayInt() throws {
     // Simulates: @PropertyTest func test(arr: [Int]) { ... }
-    let generator = Gen.array(Gen<Int>.int)
+    let generator = Gen<[Int]>.array(Gen<Int>.int)
     let property = Property<[Int]>(generator: generator) { arr in
       arr.isEmpty  // Arrays always have non-negative count
     }

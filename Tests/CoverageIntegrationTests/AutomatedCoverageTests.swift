@@ -1,7 +1,8 @@
 import Testing
 import Foundation
-import InvariantCore
+import InvariantSwiftCore
 @testable import InvariantSwift
+@testable import InvariantSwiftExperimental
 
 /// Comprehensive automated coverage validation tests
 ///
@@ -187,7 +188,7 @@ struct AutomatedCoverageTests {
 
     // Run a test that should exercise more code paths
     let property = Property(
-      generator: Gen.array(Gen.int(in: 1...100)),
+      generator: Gen<[Int]>.array(Gen<Int>.int(in: 1...100)),
       predicate: { array in
         // This should exercise array generation and validation
         array.allSatisfy { $0 > 0 }
@@ -257,7 +258,7 @@ struct AutomatedCoverageTests {
     */
 
     // Test functor laws with coverage tracking
-    let functorProperty = Property(generator: Gen.int(in: 1...100)) { value in
+    let functorProperty = Property(generator: Gen<Int>.int(in: 1...100)) { value in
       let gen = Gen.pure(value)
       let identity = gen.map { $0 }
 
@@ -291,7 +292,7 @@ struct CoverageTestUtilities {
     _ path: LLVMCoverageRunner.UncoveredPath
   ) -> Property<Int> {
     // Create a property test designed to hit the specific uncovered path
-    Property(generator: Gen.int) { _ in
+    Property(generator: Gen<Int>.int) { _ in
       // This is a placeholder - actual implementation would be path-specific
       true
     }

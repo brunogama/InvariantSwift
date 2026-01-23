@@ -1,3 +1,4 @@
+import InvariantSwiftCore
 // MARK: - ISP-0008: Targeted Runner
 // Orchestrates targeted property testing with feedback loop.
 

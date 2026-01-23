@@ -1,6 +1,6 @@
 import Testing
 import Foundation
-import InvariantCore
+import InvariantSwiftCore
 @testable import InvariantSwift
 
 // swiftlint:disable file_length
@@ -13,7 +13,7 @@ struct PerformanceAndEdgeCaseTests {
 
   @Test("Performance - Large iteration count stress test")
   func performanceLargeIterationCount() async throws {
-    let property = Property<Int>(generator: Gen.int) { _ in
+    let property = Property<Int>(generator: Gen<Int>.int) { _ in
       true  // Simple property for performance testing
     }
 
@@ -37,7 +37,7 @@ struct PerformanceAndEdgeCaseTests {
 
     // Create many generators to test overhead
     let generators = (0..<10000).map { _ in
-      Gen.int.zip(Gen.string).zip(Gen.bool)
+      Gen<Int>.int.zip(Gen<String>.string).zip(Gen<Bool>.bool)
     }
 
     let creationTime = CFAbsoluteTimeGetCurrent() - startTime
@@ -48,7 +48,7 @@ struct PerformanceAndEdgeCaseTests {
 
   @Test("Performance - Shrinking performance with complex structures")
   func performanceShrinkingComplexStructures() {
-    let complexGenerator = Gen.array(Gen.array(Gen.string))
+    let complexGenerator = Gen.array(Gen<[String]>.array(Gen<String>.string))
     let property = Property<[[String]]>(generator: complexGenerator) { nestedArrays in
       // Property that will likely fail to test shrinking performance
       nestedArrays.allSatisfy { innerArray in
@@ -165,13 +165,13 @@ struct PerformanceAndEdgeCaseTests {
   @Test("Edge case - Nested zip generators with deep nesting")
   func edgeCaseNestedZipGeneratorsDeepNesting() {
     // Create deeply nested zip structure
-    let deeplyNested = Gen.int
-      .zip(Gen.string)
-      .zip(Gen.bool)
+    let deeplyNested = Gen<Int>.int
+      .zip(Gen<String>.string)
+      .zip(Gen<Bool>.bool)
       .zip(Gen.float)
       .zip(Gen.double)
-      .zip(Gen.int)
-      .zip(Gen.string)
+      .zip(Gen<Int>.int)
+      .zip(Gen<String>.string)
 
     let property = Property<((((((Int, String), Bool), Float), Double), Int), String)>(
       generator: deeplyNested
@@ -326,7 +326,7 @@ struct PerformanceAndEdgeCaseTests {
 
     let sharedCounter = SharedCounter()
 
-    let property = Property<Int>(generator: Gen.int(in: 1...10)) { _ in
+    let property = Property<Int>(generator: Gen<Int>.int(in: 1...10)) { _ in
       _ = sharedCounter.increment()
       return true
     }
@@ -360,7 +360,7 @@ struct PerformanceAndEdgeCaseTests {
   @Test("Edge case - Concurrent property execution with resource contention")
   func edgeCaseConcurrentPropertyExecutionResourceContention() async throws {
     // Test with many concurrent tasks to create resource contention
-    let property = Property<String>(generator: Gen.string) { str in
+    let property = Property<String>(generator: Gen<String>.string) { str in
       // Simulate some work
       str.isEmpty
     }
@@ -397,7 +397,7 @@ struct PerformanceAndEdgeCaseTests {
 
   @Test("Boundary condition - PropertyConfig edge values")
   func boundaryConditionPropertyConfigEdgeValues() {
-    let property = Property<Int>(generator: Gen.int) { _ in true }
+    let property = Property<Int>(generator: Gen<Int>.int) { _ in true }
 
     // Test with minimum iterations
     let minResult = runPropertySynchronously(property, config: PropertyConfig(iterations: 1))

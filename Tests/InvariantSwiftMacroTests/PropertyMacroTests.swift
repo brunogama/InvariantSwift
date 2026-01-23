@@ -5,7 +5,7 @@ import SwiftSyntaxMacrosTestSupport
 import Testing
 
 // Import the macro implementation
-import InvariantCore
+import InvariantSwiftCore
 @testable import InvariantSwiftMacros
 
 /// Base class for macro testing with helper methods and validation utilities
@@ -690,7 +690,7 @@ struct FunctionNamingTests {
 
       @Test("Test naming")
       public func checkReversibility_Property() throws {
-          let generator = Gen.array(Gen.int)
+          let generator = Gen<[Int]>.array(Gen<Int>.int)
           let property = Property(generator: generator) { (list: [Int]) in
               return list.reversed().reversed() == list
           }

@@ -5,6 +5,7 @@
 /// exploring relationships between different inputs and outputs.
 
 import Foundation
+import InvariantSwiftCore
 
 // MARK: - Core Types
 

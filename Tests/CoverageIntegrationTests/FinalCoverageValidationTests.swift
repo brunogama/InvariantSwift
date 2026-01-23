@@ -1,7 +1,7 @@
 // swiftlint:disable function_body_length type_body_length
 import Testing
 import Foundation
-import InvariantCore
+import InvariantSwiftCore
 @testable import InvariantSwift
 
 /// Final comprehensive coverage validation tests for achieving and maintaining 99%+ code coverage
@@ -16,9 +16,9 @@ struct FinalCoverageValidationTests {
     // Comprehensive validation of all public API entry points
 
     // 1. Property Creation APIs
-    let basicProperty = Property<Int>(generator: Gen.int) { _ in true }
+    let basicProperty = Property<Int>(generator: Gen<Int>.int) { _ in true }
     let conditionalProperty = Property<String>(
-      generator: Gen.string.suchThat { !$0.isEmpty }
+      generator: Gen<String>.string.suchThat { !$0.isEmpty }
     ) {
       !$0.isEmpty
     }
@@ -38,7 +38,7 @@ struct FinalCoverageValidationTests {
       config: PropertyConfig(iterations: 1)
     )
     let failureResult = runPropertySynchronously(
-      Property<Int>(generator: Gen.int) { _ in false },
+      Property<Int>(generator: Gen<Int>.int) { _ in false },
       config: PropertyConfig(iterations: 1)
     )
 
@@ -78,13 +78,13 @@ struct FinalCoverageValidationTests {
     // 4. Generator APIs - All creation patterns
     // Test each generator individually since they have different types
     var intRng: any RandomNumberGenerator = SeedBasedRandomNumberGenerator(seed: Seed(value: 100))
-    let intValue = Gen.int.generate(&intRng, Size(value: 10))
+    let intValue = Gen<Int>.int.generate(&intRng, Size(value: 10))
     #expect(intValue >= Int.min, "Int generator should work")
 
     var rangedIntRng: any RandomNumberGenerator = SeedBasedRandomNumberGenerator(
       seed: Seed(value: 101)
     )
-    let rangedIntValue = Gen.int(in: 1...100).generate(&rangedIntRng, Size(value: 10))
+    let rangedIntValue = Gen<Int>.int(in: 1...100).generate(&rangedIntRng, Size(value: 10))
     #expect(rangedIntValue >= 1 && rangedIntValue <= 100, "Ranged int generator should work")
 
     var doubleRng: any RandomNumberGenerator = SeedBasedRandomNumberGenerator(
@@ -97,13 +97,13 @@ struct FinalCoverageValidationTests {
     )
 
     var boolRng: any RandomNumberGenerator = SeedBasedRandomNumberGenerator(seed: Seed(value: 103))
-    let boolValue = Gen.bool.generate(&boolRng, Size(value: 10))
+    let boolValue = Gen<Bool>.bool.generate(&boolRng, Size(value: 10))
     #expect(boolValue == true || boolValue == false, "Bool generator should work")
 
     var stringRng: any RandomNumberGenerator = SeedBasedRandomNumberGenerator(
       seed: Seed(value: 104)
     )
-    let stringValue = Gen.string.generate(&stringRng, Size(value: 10))
+    let stringValue = Gen<String>.string.generate(&stringRng, Size(value: 10))
     #expect(!stringValue.isEmpty || stringValue.isEmpty, "String generator should work")
 
     var pureRng: any RandomNumberGenerator = SeedBasedRandomNumberGenerator(seed: Seed(value: 105))
@@ -114,13 +114,16 @@ struct FinalCoverageValidationTests {
     var arrayIntRng: any RandomNumberGenerator = SeedBasedRandomNumberGenerator(
       seed: Seed(value: 200)
     )
-    let arrayIntValue = Gen.array(Gen.int).generate(&arrayIntRng, Size(value: 10))
+    let arrayIntValue = Gen<[Int]>.array(Gen<Int>.int).generate(&arrayIntRng, Size(value: 10))
     #expect(!arrayIntValue.isEmpty || arrayIntValue.isEmpty, "Int array generator should work")
 
     var arrayStringRng: any RandomNumberGenerator = SeedBasedRandomNumberGenerator(
       seed: Seed(value: 201)
     )
-    let arrayStringValue = Gen.array(Gen.string).generate(&arrayStringRng, Size(value: 10))
+    let arrayStringValue = Gen<[String]>.array(Gen<String>.string).generate(
+      &arrayStringRng,
+      Size(value: 10)
+    )
     #expect(
       !arrayStringValue.isEmpty || arrayStringValue.isEmpty,
       "String array generator should work"
@@ -129,14 +132,14 @@ struct FinalCoverageValidationTests {
     var arrayBoolRng: any RandomNumberGenerator = SeedBasedRandomNumberGenerator(
       seed: Seed(value: 202)
     )
-    let arrayBoolValue = Gen.array(Gen.bool).generate(&arrayBoolRng, Size(value: 10))
+    let arrayBoolValue = Gen<[Bool]>.array(Gen<Bool>.bool).generate(&arrayBoolRng, Size(value: 10))
     #expect(!arrayBoolValue.isEmpty || arrayBoolValue.isEmpty, "Bool array generator should work")
 
     // 6. Generator Combinators - All composition patterns
-    let intStringZip = Gen.int.zip(Gen.string)
-    let mappedGenerator = Gen.int.map { $0 * 2 }
-    let flatMappedGenerator = Gen.int.flatMap { n in Gen.array(Gen.pure(n)) }
-    let filteredGenerator = Gen.int.tryGenerate(where: { $0 > 0 })
+    let intStringZip = Gen<Int>.int.zip(Gen<String>.string)
+    let mappedGenerator = Gen<Int>.int.map { $0 * 2 }
+    let flatMappedGenerator = Gen<Int>.int.flatMap { n in Gen<[Int]>.array(Gen<Int>.pure(n)) }
+    let filteredGenerator = Gen<Int>.int.tryGenerate(where: { $0 > 0 })
 
     var combRng1: any RandomNumberGenerator = SeedBasedRandomNumberGenerator(seed: Seed(value: 301))
     var combRng2: any RandomNumberGenerator = SeedBasedRandomNumberGenerator(seed: Seed(value: 302))
@@ -177,11 +180,11 @@ struct FinalCoverageValidationTests {
     }
 
     // 8. Shrinking APIs - All shrinking patterns
-    let intShrink = Gen.int.shrink
+    let intShrink = Gen<Int>.int.shrink
     let doubleShrink = Gen.double.shrink
-    let boolShrink = Gen.bool.shrink
-    let stringShrink = Gen.string.shrink
-    let arrayShrink = Gen.array(Gen.int).shrink
+    let boolShrink = Gen<Bool>.bool.shrink
+    let stringShrink = Gen<String>.string.shrink
+    let arrayShrink = Gen<[Int]>.array(Gen<Int>.int).shrink
 
     let intShrinks = intShrink.shrink(100)
     let doubleShrinks = doubleShrink.shrink(50.5)
@@ -234,7 +237,7 @@ struct FinalCoverageValidationTests {
       PropertyConfig(iterations: 0, maxShrinks: -1, maxDiscarded: -1),  // Should handle gracefully
     ]
 
-    let simpleProperty = Property<Bool>(generator: Gen.bool) { _ in true }
+    let simpleProperty = Property<Bool>(generator: Gen<Bool>.bool) { _ in true }
 
     for config in extremeConfigs {
       let result = runPropertySynchronously(simpleProperty, config: config)
@@ -246,7 +249,9 @@ struct FinalCoverageValidationTests {
 
     // 3. Empty and Large Collection Edge Cases
     let emptyArrayProperty = Property<[Int]>(generator: Gen.pure([])) { $0.isEmpty }
-    let largeArrayProperty = Property<[Int]>(generator: Gen.array(Gen.int)) { $0.isEmpty }
+    let largeArrayProperty = Property<[Int]>(generator: Gen<[Int]>.array(Gen<Int>.int)) {
+      $0.isEmpty
+    }
 
     let emptyResult = runPropertySynchronously(
       emptyArrayProperty,
@@ -387,8 +392,8 @@ struct FinalCoverageValidationTests {
 
     for seed in rngEdgeCases {
       var rng: any RandomNumberGenerator = SeedBasedRandomNumberGenerator(seed: Seed(value: seed))
-      let intValue = Gen.int.generate(&rng, Size(value: 10))
-      let stringValue = Gen.string.generate(&rng, Size(value: 10))
+      let intValue = Gen<Int>.int.generate(&rng, Size(value: 10))
+      let stringValue = Gen<String>.string.generate(&rng, Size(value: 10))
 
       #expect(
         intValue >= Int.min && intValue <= Int.max,
@@ -406,9 +411,9 @@ struct FinalCoverageValidationTests {
 
     // 1. Property Failure Scenarios
     let failureScenarios: [Property<Int>] = [
-      Property<Int>(generator: Gen.int) { _ in false },  // Always fails
-      Property<Int>(generator: Gen.int(in: 1...10)) { $0 > 10 },  // Impossible condition
-      Property<Int>(generator: Gen.int(in: 1...100)) { $0 < 0 },  // Range mismatch
+      Property<Int>(generator: Gen<Int>.int) { _ in false },  // Always fails
+      Property<Int>(generator: Gen<Int>.int(in: 1...10)) { $0 > 10 },  // Impossible condition
+      Property<Int>(generator: Gen<Int>.int(in: 1...100)) { $0 < 0 },  // Range mismatch
       Property<Int>(generator: Gen.pure(50)) { $0 != 50 },  // Contradictory
     ]
 
@@ -433,8 +438,8 @@ struct FinalCoverageValidationTests {
     // Note: Use suchThat for generators that may fail (returns same type but may loop)
     // Using regular generators with false predicates to test behavior
     let problematicGenerators: [Gen<Int>] = [
-      Gen.int.suchThat { _ in false },  // Impossible filter - will loop
-      Gen.int,  // Regular generator for comparison
+      Gen<Int>.int.suchThat { _ in false },  // Impossible filter - will loop
+      Gen<Int>.int,  // Regular generator for comparison
     ]
 
     for (index, generator) in problematicGenerators.enumerated() {
@@ -457,10 +462,10 @@ struct FinalCoverageValidationTests {
     }
 
     // 3. Shrinking Failure Scenarios
-    let emptyShrinks = Gen.string.shrink.shrink("")
-    let emptyArrayShrinks = Gen.array(Gen.int).shrink.shrink([])
-    let zeroShrinks = Gen.int.shrink.shrink(0)
-    let falseShrinks = Gen.bool.shrink.shrink(false)
+    let emptyShrinks = Gen<String>.string.shrink.shrink("")
+    let emptyArrayShrinks = Gen<[Int]>.array(Gen<Int>.int).shrink.shrink([])
+    let zeroShrinks = Gen<Int>.int.shrink.shrink(0)
+    let falseShrinks = Gen<Bool>.bool.shrink.shrink(false)
 
     #expect(emptyShrinks.isEmpty, "String shrinking should handle empty values")
     #expect(emptyArrayShrinks.isEmpty, "Array shrinking should handle empty values")
@@ -474,7 +479,7 @@ struct FinalCoverageValidationTests {
       PropertyConfig(iterations: 1, maxShrinks: -10),  // Negative shrinks (handled gracefully)
     ]
 
-    let testProperty = Property<Bool>(generator: Gen.bool) { _ in true }
+    let testProperty = Property<Bool>(generator: Gen<Bool>.bool) { _ in true }
 
     for config in edgeConfigurations {
       let result = runPropertySynchronously(testProperty, config: config)
@@ -489,7 +494,7 @@ struct FinalCoverageValidationTests {
       let asyncRunner = PropertyRunner()
 
       // Test async with failing property
-      let failingAsyncProperty = Property<Int>(generator: Gen.int) { _ in false }
+      let failingAsyncProperty = Property<Int>(generator: Gen<Int>.int) { _ in false }
       let asyncFailResult = await asyncRunner.runProperty(
         failingAsyncProperty,
         config: PropertyConfig(iterations: 3)
@@ -504,7 +509,8 @@ struct FinalCoverageValidationTests {
       }
 
       // Test async with give-up property - use suchThat which may loop/fail
-      let giveUpAsyncProperty = Property<Int>(generator: Gen.int.suchThat { _ in false }) { _ in
+      let giveUpAsyncProperty = Property<Int>(generator: Gen<Int>.int.suchThat { _ in false }) {
+        _ in
         true
       }
       let asyncGiveUpResult = await asyncRunner.runProperty(
@@ -523,7 +529,7 @@ struct FinalCoverageValidationTests {
 
     // 6. Memory and Resource Edge Cases
     let resourceTestProperty = Property<[String]>(
-      generator: Gen.array(Gen.string)
+      generator: Gen<[String]>.array(Gen<String>.string)
     ) { array in
       // Test that doesn't consume excessive memory
       array.allSatisfy { $0.isEmpty }
@@ -550,23 +556,23 @@ struct FinalCoverageValidationTests {
     // 1. Generator ↔ PropertyChecker Integration
     // Test each generator individually since they have different types
     let intResult = runPropertySynchronously(
-      Property<Int>(generator: Gen.int) { _ in true },
+      Property<Int>(generator: Gen<Int>.int) { _ in true },
       config: PropertyConfig(iterations: 10)
     )
     let stringResult = runPropertySynchronously(
-      Property<String>(generator: Gen.string) { _ in true },
+      Property<String>(generator: Gen<String>.string) { _ in true },
       config: PropertyConfig(iterations: 10)
     )
     let boolResult = runPropertySynchronously(
-      Property<Bool>(generator: Gen.bool) { _ in true },
+      Property<Bool>(generator: Gen<Bool>.bool) { _ in true },
       config: PropertyConfig(iterations: 10)
     )
     let arrayResult = runPropertySynchronously(
-      Property<[Int]>(generator: Gen.array(Gen.int)) { _ in true },
+      Property<[Int]>(generator: Gen<[Int]>.array(Gen<Int>.int)) { _ in true },
       config: PropertyConfig(iterations: 10)
     )
     let zipResult = runPropertySynchronously(
-      Property<(Int, String)>(generator: Gen.int.zip(Gen.string)) { _ in true },
+      Property<(Int, String)>(generator: Gen<Int>.int.zip(Gen<String>.string)) { _ in true },
       config: PropertyConfig(iterations: 10)
     )
 
@@ -612,7 +618,9 @@ struct FinalCoverageValidationTests {
     }
 
     // 2. PropertyChecker ↔ Shrinking Integration
-    let shrinkingIntegrationProperty = Property<[Int]>(generator: Gen.array(Gen.int(in: 1...100))) {
+    let shrinkingIntegrationProperty = Property<[Int]>(
+      generator: Gen<[Int]>.array(Gen<Int>.int(in: 1...100))
+    ) {
       array in
       !array.contains(50)  // Will likely fail and trigger shrinking
     }
@@ -639,9 +647,9 @@ struct FinalCoverageValidationTests {
     // 3. PropertyRunner ↔ Async Integration
     let asyncRunner = PropertyRunner(seed: Seed(value: 67890))
     let asyncProperties: [Property<Int>] = [
-      Property<Int>(generator: Gen.int) { _ in true },
-      Property<Int>(generator: Gen.int(in: 1...10)) { $0 > 0 },
-      Property<Int>(generator: Gen.int(in: -100...100)) { abs($0) <= 100 },
+      Property<Int>(generator: Gen<Int>.int) { _ in true },
+      Property<Int>(generator: Gen<Int>.int(in: 1...10)) { $0 > 0 },
+      Property<Int>(generator: Gen<Int>.int(in: -100...100)) { abs($0) <= 100 },
     ]
 
     for (index, asyncProperty) in asyncProperties.enumerated() {
@@ -665,8 +673,8 @@ struct FinalCoverageValidationTests {
     for size in sizeIntegrationSizes {
       var rng: any RandomNumberGenerator = SeedBasedRandomNumberGenerator(seed: Seed(value: 555))
 
-      let intValue = Gen.int.generate(&rng, size)
-      let arrayValue = Gen.array(Gen.string).generate(&rng, size)
+      let intValue = Gen<Int>.int.generate(&rng, size)
+      let arrayValue = Gen<[String]>.array(Gen<String>.string).generate(&rng, size)
 
       #expect(intValue >= Int.min, "Size-Generator integration should work for size \(size.value)")
       #expect(
@@ -682,7 +690,7 @@ struct FinalCoverageValidationTests {
       PropertyConfig(iterations: 30, maxShrinks: 15, maxDiscarded: 60, seed: Seed(value: 333)),
     ]
 
-    let configProperty = Property<String>(generator: Gen.string) { _ in true }
+    let configProperty = Property<String>(generator: Gen<String>.string) { _ in true }
 
     for (index, config) in integrationConfigs.enumerated() {
       let configResult = runPropertySynchronously(configProperty, config: config)
@@ -703,10 +711,10 @@ struct FinalCoverageValidationTests {
     let errorPropagationScenarios: [(String, Property<Int>)] = [
       (
         "Generator Error",
-        Property<Int>(generator: Gen.int.suchThat { _ in false }) { _ in true }
+        Property<Int>(generator: Gen<Int>.int.suchThat { _ in false }) { _ in true }
       ),
-      ("Property Error", Property<Int>(generator: Gen.int) { _ in false }),
-      ("Shrinking Error", Property<Int>(generator: Gen.int(in: 1...5)) { $0 > 10 }),
+      ("Property Error", Property<Int>(generator: Gen<Int>.int) { _ in false }),
+      ("Shrinking Error", Property<Int>(generator: Gen<Int>.int(in: 1...5)) { $0 > 10 }),
     ]
 
     for (name, errorProperty) in errorPropagationScenarios {
@@ -726,7 +734,7 @@ struct FinalCoverageValidationTests {
 
     // 7. Concurrent Integration
     let concurrentProperties: [Property<Bool>] = [
-      Property<Bool>(generator: Gen.bool) { _ in true },
+      Property<Bool>(generator: Gen<Bool>.bool) { _ in true },
       Property<Bool>(generator: Gen.pure(true)) { $0 == true },
       Property<Bool>(generator: Gen.pure(false)) { $0 == false },
     ]
@@ -762,7 +770,7 @@ struct FinalCoverageValidationTests {
     let performanceIterations = [100, 500, 1000]
 
     for iterations in performanceIterations {
-      let perfProperty = Property<Int>(generator: Gen.int) { _ in true }
+      let perfProperty = Property<Int>(generator: Gen<Int>.int) { _ in true }
       let perfConfig = PropertyConfig(iterations: iterations)
 
       let startTime = CFAbsoluteTimeGetCurrent()
@@ -803,7 +811,7 @@ struct FinalCoverageValidationTests {
     var rng1: any RandomNumberGenerator = SeedBasedRandomNumberGenerator(seed: Seed(value: 888))
     let intStartTime = CFAbsoluteTimeGetCurrent()
     for _ in 0..<generations {
-      _ = Gen.int.generate(&rng1, size)
+      _ = Gen<Int>.int.generate(&rng1, size)
     }
     let intDuration = CFAbsoluteTimeGetCurrent() - intStartTime
     #expect(
@@ -827,7 +835,7 @@ struct FinalCoverageValidationTests {
     var rng3: any RandomNumberGenerator = SeedBasedRandomNumberGenerator(seed: Seed(value: 890))
     let stringStartTime = CFAbsoluteTimeGetCurrent()
     for _ in 0..<generations {
-      _ = Gen.string.generate(&rng3, size)
+      _ = Gen<String>.string.generate(&rng3, size)
     }
     let stringDuration = CFAbsoluteTimeGetCurrent() - stringStartTime
     #expect(
@@ -839,7 +847,7 @@ struct FinalCoverageValidationTests {
     var rng4: any RandomNumberGenerator = SeedBasedRandomNumberGenerator(seed: Seed(value: 891))
     let boolStartTime = CFAbsoluteTimeGetCurrent()
     for _ in 0..<generations {
-      _ = Gen.bool.generate(&rng4, size)
+      _ = Gen<Bool>.bool.generate(&rng4, size)
     }
     let boolDuration = CFAbsoluteTimeGetCurrent() - boolStartTime
     #expect(
@@ -851,7 +859,7 @@ struct FinalCoverageValidationTests {
     var rng5: any RandomNumberGenerator = SeedBasedRandomNumberGenerator(seed: Seed(value: 892))
     let arrayStartTime = CFAbsoluteTimeGetCurrent()
     for _ in 0..<generations {
-      _ = Gen.array(Gen.int).generate(&rng5, size)
+      _ = Gen<[Int]>.array(Gen<Int>.int).generate(&rng5, size)
     }
     let arrayDuration = CFAbsoluteTimeGetCurrent() - arrayStartTime
     #expect(
@@ -861,15 +869,15 @@ struct FinalCoverageValidationTests {
 
     // 3. Shrinking Performance Validation
     let intShrinkTime = CFAbsoluteTimeGetCurrent()
-    let intShrinks = Gen.int.shrink.shrink(1000)
+    let intShrinks = Gen<Int>.int.shrink.shrink(1000)
     let intShrinkDuration = CFAbsoluteTimeGetCurrent() - intShrinkTime
 
     let stringShrinkTime = CFAbsoluteTimeGetCurrent()
-    let stringShrinks = Gen.string.shrink.shrink("hello world test string")
+    let stringShrinks = Gen<String>.string.shrink.shrink("hello world test string")
     let stringShrinkDuration = CFAbsoluteTimeGetCurrent() - stringShrinkTime
 
     let arrayShrinkTime = CFAbsoluteTimeGetCurrent()
-    let arrayShrinks = Gen.array(Gen.int).shrink.shrink(Array(1...50))
+    let arrayShrinks = Gen<[Int]>.array(Gen<Int>.int).shrink.shrink(Array(1...50))
     let arrayShrinkDuration = CFAbsoluteTimeGetCurrent() - arrayShrinkTime
 
     #expect(intShrinkDuration < 0.1, "Int shrinking should be fast: \(intShrinkDuration)s")
@@ -883,7 +891,7 @@ struct FinalCoverageValidationTests {
 
     // 4. Memory Usage Validation
     let memoryTestProperty = Property<[String]>(
-      generator: Gen.array(Gen.string)
+      generator: Gen<[String]>.array(Gen<String>.string)
     ) { array in
       array.isEmpty
     }
@@ -915,7 +923,7 @@ struct FinalCoverageValidationTests {
       await withTaskGroup(of: Void.self) { group in
         for i in 0..<4 {  // 4 concurrent tasks
           group.addTask {
-            let concurrentProperty = Property<Int>(generator: Gen.int) { _ in true }
+            let concurrentProperty = Property<Int>(generator: Gen<Int>.int) { _ in true }
             let concurrentRunner = PropertyRunner(seed: Seed(value: UInt64(i + 999)))
             _ = await concurrentRunner.runProperty(
               concurrentProperty,

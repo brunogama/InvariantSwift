@@ -3,6 +3,7 @@ import SwiftSyntaxMacros
 import SwiftSyntaxMacrosTestSupport
 import Foundation
 @testable import InvariantSwiftMacros
+import InvariantSwiftCore
 
 final class MacroGoldenTests: XCTestCase {
   let testMacros: [String: Macro.Type] = [

@@ -1,6 +1,6 @@
 import Testing
 import Foundation
-@testable import InvariantCore
+@testable import InvariantSwiftCore
 @testable import InvariantSwift
 
 // MARK: - Test Utilities Framework for 99%+ Code Coverage (Task 11)
@@ -502,7 +502,7 @@ private enum PropertyTestUtils {
 public enum TestGenerators {
 
   /// Generator for small positive integers
-  public static let smallPositiveInt = Gen.int(in: 1...100)
+  public static let smallPositiveInt = Gen<Int>.int(in: 1...100)
 
   /// Generator for small arrays
   public static func smallArray<T>(_ elementGen: Gen<T>) -> Gen<[T]> {

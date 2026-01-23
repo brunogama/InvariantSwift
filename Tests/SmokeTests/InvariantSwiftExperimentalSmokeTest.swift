@@ -1,5 +1,7 @@
+import InvariantSwiftCore
+import InvariantSwift
 import InvariantSwiftExperimental
 
 // Smoke test: Verify InvariantSwiftExperimental can be imported and experimental features are available
-let gen = Gen<Int>.int
-let property = Property(generator: gen) { _ in true }
+let smokeExperimentalGen = Gen<Int>.int
+let smokeExperimentalProperty = Property(generator: smokeExperimentalGen) { _ in true }

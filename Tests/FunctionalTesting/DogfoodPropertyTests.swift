@@ -1,5 +1,5 @@
 import Testing
-@testable import InvariantCore
+@testable import InvariantSwiftCore
 @testable import InvariantSwift
 
 /// Dogfooding tests: Using FunctionalTesting to test itself
@@ -10,8 +10,8 @@ struct DogfoodPropertyTests {
 
   @Test("Generator Functor Identity Law")
   func generatorFunctorIdentityLaw() async {
-    let property = Property<Int>(generator: Gen.int) { n in
-      _ = Gen.int.map { $0 }  // Identity function
+    let property = Property<Int>(generator: Gen<Int>.int) { n in
+      _ = Gen<Int>.int.map { $0 }  // Identity function
       _ = n
 
       // Test that map with identity preserves the value structure
@@ -42,7 +42,7 @@ struct DogfoodPropertyTests {
     let _: (Int) -> String = { String($0) }
     let _: (String) -> Int = { $0.count }
 
-    let property = Property<Int>(generator: Gen.int) { _ in
+    let property = Property<Int>(generator: Gen<Int>.int) { _ in
       // Test: map(g . f) == map(g) . map(f)
       // Since we can't directly compare generators, we test the law conceptually
       true  // Law holds if type system enforces correctness
@@ -67,7 +67,7 @@ struct DogfoodPropertyTests {
 
   @Test("Generator Applicative Identity Law")
   func generatorApplicativeIdentityLaw() async {
-    let property = Property<Int>(generator: Gen.int) { _ in
+    let property = Property<Int>(generator: Gen<Int>.int) { _ in
       // Test: pure(id) <*> v = v (conceptually)
       // The identity function application law is validated through type-system correctness
       // We avoid testing Gen.pure with function types due to Sendable constraints
@@ -95,7 +95,7 @@ struct DogfoodPropertyTests {
   func generatorMonadLeftIdentityLaw() async {
     let f: @Sendable (Int) -> Gen<String> = { n in Gen.pure(String(n)) }
 
-    let property = Property<Int>(generator: Gen.int) { n in
+    let property = Property<Int>(generator: Gen<Int>.int) { n in
       // Test: return(a) >>= f == f(a) (conceptually)
       _ = Gen.pure(n).flatMap(f)
       _ = f(n)
@@ -122,9 +122,9 @@ struct DogfoodPropertyTests {
 
   @Test("Generator Monad Right Identity Law")
   func generatorMonadRightIdentityLaw() async {
-    let property = Property<Int>(generator: Gen.int) { _ in
+    let property = Property<Int>(generator: Gen<Int>.int) { _ in
       // Test: m >>= return == m (conceptually)
-      _ = Gen.int.flatMap(Gen.pure)
+      _ = Gen<Int>.int.flatMap(Gen.pure)
       // Since we can't compare generators directly, we validate the concept
       return true
     }
@@ -150,9 +150,9 @@ struct DogfoodPropertyTests {
 
   @Test("Shrinking Reduces Size")
   func shrinkingReducesSize() async {
-    let property = Property<[Int]>(generator: Gen.array(Gen.int)) { array in
+    let property = Property<[Int]>(generator: Gen<[Int]>.array(Gen<Int>.int)) { array in
       // Test that shrinking produces smaller arrays
-      let shrunkArrays = Gen.array(Gen.int).shrink.shrink(array)
+      let shrunkArrays = Gen<[Int]>.array(Gen<Int>.int).shrink.shrink(array)
 
       // All shrunk arrays should be smaller than or equal to the original
       return shrunkArrays.allSatisfy { shrunk in
@@ -182,7 +182,7 @@ struct DogfoodPropertyTests {
   @Test("Shrinking Preserves Failure")
   func shrinkingPreservesFailure() async {
     // Test a property that should fail: "all integers are positive"
-    let failingProperty = Property<Int>(generator: Gen.int) { n in
+    let failingProperty = Property<Int>(generator: Gen<Int>.int) { n in
       n > 0  // This will fail for negative numbers and zero
     }
 
@@ -213,7 +213,8 @@ struct DogfoodPropertyTests {
   @Test("Shrinking Finds Minimal Counterexample")
   func shrinkingFindsMinimalCounterexample() async {
     // Test property: "no array contains the number 42"
-    let property = Property<[Int]>(generator: Gen.array(Gen.int(in: 0...100))) { array in
+    let property = Property<[Int]>(generator: Gen<[Int]>.array(Gen<Int>.int(in: 0...100))) {
+      array in
       !array.contains(42)
     }
 
@@ -244,7 +245,7 @@ struct DogfoodPropertyTests {
   @Test("Properties That Should Always Pass")
   func propertiesThatShouldAlwaysPass() async {
     // Test: reversing twice gives original array
-    let reverseProperty = Property<[Int]>(generator: Gen.array(Gen.int)) { array in
+    let reverseProperty = Property<[Int]>(generator: Gen<[Int]>.array(Gen<Int>.int)) { array in
       array.reversed().reversed() == array
     }
 
@@ -266,7 +267,7 @@ struct DogfoodPropertyTests {
 
     // Test: appending to array increases size
     let appendProperty = Property<([Int], Int)>(
-      generator: Gen.array(Gen.int).zip(Gen.int)
+      generator: Gen<[Int]>.array(Gen<Int>.int).zip(Gen<Int>.int)
     ) { array, element in
       let appended = array + [element]
       return appended.count == array.count + 1
@@ -292,7 +293,7 @@ struct DogfoodPropertyTests {
   @Test("Properties That Should Always Fail")
   func propertiesThatShouldAlwaysFail() async {
     // Test: all integers are even (should fail)
-    let evenProperty = Property<Int>(generator: Gen.int) { n in
+    let evenProperty = Property<Int>(generator: Gen<Int>.int) { n in
       n % 2 == 0
     }
 
@@ -323,7 +324,7 @@ struct DogfoodPropertyTests {
 
     // Run multiple times to collect generated values
     for _ in 0..<50 {
-      let property = Property<Int>(generator: Gen.int) { _ in true }  // Always pass
+      let property = Property<Int>(generator: Gen<Int>.int) { _ in true }  // Always pass
       let result = await PropertyRunner().runProperty(
         property,
         config: PropertyConfig(iterations: 10)
@@ -341,7 +342,7 @@ struct DogfoodPropertyTests {
   @Test("Size Parameter Controls Generation")
   func sizeParameterControlsGeneration() async {
     // Test that larger sizes generally produce larger values
-    let smallSizeProperty = Property<[Int]>(generator: Gen.array(Gen.int)) { array in
+    let smallSizeProperty = Property<[Int]>(generator: Gen<[Int]>.array(Gen<Int>.int)) { array in
       // For small sizes, arrays should generally be small
       // This is a probabilistic test
       array.count <= 100  // Reasonable upper bound
@@ -369,7 +370,7 @@ struct DogfoodPropertyTests {
 
   @Test("Property Testing Terminates")
   func propertyTestingTerminates() async {
-    let simpleProperty = Property<Int>(generator: Gen.int) { _ in true }
+    let simpleProperty = Property<Int>(generator: Gen<Int>.int) { _ in true }
 
     let result = await PropertyRunner().runProperty(
       simpleProperty,
@@ -389,7 +390,7 @@ struct DogfoodPropertyTests {
   @Test("Shrinking Terminates")
   func shrinkingTerminates() async {
     // Create a property that will definitely fail and require shrinking
-    let property = Property<Int>(generator: Gen.int(in: 100...1000)) { n in
+    let property = Property<Int>(generator: Gen<Int>.int(in: 100...1000)) { n in
       n < 50  // Will always fail for our range
     }
 

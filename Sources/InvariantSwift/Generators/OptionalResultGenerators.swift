@@ -24,6 +24,7 @@
 /// - [AsyncSequence Protocol](https://developer.apple.com/documentation/swift/asyncsequence)
 
 import Foundation
+import InvariantSwiftCore
 
 // MARK: - Optional Generators
 

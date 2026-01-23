@@ -5,8 +5,9 @@
 
 import Testing
 import Foundation
-import InvariantCore
+import InvariantSwiftCore
 @testable import InvariantSwift
+@testable import InvariantSwiftTesting
 
 @Suite("TestStatistics Tests")
 struct TestStatisticsTests {

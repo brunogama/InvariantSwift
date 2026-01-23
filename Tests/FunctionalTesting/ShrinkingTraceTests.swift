@@ -5,7 +5,7 @@
 
 import Testing
 import Foundation
-@testable import InvariantCore
+@testable import InvariantSwiftCore
 @testable import InvariantSwift
 
 @Suite("ShrinkingTrace Tests")

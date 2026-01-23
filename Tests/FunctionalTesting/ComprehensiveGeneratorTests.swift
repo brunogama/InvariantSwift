@@ -16,7 +16,7 @@
 
 import Testing
 import Foundation
-import InvariantCore
+import InvariantSwiftCore
 @testable import InvariantSwift
 
 @Suite("Comprehensive Generator Combinator Tests")
@@ -934,7 +934,7 @@ struct ComprehensiveGeneratorTests {
     /// **Coverage**: Performance characteristics of sequence generation
     @Test("Large sequence generation performance")
     func testLargeSequencePerformance() async throws {
-      let largeSequenceGen = Gen.array(Gen.int(in: 1...1000))
+      let largeSequenceGen = Gen<[Int]>.array(Gen<Int>.int(in: 1...1000))
 
       var rng: any RandomNumberGenerator = SystemRandomNumberGenerator()
       let size = Size(value: 10)
@@ -955,7 +955,7 @@ struct ComprehensiveGeneratorTests {
     /// **Coverage**: Memory safety in recursive generation
     @Test("Deep recursion memory safety")
     func testDeepRecursionMemory() async throws {
-      let baseGen = Gen.int(in: 0...10)
+      let baseGen = Gen<Int>.int(in: 0...10)
 
       var rng: any RandomNumberGenerator = SystemRandomNumberGenerator()
       let largeSize = Size(value: 50)
@@ -971,7 +971,7 @@ struct ComprehensiveGeneratorTests {
     /// **Coverage**: Shrinking performance characteristics
     @Test("Shrinking performance with large inputs")
     func testShrinkingPerformance() async throws {
-      let largeArrayGen = Gen.array(Gen.int(in: 1...100))
+      let largeArrayGen = Gen<[Int]>.array(Gen<Int>.int(in: 1...100))
 
       var rng: any RandomNumberGenerator = SystemRandomNumberGenerator()
       let size = Size(value: 10)

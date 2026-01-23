@@ -5,6 +5,7 @@
 /// between their call and return times (linearization points).
 
 import Foundation
+import InvariantSwiftCore
 
 // MARK: - Core Types
 

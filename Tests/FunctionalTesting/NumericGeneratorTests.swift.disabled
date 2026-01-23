@@ -1,6 +1,6 @@
 import Testing
 import Foundation
-@testable import InvariantCore
+@testable import InvariantSwiftCore
 @testable import InvariantSwift
 
 // swiftlint:disable file_length
@@ -13,7 +13,7 @@ struct NumericGeneratorTests {
 
   @Test("Int8 Generator Basic Coverage")
   func int8GeneratorBasicCoverage() async {
-    let property = Property<Int8>(generator: Gen.int8) { _ in true }
+    let property = Property<Int8>(generator: Gen<Int>.int8) { _ in true }
     let result = await PropertyRunner().runProperty(
       property,
       config: PropertyConfig(iterations: 50)
@@ -110,7 +110,7 @@ struct NumericGeneratorTests {
 
   @Test("Int16 Generator Comprehensive Coverage")
   func int16GeneratorComprehensiveCoverage() async {
-    let property = Property<Int16>(generator: Gen.int16) { value in
+    let property = Property<Int16>(generator: Gen<Int>.int16) { value in
       value >= Int16.min && value <= Int16.max
     }
     let result = await PropertyRunner().runProperty(
@@ -137,7 +137,7 @@ struct NumericGeneratorTests {
     var generatedValues: Set<Int16> = []
 
     for _ in 0..<1000 {
-      let value = Gen.int16.generate(&rng, Size(value: 50))
+      let value = Gen<Int>.int16.generate(&rng, Size(value: 50))
       generatedValues.insert(value)
     }
 
@@ -151,7 +151,7 @@ struct NumericGeneratorTests {
 
   @Test("Int32 Generator Comprehensive Coverage", .enabled(if: TestEnvironment.isNotBetaMacOS))
   func int32GeneratorComprehensiveCoverage() async {
-    let property = Property<Int32>(generator: Gen.int32) { value in
+    let property = Property<Int32>(generator: Gen<Int>.int32) { value in
       value >= Int32.min && value <= Int32.max
     }
     let result = await PropertyRunner().runProperty(
@@ -172,7 +172,7 @@ struct NumericGeneratorTests {
 
   @Test("Int32 Generator Range Testing", .enabled(if: TestEnvironment.isNotBetaMacOS))
   func int32GeneratorRangeTesting() async {
-    let property = Property<Int32>(generator: Gen.int32) { value in
+    let property = Property<Int32>(generator: Gen<Int>.int32) { value in
       // Test Int32 range capabilities (basic test since specific range API may not exist)
       value >= Int32.min && value <= Int32.max
     }
@@ -194,7 +194,7 @@ struct NumericGeneratorTests {
 
   @Test("Int64 Generator Comprehensive Coverage", .enabled(if: TestEnvironment.isNotBetaMacOS))
   func int64GeneratorComprehensiveCoverage() async {
-    let property = Property<Int64>(generator: Gen.int64) { value in
+    let property = Property<Int64>(generator: Gen<Int>.int64) { value in
       value >= Int64.min && value <= Int64.max
     }
     let result = await PropertyRunner().runProperty(
@@ -215,7 +215,7 @@ struct NumericGeneratorTests {
 
   @Test("Int64 Generator Large Value Testing", .enabled(if: TestEnvironment.isNotBetaMacOS))
   func int64GeneratorLargeValueTesting() async {
-    let property = Property<Int64>(generator: Gen.int64) { value in
+    let property = Property<Int64>(generator: Gen<Int>.int64) { value in
       // Test that Int64 can handle very large values
       _ = value.multipliedReportingOverflow(by: 2)
       return true  // Always pass, we're testing generation capability
@@ -546,7 +546,7 @@ struct NumericGeneratorTests {
 
   @Test("Int Shrinking Behavior Validation")
   func intShrinkingBehaviorValidation() async {
-    let property = Property<Int>(generator: Gen.int) { value in
+    let property = Property<Int>(generator: Gen<Int>.int) { value in
       // Property that should fail for most values to test shrinking
       abs(value) < 5
     }
@@ -644,7 +644,7 @@ struct NumericGeneratorTests {
 
   @Test("Int64 Shrinking Large Values", .enabled(if: TestEnvironment.isNotBetaMacOS))
   func int64ShrinkingLargeValues() async {
-    let property = Property<Int64>(generator: Gen.int64) { value in
+    let property = Property<Int64>(generator: Gen<Int>.int64) { value in
       // Always fail to force shrinking with large values
       value < Int64.max - 1_000_000  // Force failure for large values
     }
@@ -668,7 +668,7 @@ struct NumericGeneratorTests {
 
   @Test("Int8 Overflow and Underflow Boundary Testing")
   func int8OverflowUnderflowBoundaryTesting() async {
-    let property = Property<Int8>(generator: Gen.int8) { value in
+    let property = Property<Int8>(generator: Gen<Int>.int8) { value in
       // Test operations near boundaries
       let nearMax = value > Int8.max - 10
       let nearMin = value < Int8.min + 10
@@ -814,7 +814,7 @@ struct NumericGeneratorTests {
   @Test("Comprehensive Numeric Type Integration Test")
   func comprehensiveNumericTypeIntegrationTest() async {
     // Test that all numeric types work together
-    let nestedGenerator = Gen.int.zip(Gen.float).zip(Gen.double).zip(Gen.uint32)
+    let nestedGenerator = Gen<Int>.int.zip(Gen.float).zip(Gen.double).zip(Gen.uint32)
     let property = Property<(((Int, Float), Double), UInt32)>(
       generator: nestedGenerator
     ) { nested in

@@ -4,6 +4,7 @@
 /// This is the public API for ISP-0001: Scheduler-Based Race Condition Testing.
 
 import Foundation
+import InvariantSwiftCore
 
 // MARK: - Core Types
 

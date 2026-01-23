@@ -1,3 +1,4 @@
+import InvariantSwiftCore
 /// LibFuzzer Integration for InvariantSwift
 ///
 /// Provides a bridge between industrial fuzzing engines (LibFuzzer, AFL) and

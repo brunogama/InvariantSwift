@@ -346,8 +346,9 @@ extension Seed {
 
 extension Seed: Generatable {
   /// Arbitrary generator for Seed values.
-  /// Uses Gen<UInt64>.uint64 and maps to Seed init.
+  /// Generates random UInt64 and maps to Seed init.
   public static var arbitrary: Gen<Seed> {
-    Gen<UInt64>.uint64.map { Seed(value: $0) }
+    Gen<UInt64> { rng, _ in UInt64.random(in: .min ... .max, using: &rng) }
+      .map { Seed(value: $0) }
   }
 }

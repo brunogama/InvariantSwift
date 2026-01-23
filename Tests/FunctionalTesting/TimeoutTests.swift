@@ -1,6 +1,6 @@
 import Testing
 import Foundation
-@testable import InvariantCore
+@testable import InvariantSwiftCore
 @testable import InvariantSwift
 
 /// Tests for E003: Timeout support making FailureReason.timedOut reachable

@@ -5,6 +5,7 @@
 
 import _Concurrency
 import Foundation
+import InvariantSwiftCore
 
 // MARK: - Core Types
 

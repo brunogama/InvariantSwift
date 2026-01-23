@@ -1,6 +1,6 @@
 import Testing
 import Foundation
-@testable import InvariantCore
+@testable import InvariantSwiftCore
 @testable import InvariantSwift
 
 /// Demonstration of the test utilities framework to achieve 99%+ code coverage
@@ -11,7 +11,7 @@ struct TestUtilitiesDemo {
 
   @Test("TestUtilities.runProperty - success expectation")
   func testUtilitiesRunPropertySuccess() {
-    let property = Property<Int>(generator: Gen.int) { _ in true }
+    let property = Property<Int>(generator: Gen<Int>.int) { _ in true }
 
     // Using utility helper with expectation
     let result = TestUtilities.runProperty(
@@ -32,7 +32,7 @@ struct TestUtilitiesDemo {
 
   @Test("TestUtilities.runProperty - failure expectation")
   func testUtilitiesRunPropertyFailure() {
-    let property = Property<Int>(generator: Gen.int) { _ in false }  // Always fails
+    let property = Property<Int>(generator: Gen<Int>.int) { _ in false }  // Always fails
 
     let result = TestUtilities.runProperty(
       property,
@@ -53,7 +53,7 @@ struct TestUtilitiesDemo {
   @Test("TestUtilities.runPropertyAsync - async testing")
   @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
   func testUtilitiesRunPropertyAsync() async {
-    let property = Property<String>(generator: Gen.string) { _ in true }
+    let property = Property<String>(generator: Gen<String>.string) { _ in true }
 
     let result = await TestUtilities.runPropertyAsync(
       property,
@@ -68,7 +68,7 @@ struct TestUtilitiesDemo {
 
   @Test("TestUtilities.expectSuccess - detailed success assertion")
   func testUtilitiesExpectSuccess() {
-    let property = Property<Bool>(generator: Gen.bool) { _ in true }
+    let property = Property<Bool>(generator: Gen<Bool>.bool) { _ in true }
     let result = runPropertySynchronously(property, config: PropertyConfig(iterations: 25))
 
     // Use utility assertion
@@ -77,7 +77,7 @@ struct TestUtilitiesDemo {
 
   @Test("TestUtilities.expectFailure - detailed failure assertion")
   func testUtilitiesExpectFailure() {
-    let property = Property<Int>(generator: Gen.int(in: 1...100)) { $0 > 50 }
+    let property = Property<Int>(generator: Gen<Int>.int(in: 1...100)) { $0 > 50 }
     let result = runPropertySynchronously(property, config: PropertyConfig(iterations: 100))
 
     // Use utility assertion with custom predicates
@@ -91,7 +91,7 @@ struct TestUtilitiesDemo {
   @Test("TestUtilities.expectGaveUp - gave up assertion")
   func testUtilitiesExpectGaveUp() {
     let property = Property<Int>(
-      generator: Gen.int(in: 1...1000),
+      generator: Gen<Int>.int(in: 1...1000),
       assumption: { _ in false },
       predicate: { _ in true }
     )
@@ -127,7 +127,7 @@ struct TestUtilitiesDemo {
 
   @Test("TestUtilities.validateGeneratorRange - range validation")
   func testUtilitiesValidateGeneratorRange() {
-    let rangedGenerator = Gen.int(in: 10...20)
+    let rangedGenerator = Gen<Int>.int(in: 10...20)
 
     // Validate that generator respects its range
     TestUtilities.validateGeneratorRange(
@@ -139,7 +139,7 @@ struct TestUtilitiesDemo {
 
   @Test("TestUtilities.validateGeneratorDiversity - diversity validation")
   func testUtilitiesValidateGeneratorDiversity() {
-    let diverseGenerator = Gen.int(in: 1...100)
+    let diverseGenerator = Gen<Int>.int(in: 1...100)
 
     // Validate that generator produces diverse values
     TestUtilities.validateGeneratorDiversity(
@@ -151,7 +151,7 @@ struct TestUtilitiesDemo {
 
   @Test("TestUtilities.validateShrinking - shrinking validation")
   func testUtilitiesValidateShrinking() {
-    let shrinkableGenerator = Gen.int(in: 50...200)
+    let shrinkableGenerator = Gen<Int>.int(in: 50...200)
 
     // Validate that shrinking produces smaller values
     TestUtilities.validateShrinking(shrinkableGenerator, samples: 30)
@@ -204,7 +204,7 @@ struct TestUtilitiesDemo {
 
   @Test("TestUtilities.verifyDeterministicBehavior - deterministic verification")
   func testUtilitiesVerifyDeterministicBehavior() {
-    let property = Property<Int>(generator: Gen.int(in: 1...10)) { _ in true }
+    let property = Property<Int>(generator: Gen<Int>.int(in: 1...10)) { _ in true }
     let config = PropertyConfig(iterations: 5, seed: Seed(value: 12345))
 
     // Verify multiple runs with same seed produce same results
@@ -222,8 +222,8 @@ struct TestUtilitiesDemo {
   func testUtilitiesRunPropertiesConcurrently() async {
     // Test with homogeneous properties (all Int)
     let properties: [Property<Int>] = [
-      Property<Int>(generator: Gen.int) { _ in true },
-      Property<Int>(generator: Gen.int(in: 1...100)) { $0 > 0 },
+      Property<Int>(generator: Gen<Int>.int) { _ in true },
+      Property<Int>(generator: Gen<Int>.int(in: 1...100)) { $0 > 0 },
       Property<Int>(generator: Gen.pure(42)) { $0 == 42 },
     ]
 
@@ -247,10 +247,10 @@ struct TestUtilitiesDemo {
 
   @Test("TestUtilities.analyzeResults - statistical analysis")
   func testUtilitiesAnalyzeResults() {
-    let property1 = Property<Int>(generator: Gen.int) { _ in true }
-    let property2 = Property<Int>(generator: Gen.int) { _ in false }
+    let property1 = Property<Int>(generator: Gen<Int>.int) { _ in true }
+    let property2 = Property<Int>(generator: Gen<Int>.int) { _ in false }
     let property3 = Property<Int>(
-      generator: Gen.int(in: 1...1000),
+      generator: Gen<Int>.int(in: 1...1000),
       assumption: { _ in false },
       predicate: { _ in true }
     )
@@ -293,7 +293,7 @@ struct TestUtilitiesDemo {
 
   @Test("TestGenerators.smallArray - small array generator")
   func testGeneratorsSmallArray() {
-    let arrayGenerator = TestGenerators.smallArray(Gen.int)
+    let arrayGenerator = TestGenerators.smallArray(Gen<Int>.int)
     let property = Property<[Int]>(generator: arrayGenerator) { array in
       array.count <= 20  // Should respect size limit
     }
@@ -332,7 +332,7 @@ struct TestUtilitiesDemo {
     // Create a complex property using custom generators
     let complexGenerator = TestGenerators.smallArray(TestGenerators.smallPositiveInt)
       .zip(TestGenerators.nonEmptyString)
-      .zip(Gen.bool)
+      .zip(Gen<Bool>.bool)
 
     let complexProperty = Property<(([Int], String), Bool)>(generator: complexGenerator) { nested in
       let (arrayAndString, flag) = nested

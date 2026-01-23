@@ -1,6 +1,6 @@
 import Testing
 import Foundation
-@testable import InvariantCore
+@testable import InvariantSwiftCore
 @testable import InvariantSwift
 
 /// Comprehensive tests for Property functions to achieve 99%+ code coverage
@@ -10,7 +10,7 @@ struct PropertyTests {
 
   @Test("Property basic initialization")
   func propertyBasicInitialization() async {
-    let property = Property<Int>(generator: Gen.int) { $0 > -1_000_000 }
+    let property = Property<Int>(generator: Gen<Int>.int) { $0 > -1_000_000 }
     let result = await PropertyRunner().runProperty(
       property,
       config: PropertyConfig(iterations: 10)
@@ -30,7 +30,7 @@ struct PropertyTests {
   @Test("Property with assumption initialization")
   func propertyWithAssumptionInitialization() async {
     let property = Property<Int>(
-      generator: Gen.int,
+      generator: Gen<Int>.int,
       assumption: { $0 > 0 },  // Only test positive numbers
       predicate: { $0 > 0 }  // Positive numbers should be positive
     )
@@ -55,7 +55,7 @@ struct PropertyTests {
 
   @Test("PropertyResult success case")
   func propertyResultSuccessCase() async {
-    let property = Property<Int>(generator: Gen.int) { _ in true }  // Always pass
+    let property = Property<Int>(generator: Gen<Int>.int) { _ in true }  // Always pass
     let result = await PropertyRunner().runProperty(
       property,
       config: PropertyConfig(iterations: 20)
@@ -75,7 +75,7 @@ struct PropertyTests {
 
   @Test("PropertyResult failure case")
   func propertyResultFailureCase() async {
-    let property = Property<Int>(generator: Gen.int(in: 1...100)) { $0 > 50 }
+    let property = Property<Int>(generator: Gen<Int>.int(in: 1...100)) { $0 > 50 }
     let result = await PropertyRunner().runProperty(
       property,
       config: PropertyConfig(iterations: 100)
@@ -128,7 +128,7 @@ struct PropertyTests {
 
   @Test("PropertyConfig with seeded randomness")
   func propertyConfigWithSeededRandomness() async {
-    let property = Property<Int>(generator: Gen.int) { _ in true }
+    let property = Property<Int>(generator: Gen<Int>.int) { _ in true }
     let seed = Seed(value: 98765)
     let config1 = PropertyConfig(iterations: 20, seed: seed)
     let config2 = PropertyConfig(iterations: 20, seed: seed)
@@ -176,7 +176,7 @@ struct PropertyTests {
 
   @Test("PropertyRunner with specific seed")
   func propertyRunnerWithSpecificSeed() async {
-    let property = Property<Int>(generator: Gen.int) { _ in true }
+    let property = Property<Int>(generator: Gen<Int>.int) { _ in true }
 
     let runner1 = PropertyRunner(seed: Seed(value: 555))
     let runner2 = PropertyRunner(seed: Seed(value: 555))
@@ -196,7 +196,7 @@ struct PropertyTests {
 
   @Test("PropertyRunner without seed (system random)")
   func propertyRunnerWithoutSeed() async {
-    let property = Property<Int>(generator: Gen.int) { _ in true }
+    let property = Property<Int>(generator: Gen<Int>.int) { _ in true }
 
     let runner = PropertyRunner()  // Uses system random
     let result = await runner.runProperty(property, config: PropertyConfig(iterations: 20))
@@ -216,7 +216,7 @@ struct PropertyTests {
 
   @Test("Property.check convenience method")
   func propertyCheckConvenienceMethod() async {
-    let property = Property.check(Gen.int) { $0 > Int.min }
+    let property = Property.check(Gen<Int>.int) { $0 > Int.min }
     let result = await PropertyRunner().runProperty(
       property,
       config: PropertyConfig(iterations: 30)
@@ -237,7 +237,7 @@ struct PropertyTests {
   func propertyImpliesConvenienceMethod() async {
     // If x > 0, then x * 2 > 0
     let property = Property.implies(
-      Gen.int,
+      Gen<Int>.int,
       assumption: { $0 > 0 },
       conclusion: { $0 * 2 > 0 }
     )
@@ -261,7 +261,7 @@ struct PropertyTests {
   func propertyImpliesWithFalseAssumption() async {
     // If x < 0, then x > 100 (implication is vacuously true for non-negative x)
     let property = Property.implies(
-      Gen.int(in: 0...50),  // Only generates non-negative, so assumption is always false
+      Gen<Int>.int(in: 0...50),  // Only generates non-negative, so assumption is always false
       assumption: { $0 < 0 },
       conclusion: { $0 > 100 }
     )
@@ -284,8 +284,8 @@ struct PropertyTests {
 
   @Test("Property and combinator")
   func propertyAndCombinator() async {
-    let prop1 = Property<Int>(generator: Gen.int(in: 1...100)) { $0 > 0 }
-    let prop2 = Property<String>(generator: Gen.string) { !$0.isEmpty || $0.isEmpty }  // Always true
+    let prop1 = Property<Int>(generator: Gen<Int>.int(in: 1...100)) { $0 > 0 }
+    let prop2 = Property<String>(generator: Gen<String>.string) { !$0.isEmpty || $0.isEmpty }  // Always true
 
     let combined = prop1.and(prop2)
     let result = await PropertyRunner().runProperty(
@@ -306,8 +306,8 @@ struct PropertyTests {
 
   @Test("Property or combinator")
   func propertyOrCombinator() async {
-    let prop1 = Property<Int>(generator: Gen.int) { $0 > 1_000_000 }  // Often false
-    let prop2 = Property<String>(generator: Gen.string) { _ in true }  // Always true
+    let prop1 = Property<Int>(generator: Gen<Int>.int) { $0 > 1_000_000 }  // Often false
+    let prop2 = Property<String>(generator: Gen<String>.string) { _ in true }  // Always true
 
     let combined = prop1.or(prop2)
     let result = await PropertyRunner().runProperty(
@@ -329,7 +329,7 @@ struct PropertyTests {
 
   @Test("PropertyChecker synchronous check")
   func propertyCheckerSynchronousCheck() async {
-    let property = Property<Int>(generator: Gen.int) { $0 > Int.min }
+    let property = Property<Int>(generator: Gen<Int>.int) { $0 > Int.min }
     let result = runPropertySynchronously(property, config: PropertyConfig(iterations: 20))
 
     switch result {
@@ -346,7 +346,7 @@ struct PropertyTests {
 
   @Test("PropertyChecker with seeded config")
   func propertyCheckerWithSeededConfig() async {
-    let property = Property<Int>(generator: Gen.int) { _ in true }
+    let property = Property<Int>(generator: Gen<Int>.int) { _ in true }
     let config = PropertyConfig(iterations: 15, seed: Seed(value: 777))
 
     let result1 = runPropertySynchronously(property, config: config)
@@ -365,7 +365,7 @@ struct PropertyTests {
   @Test("PropertyChecker shrinking behavior")
   func propertyCheckerShrinkingBehavior() async {
     // Property that fails for numbers >= 10
-    let property = Property<Int>(generator: Gen.int(in: 0...50)) { $0 < 10 }
+    let property = Property<Int>(generator: Gen<Int>.int(in: 0...50)) { $0 < 10 }
     let result = runPropertySynchronously(
       property,
       config: PropertyConfig(iterations: 100, maxShrinks: 50)
@@ -392,7 +392,7 @@ struct PropertyTests {
   @Test("Shrinking finds minimal counterexample")
   func shrinkingFindsMinimalCounterexample() async {
     // Property: no number is equal to 7
-    let property = Property<Int>(generator: Gen.int(in: 0...20)) { $0 != 7 }
+    let property = Property<Int>(generator: Gen<Int>.int(in: 0...20)) { $0 != 7 }
     let result = await PropertyRunner().runProperty(
       property,
       config: PropertyConfig(iterations: 100, maxShrinks: 100)
@@ -419,7 +419,7 @@ struct PropertyTests {
 
   @Test("Shrinking with maxShrinks limit")
   func shrinkingWithMaxShrinksLimit() async {
-    let property = Property<Int>(generator: Gen.int(in: 100...200)) { $0 < 50 }  // Will always fail
+    let property = Property<Int>(generator: Gen<Int>.int(in: 100...200)) { $0 < 50 }  // Will always fail
     let result = await PropertyRunner().runProperty(
       property,
       config: PropertyConfig(iterations: 5, maxShrinks: 2)
@@ -442,7 +442,7 @@ struct PropertyTests {
 
   @Test("Size parameter affects generation")
   func sizeParameterAffectsGeneration() async {
-    let property = Property<[Int]>(generator: Gen.array(Gen.int)) { array in
+    let property = Property<[Int]>(generator: Gen<[Int]>.array(Gen<Int>.int)) { array in
       // Test that arrays don't exceed reasonable bounds based on size
       array.count <= 200  // Very generous upper bound
     }
@@ -466,7 +466,7 @@ struct PropertyTests {
 
   @Test("Property with always failing predicate")
   func propertyWithAlwaysFailingPredicate() async {
-    let property = Property<Int>(generator: Gen.int) { _ in false }  // Always fails
+    let property = Property<Int>(generator: Gen<Int>.int) { _ in false }  // Always fails
     let result = await PropertyRunner().runProperty(property, config: PropertyConfig(iterations: 5))
 
     switch result {
@@ -483,7 +483,7 @@ struct PropertyTests {
 
   @Test("Property with maximum iterations")
   func propertyWithMaximumIterations() async {
-    let property = Property<Int>(generator: Gen.int) { _ in true }
+    let property = Property<Int>(generator: Gen<Int>.int) { _ in true }
     let result = await PropertyRunner().runProperty(
       property,
       config: PropertyConfig(iterations: 10000)

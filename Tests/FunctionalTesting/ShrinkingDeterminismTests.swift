@@ -1,6 +1,6 @@
 import Testing
 import Foundation
-import InvariantCore
+import InvariantSwiftCore
 @testable import InvariantSwift
 
 /// Tests for shrinking determinism - ensures shrinking produces consistent results

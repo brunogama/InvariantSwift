@@ -5,6 +5,7 @@
 /// Supports Z3, CVC4, and other SMTLIB2-compatible solvers.
 
 import Foundation
+import InvariantSwiftCore
 
 // MARK: - Core SMT Types
 

@@ -5,6 +5,7 @@
 // Implements Task 1.15 from the roadmap.
 
 import Foundation
+import InvariantSwiftCore
 
 // MARK: - Distribution Check Result
 

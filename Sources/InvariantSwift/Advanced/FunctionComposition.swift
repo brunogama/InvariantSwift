@@ -1,3 +1,4 @@
+import InvariantSwiftCore
 import Foundation
 
 // MARK: - Function Composition and Higher-Order Function Utilities

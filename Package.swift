@@ -27,10 +27,7 @@ let packageProducts: [Product] = [
     name: "InvariantSwift",
     targets: ["InvariantSwift"]
   ),
-  .library(
-    name: "InvariantSwiftMacros",
-    targets: ["InvariantSwiftMacros"]
-  ),
+  // Note: InvariantSwiftMacros is a .macro target, not a library
   .library(
     name: "InvariantSwiftTesting",
     targets: ["InvariantSwiftTesting"]
@@ -43,10 +40,11 @@ let packageProducts: [Product] = [
     name: "InvariantSwiftDomainGenerators",
     targets: ["InvariantSwiftDomainGenerators"]
   ),
-  .executable(
-    name: "FuncTestCLI",
-    targets: ["FuncTestCLI"]
-  ),
+  // NOTE: FuncTestCLI temporarily disabled - needs type inference fixes
+  // .executable(
+  //   name: "FuncTestCLI",
+  //   targets: ["FuncTestCLI"]
+  // ),
   .plugin(
     name: "InvariantSwiftPlugin",
     targets: ["InvariantSwiftPlugin"]
@@ -85,9 +83,14 @@ let libraryTargets: [Target] = [
     ],
     path: "Sources/InvariantSwift",
     sources: [
+      "Contract",
+      "Database",
+      "Differential",
       "Generators",
+      "Ghostwriter",
       "Presentation",
       "Persistence",
+      "Testing",
       "FunctionalTesting.swift",
     ],
     swiftSettings: commonSwiftSettings + [
@@ -114,6 +117,8 @@ let libraryTargets: [Target] = [
     name: "InvariantSwiftTesting",
     dependencies: [
       "InvariantSwiftCore",
+      "InvariantSwift",
+      "InvariantSwiftExperimental",
       "InvariantSwiftMacros",
     ],
     path: "Sources/InvariantSwift",
@@ -131,7 +136,8 @@ let libraryTargets: [Target] = [
   .target(
     name: "InvariantSwiftExperimental",
     dependencies: [
-      "InvariantSwiftCore"
+      "InvariantSwiftCore",
+      "InvariantSwift",
     ],
     path: "Sources/InvariantSwift",
     sources: [
@@ -148,7 +154,8 @@ let libraryTargets: [Target] = [
   .target(
     name: "InvariantSwiftDomainGenerators",
     dependencies: [
-      "InvariantSwiftCore"
+      "InvariantSwiftCore",
+      "InvariantSwift",
     ],
     path: "Sources/InvariantSwiftDomainGenerators",
     swiftSettings: commonSwiftSettings + [
@@ -158,18 +165,19 @@ let libraryTargets: [Target] = [
 ]
 
 let executableTargets: [Target] = [
-  .executableTarget(
-    name: "FuncTestCLI",
-    dependencies: [
-      "InvariantSwift",
-      "InvariantSwiftTesting",
-      .product(name: "CustomDump", package: "swift-custom-dump"),
-    ],
-    path: "Sources/FuncTestCLI",
-    swiftSettings: commonSwiftSettings + [
-      .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
-    ]
-  ),
+  // NOTE: FuncTestCLI temporarily disabled - needs type inference fixes
+  // .executableTarget(
+  //   name: "FuncTestCLI",
+  //   dependencies: [
+  //     "InvariantSwift",
+  //     "InvariantSwiftTesting",
+  //     .product(name: "CustomDump", package: "swift-custom-dump"),
+  //   ],
+  //   path: "Sources/FuncTestCLI",
+  //   swiftSettings: commonSwiftSettings + [
+  //     .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
+  //   ]
+  // ),
   .executableTarget(
     name: "GhostwriterCLI",
     dependencies: [
@@ -183,6 +191,7 @@ let executableTargets: [Target] = [
     name: "Benchmarks",
     dependencies: [
       "InvariantSwiftCore",
+      "InvariantSwift",
       .product(name: "Benchmark", package: "swift-benchmark"),
     ],
     path: "Benchmarks",
@@ -209,7 +218,7 @@ let pluginTargets: [Target] = [
       ]
     ),
     dependencies: [
-      "FuncTestCLI"
+      // "FuncTestCLI"  // Temporarily disabled
     ],
     path: "Plugins/InvariantSwiftPlugin"
   ),
@@ -260,9 +269,6 @@ let testTargets: [Target] = [
       .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
     ],
     path: "Tests/InvariantSwiftMacroTests",
-    exclude: [
-      "Resources"
-    ],
     resources: [
       .copy("Resources")
     ],
@@ -291,7 +297,11 @@ let testTargets: [Target] = [
   ),
   .testTarget(
     name: "GeneratedPropertyTests",
-    dependencies: ["InvariantSwift"],
+    dependencies: [
+      "InvariantSwiftCore",
+      "InvariantSwift",
+      "InvariantSwiftTesting",
+    ],
     path: "Tests/Generated",
     swiftSettings: commonSwiftSettings + [
       .unsafeFlags(["-enable-testing"], .when(configuration: .debug))

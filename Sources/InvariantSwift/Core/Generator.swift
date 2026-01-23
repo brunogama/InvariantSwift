@@ -256,8 +256,7 @@ public struct Shrink<T>: @unchecked Sendable {
   @available(
     *,
     unavailable,
-    message:
-      "Use ShrinkTree.flatMap for correct dependent shrinking."
+    message: "Use ShrinkTree.flatMap for correct dependent shrinking."
   )
   public func flatMap<U>(_ f: @escaping (T) -> Shrink<U>) -> Shrink<U> {
     fatalError("Unavailable")
@@ -1479,7 +1478,7 @@ extension Gen {
 
       // S011: Never return an invalid value - this violates the PBT contract
       // Use tryGenerate(where:) for safe filtering or Property(assumption:) for discards
-    fatalError("Use ShrinkTree.flatMap for correct dependent shrinking.")
+      fatalError("Use ShrinkTree.flatMap for correct dependent shrinking.")
     }
   }
 
@@ -1610,73 +1609,7 @@ extension Gen {
   }
 }
 
-// MARK: - Array Generator
-extension Gen {
-  /// Generates arrays with variable length of elements from the given generator.
-  ///
-  /// Creates a generator producing arrays of type `[Element]` by:
-  /// 1. Generating a random array size (0 to size.value)
-  /// 2. Generating that many elements using the provided element generator
-  ///
-  /// Array length is controlled by the complexity `Size`:
-  /// - Larger size values produce larger arrays
-  /// - Size.small(10) produces arrays up to 10 elements
-  /// - Size.large(100) produces arrays up to 100 elements
-  ///
-  /// Shrinking strategy:
-  /// - Removes individual elements (reduces array length)
-  /// - Shrinks individual elements independently (reduces element complexity)
-  /// - Explores all simplifications in breadth-first order
-  ///
-  /// This is one of the most frequently used generators for testing collection-based code.
-  ///
-  /// - Parameters:
-  ///   - elementGen: Generator for array elements
-  ///
-  /// - Returns: Generator producing arrays of variable length
-  ///
-  /// - Example:
-  ///   ```swift
-  ///   let intGen = Gen<Int> { rng, size in Int.random(in: 0..<100, using: &rng) }
-  ///   let arrayGen = Gen.array(intGen)
-  ///
-  ///   // Generates empty arrays, single-element arrays, large arrays, etc.
-  ///   let value = arrayGen.sample(size: Size.medium, seed: Seed(value: 42))
-  ///   // Result: [23, 51, 8, 92] or [] or [50] or similar
-  ///   ```
-  ///
-  /// - See Also: ``Gen.pure(_:)`` for fixed-size arrays via dependent generation
-  public static func array<Element>(_ elementGen: Gen<Element>) -> Gen<[Element]> {
-    Gen<[Element]>(
-      generate: { rng, size in
-        let count = Int.random(in: 0...size.value, using: &rng)
-        return (0..<count).map { _ in elementGen.generate(&rng, size) }
-      },
-      shrink: Shrink { array in
-        // Shrink by removing elements and shrinking individual elements
-        var shrunk: [[Element]] = []
-
-        // Remove elements
-        for i in 0..<array.count {
-          var smaller = array
-          smaller.remove(at: i)
-          shrunk.append(smaller)
-        }
-
-        // Shrink individual elements
-        for (index, element) in array.enumerated() {
-          for shrunkElement in elementGen.shrink.shrink(element) {
-            var newArray = array
-            newArray[index] = shrunkElement
-            shrunk.append(newArray)
-          }
-        }
-
-        return shrunk
-      }
-    )
-  }
-}
+// NOTE: Gen.array is defined in CollectionGenerators.swift with enhanced shrinking
 
 // MARK: - Generator Exhaustion Tracking
 

@@ -1,7 +1,8 @@
 import Testing
 import Foundation
-@testable import InvariantCore
+@testable import InvariantSwiftCore
 @testable import InvariantSwift
+@testable import InvariantSwiftTesting
 
 /// Comprehensive async property testing coverage to achieve 99%+ code coverage
 struct AsyncPropertyTests {
@@ -11,7 +12,7 @@ struct AsyncPropertyTests {
   @Test("PropertyRunner async execution - deterministic with seed")
   @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
   func propertyRunnerAsyncExecutionDeterministicWithSeed() async throws {
-    let property = Property<Int>(generator: Gen.int) { _ in
+    let property = Property<Int>(generator: Gen<Int>.int) { _ in
       true  // Always pass
     }
 
@@ -34,7 +35,7 @@ struct AsyncPropertyTests {
 
   @Test("PropertyRunner async execution - different seeds")
   func propertyRunnerAsyncExecutionDifferentSeeds() async throws {
-    let property = Property<Int>(generator: Gen.int) { value in
+    let property = Property<Int>(generator: Gen<Int>.int) { value in
       // Property that might fail for some values
       abs(value) < 1_000_000
     }
@@ -59,7 +60,7 @@ struct AsyncPropertyTests {
 
   @Test("PropertyRunner async execution - no seed (random)")
   func propertyRunnerAsyncExecutionNoSeed() async throws {
-    let property = Property<String>(generator: Gen.string) { _ in
+    let property = Property<String>(generator: Gen<String>.string) { _ in
       true  // Always pass
     }
 
@@ -79,16 +80,16 @@ struct AsyncPropertyTests {
 
   @Test("Concurrent property execution - multiple properties")
   func concurrentPropertyExecutionMultipleProperties() async throws {
-    let property1 = Property<Int>(generator: Gen.int) { value in
+    let property1 = Property<Int>(generator: Gen<Int>.int) { value in
       value >= Int.min && value <= Int.max
     }
 
-    let property2 = Property<String>(generator: Gen.string) { value in
+    let property2 = Property<String>(generator: Gen<String>.string) { value in
       // Property that always passes - validates string generation
       value.isEmpty
     }
 
-    let property3 = Property<Bool>(generator: Gen.bool) { value in
+    let property3 = Property<Bool>(generator: Gen<Bool>.bool) { value in
       value == true || value == false
     }
 
@@ -148,7 +149,7 @@ struct AsyncPropertyTests {
 
   @Test("Concurrent property execution - stress test")
   func concurrentPropertyExecutionStressTest() async throws {
-    let property = Property<Int>(generator: Gen.int(in: 1...100)) { _ in
+    let property = Property<Int>(generator: Gen<Int>.int(in: 1...100)) { _ in
       true  // Simple always-passing property
     }
 
@@ -183,7 +184,7 @@ struct AsyncPropertyTests {
 
   @Test("Async property failure handling - with shrinking")
   func asyncPropertyFailureHandlingWithShrinking() async throws {
-    let property = Property<Int>(generator: Gen.int) { value in
+    let property = Property<Int>(generator: Gen<Int>.int) { value in
       // Property that should fail for large values
       abs(value) < 10
     }
@@ -217,7 +218,7 @@ struct AsyncPropertyTests {
 
   @Test("Async property failure handling - multiple failures")
   func asyncPropertyFailureHandlingMultipleFailures() async throws {
-    let failingProperty = Property<String>(generator: Gen.string) { value in
+    let failingProperty = Property<String>(generator: Gen<String>.string) { value in
       // Property that fails for non-empty strings
       value.isEmpty
     }
@@ -252,7 +253,7 @@ struct AsyncPropertyTests {
 
   @Test("Async property shrinking effectiveness")
   func asyncPropertyShrinkingEffectiveness() async throws {
-    let property = Property<[Int]>(generator: Gen.array(Gen.int)) { array in
+    let property = Property<[Int]>(generator: Gen<[Int]>.array(Gen<Int>.int)) { array in
       // Property that fails for arrays containing the value 42
       !array.contains(42)
     }
@@ -293,7 +294,7 @@ struct AsyncPropertyTests {
 
   @Test("Async property with task cancellation")
   func asyncPropertyWithTaskCancellation() async throws {
-    let property = Property<Int>(generator: Gen.int) { _ in
+    let property = Property<Int>(generator: Gen<Int>.int) { _ in
       // Simple property that should complete quickly
       true
     }
@@ -319,7 +320,7 @@ struct AsyncPropertyTests {
 
   @Test("Async property timeout simulation")
   func asyncPropertyTimeoutSimulation() async throws {
-    let property = Property<Int>(generator: Gen.int) { value in
+    let property = Property<Int>(generator: Gen<Int>.int) { value in
       abs(value) < 1_000_000  // Should generally pass quickly
     }
 
@@ -379,7 +380,7 @@ struct AsyncPropertyTests {
 
     let counter = Counter()
 
-    let property = Property<Int>(generator: Gen.int(in: 1...10)) { incrementCount in
+    let property = Property<Int>(generator: Gen<Int>.int(in: 1...10)) { incrementCount in
       incrementCount > 0
     }
 
@@ -417,8 +418,8 @@ struct AsyncPropertyTests {
     let sharedState = SharedState()
 
     // Multiple properties accessing the same actor concurrently
-    let property1 = Property<Int>(generator: Gen.int(in: 1...5)) { _ in true }
-    let property2 = Property<String>(generator: Gen.string) { _ in true }
+    let property1 = Property<Int>(generator: Gen<Int>.int(in: 1...5)) { _ in true }
+    let property2 = Property<String>(generator: Gen<String>.string) { _ in true }
 
     async let result1 = Task {
       await PropertyRunner(seed: Seed(value: 1)).runProperty(
@@ -464,9 +465,9 @@ struct AsyncPropertyTests {
 
   @Test("Swift Testing async integration - multiple checkPropertyAsync calls")
   func swiftTestingAsyncIntegrationMultipleCheckPropertyAsync() async throws {
-    let property1 = Property<Int>(generator: Gen.int) { _ in true }
-    let property2 = Property<Bool>(generator: Gen.bool) { _ in true }
-    let property3 = Property<String>(generator: Gen.string) { _ in true }
+    let property1 = Property<Int>(generator: Gen<Int>.int) { _ in true }
+    let property2 = Property<Bool>(generator: Gen<Bool>.bool) { _ in true }
+    let property3 = Property<String>(generator: Gen<String>.string) { _ in true }
 
     // Test multiple async integration calls
     try await checkPropertyAsync(property1, config: PropertyConfig(iterations: 20))
@@ -480,7 +481,7 @@ struct AsyncPropertyTests {
   func swiftTestingAsyncIntegrationFailureScenario() async throws {
     // Test that failure detection works correctly using runPropertySynchronously
     // which doesn't record Issues, allowing us to verify the result
-    let failingProperty = Property<Int>(generator: Gen.int) { value in
+    let failingProperty = Property<Int>(generator: Gen<Int>.int) { value in
       value == 42  // Will fail for most values
     }
 
@@ -503,7 +504,7 @@ struct AsyncPropertyTests {
 
   @Test("Async property with very large iteration count")
   func asyncPropertyWithVeryLargeIterationCount() async throws {
-    let property = Property<Bool>(generator: Gen.bool) { _ in true }
+    let property = Property<Bool>(generator: Gen<Bool>.bool) { _ in true }
 
     let result = await PropertyRunner().runProperty(
       property,
@@ -522,7 +523,7 @@ struct AsyncPropertyTests {
   @Test("Async property with complex generator combinations")
   func asyncPropertyWithComplexGeneratorCombinations() async throws {
     // Complex nested generator structure
-    let complexGenerator = Gen.int.zip(Gen.string).zip(Gen.bool).zip(Gen.float)
+    let complexGenerator = Gen<Int>.int.zip(Gen<String>.string).zip(Gen<Bool>.bool).zip(Gen.float)
 
     let property = Property<(((Int, String), Bool), Float)>(
       generator: complexGenerator
@@ -553,7 +554,7 @@ struct AsyncPropertyTests {
 
   @Test("Async property memory usage under load")
   func asyncPropertyMemoryUsageUnderLoad() async throws {
-    let property = Property<[String]>(generator: Gen.array(Gen.string)) { array in
+    let property = Property<[String]>(generator: Gen<[String]>.array(Gen<String>.string)) { array in
       // Test with potentially large arrays - validates memory handling
       array.isEmpty
     }
@@ -588,7 +589,7 @@ struct AsyncPropertyTests {
   @Test("AsyncProperty success")
   @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
   func asyncPropertySuccess() async {
-    let property = AsyncProperty<Int>(generator: Gen.int(in: 1...100)) { value in
+    let property = AsyncProperty<Int>(generator: Gen<Int>.int(in: 1...100)) { value in
       await Task.yield()
       return value > 0
     }
@@ -613,7 +614,7 @@ struct AsyncPropertyTests {
   @Test("AsyncProperty failure with shrinking")
   @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
   func asyncPropertyFailureWithShrinking() async {
-    let property = AsyncProperty<Int>(generator: Gen.int(in: 1...100)) { value in
+    let property = AsyncProperty<Int>(generator: Gen<Int>.int(in: 1...100)) { value in
       await Task.yield()
       return value > 50
     }
@@ -647,7 +648,7 @@ struct AsyncPropertyTests {
   @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
   func asyncPropertyWithAssumption() async {
     let property = AsyncProperty<Int>(
-      generator: Gen.int,
+      generator: Gen<Int>.int,
       assumption: { $0 > 0 },
       predicate: { value in
         await Task.yield()
@@ -677,7 +678,7 @@ struct AsyncPropertyTests {
   @Test("AsyncThrowingProperty success")
   @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
   func asyncThrowingPropertySuccess() async {
-    let property = AsyncThrowingProperty<Int>(generator: Gen.int(in: 1...100)) { value in
+    let property = AsyncThrowingProperty<Int>(generator: Gen<Int>.int(in: 1...100)) { value in
       await Task.yield()
       if value <= 0 {
         throw TestError.invalidValue
@@ -705,7 +706,7 @@ struct AsyncPropertyTests {
   @Test("AsyncThrowingProperty captures thrown errors")
   @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
   func asyncThrowingPropertyCapturesErrors() async {
-    let property = AsyncThrowingProperty<Int>(generator: Gen.int(in: -10...10)) { value in
+    let property = AsyncThrowingProperty<Int>(generator: Gen<Int>.int(in: -10...10)) { value in
       await Task.yield()
       if value < 0 {
         throw TestError.negativeValue
@@ -740,7 +741,7 @@ struct AsyncPropertyTests {
   @Test("AsyncThrowingProperty false predicate")
   @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
   func asyncThrowingPropertyFalsePredicate() async {
-    let property = AsyncThrowingProperty<Int>(generator: Gen.int(in: 1...100)) { value in
+    let property = AsyncThrowingProperty<Int>(generator: Gen<Int>.int(in: 1...100)) { value in
       await Task.yield()
       return value > 50
     }
@@ -772,7 +773,7 @@ struct AsyncPropertyTests {
   @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
   func asyncThrowingPropertyWithAssumption() async {
     let property = AsyncThrowingProperty<Int>(
-      generator: Gen.int,
+      generator: Gen<Int>.int,
       assumption: { $0 > 0 },
       predicate: { value in
         await Task.yield()

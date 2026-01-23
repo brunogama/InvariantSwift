@@ -1,4 +1,6 @@
 import Testing
+import Darwin
+import InvariantSwiftCore
 @testable import InvariantSwift
 
 @Suite("Crash Isolation Tests")
@@ -68,7 +70,7 @@ struct CrashIsolationTests {
   @Test("Shrinking works with subprocess isolation")
   func testShrinkingWithIsolation() async throws {
     #if os(macOS)
-    let property = Property(generator: Gen.array(Gen<Int>.int)) { array in
+    let property = Property(generator: Gen<[Int]>.array(Gen<Int>.int)) { array in
       if array.contains(999) {
         fatalError("Found 999")
       }

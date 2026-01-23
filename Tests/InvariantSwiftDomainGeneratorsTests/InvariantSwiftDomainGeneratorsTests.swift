@@ -1,5 +1,5 @@
 import Testing
-import InvariantCore
+import InvariantSwiftCore
 import InvariantSwift
 import InvariantSwiftDomainGenerators
 

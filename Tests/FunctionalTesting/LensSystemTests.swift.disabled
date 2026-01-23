@@ -1,6 +1,6 @@
 import Testing
 import Foundation
-import InvariantCore
+import InvariantSwiftCore
 @testable import InvariantSwift
 
 /// Tests for the lens system integration with FunctionalTesting configuration objects

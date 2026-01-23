@@ -2,7 +2,7 @@ import SwiftSyntax
 import SwiftSyntaxBuilder
 import XCTest
 
-import InvariantCore
+import InvariantSwiftCore
 @testable import InvariantSwiftMacros
 
 final class TypeAnalyzerTests: XCTestCase {

@@ -1,6 +1,6 @@
 import Testing
 import Foundation
-@testable import InvariantCore
+@testable import InvariantSwiftCore
 @testable import InvariantSwift
 
 // swiftlint:disable file_length type_body_length
@@ -11,7 +11,7 @@ struct CollectionGeneratorTests {
 
   @Test("Array Generator Basic Coverage")
   func arrayGeneratorBasicCoverage() async {
-    let property = Property<[Int]>(generator: Gen.array(Gen.int)) { _ in true }
+    let property = Property<[Int]>(generator: Gen<[Int]>.array(Gen<Int>.int)) { _ in true }
     let result = await PropertyRunner().runProperty(
       property,
       config: PropertyConfig(iterations: 50)
@@ -30,7 +30,7 @@ struct CollectionGeneratorTests {
 
   @Test("Array Generator Edge Cases")
   func arrayGeneratorEdgeCases() async {
-    let property = Property<[Int]>(generator: Gen.array(Gen.int)) { array in
+    let property = Property<[Int]>(generator: Gen<[Int]>.array(Gen<Int>.int)) { array in
       // Test that arrays have reasonable bounds
       array.count <= 100
     }
@@ -52,7 +52,7 @@ struct CollectionGeneratorTests {
 
   @Test("Array Generator Shrinking")
   func arrayGeneratorShrinking() async {
-    let property = Property<[Int]>(generator: Gen.array(Gen.int(in: 1...100))) { array in
+    let property = Property<[Int]>(generator: Gen<[Int]>.array(Gen<Int>.int(in: 1...100))) { array in
       !array.contains(42)  // Should fail when 42 is found
     }
     let result = await PropertyRunner().runProperty(
@@ -80,7 +80,7 @@ struct CollectionGeneratorTests {
 
   @Test("Array Generator String Elements")
   func arrayGeneratorStringElements() async {
-    let property = Property<[String]>(generator: Gen.array(Gen.string)) { _ in true }
+    let property = Property<[String]>(generator: Gen<[String]>.array(Gen<String>.string)) { _ in true }
     let result = await PropertyRunner().runProperty(
       property,
       config: PropertyConfig(iterations: 30)
@@ -101,7 +101,7 @@ struct CollectionGeneratorTests {
 
   @Test("Set Generator Basic Coverage")
   func setGeneratorBasicCoverage() async {
-    let setGen = Gen<Set<Int>>.set(Gen.int)
+    let setGen = Gen<Set<Int>>.set(Gen<Int>.int)
     let property = Property<Set<Int>>(generator: setGen) { _ in true }
     let result = await PropertyRunner().runProperty(
       property,
@@ -121,7 +121,7 @@ struct CollectionGeneratorTests {
 
   @Test("Set Generator Uniqueness")
   func setGeneratorUniqueness() async {
-    let setGen = Gen<Set<Int>>.set(Gen.int(in: 1...10))
+    let setGen = Gen<Set<Int>>.set(Gen<Int>.int(in: 1...10))
     let property = Property<Set<Int>>(generator: setGen) { set in
       // All elements should be unique (which is guaranteed by Set)
       // Test that set size is reasonable for small range
@@ -145,7 +145,7 @@ struct CollectionGeneratorTests {
 
   @Test("Set Generator Shrinking")
   func setGeneratorShrinking() async {
-    let setGen = Gen<Set<Int>>.set(Gen.int(in: 1...50))
+    let setGen = Gen<Set<Int>>.set(Gen<Int>.int(in: 1...50))
     let property = Property<Set<Int>>(generator: setGen) { set in
       !set.contains(25)  // Should fail when 25 is found
     }
@@ -174,7 +174,7 @@ struct CollectionGeneratorTests {
 
   @Test("Set Generator String Elements")
   func setGeneratorStringElements() async {
-    let setGen = Gen<Set<String>>.set(Gen.string)
+    let setGen = Gen<Set<String>>.set(Gen<String>.string)
     let property = Property<Set<String>>(generator: setGen) { _ in true }
     let result = await PropertyRunner().runProperty(
       property,
@@ -196,7 +196,7 @@ struct CollectionGeneratorTests {
 
   @Test("Dictionary Generator Basic Coverage")
   func dictionaryGeneratorBasicCoverage() async {
-    let dictGen = Gen<[String: Int]>.dictionary(Gen.string, Gen.int)
+    let dictGen = Gen<[String: Int]>.dictionary(Gen<String>.string, Gen<Int>.int)
     let property = Property<[String: Int]>(generator: dictGen) { _ in
       true
     }
@@ -218,7 +218,7 @@ struct CollectionGeneratorTests {
 
   @Test("Dictionary Generator Key Uniqueness")
   func dictionaryGeneratorKeyUniqueness() async {
-    let dictGen = Gen<[Int: String]>.dictionary(Gen.int(in: 1...10), Gen.string)
+    let dictGen = Gen<[Int: String]>.dictionary(Gen<Int>.int(in: 1...10), Gen<String>.string)
     let property = Property<[Int: String]>(
       generator: dictGen
     ) { dict in
@@ -244,7 +244,7 @@ struct CollectionGeneratorTests {
 
   @Test("Dictionary Generator Shrinking")
   func dictionaryGeneratorShrinking() async {
-    let dictGen = Gen<[String: Int]>.dictionary(Gen.string, Gen.int(in: 1...100))
+    let dictGen = Gen<[String: Int]>.dictionary(Gen<String>.string, Gen<Int>.int(in: 1...100))
     let property = Property<[String: Int]>(
       generator: dictGen
     ) { dict in
@@ -275,7 +275,7 @@ struct CollectionGeneratorTests {
 
   @Test("Dictionary Generator Complex Types")
   func dictionaryGeneratorComplexTypes() async {
-    let dictGen = Gen<[Int: [String]]>.dictionary(Gen.int, Gen.array(Gen.string))
+    let dictGen = Gen<[Int: [String]]>.dictionary(Gen<Int>.int, Gen<[String]>.array(Gen<String>.string))
     let property = Property<[Int: [String]]>(
       generator: dictGen
     ) { _ in true }
@@ -299,7 +299,7 @@ struct CollectionGeneratorTests {
 
   @Test("Range Generator Basic Coverage")
   func rangeGeneratorBasicCoverage() async {
-    let property = Property<Range<Int>>(generator: Gen.intRange) { _ in true }
+    let property = Property<Range<Int>>(generator: Gen<Int>.intRange) { _ in true }
     let result = await PropertyRunner().runProperty(
       property,
       config: PropertyConfig(iterations: 50)
@@ -318,7 +318,7 @@ struct CollectionGeneratorTests {
 
   @Test("Range Generator Validity")
   func rangeGeneratorValidity() async {
-    let property = Property<Range<Int>>(generator: Gen.intRange) { range in
+    let property = Property<Range<Int>>(generator: Gen<Int>.intRange) { range in
       // Test that ranges are valid (lowerBound <= upperBound)
       range.lowerBound <= range.upperBound
     }
@@ -340,7 +340,7 @@ struct CollectionGeneratorTests {
 
   @Test("Range Generator Edge Cases")
   func rangeGeneratorEdgeCases() async {
-    let property = Property<Range<Int>>(generator: Gen.intRange) { range in
+    let property = Property<Range<Int>>(generator: Gen<Int>.intRange) { range in
       // Test that ranges don't exceed reasonable bounds
       range.count <= 1000
     }
@@ -362,7 +362,7 @@ struct CollectionGeneratorTests {
 
   @Test("ClosedRange Generator Basic Coverage")
   func closedRangeGeneratorBasicCoverage() async {
-    let property = Property<ClosedRange<Int>>(generator: Gen.intClosedRange) { _ in true }
+    let property = Property<ClosedRange<Int>>(generator: Gen<Int>.intClosedRange) { _ in true }
     let result = await PropertyRunner().runProperty(
       property,
       config: PropertyConfig(iterations: 50)
@@ -381,7 +381,7 @@ struct CollectionGeneratorTests {
 
   @Test("ClosedRange Generator Validity")
   func closedRangeGeneratorValidity() async {
-    let property = Property<ClosedRange<Int>>(generator: Gen.intClosedRange) { range in
+    let property = Property<ClosedRange<Int>>(generator: Gen<Int>.intClosedRange) { range in
       // Test that closed ranges are valid (lowerBound <= upperBound)
       range.lowerBound <= range.upperBound
     }
@@ -405,7 +405,7 @@ struct CollectionGeneratorTests {
 
   @Test("PartialRangeFrom Generator Basic Coverage")
   func partialRangeFromGeneratorBasicCoverage() async {
-    let property = Property<PartialRangeFrom<Int>>(generator: Gen.intPartialRangeFrom) { _ in true }
+    let property = Property<PartialRangeFrom<Int>>(generator: Gen<Int>.intPartialRangeFrom) { _ in true }
     let result = await PropertyRunner().runProperty(
       property,
       config: PropertyConfig(iterations: 50)
@@ -424,7 +424,7 @@ struct CollectionGeneratorTests {
 
   @Test("PartialRangeUpTo Generator Basic Coverage")
   func partialRangeUpToGeneratorBasicCoverage() async {
-    let property = Property<PartialRangeUpTo<Int>>(generator: Gen.intPartialRangeUpTo) { _ in true }
+    let property = Property<PartialRangeUpTo<Int>>(generator: Gen<Int>.intPartialRangeUpTo) { _ in true }
     let result = await PropertyRunner().runProperty(
       property,
       config: PropertyConfig(iterations: 50)
@@ -443,7 +443,7 @@ struct CollectionGeneratorTests {
 
   @Test("PartialRangeThrough Generator Basic Coverage")
   func partialRangeThroughGeneratorBasicCoverage() async {
-    let property = Property<PartialRangeThrough<Int>>(generator: Gen.intPartialRangeThrough) { _ in
+    let property = Property<PartialRangeThrough<Int>>(generator: Gen<Int>.intPartialRangeThrough) { _ in
       true
     }
     let result = await PropertyRunner().runProperty(
@@ -466,7 +466,7 @@ struct CollectionGeneratorTests {
 
   @Test("ArraySlice Generator Basic Coverage")
   func arraySliceGeneratorBasicCoverage() async {
-    let arraySliceGen = Gen<ArraySlice<Int>>.arraySlice(Gen.int)
+    let arraySliceGen = Gen<ArraySlice<Int>>.arraySlice(Gen<Int>.int)
     let property = Property<ArraySlice<Int>>(generator: arraySliceGen) { _ in true }
     let result = await PropertyRunner().runProperty(
       property,
@@ -486,7 +486,7 @@ struct CollectionGeneratorTests {
 
   @Test("ArraySlice Generator Properties")
   func arraySliceGeneratorProperties() async {
-    let arraySliceGen = Gen<ArraySlice<String>>.arraySlice(Gen.string)
+    let arraySliceGen = Gen<ArraySlice<String>>.arraySlice(Gen<String>.string)
     let property = Property<ArraySlice<String>>(generator: arraySliceGen) { slice in
       // Test that array slice behaves like an array
       let array = Array(slice)
@@ -510,7 +510,7 @@ struct CollectionGeneratorTests {
 
   @Test("ArraySlice Generator Shrinking")
   func arraySliceGeneratorShrinking() async {
-    let arraySliceGen = Gen<ArraySlice<Int>>.arraySlice(Gen.int(in: 1...100))
+    let arraySliceGen = Gen<ArraySlice<Int>>.arraySlice(Gen<Int>.int(in: 1...100))
     let property = Property<ArraySlice<Int>>(generator: arraySliceGen) { slice in
       !slice.contains(75)  // Should fail when 75 is found
     }
@@ -541,7 +541,7 @@ struct CollectionGeneratorTests {
 
   @Test("Nested Collection Generators")
   func nestedCollectionGenerators() async {
-    let property = Property<[[Int]]>(generator: Gen.array(Gen.array(Gen.int))) { _ in true }
+    let property = Property<[[Int]]>(generator: Gen.array(Gen<[Int]>.array(Gen<Int>.int))) { _ in true }
     let result = await PropertyRunner().runProperty(
       property,
       config: PropertyConfig(iterations: 30)
@@ -560,8 +560,8 @@ struct CollectionGeneratorTests {
 
   @Test("Mixed Collection Types")
   func mixedCollectionTypes() async {
-    let innerSetGen = Gen<Set<Int>>.set(Gen.int)
-    let dictGen = Gen<[String: Set<Int>]>.dictionary(Gen.string, innerSetGen)
+    let innerSetGen = Gen<Set<Int>>.set(Gen<Int>.int)
+    let dictGen = Gen<[String: Set<Int>]>.dictionary(Gen<String>.string, innerSetGen)
     let property = Property<[String: Set<Int>]>(
       generator: dictGen
     ) { _ in true }
@@ -583,7 +583,7 @@ struct CollectionGeneratorTests {
 
   @Test("Collection Size Distribution")
   func collectionSizeDistribution() async {
-    let property = Property<[Int]>(generator: Gen.array(Gen.int)) { _ in
+    let property = Property<[Int]>(generator: Gen<[Int]>.array(Gen<Int>.int)) { _ in
       // Test that we get a variety of sizes, including edge cases
       true  // Just exercise the generation
     }

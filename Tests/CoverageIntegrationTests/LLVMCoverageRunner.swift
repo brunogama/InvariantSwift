@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+import InvariantSwiftCore
 
 /// Swift wrapper for LLVM coverage analysis tools
 ///
@@ -35,7 +36,7 @@ public actor LLVMCoverageRunner {
 
     /// Check if coverage meets the 99%+ target
     public var meetsTargetCoverage: Bool {
-      return linePercentage >= 99.0 && regionPercentage >= 95.0
+      linePercentage >= 99.0 && regionPercentage >= 95.0
     }
 
     /// Human-readable coverage summary
@@ -145,7 +146,7 @@ public actor LLVMCoverageRunner {
         "-o", "\(codecovPath)/default.profdata",
       ]
 
-    let _ = try await executeCommand(mergeCommand)
+    _ = try await executeCommand(mergeCommand)
   }
 
   /// Generate LLVM coverage report and parse results
@@ -332,7 +333,7 @@ public actor CoverageBaseline {
     current: LLVMCoverageRunner.CoverageReport,
     against baseline: LLVMCoverageRunner.CoverageReport
   ) -> Bool {
-    return current.linePercentage < baseline.linePercentage
+    current.linePercentage < baseline.linePercentage
       || current.regionPercentage < baseline.regionPercentage
   }
 

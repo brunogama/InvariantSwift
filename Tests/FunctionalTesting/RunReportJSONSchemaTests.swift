@@ -1,6 +1,7 @@
 import Testing
 import Foundation
 @testable import InvariantSwift
+import InvariantSwiftCore
 
 @Suite("RunReport JSON Schema Tests")
 struct RunReportJSONSchemaTests {

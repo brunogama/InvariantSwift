@@ -5,7 +5,7 @@
 
 import Testing
 import Foundation
-import InvariantCore
+import InvariantSwiftCore
 @testable import InvariantSwift
 
 @Suite("ShrinkPredicate Tests")

@@ -1,7 +1,7 @@
 // swiftlint:disable line_length multiline_function_chains
 import Testing
 import Foundation
-import InvariantCore
+import InvariantSwiftCore
 @testable import InvariantSwift
 
 /// Meta-property tests that use the FunctionalTesting framework to test itself
@@ -30,7 +30,7 @@ struct MetaPropertyTests {
     // Create a generator that generates integer generators
     let genGen = Gen<Gen<Int>> { _, size in
       let range = -size.value...size.value
-      return Gen.int(in: range)
+      return Gen<Int>.int(in: range)
     }
 
     // Property: All generated generators must satisfy functor identity law
@@ -98,7 +98,7 @@ struct MetaPropertyTests {
     /// and that shrunk generators still produce valid, smaller values.
 
     let genGen = Gen<Gen<[Int]>> { _, size in
-      Gen.array(Gen.int(in: 0...size.value))
+      Gen<[Int]>.array(Gen<Int>.int(in: 0...size.value))
     }
 
     let shrinkingProperty = Property(generator: genGen) { generatedGen in
@@ -131,13 +131,13 @@ struct MetaPropertyTests {
 
       return Gen.oneOf([
         // Always-true property
-        Gen.pure(Property<Int>(generator: Gen.int) { _ in true }),
+        Gen.pure(Property<Int>(generator: Gen<Int>.int) { _ in true }),
 
         // Threshold-based property
-        Gen.pure(Property<Int>(generator: Gen.int) { value in value >= threshold }),
+        Gen.pure(Property<Int>(generator: Gen<Int>.int) { value in value >= threshold }),
 
         // Modulo property
-        Gen.pure(Property<Int>(generator: Gen.int) { value in value % 2 == 0 || value % 2 == 1 }),
+        Gen.pure(Property<Int>(generator: Gen<Int>.int) { value in value % 2 == 0 || value % 2 == 1 }),
       ]).generate(&rng, size)
     }
 
@@ -171,14 +171,14 @@ struct MetaPropertyTests {
     /// the combined properties behave according to Boolean algebra laws.
 
     // Create simple base properties
-    let positiveProperty = Property<Int>(generator: Gen.int) { $0 >= 0 }
-    let evenProperty = Property<Int>(generator: Gen.int) { $0 % 2 == 0 }
+    let positiveProperty = Property<Int>(generator: Gen<Int>.int) { $0 >= 0 }
+    let evenProperty = Property<Int>(generator: Gen<Int>.int) { $0 % 2 == 0 }
 
     // Test AND combinator
     let andProperty = positiveProperty.and(evenProperty)
 
     // Meta-property: AND should only pass when both components pass
-    let andValidationProperty = Property<(Int, Int)>(generator: Gen.int.zip(Gen.int)) { pair in
+    let andValidationProperty = Property<(Int, Int)>(generator: Gen<Int>.int.zip(Gen<Int>.int)) { pair in
       let pos = positiveProperty.predicate(pair.0)
       let even = evenProperty.predicate(pair.1)
       let combined = andProperty.predicate(pair)
@@ -204,10 +204,10 @@ struct MetaPropertyTests {
     let runner = PropertyRunner(seed: Seed(value: 42))
 
     // Property: PropertyRunner should consistently execute the same property
-    let consistencyProperty = Property<Int>(generator: Gen.int) { iterations in
+    let consistencyProperty = Property<Int>(generator: Gen<Int>.int) { iterations in
       guard iterations > 0 && iterations <= 50 else { return true }
 
-      let testProperty = Property<Bool>(generator: Gen.bool) { $0 || !$0 }  // Tautology
+      let testProperty = Property<Bool>(generator: Gen<Bool>.bool) { $0 || !$0 }  // Tautology
       let config = PropertyConfig(iterations: iterations, seed: Seed(value: 42))
 
       // Synchronous execution for this test
@@ -230,7 +230,7 @@ struct MetaPropertyTests {
     let runner = PropertyRunner(seed: Seed(value: 123))
 
     // Property that fails for large arrays
-    let failingProperty = Property<[Int]>(generator: Gen.array(Gen.int)) { array in
+    let failingProperty = Property<[Int]>(generator: Gen<[Int]>.array(Gen<Int>.int)) { array in
       array.count < 5  // Fails for arrays with 5+ elements
     }
 
@@ -282,7 +282,7 @@ struct MetaPropertyTests {
 
     // Test applicative identity law: pure(id) <*> v = v
     // Note: For now, we'll test a simpler applicative property
-    let identityProperty = Property<Int>(generator: Gen.int) { value in
+    let identityProperty = Property<Int>(generator: Gen<Int>.int) { value in
       let genValue = Gen.pure(value)
 
       let seed = Seed(value: 42)
@@ -309,7 +309,7 @@ struct MetaPropertyTests {
     /// 3. Associativity: (m >>= f) >>= g = m >>= (\x -> f(x) >>= g)
 
     // Test left identity law
-    let leftIdentityProperty = Property<String>(generator: Gen.string) { value in
+    let leftIdentityProperty = Property<String>(generator: Gen<String>.string) { value in
       let f: @Sendable (String) -> Gen<Int> = { str in Gen.pure(str.count) }
 
       // Left side: return(a) >>= f
@@ -347,7 +347,7 @@ struct MetaPropertyTests {
     let runner = PropertyRunner(seed: Seed(value: 42))
 
     // Property that exercises coverage-guided generation
-    let coverageProperty = Property<Int>(generator: Gen.int(in: 1...100)) { value in
+    let coverageProperty = Property<Int>(generator: Gen<Int>.int(in: 1...100)) { value in
       // This should exercise our coverage-guided biasing logic
       let budget = CoverageBudget(
         uncoveredSymbols: ["test_path_\(value % 3)"],
@@ -356,7 +356,7 @@ struct MetaPropertyTests {
         coveredFunctions: value % 3
       )
 
-      let biasedGen = Gen.int.biased(by: budget, strategy: .frequency)
+      let biasedGen = Gen<Int>.int.biased(by: budget, strategy: .frequency)
       let biasedValue = biasedGen.sample(
         size: Size(value: 10),
         seed: Seed(value: UInt64(abs(value)))
@@ -388,7 +388,7 @@ struct MetaPropertyTests {
 
     // Create a property that validates PropertyChecker itself
     let validationProperty = Property<(Property<Bool>, PropertyConfig)>(
-      generator: Gen.pure(Property<Bool>(generator: Gen.bool, predicate: { $0 || !$0 }))
+      generator: Gen.pure(Property<Bool>(generator: Gen<Bool>.bool, predicate: { $0 || !$0 }))
         .zip(Gen.pure(PropertyConfig(iterations: 5)))
     ) { prop, config in
       // PropertyChecker should consistently handle tautologies

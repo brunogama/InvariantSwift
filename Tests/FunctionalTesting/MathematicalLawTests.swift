@@ -1,5 +1,5 @@
 import Testing
-import InvariantCore
+import InvariantSwiftCore
 @testable import InvariantSwift
 
 /// Comprehensive mathematical law verification for category theory foundations
@@ -14,7 +14,7 @@ struct MathematicalLawTests {
     let seed = Seed(value: 42)
     let size = Size(value: 10)
 
-    let originalGen = Gen.int(in: 1...100)
+    let originalGen = Gen<Int>.int(in: 1...100)
     let identityMappedGen = originalGen.map { $0 }  // Identity function
 
     // Generate multiple samples to compare behavior
@@ -43,7 +43,7 @@ struct MathematicalLawTests {
     let g: @Sendable (String) -> Int = { $0.count }
     let composed: @Sendable (Int) -> Int = { (x: Int) in g(f(x)) }
 
-    let baseGen = Gen.int(in: 1...50)
+    let baseGen = Gen<Int>.int(in: 1...50)
     let composedMapGen = baseGen.map(composed)
     let sequentialMapGen = baseGen.map(f).map(g)
 
@@ -68,7 +68,7 @@ struct MathematicalLawTests {
     let seed = Seed(value: 456)
     let size = Size(value: 20)
 
-    let valueGen = Gen.int(in: -100...100)
+    let valueGen = Gen<Int>.int(in: -100...100)
     let identityGen = Gen<@Sendable (Int) -> Int>.pure { (x: Int) in x }  // Identity function
     let appliedGen = valueGen.apply(identityGen)
 
@@ -97,7 +97,7 @@ struct MathematicalLawTests {
     // Simplified: avoid complex compose to prevent Sendable inference issues
     // Instead, directly test the left/right sides with separate generators
 
-    let valueGen = Gen.int(in: 1...20)
+    let valueGen = Gen<Int>.int(in: 1...20)
     let fGen = Gen<@Sendable (Int) -> String>.pure(f)
     let gGen = Gen<@Sendable (String) -> Int>.pure(g)
 
@@ -205,7 +205,7 @@ struct MathematicalLawTests {
     let seed = Seed(value: 147)
     let size = Size(value: 18)
 
-    let m = Gen.int(in: 50...150)
+    let m = Gen<Int>.int(in: 50...150)
     let boundWithReturn = m.flatMap(Gen.pure)
 
     // Test right identity law
@@ -227,7 +227,7 @@ struct MathematicalLawTests {
     let seed = Seed(value: 258)
     let size = Size(value: 7)
 
-    let m = Gen.int(in: 1...10)
+    let m = Gen<Int>.int(in: 1...10)
     let f: @Sendable (Int) -> Gen<String> = { n in Gen.pure("step1_\(n)") }
     let g: @Sendable (String) -> Gen<Int> = { s in Gen.pure(s.count) }
 
@@ -259,7 +259,7 @@ struct MathematicalLawTests {
     let size = Size(value: 25)
 
     let f: @Sendable (Int) -> String = { "fa_\($0 * 4)" }
-    let x = Gen.int(in: 10...50)
+    let x = Gen<Int>.int(in: 10...50)
 
     let functorSide = x.map(f)
     let applicativeSide = x.apply(Gen<@Sendable (Int) -> String>.pure(f))
@@ -284,7 +284,7 @@ struct MathematicalLawTests {
     let size = Size(value: 15)
 
     let f = Gen<@Sendable (Int) -> String>.pure { (x: Int) in "am_\(x + 10)" }
-    let x = Gen.int(in: 1...30)
+    let x = Gen<Int>.int(in: 1...30)
 
     let applicativeSide = x.apply(f)
     let monadSide = f.flatMap { g in
@@ -367,7 +367,7 @@ struct MathematicalLawTests {
   @Test("Seed Determinism Law - Same seed produces same sequence")
   func seedDeterminismLaw() {
     let seed = Seed(value: 12345)
-    let generator = Gen.int(in: 1...1000)
+    let generator = Gen<Int>.int(in: 1...1000)
     let size = Size(value: 50)
 
     // Generate sequences with same seed multiple times
@@ -398,7 +398,7 @@ struct MathematicalLawTests {
   @Test("Seed Splitting Law - Split seeds produce independent sequences")
   func seedSplittingLaw() {
     let baseSeed = Seed(value: 54321)
-    let generator = Gen.int
+    let generator = Gen<Int>.int
     let size = Size(value: 30)
 
     // Create multiple split seeds
@@ -434,8 +434,8 @@ struct MathematicalLawTests {
 
   @Test("Property Conjunction Law - P ∧ Q equivalent to checking both")
   func propertyConjunctionLaw() async {
-    let positiveProperty = Property<Int>(generator: Gen.int) { $0 > 0 }
-    let evenProperty = Property<Int>(generator: Gen.int) { $0 % 2 == 0 }
+    let positiveProperty = Property<Int>(generator: Gen<Int>.int) { $0 > 0 }
+    let evenProperty = Property<Int>(generator: Gen<Int>.int) { $0 % 2 == 0 }
     let conjoinedProperty = positiveProperty.and(evenProperty)
 
     let result = runPropertySynchronously(
@@ -480,8 +480,8 @@ struct MathematicalLawTests {
     // Disabled: Test assertions are logically incorrect (expecting too much from counterexamples)
     #expect(Bool(true), "Test disabled due to incorrect assertions")
     /*
-    let negativeProperty = Property<Int>(generator: Gen.int) { $0 < 0 }
-    let oddProperty = Property<Int>(generator: Gen.int) { $0 % 2 != 0 }
+    let negativeProperty = Property<Int>(generator: Gen<Int>.int) { $0 < 0 }
+    let oddProperty = Property<Int>(generator: Gen<Int>.int) { $0 % 2 != 0 }
     let disjoinedProperty = negativeProperty.or(oddProperty)
     
     let result = runPropertySynchronously(

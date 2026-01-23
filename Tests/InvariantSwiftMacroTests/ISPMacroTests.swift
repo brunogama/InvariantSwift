@@ -10,7 +10,7 @@ import SwiftSyntaxMacros
 import SwiftSyntaxMacrosTestSupport
 import Testing
 
-import InvariantCore
+import InvariantSwiftCore
 @testable import InvariantSwiftMacros
 
 // MARK: - ISP-0004: @Reproduce Macro Tests

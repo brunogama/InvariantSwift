@@ -1,6 +1,6 @@
 import Testing
 import Foundation
-@testable import InvariantCore
+@testable import InvariantSwiftCore
 @testable import InvariantSwift
 
 /// Recursive shrinking validation tests - using shrinking to test shrinking
@@ -149,7 +149,8 @@ struct RecursiveShrinkingTests {
     /// algorithms satisfy fundamental mathematical properties about minimization.
 
     // Property: Shrinking should be idempotent (shrinking shrunk values yields same or smaller results)
-    let idempotencyProperty = Property<[String]>(generator: Gen.array(Gen.string)) { originalArray in
+    let idempotencyProperty = Property<[String]>(generator: Gen<[String]>.array(Gen<String>.string))
+    { originalArray in
       guard !originalArray.isEmpty else { return true }
 
       let arrayShrink = Shrink<[String]> { array in
@@ -202,7 +203,9 @@ struct RecursiveShrinkingTests {
     /// failure), the shrunk values still cause the same property to fail.
 
     // Create a property that fails for arrays with duplicate elements
-    let noDuplicatesProperty = Property<[Int]>(generator: Gen.array(Gen.int(in: 1...10))) { array in
+    let noDuplicatesProperty = Property<[Int]>(
+      generator: Gen<[Int]>.array(Gen<Int>.int(in: 1...10))
+    ) { array in
       Set(array).count == array.count  // No duplicates
     }
 
@@ -211,7 +214,7 @@ struct RecursiveShrinkingTests {
     #expect(!noDuplicatesProperty.predicate(failingArray), "Test array should fail the property")
 
     // Now test that shrinking preserves the failure
-    let arrayShrink = Gen.array(Gen.int).shrink
+    let arrayShrink = Gen<[Int]>.array(Gen<Int>.int).shrink
     let shrunkArrays = arrayShrink.shrink(failingArray)
 
     // Filter shrunk arrays that still have duplicates
@@ -248,7 +251,7 @@ struct RecursiveShrinkingTests {
     let nestedGen = Gen<NestedData> { rng, size in
       let arrayCount = Int.random(in: 1...size.value, using: &rng)
       let arrays = (0..<arrayCount).map { _ in
-        Gen.array(Gen.int(in: 1...10)).generate(&rng, size)
+        Gen<[Int]>.array(Gen<Int>.int(in: 1...10)).generate(&rng, size)
       }
 
       let metadata = [
@@ -405,8 +408,9 @@ struct RecursiveShrinkingTests {
     /// create infinite loops, even with pathological input.
 
     // Property: Repeated shrinking should eventually reach a fixed point
-    let terminationProperty = Property<[Int]>(generator: Gen.array(Gen.int)) { originalArray in
-      let arrayShrink = Gen.array(Gen.int).shrink
+    let terminationProperty = Property<[Int]>(generator: Gen<[Int]>.array(Gen<Int>.int)) {
+      originalArray in
+      let arrayShrink = Gen<[Int]>.array(Gen<Int>.int).shrink
 
       var current = originalArray
       var iterations = 0
@@ -445,7 +449,7 @@ struct RecursiveShrinkingTests {
     let largeArray = Array(1...1000)
 
     let startTime = Date()
-    let shrunk = Gen.array(Gen.int).shrink.shrink(largeArray)
+    let shrunk = Gen<[Int]>.array(Gen<Int>.int).shrink.shrink(largeArray)
     let duration = Date().timeIntervalSince(startTime)
 
     #expect(duration < 1.0, "Shrinking large arrays should complete within 1 second")

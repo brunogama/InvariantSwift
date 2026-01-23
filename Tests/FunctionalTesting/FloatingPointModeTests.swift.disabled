@@ -2,6 +2,7 @@ import Foundation
 import Testing
 
 @testable import InvariantSwift
+import InvariantSwiftCore
 
 @Suite("Floating Point Mode Tests")
 struct FloatingPointModeTests {

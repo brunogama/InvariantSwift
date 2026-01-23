@@ -1,5 +1,6 @@
-import Foundation
 import CoreGraphics
+import Foundation
+import InvariantSwiftCore
 
 // MARK: - Integer Type Generators
 
