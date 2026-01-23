@@ -89,6 +89,11 @@ public struct ClassificationReport: Sendable, Codable, Equatable {
   /// Key is the coverage check name.
   public let coverageResults: [String: CoverageResult]
 
+  /// Histogram of collected values per category.
+  ///
+  /// Outer key is category name, inner key is value string, value is stats.
+  public let collectedValues: [String: [String: LabelStats]]
+
   /// Total iterations observed during the test run.
   public let totalIterations: Int
 
@@ -97,16 +102,18 @@ public struct ClassificationReport: Sendable, Codable, Equatable {
   public init(
     labelDistribution: [String: [String: LabelStats]],
     coverageResults: [String: CoverageResult],
+    collectedValues: [String: [String: LabelStats]] = [:],
     totalIterations: Int
   ) {
     self.labelDistribution = labelDistribution
     self.coverageResults = coverageResults
+    self.collectedValues = collectedValues
     self.totalIterations = totalIterations
   }
 
   /// Creates an empty report.
   public static var empty: Self {
-    Self(labelDistribution: [:], coverageResults: [:], totalIterations: 0)
+    Self(labelDistribution: [:], coverageResults: [:], collectedValues: [:], totalIterations: 0)
   }
 
   // MARK: - Computed Properties
@@ -143,54 +150,99 @@ public struct ClassificationReport: Sendable, Codable, Equatable {
   /// - Returns: Formatted report string
   public func format() -> String {
     // Empty report - silent
-    if labelDistribution.isEmpty && coverageResults.isEmpty {
+    if labelDistribution.isEmpty && coverageResults.isEmpty && collectedValues.isEmpty {
       return ""
     }
 
     var lines: [String] = []
 
-    // Label distributions (sorted by percentage, highest first)
     if !labelDistribution.isEmpty {
-      lines.append("")
-      lines.append("Labels (\(totalIterations) iterations):")
-
-      for category in labelDistribution.keys.sorted() {
-        lines.append("  \(category):")
-        if let categoryLabels = labelDistribution[category] {
-          // Sort by percentage descending (highest first), then by name
-          let sortedLabels = categoryLabels.sorted { first, second in
-            if first.value.percentage != second.value.percentage {
-              return first.value.percentage > second.value.percentage
-            }
-            return first.key < second.key
-          }
-
-          // Calculate padding for percentage alignment
-          for (label, stats) in sortedLabels {
-            let percentStr = String(format: "%5.1f", stats.percentage)
-            lines.append("    \(percentStr)% \(label)")
-          }
-        }
-      }
+      lines.append(contentsOf: formatLabelDistribution())
     }
 
-    // Coverage results (sorted for determinism)
-    if !coverageResults.isEmpty {
-      lines.append("")
-      lines.append("Coverage:")
+    if !collectedValues.isEmpty {
+      lines.append(contentsOf: formatCollectedValues())
+    }
 
-      for name in coverageResults.keys.sorted() {
-        if let result = coverageResults[name] {
-          let icon = result.met ? "✓" : "✗"
-          let percentStr = String(format: "%.1f", result.percentage)
-          let thresholdStr = String(format: "%.1f", result.threshold)
-          let status = result.met ? "" : " FAILED"
-          lines.append("  \(icon) \(name): \(percentStr)% (required ≥\(thresholdStr)%)\(status)")
-        }
-      }
+    if !coverageResults.isEmpty {
+      lines.append(contentsOf: formatCoverageResults())
     }
 
     return lines.joined(separator: "\n")
+  }
+
+  private func formatLabelDistribution() -> [String] {
+    var lines: [String] = []
+    lines.append("")
+    lines.append("Labels (\(totalIterations) iterations):")
+
+    for category in labelDistribution.keys.sorted() {
+      lines.append("  \(category):")
+      if let categoryLabels = labelDistribution[category] {
+        // Sort by percentage descending (highest first), then by name
+        let sortedLabels = categoryLabels.sorted { first, second in
+          if first.value.percentage != second.value.percentage {
+            return first.value.percentage > second.value.percentage
+          }
+          return first.key < second.key
+        }
+
+        for (label, stats) in sortedLabels {
+          let percentStr = String(format: "%5.1f", stats.percentage)
+          lines.append("    \(percentStr)% \(label)")
+        }
+      }
+    }
+
+    return lines
+  }
+
+  private func formatCollectedValues() -> [String] {
+    var lines: [String] = []
+    lines.append("")
+    lines.append("Collected Values:")
+
+    for category in collectedValues.keys.sorted() {
+      lines.append("  \(category):")
+      if let categoryValues = collectedValues[category] {
+        // Sort by count descending, then by value
+        let sortedValues = categoryValues.sorted { first, second in
+          if first.value.count != second.value.count {
+            return first.value.count > second.value.count
+          }
+          return first.key < second.key
+        }
+
+        // Calculate padding for alignment
+        let maxValueLength = sortedValues.map(\.key.count).max() ?? 0
+
+        for (value, stats) in sortedValues {
+          let paddedValue = value.padding(toLength: maxValueLength, withPad: " ", startingAt: 0)
+          let percentStr = String(format: "%.1f", stats.percentage)
+          lines.append("    \(paddedValue): \(stats.count) (\(percentStr)%)")
+        }
+      }
+    }
+
+    return lines
+  }
+
+  private func formatCoverageResults() -> [String] {
+    var lines: [String] = []
+    lines.append("")
+    lines.append("Coverage:")
+
+    for name in coverageResults.keys.sorted() {
+      if let result = coverageResults[name] {
+        let icon = result.met ? "✓" : "✗"
+        let percentStr = String(format: "%.1f", result.percentage)
+        let thresholdStr = String(format: "%.1f", result.threshold)
+        let status = result.met ? "" : " FAILED"
+        lines.append("  \(icon) \(name): \(percentStr)% (required ≥\(thresholdStr)%)\(status)")
+      }
+    }
+
+    return lines
   }
 
   /// Formats the report for inclusion in failure messages.
@@ -233,10 +285,14 @@ public struct ClassificationReport: Sendable, Codable, Equatable {
     let labelCount = labelDistribution.values.reduce(0) { $0 + $1.count }
     let coverageCount = coverageResults.count
     let unmetCount = unmetCoverageChecks.count
+    let collectedCount = collectedValues.values.reduce(0) { $0 + $1.count }
 
     var parts: [String] = []
     if labelCount > 0 {
       parts.append("\(labelCount) labels")
+    }
+    if collectedCount > 0 {
+      parts.append("\(collectedCount) collected values")
     }
     if coverageCount > 0 {
       let status = unmetCount == 0 ? "all met" : "\(unmetCount) unmet"

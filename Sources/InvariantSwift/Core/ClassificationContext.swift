@@ -200,8 +200,10 @@ public final class ClassificationContext: @unchecked Sendable {
     lock.lock()
     defer { lock.unlock() }
 
-    // Build label distribution
+    // Build label distribution (excluding "collected" category)
     var labelDistribution: [String: [String: ClassificationReport.LabelStats]] = [:]
+    var collectedStats: [String: [String: ClassificationReport.LabelStats]] = [:]
+
     for (category, categoryLabels) in labels {
       var categoryStats: [String: ClassificationReport.LabelStats] = [:]
       let total = categoryLabels.values.reduce(0, +)
@@ -209,7 +211,13 @@ public final class ClassificationContext: @unchecked Sendable {
         let percentage = total > 0 ? (Double(count) / Double(total)) * 100.0 : 0.0
         categoryStats[label] = ClassificationReport.LabelStats(count: count, percentage: percentage)
       }
-      labelDistribution[category] = categoryStats
+
+      // Separate collected values from regular labels
+      if category == "collected" {
+        collectedStats[category] = categoryStats
+      } else {
+        labelDistribution[category] = categoryStats
+      }
     }
 
     // Build coverage results
@@ -229,6 +237,7 @@ public final class ClassificationContext: @unchecked Sendable {
     return ClassificationReport(
       labelDistribution: labelDistribution,
       coverageResults: coverageResults,
+      collectedValues: collectedStats,
       totalIterations: iterationCount
     )
   }
