@@ -8,6 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Phase 1 Execution Plans** in `.planning/phases/01-test-observability/`:
+  * 01-01-PLAN.md: Fluent Classification API (Property+Classification.swift)
+    - Property<T>.cover(), .classify(), .label() extensions returning ClassifyingProperty<T>
+    - Method chaining support for accumulating multiple classifications
+    - Dynamic labeling and collect() convenience methods on ClassificationContext
+  * 01-02-PLAN.md: PropertyRunner Integration with CoverageConfig
+    - CoverageConfig struct with enforceCoverage, warnOnLowCoverage, maxLabels options
+    - Config-driven coverage enforcement in ClassifyingPropertyRunner
+    - Enhanced ClassificationReport formatting with QuickCheck-style output
+  * 01-03-PLAN.md: Swift Testing Integration and Comprehensive Tests
+    - FailureReporting enhancement with classification data
+    - 15+ tests for fluent API (ClassificationFluentAPITests.swift)
+    - 8+ tests for coverage enforcement (CoverageEnforcementTests.swift)
+    - 3+ dogfood tests using property testing to verify classification
 - **Phase 1 Research Documentation** in `.planning/phases/01-test-observability/01-RESEARCH.md`:
   * Research on QuickCheck test observability features (cover, classify, label, collect)
   * Verified existing ClassificationContext infrastructure (90% already implemented)
