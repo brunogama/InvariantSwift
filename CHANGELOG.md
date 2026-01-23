@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Codebase Mapping Documentation** in `.planning/codebase/`:
+  * STACK.md - Technology stack and dependencies (Swift 6.0+, SwiftSyntax 602.0.0, swift-custom-dump)
+  * ARCHITECTURE.md - System design and component interactions (Generator, Property, ShrinkTree, Macros)
+  * STRUCTURE.md - Directory layout and naming conventions (6 library targets, 2 executables, 7 test targets)
+  * CONVENTIONS.md - Code style and patterns (Google Swift Style, strict concurrency, actor isolation)
+  * TESTING.md - Test framework and patterns (Swift Testing, 99%+ coverage target, macro expansion tests)
+  * INTEGRATIONS.md - External dependencies analysis (self-contained library, SQLite3, os.log)
+  * CONCERNS.md - Technical debt and known issues (force unwraps, 16 disabled tests, large files)
 - **JSON Report Schema for CI/CD Integration** (ISP-0008):
   * `RunReport` struct with versioned schema (v1) for machine-readable test outputs
   * Test outcome enum: `.success`, `.failed`, `.gaveUp`
