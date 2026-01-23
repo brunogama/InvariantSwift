@@ -42,7 +42,8 @@ extension PropertyRunner {
   /// - Parameters:
   ///   - property: The classifying property to test
   ///   - config: Configuration controlling iterations and shrinking
-  ///   - enforceCoverageThresholds: If true, fail the test when coverage thresholds are unmet
+  ///   - enforceCoverageThresholds: **Deprecated.** Use `config.coverage.enforceCoverage` instead.
+  ///                                If provided, overrides `config.coverage.enforceCoverage`.
   ///
   /// - Returns: Combined result with property outcome and classification report
   ///
@@ -55,13 +56,18 @@ extension PropertyRunner {
   ///   }
   ///
   ///   let result = runner.runClassifyingProperty(property)
-  ///   print(result.classification.format())
+  ///   // Use result.classification.format() to inspect coverage
   ///   ```
   public func runClassifyingProperty<T>(
     _ property: ClassifyingProperty<T>,
     config: PropertyConfig = .default,
-    enforceCoverageThresholds: Bool = false
+    enforceCoverageThresholds: Bool? = nil
   ) -> ClassifyingPropertyResult<T> {
+    // Determine coverage enforcement: parameter overrides config if provided
+    let shouldEnforceCoverage = enforceCoverageThresholds ?? config.coverage.enforceCoverage
+    let shouldWarnOnLowCoverage = config.coverage.warnOnLowCoverage
+    let maxLabels = config.coverage.maxLabels
+
     let context = ClassificationContext()
     var discarded = 0
     var successfulIterations = 0
@@ -119,27 +125,13 @@ extension PropertyRunner {
     // All iterations passed
     let report = context.report()
 
-    // Check coverage thresholds if enforcement is enabled
-    if enforceCoverageThresholds {
-      let unmet = report.unmetCoverageChecks
-      if !unmet.isEmpty {
-        // Treat unmet coverage as a property failure
-        return ClassifyingPropertyResult(
-          result: .failure(
-            counterexample: property.generator.sample(size: Size(value: 50), seed: seed),
-            iterations: successfulIterations,
-            shrunk: property.generator.sample(size: Size(value: 50), seed: seed),
-            reason: .threwError("Coverage thresholds unmet: \(unmet.joined(separator: ", "))"),
-            seed: seed
-          ),
-          classification: report
-        )
-      }
-    }
-
-    return ClassifyingPropertyResult(
-      result: .success(iterations: successfulIterations),
-      classification: report
+    // Check coverage thresholds and return appropriate result
+    return handleCoverageThresholds(
+      report: report,
+      shouldEnforceCoverage: shouldEnforceCoverage,
+      shouldWarnOnLowCoverage: shouldWarnOnLowCoverage,
+      successfulIterations: successfulIterations,
+      sampleGenerator: property.generator
     )
   }
 
@@ -150,14 +142,19 @@ extension PropertyRunner {
   /// - Parameters:
   ///   - property: The throwing classifying property to test
   ///   - config: Configuration controlling iterations and shrinking
-  ///   - enforceCoverageThresholds: If true, fail the test when coverage thresholds are unmet
+  ///   - enforceCoverageThresholds: **Deprecated.** Use `config.coverage.enforceCoverage` instead.
+  ///                                If provided, overrides `config.coverage.enforceCoverage`.
   ///
   /// - Returns: Combined result with property outcome and classification report
+  // swiftlint:disable:next function_body_length
   public func runThrowingClassifyingProperty<T>(
     _ property: ThrowingClassifyingProperty<T>,
     config: PropertyConfig = .default,
-    enforceCoverageThresholds: Bool = false
+    enforceCoverageThresholds: Bool? = nil
   ) -> ClassifyingPropertyResult<T> {
+    let shouldEnforceCoverage = enforceCoverageThresholds ?? config.coverage.enforceCoverage
+    let shouldWarnOnLowCoverage = config.coverage.warnOnLowCoverage
+
     let context = ClassificationContext()
     var discarded = 0
     var successfulIterations = 0
@@ -231,25 +228,12 @@ extension PropertyRunner {
 
     let report = context.report()
 
-    if enforceCoverageThresholds {
-      let unmet = report.unmetCoverageChecks
-      if !unmet.isEmpty {
-        return ClassifyingPropertyResult(
-          result: .failure(
-            counterexample: property.generator.sample(size: Size(value: 50), seed: seed),
-            iterations: successfulIterations,
-            shrunk: property.generator.sample(size: Size(value: 50), seed: seed),
-            reason: .threwError("Coverage thresholds unmet: \(unmet.joined(separator: ", "))"),
-            seed: seed
-          ),
-          classification: report
-        )
-      }
-    }
-
-    return ClassifyingPropertyResult(
-      result: .success(iterations: successfulIterations),
-      classification: report
+    return handleCoverageThresholds(
+      report: report,
+      shouldEnforceCoverage: shouldEnforceCoverage,
+      shouldWarnOnLowCoverage: shouldWarnOnLowCoverage,
+      successfulIterations: successfulIterations,
+      sampleGenerator: property.generator
     )
   }
 
@@ -260,14 +244,18 @@ extension PropertyRunner {
   /// - Parameters:
   ///   - property: The evaluating classifying property to test
   ///   - config: Configuration controlling iterations and shrinking
-  ///   - enforceCoverageThresholds: If true, fail the test when coverage thresholds are unmet
+  ///   - enforceCoverageThresholds: **Deprecated.** Use `config.coverage.enforceCoverage` instead.
+  ///                                If provided, overrides `config.coverage.enforceCoverage`.
   ///
   /// - Returns: Combined result with property outcome and classification report
   public func runEvaluatingClassifyingProperty<T>(
     _ property: EvaluatingClassifyingProperty<T>,
     config: PropertyConfig = .default,
-    enforceCoverageThresholds: Bool = false
+    enforceCoverageThresholds: Bool? = nil
   ) -> ClassifyingPropertyResult<T> {
+    let shouldEnforceCoverage = enforceCoverageThresholds ?? config.coverage.enforceCoverage
+    let shouldWarnOnLowCoverage = config.coverage.warnOnLowCoverage
+
     let context = ClassificationContext()
     var discarded = 0
     var successfulIterations = 0
@@ -321,18 +309,38 @@ extension PropertyRunner {
 
     let report = context.report()
 
-    if enforceCoverageThresholds {
-      let unmet = report.unmetCoverageChecks
-      if !unmet.isEmpty {
-        return ClassifyingPropertyResult(
-          result: .failure(
-            counterexample: property.generator.sample(size: Size(value: 50), seed: seed),
-            iterations: successfulIterations,
-            shrunk: property.generator.sample(size: Size(value: 50), seed: seed),
-            reason: .threwError("Coverage thresholds unmet: \(unmet.joined(separator: ", "))"),
-            seed: seed
-          ),
-          classification: report
+    return handleCoverageThresholds(
+      report: report,
+      shouldEnforceCoverage: shouldEnforceCoverage,
+      shouldWarnOnLowCoverage: shouldWarnOnLowCoverage,
+      successfulIterations: successfulIterations,
+      sampleGenerator: property.generator
+    )
+  }
+
+  // MARK: - Private Coverage Helpers
+
+  /// Handle coverage thresholds check and return appropriate result.
+  // swiftlint:disable:next function_parameter_count
+  private func handleCoverageThresholds<T>(
+    report: ClassificationReport,
+    shouldEnforceCoverage: Bool,
+    shouldWarnOnLowCoverage: Bool,
+    successfulIterations: Int,
+    sampleGenerator: Gen<T>
+  ) -> ClassifyingPropertyResult<T> {
+    let unmet = report.unmetCoverageChecks
+    if !unmet.isEmpty {
+      if shouldWarnOnLowCoverage {
+        emitCoverageWarning(unmet: unmet, report: report)
+      }
+
+      if shouldEnforceCoverage {
+        return createCoverageFailureResult(
+          unmet: unmet,
+          report: report,
+          successfulIterations: successfulIterations,
+          sampleGenerator: sampleGenerator
         )
       }
     }
@@ -341,6 +349,67 @@ extension PropertyRunner {
       result: .success(iterations: successfulIterations),
       classification: report
     )
+  }
+
+  /// Emit a warning about unmet coverage thresholds.
+  private func emitCoverageWarning(unmet: [String], report: ClassificationReport) {
+    let warningMessage = formatCoverageWarning(unmet: unmet, report: report)
+    // swiftlint:disable:next no_print
+    print("⚠️  \(warningMessage)")
+  }
+
+  /// Create a failure result for unmet coverage thresholds.
+  private func createCoverageFailureResult<T>(
+    unmet: [String],
+    report: ClassificationReport,
+    successfulIterations: Int,
+    sampleGenerator: Gen<T>
+  ) -> ClassifyingPropertyResult<T> {
+    let errorMessage = formatCoverageFailure(unmet: unmet, report: report)
+    return ClassifyingPropertyResult(
+      result: .failure(
+        counterexample: sampleGenerator.sample(size: Size(value: 50), seed: seed),
+        iterations: successfulIterations,
+        shrunk: sampleGenerator.sample(size: Size(value: 50), seed: seed),
+        reason: .threwError(errorMessage),
+        seed: seed
+      ),
+      classification: report
+    )
+  }
+
+  // MARK: - Private Coverage Formatting Helpers
+
+  /// Format a coverage failure message with actionable suggestions.
+  private func formatCoverageFailure(unmet: [String], report: ClassificationReport) -> String {
+    let detailLines = unmet.map { name in
+      guard let result = report.coverageResults[name] else { return "  - \(name): (no data)" }
+      let actual = String(format: "%.1f", result.percentage)
+      let required = String(format: "%.1f", result.threshold)
+      return "  - \(name): \(actual)% (required: \(required)%)"
+    }
+    let details = detailLines.joined(separator: "\n")
+
+    return """
+      Coverage thresholds unmet:
+      \(details)
+
+      Suggestion: Adjust generator to produce more values matching coverage conditions,
+      or lower the coverage threshold if the requirement is too strict.
+      """
+  }
+
+  /// Format a coverage warning message for close misses.
+  private func formatCoverageWarning(unmet: [String], report: ClassificationReport) -> String {
+    let detailParts = unmet.map { name in
+      guard let result = report.coverageResults[name] else { return name }
+      let actual = String(format: "%.1f", result.percentage)
+      let required = String(format: "%.1f", result.threshold)
+      return "\(name) (\(actual)% < \(required)%)"
+    }
+    let details = detailParts.joined(separator: ", ")
+
+    return "Coverage thresholds unmet: \(details)"
   }
 
   // MARK: - Private Shrinking Helpers
