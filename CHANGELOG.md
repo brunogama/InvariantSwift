@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Planning
+- **Phase 07: @Roundtrip Macro**: Created phase plan with 3 plans in 3 waves
+  - Plan 01 (Wave 1): Core macro implementation (declaration, strategy enum, PeerMacro)
+  - Plan 02 (Wave 2): Comprehensive tests (macro expansion + integration)
+  - Plan 03 (Wave 3): Documentation (MACROS.md, COOKBOOK.md, doc comments)
+
 - **Phase 04.2: Expose Missing Macros**: Created phase plan with 3 plans in 2 waves
   - Plan 01 (Wave 1): Register LawCheckedMacro in MacroPlugin.swift, create LawCheckedMacroDeclaration.swift, create tests
   - Plan 02 (Wave 1): Create DeriveGenMacroDeclaration.swift, create tests (macro already registered)
