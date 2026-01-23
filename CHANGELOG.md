@@ -8,6 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Phase 04.4 Research: Property Assertion Macros**: Completed domain research for @Idempotent, @Deterministic, and @Pure macros
+  - Identified standard stack: SwiftSyntax 600.0.1+, existing InvariantSwift infrastructure
+  - Documented architecture patterns: PeerMacro structure, generator inference, property test body generation
+  - Catalogued 6 common pitfalls: Equatable constraints, async function support, state mutation detection
+  - Verified PropertyRunner integration pattern from existing PropertyMacro
+  - Created research document at .planning/phases/04.4-property-assertion-macros/04.4-RESEARCH.md
+- **Phase 04.2 Research: Expose Missing Macros**: Completed domain research for exposing @LawChecked and @DeriveGen macros
+  - Verified LawCheckedMacro implementation exists (1,118 lines) but lacks public declaration
+  - Verified DeriveGenMacro implementation exists (685 lines) with partial integration
+  - Confirmed DeriveGenMacro registered in MacroPlugin.swift, LawCheckedMacro missing registration
+  - Identified declaration pattern from existing macros (Arbitrary, BusinessRule)
+  - Documented 6 critical pitfalls for macro development
+  - Created research document at .planning/phases/04.2-expose-missing-macros/04.2-RESEARCH.md
 - **Phase 7: @Roundtrip Macro (PLANNED)**: Auto-generate property tests for Codable/Hashable roundtrips
   - Macro declaration in Sources/InvariantSwift/Macros/Roundtrip.swift
   - Implementation in Sources/InvariantSwiftMacros/RoundtripMacro.swift
