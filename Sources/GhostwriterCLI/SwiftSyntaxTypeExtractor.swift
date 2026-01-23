@@ -5,6 +5,31 @@ import Foundation
 import SwiftParser
 import SwiftSyntax
 
+// MARK: - Access Level
+
+/// Swift access level modifiers.
+public enum AccessLevel: String, Codable, Sendable, Comparable {
+  case `private`
+  case `fileprivate`
+  case `internal`
+  case `public`
+  case `open`
+
+  /// Whether this access level is accessible from test target.
+  public var isPubliclyAccessible: Bool {
+    self == .public || self == .open
+  }
+
+  /// Comparable implementation: private < fileprivate < internal < public < open
+  public static func < (lhs: AccessLevel, rhs: AccessLevel) -> Bool {
+    let order: [AccessLevel] = [.private, .fileprivate, .internal, .public, .open]
+    guard let lhsIndex = order.firstIndex(of: lhs),
+      let rhsIndex = order.firstIndex(of: rhs)
+    else { return false }
+    return lhsIndex < rhsIndex
+  }
+}
+
 // MARK: - Extracted Type Info
 
 /// Represents a Swift type extracted from source code.
@@ -18,7 +43,12 @@ public struct ExtractedTypeInfo: Codable, Sendable {
   public let properties: [ExtractedProperty]
   public let methods: [ExtractedMethod]
   public let genericParameters: [String]
-  public let isPublic: Bool
+  public let accessLevel: AccessLevel
+
+  /// Backward compatible computed property
+  public var isPublic: Bool {
+    accessLevel.isPubliclyAccessible
+  }
 }
 
 /// Represents a property extracted from source code.
@@ -28,7 +58,12 @@ public struct ExtractedProperty: Codable, Sendable {
   public let isOptional: Bool
   public let isMutable: Bool
   public let hasDefaultValue: Bool
-  public let isPublic: Bool
+  public let accessLevel: AccessLevel
+
+  /// Backward compatible computed property
+  public var isPublic: Bool {
+    accessLevel.isPubliclyAccessible
+  }
 }
 
 /// Represents a method extracted from source code.
@@ -207,6 +242,26 @@ private struct TypeVisitor {
     }
   }
 
+  // MARK: - Access Level Extraction
+
+  private func extractAccessLevel(from modifiers: DeclModifierListSyntax) -> AccessLevel {
+    for modifier in modifiers {
+      switch modifier.name.tokenKind {
+      case .keyword(let keyword):
+        switch keyword {
+        case .private: return .private
+        case .fileprivate: return .fileprivate
+        case .internal: return .internal
+        case .public: return .public
+        case .open: return .open
+        default: continue
+        }
+      default: continue
+      }
+    }
+    return .internal  // Swift default when not specified
+  }
+
   // MARK: - Type Extraction Helper
 
   private func extractTypeInfo(
@@ -243,10 +298,8 @@ private struct TypeVisitor {
       generics = []
     }
 
-    // Check if public
-    let isPublic = modifiers.contains { modifier in
-      modifier.name.text == "public" || modifier.name.text == "open"
-    }
+    // Extract access level
+    let accessLevel = extractAccessLevel(from: modifiers)
 
     // Extract properties and methods
     let properties = extractProperties(from: members)
@@ -265,7 +318,7 @@ private struct TypeVisitor {
       properties: properties,
       methods: methods,
       genericParameters: generics,
-      isPublic: isPublic
+      accessLevel: accessLevel
     )
   }
 
@@ -278,7 +331,7 @@ private struct TypeVisitor {
       guard let varDecl = member.decl.as(VariableDeclSyntax.self) else { continue }
 
       let isMutable = varDecl.bindingSpecifier.text == "var"
-      let isPublic = varDecl.modifiers.contains { $0.name.text == "public" }
+      let accessLevel = extractAccessLevel(from: varDecl.modifiers)
 
       for binding in varDecl.bindings {
         guard let pattern = binding.pattern.as(IdentifierPatternSyntax.self) else { continue }
@@ -311,7 +364,7 @@ private struct TypeVisitor {
             isOptional: isOptional,
             isMutable: isMutable,
             hasDefaultValue: hasDefault,
-            isPublic: isPublic
+            accessLevel: accessLevel
           )
         )
       }
@@ -399,7 +452,7 @@ extension SwiftSyntaxTypeExtractor {
         properties: type.properties,
         methods: type.methods,
         genericParameters: type.genericParameters,
-        isPublic: type.isPublic
+        accessLevel: type.accessLevel
       )
     }
   }

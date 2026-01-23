@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **AccessLevel Enum (Phase 04-01)**: Full Swift access level extraction for Ghostwriter
+  - `AccessLevel` enum with all 5 Swift levels (private, fileprivate, internal, public, open)
+  - `Comparable` conformance for access level ordering
+  - `isPubliclyAccessible` property for test filtering
+  - `extractAccessLevel()` function using `TokenKind.keyword` pattern (official Swift macro approach)
+  - Access level extraction for both types and properties
+  - Backward compatible `isPublic` computed properties
 - **Phase 5 Execution Plans** in `.planning/phases/5-error-messages-and-progress/`:
   * 5-01-PLAN.md: Progress Tracking and INVARIANT_SEED Environment Variable
     - ProgressReporter struct with time-based throttling
