@@ -211,7 +211,7 @@ public final class ClassificationContext: @unchecked Sendable {
   ///
   /// - Parameter value: The failing input value
   /// - Returns: Array of computed custom messages
-  func computeCounterexampleMessages<T>(_ value: T) -> [String] {
+  public func computeCounterexampleMessages<T>(_ value: T) -> [String] {
     lock.lock()
     defer { lock.unlock() }
 
