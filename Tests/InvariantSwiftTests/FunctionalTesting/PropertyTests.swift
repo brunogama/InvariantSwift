@@ -4,6 +4,7 @@ import Foundation
 @testable import InvariantSwift
 
 /// Comprehensive tests for Property functions to achieve 99%+ code coverage
+// swiftlint:disable:next type_body_length
 struct PropertyTests {
 
   // MARK: - Property Creation Tests
@@ -285,7 +286,9 @@ struct PropertyTests {
   @Test("Property and combinator")
   func propertyAndCombinator() async {
     let prop1 = Property<Int>(generator: Gen<Int>.int(in: 1...100)) { $0 > 0 }
-    let prop2 = Property<String>(generator: Gen<String>.string) { !$0.isEmpty || $0.isEmpty }  // Always true
+    let prop2 = Property<String>(generator: Gen<String>.string) {
+      !$0.isEmpty || $0.isEmpty  // Always true
+    }
 
     let combined = prop1.and(prop2)
     let result = await PropertyRunner().runProperty(
@@ -419,7 +422,9 @@ struct PropertyTests {
 
   @Test("Shrinking with maxShrinks limit")
   func shrinkingWithMaxShrinksLimit() async {
-    let property = Property<Int>(generator: Gen<Int>.int(in: 100...200)) { $0 < 50 }  // Will always fail
+    let property = Property<Int>(generator: Gen<Int>.int(in: 100...200)) {
+      $0 < 50  // Will always fail
+    }
     let result = await PropertyRunner().runProperty(
       property,
       config: PropertyConfig(iterations: 5, maxShrinks: 2)

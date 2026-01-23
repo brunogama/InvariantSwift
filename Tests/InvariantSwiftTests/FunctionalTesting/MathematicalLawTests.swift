@@ -4,6 +4,7 @@ import InvariantSwiftCore
 
 /// Comprehensive mathematical law verification for category theory foundations
 /// Tests functor, applicative, and monad laws with concrete validation
+// swiftlint:disable:next type_body_length
 struct MathematicalLawTests {
 
   // MARK: - Functor Laws
@@ -15,6 +16,7 @@ struct MathematicalLawTests {
     let size = Size(value: 10)
 
     let originalGen = Gen<Int>.int(in: 1...100)
+    // swiftlint:disable:next array_init
     let identityMappedGen = originalGen.map { $0 }  // Identity function
 
     // Generate multiple samples to compare behavior
@@ -156,7 +158,9 @@ struct MathematicalLawTests {
     let u = Gen<@Sendable (Int) -> String>.pure(f)
 
     let leftSide = Gen.pure(y).apply(u)
-    let applyY: @Sendable (@escaping @Sendable (Int) -> String) -> String = { func_f in func_f(y) }
+    let applyY: @Sendable (@escaping @Sendable (Int) -> String) -> String = { function in
+      function(y)
+    }
     let rightSide = u.apply(Gen.pure(applyY))
 
     // Test interchange law
@@ -205,14 +209,14 @@ struct MathematicalLawTests {
     let seed = Seed(value: 147)
     let size = Size(value: 18)
 
-    let m = Gen<Int>.int(in: 50...150)
-    let boundWithReturn = m.flatMap(Gen.pure)
+    let monad = Gen<Int>.int(in: 50...150)
+    let boundWithReturn = monad.flatMap(Gen.pure)
 
     // Test right identity law
     for seedOffset in 0..<35 {
       let testSeed = Seed(value: seed.rawValue + UInt64(seedOffset))
 
-      let originalResult = m.sample(size: size, seed: testSeed)
+      let originalResult = monad.sample(size: size, seed: testSeed)
       let boundResult = boundWithReturn.sample(size: size, seed: testSeed)
 
       #expect(
@@ -227,15 +231,15 @@ struct MathematicalLawTests {
     let seed = Seed(value: 258)
     let size = Size(value: 7)
 
-    let m = Gen<Int>.int(in: 1...10)
+    let monad = Gen<Int>.int(in: 1...10)
     let f: @Sendable (Int) -> Gen<String> = { n in Gen.pure("step1_\(n)") }
     let g: @Sendable (String) -> Gen<Int> = { s in Gen.pure(s.count) }
 
     // Left side: (m >>= f) >>= g
-    let leftSide = m.flatMap(f).flatMap(g)
+    let leftSide = monad.flatMap(f).flatMap(g)
 
     // Right side: m >>= (\x -> f(x) >>= g)
-    let rightSide = m.flatMap { x in f(x).flatMap(g) }
+    let rightSide = monad.flatMap { x in f(x).flatMap(g) }
 
     // Test associativity law
     for seedOffset in 0..<40 {

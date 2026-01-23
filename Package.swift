@@ -253,9 +253,9 @@ let testTargets: [Target] = [
     ]
   ),
   .testTarget(
-    name: "FunctionalTesting",
+    name: "InvariantSwiftTests",
     dependencies: ["InvariantSwift"],
-    path: "Tests/FunctionalTesting",
+    path: "Tests/InvariantSwiftTests",
     exclude: ["FakeryGeneratorsTests.swift.disabled"],
     swiftSettings: commonSwiftSettings + [
       .unsafeFlags(["-enable-testing"], .when(configuration: .debug))

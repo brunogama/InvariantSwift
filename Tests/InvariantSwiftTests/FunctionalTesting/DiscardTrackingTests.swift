@@ -169,7 +169,7 @@ struct DiscardTrackingTests {
     let property = Property(
       generator: Gen.zip(
         Gen<Int>.int(in: 0...1000),  // discards
-        Gen<Int>.int(in: 1...100)    // successes (non-zero)
+        Gen<Int>.int(in: 1...100)  // successes (non-zero)
       )
     ) { discards, successes in
       let expectedRatio = Double(discards) / Double(successes)
@@ -215,7 +215,7 @@ struct DiscardTrackingTests {
       switch check {
       case .warn: return true
       case .fail: return true  // Higher than threshold
-      case .ok: return false   // Should have triggered
+      case .ok: return false  // Should have triggered
       }
     }
 

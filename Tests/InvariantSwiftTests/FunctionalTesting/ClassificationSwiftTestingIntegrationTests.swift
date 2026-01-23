@@ -116,7 +116,10 @@ struct ClassificationSwiftTestingIntegrationTests {
     let reporter = FailureReporter(verbose: true)
     let formatted = reporter.formatMessage(report)
 
-    #expect(formatted.contains("CLASSIFICATION"), "Verbose format should have CLASSIFICATION header")
+    #expect(
+      formatted.contains("CLASSIFICATION"),
+      "Verbose format should have CLASSIFICATION header"
+    )
     #expect(formatted.contains("positive: 70.0%"), "Should include classification")
     #expect(formatted.contains("╔═"), "Verbose format should use box drawing")
   }

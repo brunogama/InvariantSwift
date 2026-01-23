@@ -75,7 +75,7 @@ swift build -Xswiftc -warnings-as-errors # Strict build
 
 # Test
 swift test                               # All tests
-swift test --filter FunctionalTesting    # Core library tests
+swift test --filter InvariantSwiftTests  # Core library tests
 swift test --filter InvariantSwiftMacroTests  # Macro tests
 
 # Lint & Format
@@ -122,7 +122,7 @@ Or simply: `make validate`
 | Path | Purpose |
 |------|---------|
 | [`Tests/`](Tests/CLAUDE.md) | Test guidance |
-| `Tests/FunctionalTesting/` | Core library tests (47 files) |
+| `Tests/InvariantSwiftTests/` | Core library tests (47 files) |
 | `Tests/InvariantSwiftMacroTests/` | Macro expansion tests (11 files) |
 | `Tests/PerformanceTests/` | Benchmarks |
 | `Tests/CoverageIntegrationTests/` | Integration tests |

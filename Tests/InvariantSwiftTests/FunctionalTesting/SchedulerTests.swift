@@ -107,7 +107,7 @@ struct SchedulerTests {
   func testInterleavingPathEmptyDescription() {
     let path = InterleavingPath(steps: [])
 
-    #expect(path.description == "")
+    #expect(path.description.isEmpty)
   }
 
   @Test("InterleavingPath appending")

@@ -18,7 +18,7 @@
 
 ```
 Tests/
-├── FunctionalTesting/           # Core library tests (47 files)
+├── InvariantSwiftTests/         # Core library tests (47 files)
 │   ├── GeneratorTests.swift
 │   ├── PropertyTests.swift
 │   ├── ShrinkTests.swift
@@ -82,7 +82,7 @@ make coverage
 ### ✅ DO: Swift Testing Format
 
 ```swift
-// See: FunctionalTesting/GeneratorTests.swift
+// See: InvariantSwiftTests/GeneratorTests.swift
 import Testing
 @testable import InvariantSwift
 
@@ -103,7 +103,7 @@ struct GeneratorTests {
 ### ✅ DO: Deterministic Seeds for Reproducibility
 
 ```swift
-// See: FunctionalTesting/FakerTests.swift
+// See: InvariantSwiftTests/FakerTests.swift
 @Test("Same seed produces same output")
 func determinism() {
   let gen = Gen<String>.faker(.email)
@@ -167,10 +167,10 @@ import Testing
 
 | File | Tests For |
 |------|-----------|
-| `FunctionalTesting/GeneratorTests.swift` | `Gen<T>` combinators |
-| `FunctionalTesting/PropertyTests.swift` | Property test execution |
-| `FunctionalTesting/ShrinkTests.swift` | Shrinking strategies |
-| `FunctionalTesting/FakerTests.swift` | Faker generators |
+| `InvariantSwiftTests/GeneratorTests.swift` | `Gen<T>` combinators |
+| `InvariantSwiftTests/PropertyTests.swift` | Property test execution |
+| `InvariantSwiftTests/ShrinkTests.swift` | Shrinking strategies |
+| `InvariantSwiftTests/FakerTests.swift` | Faker generators |
 | `InvariantSwiftMacroTests/PropertyMacroTests.swift` | @PropertyTest macro |
 | `InvariantSwiftMacroTests/ArbitraryMacroTests.swift` | @Arbitrary macro |
 | `InvariantSwiftMacroTests/BusinessRuleMacroTests.swift` | @BusinessRule macro |

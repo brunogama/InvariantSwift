@@ -247,11 +247,12 @@ struct ClassificationTests {
   func classifyingPropertyWithAssumption() async {
     let property = ClassifyingProperty(
       generator: Gen<Int>.int(in: -100...100),
-      assumption: { $0 != 0 }  // Skip zero
-    ) { n, ctx in
-      ctx.classify("sign", n > 0 ? "positive" : "negative")
-      return true
-    }
+      assumption: { $0 != 0 },  // Skip zero
+      predicate: { n, ctx in
+        ctx.classify("sign", n > 0 ? "positive" : "negative")
+        return true
+      }
+    )
 
     let runner = PropertyRunner(seed: Seed(value: 42))
     let result = await runner.runClassifyingProperty(
