@@ -7,12 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Phase 7: @Roundtrip Macro (PLANNED)**: Auto-generate property tests for Codable/Hashable roundtrips
+  - Macro declaration in Sources/InvariantSwift/Macros/Roundtrip.swift
+  - Implementation in Sources/InvariantSwiftMacros/RoundtripMacro.swift
+  - Support for `.json`, `.plist`, and `.custom(encoder, decoder)` strategies
+  - Hash stability testing for Hashable types via `.hash` strategy
+  - Configurable iterations parameter (default: 100)
+  - Automatic test name generation (e.g., testUserRoundtrip_json)
+  - Documentation in docs/MACROS.md with roundtrip testing patterns
+  - Proposal ISP-0011 documenting design decisions
+
 ### Changed
 - **Test Target Renamed**: Renamed test target from `FunctionalTesting` to `InvariantSwiftTests` to align with Swift package naming conventions where test targets should be named `<PackageName>Tests`
   - Updated Package.swift test target definition
   - Moved all 66 test files while preserving git history using git mv
   - Updated documentation references in CLAUDE.md files
   - Added permissive SwiftLint configuration for Tests directory (allows longer files and types for comprehensive test coverage)
+- **Roadmap Updated**: Inserted Phase 7 (@Roundtrip Macro) after Phase 6
+  - Total estimated effort increased to 8-10 weeks
+  - Phase 7 can run in parallel with Phases 5-6
+  - Grand total tests increased to ~152 tests
 
 ### Added
 - **Compile Verification Infrastructure (Phase 04-03)**: Verifies generated code compiles before writing to disk
