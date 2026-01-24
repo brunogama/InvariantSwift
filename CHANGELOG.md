@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **Phase 04.5: @Regression Macro Infrastructure**: @Regression macro for automatic failure persistence
+- **Phase 04.5: @Regression Macro** ✓ COMPLETE: Automatic failure persistence and replay-first testing
   - Marker macro (PeerMacro) for attaching to property test functions
   - RegressionExtractor utility for parsing replayFirst and maxExamples parameters
   - PropertyMacro integration to configure FailingExampleDatabase in generated code
@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - PropertyConfig extended with failingExampleDatabase, testIdentifier, replayFirst, maxReplayExamples fields
   - runPropertyWithFailingExamples function with 3-phase execution: Replay → Generate → Save
   - Moved FailingExample and ExampleDatabase from Persistence/ to Core/ for module boundary compliance
+  - 13 comprehensive macro expansion tests (RegressionMacroTests.swift)
+  - Complete MACROS.md documentation with usage examples and flow diagrams
+  - Verification: 13/13 must-haves passed, zero warnings, zero SwiftLint violations
 
 ### Planning
 - **Phase 04.4: Property Assertion Macros**: Phase complete - all 3 plans executed
