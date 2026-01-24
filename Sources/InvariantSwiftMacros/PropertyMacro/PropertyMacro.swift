@@ -45,6 +45,9 @@ public struct PropertyMacro: PeerMacro {
       return []
     }
 
+    // Extract @Timeout config
+    let timeoutConfig = TimeoutExtractor.extractConfig(from: funcDecl)
+
     guard let originalBody = funcDecl.body else {
       return []
     }
@@ -60,6 +63,7 @@ public struct PropertyMacro: PeerMacro {
       originalBody: originalBody,
       config: config,
       regressionConfig: regressionConfig,
+      timeoutConfig: timeoutConfig,
       isAsync: isAsync
     )
 
@@ -76,6 +80,7 @@ public struct PropertyMacro: PeerMacro {
     originalBody: CodeBlockSyntax,
     config: PropertyMacroConfig,
     regressionConfig: RegressionConfig?,
+    timeoutConfig: TimeoutConfig?,
     isAsync: Bool
   ) -> EnumDeclSyntax {
     let enumName = "\(funcDecl.name.text)_PropertyTest"
@@ -86,6 +91,7 @@ public struct PropertyMacro: PeerMacro {
       originalBody: originalBody,
       config: config,
       regressionConfig: regressionConfig,
+      timeoutConfig: timeoutConfig,
       isAsync: isAsync
     )
 
@@ -141,6 +147,7 @@ public struct PropertyMacro: PeerMacro {
       originalBody: originalBody,
       config: config,
       regressionConfig: regressionConfig,
+      timeoutConfig: nil,  // Not used in this path
       isAsync: isAsync
     )
 
@@ -195,6 +202,7 @@ public struct PropertyMacro: PeerMacro {
     originalBody: CodeBlockSyntax,
     config: PropertyMacroConfig,
     regressionConfig: RegressionConfig?,
+    timeoutConfig: TimeoutConfig?,
     isAsync: Bool
   ) -> CodeBlockSyntax {
     let labels = PropertyFailureFormatter.extractLabels(from: parameters)
@@ -205,9 +213,9 @@ public struct PropertyMacro: PeerMacro {
       buildPropertyDeclaration(parameters: parameters, originalBody: originalBody)
       buildConfigDeclaration(config: config, regressionConfig: regressionConfig)
       if isAsync {
-        buildAsyncResultDeclaration()
+        buildAsyncResultDeclaration(timeoutConfig: timeoutConfig)
       } else {
-        buildResultDeclaration()
+        buildResultDeclaration(timeoutConfig: timeoutConfig)
       }
       buildResultHandling(labels: labels, includeSeed: hasSeed)
     }
@@ -537,7 +545,7 @@ public struct PropertyMacro: PeerMacro {
     )
   }
 
-  private static func buildResultDeclaration() -> VariableDeclSyntax {
+  private static func buildResultDeclaration(timeoutConfig: TimeoutConfig?) -> VariableDeclSyntax {
     let checkCall = FunctionCallExprSyntax(
       calledExpression: DeclReferenceExprSyntax(baseName: .identifier("runPropertySynchronously")),
       leftParen: .leftParenToken(),
@@ -555,6 +563,8 @@ public struct PropertyMacro: PeerMacro {
       rightParen: .rightParenToken()
     )
 
+    // Synchronous properties don't support timeout (would block thread)
+    // Timeout is only meaningful for async properties
     return VariableDeclSyntax(
       bindingSpecifier: .keyword(.let),
       bindings: PatternBindingListSyntax {
@@ -566,34 +576,70 @@ public struct PropertyMacro: PeerMacro {
     )
   }
 
-  private static func buildAsyncResultDeclaration() -> VariableDeclSyntax {
-    let awaitExpr = AwaitExprSyntax(
-      expression: FunctionCallExprSyntax(
+  private static func buildAsyncResultDeclaration(
+    timeoutConfig: TimeoutConfig?
+  ) -> VariableDeclSyntax {
+    let runPropertyCall = FunctionCallExprSyntax(
+      calledExpression: DeclReferenceExprSyntax(
+        baseName: .identifier("runPropertyAsync")
+      ),
+      leftParen: .leftParenToken(),
+      arguments: LabeledExprListSyntax {
+        LabeledExprSyntax(
+          expression: DeclReferenceExprSyntax(baseName: .identifier("property"))
+        )
+        .with(\.trailingComma, .commaToken())
+        LabeledExprSyntax(
+          label: .identifier("config"),
+          colon: .colonToken(),
+          expression: DeclReferenceExprSyntax(baseName: .identifier("config"))
+        )
+      },
+      rightParen: .rightParenToken()
+    )
+
+    let finalExpr: ExprSyntax
+    if let timeout = timeoutConfig, let seconds = timeout.seconds {
+      // Wrap with withPropertyTimeout
+      let timeoutCall = FunctionCallExprSyntax(
         calledExpression: DeclReferenceExprSyntax(
-          baseName: .identifier("runPropertyAsync")
+          baseName: .identifier("withPropertyTimeout")
         ),
         leftParen: .leftParenToken(),
         arguments: LabeledExprListSyntax {
           LabeledExprSyntax(
-            expression: DeclReferenceExprSyntax(baseName: .identifier("property"))
-          )
-          .with(\.trailingComma, .commaToken())
-          LabeledExprSyntax(
-            label: .identifier("config"),
+            label: .identifier("seconds"),
             colon: .colonToken(),
-            expression: DeclReferenceExprSyntax(baseName: .identifier("config"))
+            expression: FloatLiteralExprSyntax(literal: .floatLiteral("\(seconds)"))
           )
         },
-        rightParen: .rightParenToken()
+        rightParen: .rightParenToken(),
+        trailingClosure: ClosureExprSyntax(
+          statements: CodeBlockItemListSyntax {
+            CodeBlockItemSyntax(
+              item: .expr(
+                ExprSyntax(
+                  TryExprSyntax(
+                    expression: AwaitExprSyntax(expression: runPropertyCall)
+                  )
+                )
+              )
+            )
+          }
+        )
       )
-    )
+      finalExpr = ExprSyntax(TryExprSyntax(expression: AwaitExprSyntax(expression: timeoutCall)))
+    } else {
+      // No timeout - use direct await
+      finalExpr = ExprSyntax(AwaitExprSyntax(expression: runPropertyCall))
+    }
 
     return VariableDeclSyntax(
       bindingSpecifier: .keyword(.let),
       bindings: PatternBindingListSyntax {
         PatternBindingSyntax(
           pattern: IdentifierPatternSyntax(identifier: .identifier("result")),
-          initializer: InitializerClauseSyntax(value: ExprSyntax(awaitExpr))
+          initializer: InitializerClauseSyntax(value: finalExpr)
         )
       }
     )

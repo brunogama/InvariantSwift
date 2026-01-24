@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Phase 04.6: Advanced Property Testing Features** - In Progress
+  - Plan 01: Property combinators and forAll block syntax
+    - Comprehensive test suite for property combinators (&&, ||, implies)
+    - 25+ tests covering short-circuit evaluation, precondition semantics, and integration patterns
+    - Tests for forAll with explicit generators and PropertyEvaluation returns
+    - Multi-parameter forAll tests with Gen.zip
   - Plan 02: @Timeout macro with Swift Concurrency-based timeout infrastructure
     - PropertyTimeoutError error type with elapsed/limit reporting
     - TimeoutDuration enum supporting .seconds, .milliseconds, and .none (for debugging)
