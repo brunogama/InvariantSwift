@@ -21,10 +21,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Phase 04.6: Advanced Property Testing Features** - In Progress
-  - Plan 09: Documentation Updates ✅ COMPLETE
-    - Updated MACROS.md with @Timeout and @ShrinkTowards documentation
-    - Updated COOKBOOK.md with Advanced Property Testing section
-    - Updated GENERATORS.md with middleware section and CLI catalog usage
+  - Plan 09: Documentation Updates 🔄 IN PROGRESS
+    - Updated MACROS.md with @Timeout and @ShrinkTowards documentation ✅
+    - Updated COOKBOOK.md with Advanced Property Testing section ✅
+      - Property combinators (&&, ||, implies) with examples
+      - forAll syntax patterns (type inference, explicit generators, PropertyEvaluation)
+      - Generator middleware (logged, withMetrics, custom interceptors)
+      - Parallel shrinking usage with findMinimalParallel
+      - @Timeout and @ShrinkTowards macro recipes
+    - Updated GENERATORS.md with middleware section and CLI catalog usage (pending)
     - All code examples syntactically correct and copy-pasteable
     - Cross-references between documentation files
   - Plan 08: Generator Catalog Browser CLI ✅ COMPLETE

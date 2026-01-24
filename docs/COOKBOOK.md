@@ -1022,9 +1022,134 @@ func testReproducible(x: Int) {
 
 ---
 
+## Advanced Property Testing
+
+### Property Combinators
+
+Combine properties using logical operators:
+
+```swift
+import InvariantSwift
+
+// AND: Both properties must hold
+let positiveAndEven = Property(generator: Gen<Int>.int) { n in n > 0 }
+  && Property(generator: Gen<Int>.int) { n in n % 2 == 0 }
+
+// OR: At least one property must hold
+let smallOrLarge = Property(generator: Gen<Int>.int) { n in n < 10 }
+  || Property(generator: Gen<Int>.int) { n in n > 100 }
+
+// IMPLIES: Conditional property
+let ifPositiveThenDoubles = Property(generator: Gen<Int>.int) { n in
+  n > 0
+}.implies { n in n * 2 > n }
+```
+
+### forAll Syntax
+
+Cleaner property definition with type inference:
+
+```swift
+// Type inferred from closure parameter
+let prop1 = forAll { (n: Int) in n + 0 == n }
+
+// Multiple parameters
+let commutative = forAll { (a: Int, b: Int) in a + b == b + a }
+
+// Explicit generators
+let bounded = forAll(Gen<Int>.int(in: 1...100)) { n in n > 0 }
+
+// With PropertyEvaluation for assumptions
+let guarded = forAll { (n: Int) -> PropertyEvaluation in
+  guard n > 0 else { return .discard(reason: "need positive") }
+  return n * 2 > n ? .pass : .fail(reason: nil)
+}
+```
+
+### Generator Middleware
+
+Add observability to generators:
+
+```swift
+// Logging all generated values
+let logged = Gen<Int>.int.logged()
+
+// Collecting metrics
+let (gen, metrics) = Gen<Int>.int.withMetrics()
+// After running tests:
+print("Generated \(metrics.metrics.generationCount) values")
+print("Shrink steps: \(metrics.metrics.shrinkSteps)")
+
+// Custom interceptor
+class MyInterceptor: GeneratorInterceptor {
+  func onGenerate<T>(_ value: T, size: Size) -> T {
+    print("Value: \(value)")
+    return value
+  }
+}
+
+let custom = Gen<Int>.int.withInterceptor(MyInterceptor())
+```
+
+### Parallel Shrinking
+
+Faster counterexample minimization:
+
+```swift
+let tree = ShrinkTree.from(failingValue, shrink: Gen<Int>.int.shrink)
+
+// Parallel search with 4 workers
+let minimal = await tree.findMinimalParallel(
+  budget: 1000,
+  workers: 4
+) { value in
+  await property.evaluate(value).isFailing
+}
+```
+
+### Timeout Control
+
+Prevent hanging tests with timeouts:
+
+```swift
+@Timeout(seconds: 5.0)
+@PropertyTest
+func slowProperty(data: [Int]) -> Bool {
+  expensiveComputation(data)
+}
+
+// Short timeout for fast properties
+@Timeout(seconds: 0.5)
+@PropertyTest
+func fastProperty(n: Int) -> Bool {
+  quickCheck(n)
+}
+```
+
+### Smart Shrinking Hints
+
+Guide shrinking toward meaningful values:
+
+```swift
+// Shrink toward 1 instead of 0 for positive tests
+@PropertyTest
+func testPositiveCount(@ShrinkTowards(1) count: Int) -> Bool {
+  count > 0
+}
+
+// Shrink toward non-empty value
+@PropertyTest
+func testNonEmptyName(@ShrinkTowards("test") name: String) -> Bool {
+  !name.isEmpty
+}
+```
+
+---
+
 ## See Also
 
 - [API Reference](API_REFERENCE.md) - Complete type documentation
 - [Generators Guide](GENERATORS.md) - All available generators
 - [Shrinking Guide](SHRINKING.md) - How shrinking works
 - [Advanced Features](ADVANCED.md) - Coverage, model-based testing
+- [Macros Reference](MACROS.md) - All available macros
