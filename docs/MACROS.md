@@ -624,3 +624,141 @@ Generates: `static func run() throws { ... }` with proper `try` handling
 - Both parameters must be function types with matching signatures.
 - When `tolerance` is specified, the output type must conform to `BinaryFloatingPoint`.
 - Input types must have inferable generators (Int, String, Bool, arrays, optionals, etc.).
+
+---
+
+## Property Assertion Macros
+
+Property assertion macros automatically generate property tests that verify common function properties: idempotency, determinism, and purity.
+
+> **Availability:** InvariantSwift 2.0+
+>
+> Import: `import InvariantSwift`
+
+### @Idempotent
+
+Verifies that a function is idempotent: applying it multiple times produces the same result as applying it once.
+
+**Mathematical Definition:** `f(f(x)) == f(x)` for all x in the domain.
+
+**Parameters:**
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `iterations` | Int | 100 | Number of random inputs to test |
+| `applicationCount` | Int | 2 | How many times to apply f before checking stability |
+
+**Requirements:**
+- Must be applied to a function (not a property or type)
+- Function must have at least one parameter
+- Return type must conform to Equatable
+
+**Use Cases:**
+- Data normalization (trimming, case folding, path canonicalization)
+- Caching and memoization validation
+- Retry logic safety
+- State machine reset operations
+
+**Example:**
+```swift
+@Idempotent
+func normalize(_ text: String) -> String {
+  text.trimmingCharacters(in: .whitespaces).lowercased()
+}
+
+// Generates test verifying:
+// normalize(normalize(text)) == normalize(text)
+```
+
+**With Custom Parameters:**
+```swift
+@Idempotent(iterations: 500, applicationCount: 3)
+func stabilize(_ data: Data) -> Data {
+  // Function that may need multiple applications to stabilize
+}
+```
+
+### @Deterministic
+
+Verifies that a function is deterministic: calling it multiple times with the same input always produces the same output.
+
+**Mathematical Definition:** `f(x) == f(x)` for all x, across multiple calls.
+
+**Parameters:**
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `iterations` | Int | 100 | Number of random inputs to test |
+| `callCount` | Int | 2 | How many times to call f with same input |
+
+**Requirements:**
+- Must be applied to a function (not a property or type)
+- Function must have at least one parameter
+- Return type must conform to Equatable
+
+**Use Cases:**
+- Hash function verification
+- Serialization/encoding consistency
+- Reproducible build verification
+- Random number generator seeding validation
+
+**Example:**
+```swift
+@Deterministic
+func hash(_ value: String) -> Int {
+  value.hashValue  // Warning: Swift's hashValue is not stable across runs!
+}
+
+// Generates test verifying:
+// hash(value) == hash(value) for multiple calls
+```
+
+**With Custom Parameters:**
+```swift
+@Deterministic(iterations: 1000, callCount: 5)
+func encode(_ model: User) -> Data {
+  try! JSONEncoder().encode(model)
+}
+```
+
+### @Pure
+
+Documents that a function is intended to be pure (no side effects, referentially transparent).
+
+**Important Limitation:** Swift lacks effect tracking like Haskell's type system. `@Pure` can only verify determinism (that the function returns the same result for the same input). It **cannot detect**:
+- State mutations to captured variables
+- I/O operations (file, network, console)
+- Global state modifications
+- Observable side effects
+
+**What @Pure Actually Tests:** Determinism (`f(x) == f(x)`)
+
+**What @Pure Cannot Test:** Absence of side effects
+
+**Parameters:**
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `iterations` | Int | 100 | Number of random inputs to test |
+| `callCount` | Int | 2 | How many times to call f with same input |
+
+**Requirements:**
+- Must be applied to a function (not a property or type)
+- Function must have at least one parameter
+- Return type must conform to Equatable
+
+**Use Cases:**
+- Documenting functions safe for memoization
+- Identifying functions safe for parallel execution
+- Self-documenting code for pure function contracts
+- Verifying determinism as a subset of purity
+
+**Example:**
+```swift
+@Pure
+func add(_ a: Int, _ b: Int) -> Int {
+  a + b  // Truly pure: no side effects
+}
+
+// Generates test verifying determinism (a subset of purity):
+// add(a, b) == add(a, b)
+```
+
+**Recommendation:** Use @Pure for documentation purposes and determinism verification. For true purity guarantees, combine with code review for side effect detection.

@@ -8,11 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Planning
-- **Phase 04.4: Property Assertion Macros**: Plan 02 complete - comprehensive test suite created
+- **Phase 04.4: Property Assertion Macros**: Plan 03 complete - documentation updated
   - 3 plans in 3 waves (all sequential)
   - Plan 01 (Wave 1): Implement @Idempotent and @Deterministic macros [COMPLETE]
   - Plan 02 (Wave 2): Implement @Pure macro and comprehensive test suite [COMPLETE]
-  - Plan 03 (Wave 3): Update docs/MACROS.md with property assertion macro documentation (depends on 02)
+  - Plan 03 (Wave 3): Update docs/MACROS.md with property assertion macro documentation [COMPLETE]
 - **Phase 04.3: @Equivalence Macro**: Phase execution complete with verification PASSED
   - All 2 plans executed successfully (04.3-01: implementation, 04.3-02: tests and docs)
   - Verification: 11/11 must-haves verified against codebase
@@ -34,6 +34,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Plan 03 (Wave 2): Verify and update docs/MACROS.md accuracy after declarations exposed
 
 ### Added
+- **Phase 04.4: Property Assertion Macros**: Documentation for @Idempotent, @Deterministic, and @Pure macros
+  - Added Property Assertion Macros section to docs/MACROS.md
+  - Documented @Idempotent macro with mathematical definition (f(f(x)) == f(x))
+  - Documented @Deterministic macro for reproducibility verification
+  - Documented @Pure macro with clear limitations about Swift's lack of effect tracking
+  - All parameters verified against actual macro declarations (iterations: 100, applicationCount/callCount: 2)
+  - Included use cases: data normalization, caching, retry logic, hash functions, serialization
+  - Added warnings about @Pure only testing determinism, not true purity
 - **Phase 04.3: @Equivalence Macro**: Comprehensive test suite and documentation for function equivalence testing
   - Created EquivalenceMacroTests.swift with 14 comprehensive test functions
   - Tests verify wrapper enum generation with @Test attribute
