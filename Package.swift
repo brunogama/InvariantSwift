@@ -277,6 +277,12 @@ let executableTargets: [Target] = [
     path: "Sources/PropertyTestHelper",
     swiftSettings: commonSwiftSettings
   ),
+  .executableTarget(
+    name: "GeneratorCatalogCLI",
+    dependencies: ["InvariantSwift"],
+    path: "Sources/GeneratorCatalogCLI",
+    swiftSettings: commonSwiftSettings
+  ),
 ]
 
 let pluginTargets: [Target] = [
@@ -311,6 +317,20 @@ let pluginTargets: [Target] = [
       "GhostwriterCLI"
     ],
     path: "Plugins/GhostwriterPlugin"
+  ),
+  .plugin(
+    name: "GeneratorCatalogPlugin",
+    capability: .command(
+      intent: .custom(
+        verb: "browse-generators",
+        description: "Browse the generator catalog interactively"
+      ),
+      permissions: []
+    ),
+    dependencies: [
+      "GeneratorCatalogCLI"
+    ],
+    path: "Plugins/GeneratorCatalogPlugin"
   ),
 ]
 
