@@ -1,3 +1,5 @@
+import InvariantSwiftCore
+
 /// Enforces a timeout on a property test.
 ///
 /// Use this macro to prevent property tests from hanging in CI environments.
@@ -50,16 +52,18 @@
 ///
 /// See ``TimeoutDuration`` and ``withPropertyTimeout(_:operation:)`` for more details.
 @attached(peer)
-public macro Timeout(seconds: Double) = #externalMacro(
-  module: "InvariantSwiftMacros",
-  type: "TimeoutMacro"
-)
+public macro Timeout(seconds: Double) =
+  #externalMacro(
+    module: "InvariantSwiftMacros",
+    type: "TimeoutMacro"
+  )
 
 /// Enforces a timeout on a property test using TimeoutDuration.
 ///
 /// See ``Timeout(seconds:)`` for documentation and usage examples.
 @attached(peer)
-public macro Timeout(_ duration: TimeoutDuration) = #externalMacro(
-  module: "InvariantSwiftMacros",
-  type: "TimeoutMacro"
-)
+public macro Timeout(_ duration: TimeoutDuration) =
+  #externalMacro(
+    module: "InvariantSwiftMacros",
+    type: "TimeoutMacro"
+  )

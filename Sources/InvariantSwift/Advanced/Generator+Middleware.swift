@@ -1,4 +1,5 @@
 import Foundation
+import InvariantSwiftCore
 
 // MARK: - Generator Middleware Extensions
 
