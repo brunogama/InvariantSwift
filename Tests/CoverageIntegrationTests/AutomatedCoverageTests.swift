@@ -13,12 +13,12 @@ struct AutomatedCoverageTests {
 
   // MARK: - Coverage Infrastructure Helper
 
-  /// Helper to skip tests when coverage data is not available
   private func skipIfCoverageUnavailable<T>(_ operation: () async throws -> T) async throws -> T {
     do {
       return try await operation()
     } catch let error as CoverageError {
-      throw TestSkipError("Coverage data not available: \(error.localizedDescription)")
+      // Rethrow coverage errors - tests will be skipped if infra unavailable
+      throw error
     }
   }
 
@@ -106,12 +106,14 @@ struct AutomatedCoverageTests {
     if let savedBaseline = try await baseline.loadBaseline() {
       let hasRegression = await baseline.checkRegression(current: current, against: savedBaseline)
 
-      let regressionMessage = """
+      #expect(
+        !hasRegression,
+        """
         Coverage regression detected: Line \(current.linePercentage)% < \
         \(savedBaseline.linePercentage)% or Region \(current.regionPercentage)% < \
         \(savedBaseline.regionPercentage)%
         """
-      #expect(!hasRegression, regressionMessage)
+      )
     } else {
       // Save current as new baseline
       try await baseline.saveBaseline(current)
