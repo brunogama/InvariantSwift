@@ -350,8 +350,7 @@ public struct TestUtilities {
     file: StaticString = #file,
     line: UInt = #line
   ) async -> [PropertyResult<T>] {
-    await withTaskGroup(of: PropertyResult<T>.self, returning: [PropertyResult<T>].self) {
-      group in
+    await withTaskGroup(of: PropertyResult<T>.self, returning: [PropertyResult<T>].self) { group in
       for property in properties {
         group.addTask {
           let runner = PropertyRunner(seed: config.seed)
@@ -394,7 +393,8 @@ public struct TestUtilities {
       case .failure(_, let iter, _, _, _): return iter
       case .gaveUp(_, let iter): return iter
       }
-    }.reduce(0, +)
+    }
+    .reduce(0, +)
 
     return ResultAnalysis(
       totalTests: results.count,

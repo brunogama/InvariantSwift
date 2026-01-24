@@ -10,7 +10,8 @@
 /// - Traversable Laws: naturality, identity, composition
 ///
 /// **References:**
-/// - [Category Theory for Programmers](https://bartoszmilewski.com/2014/10/28/category-theory-for-programmers-the-preface/)
+/// - [Category Theory for Programmers]
+///   (https://bartoszmilewski.com/2014/10/28/category-theory-for-programmers-the-preface/)
 /// - [Functor Laws](https://en.wikipedia.org/wiki/Functor_(functional_programming))
 /// - [Property-Based Testing](https://en.wikipedia.org/wiki/Property-based_testing)
 
@@ -19,7 +20,7 @@ import Foundation
 import InvariantSwiftCore
 @testable import InvariantSwift
 
-// swiftlint:disable file_length type_body_length
+// swiftlint:disable file_length
 
 @Suite("Comprehensive Generator Combinator Tests")
 struct ComprehensiveGeneratorTests {
@@ -1029,7 +1030,6 @@ struct ComprehensiveGeneratorTests {
     }
   }
 }
-// swiftlint:enable type_body_length
 
 // MARK: - Helper Extensions for Testing
 
