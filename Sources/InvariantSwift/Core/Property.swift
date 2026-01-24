@@ -664,6 +664,24 @@ public struct PropertyConfig: Sendable {
   /// Controls warnings and failures for excessive discards.
   public var discard: DiscardConfig
 
+  /// Enable progress tracking for long-running tests.
+  ///
+  /// When true, progress updates are emitted during test execution.
+  /// Progress is automatically suppressed for fast tests (< 5 seconds).
+  ///
+  /// Default: false
+  public let showProgress: Bool
+
+  /// Interval for progress reporting.
+  ///
+  /// Controls how frequently progress updates are emitted:
+  /// - `.iterations(N)`: Report every N iterations
+  /// - `.seconds(T)`: Report every T seconds
+  /// - `.adaptive`: Report every 1000 iterations OR 5 seconds (default)
+  ///
+  /// Default: `.adaptive`
+  public let progressInterval: ProgressInterval
+
   /// Initializes a property testing configuration.
   ///
   /// - Parameters:
@@ -682,6 +700,8 @@ public struct PropertyConfig: Sendable {
   ///   - maxReplayExamples: Max examples to replay (nil = all). Default: nil.
   ///   - unicodeMode: Unicode handling mode for strings. Default: .scalarSafe.
   ///   - maxStringShrinkSteps: Maximum steps for string shrinking. Default: 500.
+  ///   - showProgress: Enable progress tracking. Default: false.
+  ///   - progressInterval: Progress reporting interval. Default: .adaptive.
   ///
   /// - Example:
   ///   ```swift
@@ -695,7 +715,9 @@ public struct PropertyConfig: Sendable {
   ///       regressionBank: RegressionBank(),
   ///       propertyId: "testArrayReverse",
   ///       unicodeMode: .asciiOnly,
-  ///       maxStringShrinkSteps: 1000
+  ///       maxStringShrinkSteps: 1000,
+  ///       showProgress: true,
+  ///       progressInterval: .seconds(10.0)
   ///   )
   ///   ```
   public init(
@@ -715,7 +737,9 @@ public struct PropertyConfig: Sendable {
     unicodeMode: UnicodeMode = .scalarSafe,
     maxStringShrinkSteps: Int = 500,
     coverage: CoverageConfig = .default,
-    discard: DiscardConfig = .default
+    discard: DiscardConfig = .default,
+    showProgress: Bool = false,
+    progressInterval: ProgressInterval = .adaptive
   ) {
     self.iterations = max(1, iterations)
     self.maxShrinks = max(0, maxShrinks)
@@ -734,6 +758,8 @@ public struct PropertyConfig: Sendable {
     self.maxStringShrinkSteps = max(1, maxStringShrinkSteps)
     self.coverage = coverage
     self.discard = discard
+    self.showProgress = showProgress
+    self.progressInterval = progressInterval
   }
 
   /// Default configuration: 100 iterations, 1000 shrinks, 1000 max discarded.
