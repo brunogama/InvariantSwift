@@ -271,6 +271,10 @@ func checkPremiumAccess_PropertyTest() async throws {
 
 The `@LawChecked` macro automatically generates property-based tests for standard mathematical laws (e.g., Functor, Monad, Semigroup) based on type conformances.
 
+> **Availability:** InvariantSwift 2.0+
+>
+> **Import:** `import InvariantSwift`
+
 ### Usage Syntax
 
 ```swift
@@ -289,7 +293,7 @@ struct MyType: Protocol { ... }
 
 | Name | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `laws` | `[MathematicalLaw]` | `[]` | List of laws to check (e.g., `.functor`, `.applicative`, `.monad`, `.semigroup`, `.monoid`). |
+| `laws` | `[MathematicalLaw]` | `[]` | List of laws to check. Available values: `.functor`, `.applicative`, `.monad`, `.comonad`, `.semigroup`, `.monoid`, `.group`, `.ring`, `.field`, `.partialOrder`, `.totalOrder`, `.lattice`, `.metric`, `.norm`, `.foldable`, `.traversable`, `.bifunctor`, `.profunctor`. |
 | `customLaws` | `[String: String]` | `[:]` | Dictionary mapping law names to property expressions. |
 | `iterations` | `Int` | `100` | Number of test iterations per law. |
 | `size` | `Int` | `50` | The size parameter used for value generation. |
@@ -334,6 +338,15 @@ extension MyBox {
 
 The `@DeriveGen` macro automatically derives a `Gen<Self>` instance for a type, supporting structs, enums, and classes. It simplifies the creation of generators for complex domain models.
 
+> **Availability:** InvariantSwift 2.0+
+>
+> **Import:** `import InvariantSwift`
+>
+> **Difference from @Arbitrary:**
+> - `@Arbitrary` generates an `arbitrary` property and is the primary macro for most use cases
+> - `@DeriveGen` generates a `gen` property and offers advanced configuration options (maxDepth, sizeScaling)
+> - Use `@Arbitrary` for simple cases, `@DeriveGen` when you need fine-grained control over generation
+
 ### Usage Syntax
 
 ```swift
@@ -371,7 +384,7 @@ struct Profile {
 **After Expansion (Simplified):**
 
 ```swift
-extension Profile: Generatable {
+extension Profile {
     public static var gen: Gen<Profile> {
         Gen.zip(
             Gen<String>.string,

@@ -24,6 +24,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Plan 03 (Wave 2): Verify and update docs/MACROS.md accuracy after declarations exposed
 
 ### Added
+- **Phase 04.2: Expose Missing Macros**: Updated docs/MACROS.md with accurate @LawChecked and @DeriveGen documentation
+  - Added availability notes (InvariantSwift 2.0+)
+  - Documented all 18 MathematicalLaw enum cases (.functor, .applicative, .monad, .comonad, .semigroup, .monoid, .group, .ring, .field, .partialOrder, .totalOrder, .lattice, .metric, .norm, .foldable, .traversable, .bifunctor, .profunctor)
+  - Clarified @DeriveGen vs @Arbitrary differences (gen vs arbitrary property, configuration options)
+  - Fixed expansion example to match actual macro implementation
+  - Added correct import statements for both macros
+- **Phase 04.4: Property Assertion Macros**: Implemented @Idempotent and @Deterministic macros for automatic function property testing
+  - Created IdempotentMacroDeclaration.swift with public @Idempotent macro declaration
+  - Created DeterministicMacroDeclaration.swift with public @Deterministic macro declaration
+  - Implemented IdempotentMacro.swift with PeerMacro for f(f(x)) == f(x) verification
+  - Implemented DeterministicMacro.swift with PeerMacro for f(x) == f(x) verification across calls
+  - Created PropertyAssertionDiagnostics.swift with shared diagnostic enum for validation errors
+  - Registered both macros in MacroPlugin.swift for compilation
+  - Both macros support sync and async functions via automatic generator inference
+  - Macros use wrapper enum pattern to avoid peer+peer macro conflicts
+  - Zero SwiftLint violations with inline disable comments for macro boilerplate
 - **Phase 04.4 Research: Property Assertion Macros**: Completed domain research for @Idempotent, @Deterministic, and @Pure macros
   - Identified standard stack: SwiftSyntax 600.0.1+, existing InvariantSwift infrastructure
   - Documented architecture patterns: PeerMacro structure, generator inference, property test body generation
