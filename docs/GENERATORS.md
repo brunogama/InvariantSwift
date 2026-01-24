@@ -569,6 +569,137 @@ func connectedGraph<T>(nodeGen: Gen<T>, nodeCount: Int) -> Gen<Graph<T>> {
 
 ---
 
+## Generator Middleware
+
+Add cross-cutting concerns to generators without modifying code.
+
+### GeneratorInterceptor Protocol
+
+```swift
+public protocol GeneratorInterceptor: Sendable {
+  func onGenerate<T>(_ value: T, size: Size) -> T
+  func onShrink<T>(_ original: T, shrunk: T, step: Int) -> T
+  func onPropertyEvaluated<T>(_ value: T, passed: Bool)
+}
+```
+
+### Built-in Interceptors
+
+| Interceptor | Purpose |
+|-------------|---------|
+| LoggingInterceptor | Logs all operations to console |
+| MetricsInterceptor | Collects generation/shrink statistics |
+| ValidationInterceptor | Validates generated values |
+
+### Attaching Interceptors
+
+```swift
+// Single interceptor
+let gen = Gen<Int>.int.withInterceptor(LoggingInterceptor())
+
+// Multiple interceptors (chained)
+let gen = Gen<Int>.int.withInterceptors([
+  LoggingInterceptor(),
+  MetricsInterceptor()
+])
+
+// Convenience methods
+let logged = Gen<Int>.int.logged()
+let (gen, metrics) = Gen<Int>.int.withMetrics()
+```
+
+### Example: Collecting Metrics
+
+```swift
+let (gen, metrics) = Gen<Int>.int.withMetrics()
+
+// Use generator in tests
+for _ in 0..<100 {
+  _ = gen.sample(size: Size.medium, seed: Seed.random())
+}
+
+// Inspect metrics
+let stats = metrics.metrics
+print("Generated \(stats.generationCount) values")
+print("Average size: \(stats.averageSize)")
+print("Shrink steps: \(stats.shrinkSteps)")
+```
+
+### Example: Custom Interceptor
+
+```swift
+class ValidationInterceptor: GeneratorInterceptor {
+  func onGenerate<T>(_ value: T, size: Size) -> T {
+    if let num = value as? Int, num < 0 {
+      print("Warning: negative value \(num)")
+    }
+    return value
+  }
+}
+
+let gen = Gen<Int>.int.withInterceptor(ValidationInterceptor())
+```
+
+---
+
+## Generator Catalog CLI
+
+Browse available generators interactively.
+
+### Launch Interactive Browser
+
+```bash
+swift package browse-generators
+```
+
+This opens an interactive menu where you can:
+- Browse generators by category
+- Search by name
+- View generator details
+- Generate sample values
+
+### Command-Line Usage
+
+```bash
+# List all generators
+swift package browse-generators --list
+
+# Search by name
+swift package browse-generators --search email
+
+# Filter by category
+swift package browse-generators --category Numeric
+
+# Generate sample value
+swift package browse-generators --sample int-range
+```
+
+### Available Categories
+
+| Category | Generators |
+|----------|------------|
+| Primitive | Bool, Character |
+| Numeric | Int, Double, Float, Int8, Int16, Int32, Int64, UInt, UInt8, etc. |
+| String | String (length variants), alphanumeric, alphabetic, ascii, unicode |
+| Collection | Array, Set, Dictionary, NonEmptyArray |
+| Composite | Tuple (2-4 components), Optional, Result |
+| Domain Data | UUID, Date, URL, Data |
+
+### CLI Help
+
+```bash
+swift package browse-generators --help
+```
+
+Shows all available options:
+- `--list` — List all generators
+- `--category <name>` — Filter by category
+- `--search <term>` — Search by name
+- `--sample <id>` — Generate sample value
+- `--help` — Show help message
+
+---
+
 ## Reference
 
 ### Type-Specific Generators
