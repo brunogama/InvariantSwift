@@ -178,9 +178,19 @@ let executableTargets: [Target] = [
   //     .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
   //   ]
   // ),
+  .target(
+    name: "GhostwriterLib",
+    dependencies: [
+      .product(name: "SwiftParser", package: "swift-syntax"),
+      .product(name: "SwiftSyntax", package: "swift-syntax"),
+    ],
+    path: "Sources/GhostwriterLib",
+    swiftSettings: commonSwiftSettings
+  ),
   .executableTarget(
     name: "GhostwriterCLI",
     dependencies: [
+      "GhostwriterLib",
       .product(name: "SwiftParser", package: "swift-syntax"),
       .product(name: "SwiftSyntax", package: "swift-syntax"),
     ],
@@ -254,7 +264,14 @@ let testTargets: [Target] = [
   ),
   .testTarget(
     name: "InvariantSwiftTests",
-    dependencies: ["InvariantSwift"],
+    dependencies: [
+      "InvariantSwiftCore",
+      "InvariantSwift",
+      "InvariantSwiftMacros",
+      "InvariantSwiftTesting",
+      "InvariantSwiftExperimental",
+      "GhostwriterLib",
+    ],
     path: "Tests/InvariantSwiftTests",
     exclude: ["FakeryGeneratorsTests.swift.disabled"],
     swiftSettings: commonSwiftSettings + [
@@ -287,8 +304,11 @@ let testTargets: [Target] = [
   .testTarget(
     name: "CoverageIntegrationTests",
     dependencies: [
+      "InvariantSwiftCore",
       "InvariantSwift",
       "InvariantSwiftMacros",
+      "InvariantSwiftTesting",
+      "InvariantSwiftExperimental",
     ],
     path: "Tests/CoverageIntegrationTests",
     swiftSettings: commonSwiftSettings + [
@@ -300,7 +320,9 @@ let testTargets: [Target] = [
     dependencies: [
       "InvariantSwiftCore",
       "InvariantSwift",
+      "InvariantSwiftMacros",
       "InvariantSwiftTesting",
+      "InvariantSwiftExperimental",
     ],
     path: "Tests/Generated",
     swiftSettings: commonSwiftSettings + [

@@ -4,7 +4,7 @@
 import Foundation
 import Testing
 
-@testable import GhostwriterCLI
+@testable import GhostwriterLib
 
 @Suite("Access Level Extraction Tests")
 struct AccessLevelExtractionTests {
@@ -196,21 +196,21 @@ struct AccessLevelCLITests {
 
   @Test("Config defaults includeInternal to false")
   func configDefaultIncludeInternal() {
-    let config = GhostwriterCLI.Config()
+    let config = GhostwriterConfig()
     #expect(config.includeInternal == false)
   }
 
   @Test("--include-internal flag is parsed")
   func parseIncludeInternalFlag() {
     let args = ["ghostwriter", "--include-internal", "Sources/"]
-    let config = GhostwriterCLI.parseArguments(args)
+    let config = GhostwriterCore.parseArguments(args)
     #expect(config.includeInternal == true)
   }
 
   @Test("includeInternal defaults to false when not specified")
   func includeInternalDefaultsToFalse() {
     let args = ["ghostwriter", "Sources/"]
-    let config = GhostwriterCLI.parseArguments(args)
+    let config = GhostwriterCore.parseArguments(args)
     #expect(config.includeInternal == false)
   }
 }
