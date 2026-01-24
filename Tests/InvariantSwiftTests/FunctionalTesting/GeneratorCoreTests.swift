@@ -147,13 +147,16 @@ struct GeneratorCoreTests {
 
   // MARK: - Filtering Tests
 
-  @Test("Generator suchThat Function")
-  func generatorSuchThatFunction() async {
+  @Test("Generator with assumption filters correctly")
+  func generatorWithAssumption() async {
+    // Use Property assumption instead of deprecated suchThat
     let property = Property<Int>(
-      generator: Gen<Int>.int.suchThat { $0 > 0 }
-    ) { value in
-      value > 0
-    }
+      generator: Gen<Int>.int,
+      assumption: { $0 > 0 },
+      predicate: { value in
+        value > 0
+      }
+    )
     let result = await PropertyRunner().runProperty(
       property,
       config: PropertyConfig(iterations: 50)

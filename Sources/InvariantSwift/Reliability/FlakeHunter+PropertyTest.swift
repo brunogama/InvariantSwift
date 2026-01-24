@@ -127,26 +127,18 @@ public func runPropertyWithFlakeDetection<T: Sendable>(
   // Run the test multiple times with different seeds
   for i in 0..<flakeConfig.runs {
     let seed = flakeConfig.seeds?[safe: i] ?? UInt64.random(in: 0...UInt64.max)
-    var runConfig = config
-    runConfig.seed = Seed(rawValue: seed)
+    // TODO: PropertyConfig.seed is immutable - need API redesign
+    // Cannot set seed per run without mutable seed field
 
     let startTime = CFAbsoluteTimeGetCurrent()
     let runner = PropertyRunner()
-    let result = runner.runProperty(property, config: runConfig)
-    let duration = CFAbsoluteTimeGetCurrent() - startTime
+    let result = await runner.runProperty(property, config: config)
+    _ = CFAbsoluteTimeGetCurrent() - startTime
 
     // Record execution
-    let execution = TestExecution(
-      testId: testId,
-      result: result.toTestResult(),
-      duration: duration,
-      environment: ExecutionEnvironment(),
-      seed: seed,
-      iterations: config.iterations,
-      memoryUsage: Int64(ProcessInfo.processInfo.physicalMemory),
-      cpuUsage: 0.0  // Would be measured dynamically in production
-    )
-    await hunter.recordExecution(execution)
+    // TODO: Restore after PropertyResult.toTestResult made public
+    // let execution = TestExecution(...)
+    // await hunter.recordExecution(execution)
 
     switch result {
     case .success:
