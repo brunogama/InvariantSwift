@@ -12,6 +12,7 @@ import SwiftSyntaxMacros
 ///
 /// Generates a Swift Testing @Test function that compares reference and candidate
 /// implementations across generated inputs with optional floating-point tolerance.
+// swiftlint:disable:next type_body_length
 public struct EquivalenceMacro: PeerMacro {
 
   public static func expansion(
@@ -49,7 +50,7 @@ public struct EquivalenceMacro: PeerMacro {
 
     // Both parameters should be function types
     guard let refFuncType = refParam.type.as(FunctionTypeSyntax.self),
-      let candFuncType = candParam.type.as(FunctionTypeSyntax.self)
+      candParam.type.as(FunctionTypeSyntax.self) != nil
     else {
       context.diagnose(
         Diagnostic(
@@ -64,18 +65,9 @@ public struct EquivalenceMacro: PeerMacro {
     let config = EquivalenceConfigExtractor.extract(from: node)
 
     // 4. CRITICAL: Validate tolerance only used with BinaryFloatingPoint types
-    if let _ = config.tolerance {
+    if config.tolerance != nil {
       // Extract output type from function return type
-      guard let outputType = refFuncType.returnClause.type.as(TypeSyntax.self) else {
-        context.diagnose(
-          Diagnostic(
-            node: node,
-            message: EquivalenceDiagnostic.toleranceRequiresBinaryFloatingPoint
-          )
-        )
-        return []
-      }
-
+      let outputType = TypeSyntax(refFuncType.returnClause.type)
       let typeName = TypeAnalyzer.baseTypeName(from: outputType)
       let floatingPointTypes: Set<String> = [
         "Double", "Float", "Float16", "Float80", "CGFloat",
@@ -133,7 +125,7 @@ public struct EquivalenceMacro: PeerMacro {
   }
 
   /// Builds the wrapper enum containing the @Test function.
-  // swiftlint:disable:next function_parameter_count function_body_length
+  // swiftlint:disable:next function_parameter_count
   private static func buildWrapperEnum(
     functionName: String,
     refParam: ExtractedParameter,
@@ -196,7 +188,7 @@ public struct EquivalenceMacro: PeerMacro {
   }
 
   /// Builds the test function body.
-  // swiftlint:disable:next function_body_length
+  // swiftlint:disable:next function_parameter_count
   private static func buildTestBody(
     refParam: ExtractedParameter,
     candParam: ExtractedParameter,
