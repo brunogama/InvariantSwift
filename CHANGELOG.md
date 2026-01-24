@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - TimeoutMacro PeerMacro implementation (marker pattern)
     - TimeoutExtractor utility for parsing timeout attributes
     - MacroPlugin registration for TimeoutMacro
+    - PropertyMacro integration: wraps async property tests with withPropertyTimeout when @Timeout attribute present
+    - 13 comprehensive tests for TimeoutExtractor and PropertyMacro integration
 
 - **Phase 04.5: @Regression Macro** ✓ COMPLETE: Automatic failure persistence and replay-first testing
   - Marker macro (PeerMacro) for attaching to property test functions
