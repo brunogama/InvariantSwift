@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Phase 04.6: Advanced Property Testing Features** - In Progress
+  - Plan 02: @Timeout macro with Swift Concurrency-based timeout infrastructure
+    - PropertyTimeoutError error type with elapsed/limit reporting
+    - TimeoutDuration enum supporting .seconds, .milliseconds, and .none (for debugging)
+    - withPropertyTimeout function using task racing pattern for cooperative cancellation
+    - Thread-safe timeout enforcement using Swift Concurrency structured concurrency
+
 - **Phase 04.5: @Regression Macro** ✓ COMPLETE: Automatic failure persistence and replay-first testing
   - Marker macro (PeerMacro) for attaching to property test functions
   - RegressionExtractor utility for parsing replayFirst and maxExamples parameters
