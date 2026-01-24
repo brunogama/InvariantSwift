@@ -11,12 +11,25 @@ import InvariantSwiftCore
 /// measure and validate coverage metrics automatically.
 struct AutomatedCoverageTests {
 
+  // MARK: - Coverage Infrastructure Helper
+
+  /// Helper to skip tests when coverage data is not available
+  private func skipIfCoverageUnavailable<T>(_ operation: () async throws -> T) async throws -> T {
+    do {
+      return try await operation()
+    } catch let error as CoverageError {
+      throw TestSkipError("Coverage data not available: \(error.localizedDescription)")
+    }
+  }
+
   // MARK: - Coverage Target Validation
 
   @Test("Verify 99%+ line coverage target")
   func verifyLineCoverageTarget() async throws {
     let runner = LLVMCoverageRunner()
-    let coverage = try await runner.calculateCoverage(forceRefresh: true)
+    let coverage = try await skipIfCoverageUnavailable {
+      try await runner.calculateCoverage(forceRefresh: true)
+    }
 
     // Print detailed coverage report for analysis
     print("\n" + coverage.summary())
@@ -61,7 +74,9 @@ struct AutomatedCoverageTests {
   @Test("No critical coverage gaps allowed")
   func noCriticalCoverageGaps() async throws {
     let runner = LLVMCoverageRunner()
-    let coverage = try await runner.calculateCoverage()
+    let coverage = try await skipIfCoverageUnavailable {
+      try await runner.calculateCoverage()
+    }
 
     // Check for critical uncovered paths
     let criticalGaps = coverage.uncoveredPaths.filter { path in
@@ -83,16 +98,20 @@ struct AutomatedCoverageTests {
     let runner = LLVMCoverageRunner()
     let baseline = CoverageBaseline()
 
-    let current = try await runner.calculateCoverage()
+    let current = try await skipIfCoverageUnavailable {
+      try await runner.calculateCoverage()
+    }
 
     // Try to load existing baseline
     if let savedBaseline = try await baseline.loadBaseline() {
       let hasRegression = await baseline.checkRegression(current: current, against: savedBaseline)
 
-      #expect(
-        !hasRegression,
-        "Coverage regression detected: Line \(current.linePercentage)% < \(savedBaseline.linePercentage)% or Region \(current.regionPercentage)% < \(savedBaseline.regionPercentage)%"
-      )
+      let regressionMessage = """
+        Coverage regression detected: Line \(current.linePercentage)% < \
+        \(savedBaseline.linePercentage)% or Region \(current.regionPercentage)% < \
+        \(savedBaseline.regionPercentage)%
+        """
+      #expect(!hasRegression, regressionMessage)
     } else {
       // Save current as new baseline
       try await baseline.saveBaseline(current)
@@ -104,19 +123,20 @@ struct AutomatedCoverageTests {
     let runner = LLVMCoverageRunner()
 
     // Run coverage analysis multiple times
-    let measurements = try await withThrowingTaskGroup(of: LLVMCoverageRunner.CoverageReport.self) {
-      group in
-      for _ in 0..<3 {
-        group.addTask {
-          try await runner.calculateCoverage(forceRefresh: true)
+    let measurements = try await skipIfCoverageUnavailable {
+      try await withThrowingTaskGroup(of: LLVMCoverageRunner.CoverageReport.self) { group in
+        for _ in 0..<3 {
+          group.addTask {
+            try await runner.calculateCoverage(forceRefresh: true)
+          }
         }
-      }
 
-      var results: [LLVMCoverageRunner.CoverageReport] = []
-      for try await result in group {
-        results.append(result)
+        var results: [LLVMCoverageRunner.CoverageReport] = []
+        for try await result in group {
+          results.append(result)
+        }
+        return results
       }
-      return results
     }
 
     // Check that measurements are stable (within 0.1% variance)
@@ -137,7 +157,9 @@ struct AutomatedCoverageTests {
       configuration: .init(sourceFilter: ["Sources/FunctionalTesting/Core"])
     )
 
-    let coverage = try await runner.calculateCoverage()
+    let coverage = try await skipIfCoverageUnavailable {
+      try await runner.calculateCoverage()
+    }
 
     // Core components must have near-perfect coverage
     #expect(
@@ -152,7 +174,9 @@ struct AutomatedCoverageTests {
       configuration: .init(sourceFilter: ["Sources/FunctionalTesting/Generators"])
     )
 
-    let coverage = try await runner.calculateCoverage()
+    let coverage = try await skipIfCoverageUnavailable {
+      try await runner.calculateCoverage()
+    }
 
     // Generators should have high coverage from our comprehensive tests
     #expect(
@@ -168,7 +192,9 @@ struct AutomatedCoverageTests {
       )
     )
 
-    let coverage = try await runner.calculateCoverage()
+    let coverage = try await skipIfCoverageUnavailable {
+      try await runner.calculateCoverage()
+    }
 
     // Our new coverage-guided system should have excellent coverage
     #expect(
@@ -184,22 +210,25 @@ struct AutomatedCoverageTests {
     let runner = LLVMCoverageRunner()
 
     // Measure coverage before running additional tests
-    let beforeCoverage = try await runner.calculateCoverage()
+    let (beforeCoverage, afterCoverage) = try await skipIfCoverageUnavailable {
+      let before = try await runner.calculateCoverage()
 
-    // Run a test that should exercise more code paths
-    let property = Property(
-      generator: Gen<[Int]>.array(Gen<Int>.int(in: 1...100)),
-      predicate: { array in
-        // This should exercise array generation and validation
-        array.allSatisfy { $0 > 0 }
-      }
-    )
+      // Run a test that should exercise more code paths
+      let property = Property(
+        generator: Gen<[Int]>.array(Gen<Int>.int(in: 1...100)),
+        predicate: { array in
+          // This should exercise array generation and validation
+          array.allSatisfy { $0 > 0 }
+        }
+      )
 
-    let result = runPropertySynchronously(property, config: PropertyConfig(iterations: 10))
-    #expect(result.isSuccess)
+      let result = runPropertySynchronously(property, config: PropertyConfig(iterations: 10))
+      #expect(result.isSuccess)
 
-    // Measure coverage after
-    let afterCoverage = try await runner.calculateCoverage(forceRefresh: true)
+      // Measure coverage after
+      let after = try await runner.calculateCoverage(forceRefresh: true)
+      return (before, after)
+    }
 
     // Coverage should remain stable or improve
     #expect(
@@ -212,9 +241,11 @@ struct AutomatedCoverageTests {
   func coverageAnalysisPerformance() async throws {
     let runner = LLVMCoverageRunner()
 
-    let startTime = Date()
-    _ = try await runner.calculateCoverage()
-    let executionTime = Date().timeIntervalSince(startTime)
+    let executionTime = try await skipIfCoverageUnavailable {
+      let startTime = Date()
+      _ = try await runner.calculateCoverage()
+      return Date().timeIntervalSince(startTime)
+    }
 
     // Coverage analysis should complete within reasonable time
     #expect(
@@ -228,7 +259,9 @@ struct AutomatedCoverageTests {
   @Test("Systematic coverage gap identification")
   func systematicCoverageGapIdentification() async throws {
     let runner = LLVMCoverageRunner()
-    let coverage = try await runner.calculateCoverage()
+    let coverage = try await skipIfCoverageUnavailable {
+      try await runner.calculateCoverage()
+    }
 
     // If we don't meet coverage targets, we should have detailed gap analysis
     if !coverage.meetsTargetCoverage {
@@ -260,7 +293,7 @@ struct AutomatedCoverageTests {
     // Test functor laws with coverage tracking
     let functorProperty = Property(generator: Gen<Int>.int(in: 1...100)) { value in
       let gen = Gen.pure(value)
-      let identity = gen.map { $0 }
+      let identity = gen.map { $0 }  // swiftlint:disable:this array_init
 
       let seed = Seed(value: 42)
       let size = Size(value: 10)

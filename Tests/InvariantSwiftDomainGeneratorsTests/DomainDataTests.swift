@@ -1,6 +1,7 @@
 // MARK: - ISP-0010: Domain Data Tests
 // Tests for domain data generators.
-// swiftlint:disable file_length
+// Comprehensive test suite for 70+ domain generators - cohesive test organization
+// swiftlint:disable file_length type_body_length
 
 import Foundation
 import Testing
@@ -10,7 +11,7 @@ import InvariantSwiftCore
 @testable import InvariantSwift
 
 @Suite("Domain Data Tests")
-struct DomainDataTests {  // swiftlint:disable:this type_body_length
+struct DomainDataTests {
 
   // MARK: - Locale Tests
 
