@@ -42,6 +42,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - All parameters verified against actual macro declarations (iterations: 100, applicationCount/callCount: 2)
   - Included use cases: data normalization, caching, retry logic, hash functions, serialization
   - Added warnings about @Pure only testing determinism, not true purity
+  - Added Property Assertion Macros section to docs/COOKBOOK.md with practical examples
+  - Examples: normalizeEmail, canonicalizePath, serializeUser, stableHash, calculateDiscount
 - **Phase 04.3: @Equivalence Macro**: Comprehensive test suite and documentation for function equivalence testing
   - Created EquivalenceMacroTests.swift with 14 comprehensive test functions
   - Tests verify wrapper enum generation with @Test attribute
