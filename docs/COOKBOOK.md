@@ -9,12 +9,13 @@ Practical recipes for common property-based testing scenarios.
 1. [Getting Started](#getting-started)
 2. [Testing Data Structures](#testing-data-structures)
 3. [Testing Algorithms](#testing-algorithms)
-4. [Testing Serialization](#testing-serialization)
-5. [Testing Business Logic](#testing-business-logic)
-6. [Testing APIs](#testing-apis)
-7. [Testing Concurrency](#testing-concurrency)
-8. [Testing UI State](#testing-ui-state)
-9. [Advanced Patterns](#advanced-patterns)
+4. [Property Assertion Macros](#property-assertion-macros)
+5. [Testing Serialization](#testing-serialization)
+6. [Testing Business Logic](#testing-business-logic)
+7. [Testing APIs](#testing-apis)
+8. [Testing Concurrency](#testing-concurrency)
+9. [Testing UI State](#testing-ui-state)
+10. [Advanced Patterns](#advanced-patterns)
 
 ---
 
@@ -216,6 +217,57 @@ func testFilterPreservesOrder(array: [Int]) {
     #expect(true) // If we get here, order is preserved
 }
 ```
+
+---
+
+## Property Assertion Macros
+
+### Recipe: Testing Idempotent Functions
+
+Use `@Idempotent` to verify data normalization functions:
+
+```swift
+@Idempotent
+func normalizeEmail(_ email: String) -> String {
+  email.trimmingCharacters(in: .whitespaces).lowercased()
+}
+
+@Idempotent
+func canonicalizePath(_ path: String) -> String {
+  URL(fileURLWithPath: path).standardized.path
+}
+```
+
+### Recipe: Testing Deterministic Functions
+
+Use `@Deterministic` for encoding and hashing:
+
+```swift
+@Deterministic
+func serializeUser(_ user: User) -> Data {
+  try! JSONEncoder().encode(user)
+}
+
+// Note: Swift's built-in hashValue is NOT deterministic across runs
+// Use a stable hashing algorithm for true determinism:
+@Deterministic
+func stableHash(_ data: Data) -> String {
+  SHA256.hash(data: data).description
+}
+```
+
+### Recipe: Documenting Pure Functions
+
+Use `@Pure` to document referentially transparent functions:
+
+```swift
+@Pure
+func calculateDiscount(_ price: Double, _ rate: Double) -> Double {
+  price * (1 - rate)
+}
+```
+
+> **Note:** `@Pure` only verifies determinism. Review code manually for side effects.
 
 ---
 
