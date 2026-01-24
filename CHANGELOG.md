@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Planning
+- **Phase 07: @Roundtrip Macro**: Revised phase plans based on checker feedback
+  - Plan 01: Added Equatable/Hashable conformance checking with diagnostic emission
+  - Plan 02: Added integration test execution verification (tests must pass, not just exist)
+  - Plan 03: Added cross-reference verification between MACROS.md and COOKBOOK.md
 - **Phase 07: @Roundtrip Macro**: Created phase plan with 3 plans in 3 waves
 - **Phase 04.5: @Regression Auto-Save Failing Cases**: Created phase plan with 3 plans in 3 waves
   - Plan 01 (Wave 1): Create @Regression macro infrastructure (marker macro, extractor, declaration)
@@ -45,10 +49,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **[BREAKING]** Renamed Faker to vendor-neutral Domain Data terminology across InvariantSwiftDomainGenerators module
-  - FakerType → DataType (164 data category cases)
-  - FakerLocale → DataLocale (23 locale definitions)
-  - FakerData → DomainDataStore (thread-safe locale data storage)
-  - Gen.faker() → Gen.domainData() (domain data generator API)
+  - FakerType -> DataType (164 data category cases)
+  - FakerLocale -> DataLocale (23 locale definitions)
+  - FakerData -> DomainDataStore (thread-safe locale data storage)
+  - Gen.faker() -> Gen.domainData() (domain data generator API)
   - Old Faker API completely removed (no deprecated aliases)
 - **Test Target Renamed**: Renamed test target from `FunctionalTesting` to `InvariantSwiftTests` to align with Swift package naming conventions where test targets should be named `<PackageName>Tests`
   - Updated Package.swift test target definition
