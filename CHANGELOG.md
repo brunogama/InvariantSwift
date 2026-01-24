@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Wave 2 Orchestrator Corrections** - Phase 04.6 test compilation fixes
+  - Fixed ShrinkTowardsMacroTests.swift compilation errors using SwiftParser API
+  - Fixed FlakeDetectionTests.swift missing imports (Foundation, InvariantSwiftExperimental)
+  - Fixed ParallelShrinkingTests.swift Shrink.towards API calls and @Sendable annotations
+  - Fixed ShrinkHintsTests.swift missing InvariantSwiftExperimental import
+  - Fixed DogfoodingTests.swift and GeneratorCoreTests.swift deprecated suchThat usage
+  - Removed fatalError from Generator.swift deprecated suchThat method (CLAUDE.md compliance)
+  - Fixed Package.swift SPM warnings by adding exclude lists to shared-path targets
+  - Fixed SwiftLint violations (array_init, multiple_closures_with_trailing_closure, attributes)
+  - Added inline disable for file_length in Generator.swift (pending refactoring in future ISP)
+
 ### Added
 - **Phase 04.6: Advanced Property Testing Features** - In Progress
   - Plan 01: Property combinators and forAll block syntax ✅ COMPLETE

@@ -1,6 +1,7 @@
 import Testing
 
 @testable import InvariantSwiftCore
+@testable import InvariantSwiftExperimental
 
 /// Tests for ShrinkHint infrastructure and Shrink.towards functionality.
 @Suite("ShrinkHint Tests")

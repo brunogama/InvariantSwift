@@ -1,3 +1,4 @@
+import SwiftParser
 import SwiftSyntax
 import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
@@ -141,7 +142,8 @@ struct ShrinkTowardsMacroTests {
       }
       """
 
-    guard let funcDecl = try? FunctionDeclSyntax(stringLiteral: source) else {
+    let sourceFile = Parser.parse(source: source)
+    guard let funcDecl = sourceFile.statements.first?.item.as(FunctionDeclSyntax.self) else {
       Issue.record("Failed to parse function declaration")
       return
     }
@@ -161,7 +163,8 @@ struct ShrinkTowardsMacroTests {
       }
       """
 
-    guard let funcDecl = try? FunctionDeclSyntax(stringLiteral: source) else {
+    let sourceFile = Parser.parse(source: source)
+    guard let funcDecl = sourceFile.statements.first?.item.as(FunctionDeclSyntax.self) else {
       Issue.record("Failed to parse function declaration")
       return
     }
@@ -184,7 +187,8 @@ struct ShrinkTowardsMacroTests {
       }
       """
 
-    guard let funcDecl = try? FunctionDeclSyntax(stringLiteral: source) else {
+    let sourceFile = Parser.parse(source: source)
+    guard let funcDecl = sourceFile.statements.first?.item.as(FunctionDeclSyntax.self) else {
       Issue.record("Failed to parse function declaration")
       return
     }
@@ -205,7 +209,8 @@ struct ShrinkTowardsMacroTests {
       }
       """
 
-    guard let funcDecl = try? FunctionDeclSyntax(stringLiteral: source) else {
+    let sourceFile = Parser.parse(source: source)
+    guard let funcDecl = sourceFile.statements.first?.item.as(FunctionDeclSyntax.self) else {
       Issue.record("Failed to parse function declaration")
       return
     }
@@ -222,7 +227,8 @@ struct ShrinkTowardsMacroTests {
       }
       """
 
-    guard let funcDecl = try? FunctionDeclSyntax(stringLiteral: source) else {
+    let sourceFile = Parser.parse(source: source)
+    guard let funcDecl = sourceFile.statements.first?.item.as(FunctionDeclSyntax.self) else {
       Issue.record("Failed to parse function declaration")
       return
     }
@@ -241,7 +247,8 @@ struct ShrinkTowardsMacroTests {
       }
       """
 
-    guard let funcDecl = try? FunctionDeclSyntax(stringLiteral: source) else {
+    let sourceFile = Parser.parse(source: source)
+    guard let funcDecl = sourceFile.statements.first?.item.as(FunctionDeclSyntax.self) else {
       Issue.record("Failed to parse function declaration")
       return
     }

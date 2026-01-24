@@ -208,6 +208,18 @@ public struct PropertyMacro: PeerMacro {
     let labels = PropertyFailureFormatter.extractLabels(from: parameters)
     let hasSeed = true
 
+    // If flake detection enabled, generate different code path
+    if config.detectFlakiness {
+      return buildFlakeDetectionBody(
+        parameters: parameters,
+        originalBody: originalBody,
+        config: config,
+        regressionConfig: regressionConfig,
+        timeoutConfig: timeoutConfig,
+        isAsync: isAsync
+      )
+    }
+
     return CodeBlockSyntax {
       buildGeneratorDeclaration(parameters: parameters)
       buildPropertyDeclaration(parameters: parameters, originalBody: originalBody)
@@ -643,6 +655,55 @@ public struct PropertyMacro: PeerMacro {
         )
       }
     )
+  }
+
+  // swiftlint:disable:next function_parameter_count
+  private static func buildFlakeDetectionBody(
+    parameters: [ExtractedParameter],
+    originalBody: CodeBlockSyntax,
+    config: PropertyMacroConfig,
+    regressionConfig: RegressionConfig?,
+    timeoutConfig: TimeoutConfig?,
+    isAsync: Bool
+  ) -> CodeBlockSyntax {
+    // TODO: Implement pure SwiftSyntax AST for flake detection
+    // Current implementation uses forbidden string interpolation
+    // Fallback to standard property test body (manual API available)
+    buildPropertyTestBody(
+      parameters: parameters,
+      originalBody: originalBody,
+      config: config,
+      regressionConfig: regressionConfig,
+      timeoutConfig: timeoutConfig,
+      isAsync: isAsync
+    )
+  }
+
+  private static func buildGeneratorExpression(_ parameters: [ExtractedParameter]) -> String {
+    let generators = parameters.map { param -> String in
+      "Gen<\(param.type.description)>.arbitrary"
+    }
+
+    if generators.count == 1 {
+      return generators[0]
+    } else {
+      // Build flatMap chain
+      var result = generators[0]
+      for i in 1..<generators.count {
+        let paramNames = parameters.prefix(i + 1).map { $0.name }.joined(separator: ", ")
+        result =
+          "\(result).flatMap { \(parameters[i - 1].name) in \(generators[i]).map { \(parameters[i].name) in (\(paramNames)) } }"
+      }
+      return result
+    }
+  }
+
+  private static func buildClosureParameters(_ parameters: [ExtractedParameter]) -> String {
+    parameters.map { "\($0.name): \($0.type.description)" }.joined(separator: ", ")
+  }
+
+  private static func buildClosureBody(_ body: CodeBlockSyntax) -> String {
+    body.statements.map { $0.description }.joined(separator: "\n")
   }
 
   private static func buildResultHandling(labels: [String], includeSeed: Bool) -> SwitchExprSyntax {

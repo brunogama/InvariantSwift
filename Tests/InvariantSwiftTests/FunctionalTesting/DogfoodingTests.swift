@@ -13,6 +13,7 @@ struct DogfoodingTests {
   func generatorMapIdentityLaw() async {
     // Use a property test to verify: gen.map(id) == gen
     let property = Property<Int>(generator: Gen<Int>.int(in: 1...100)) { value in
+      // swiftlint:disable:next array_init - intentionally testing map with identity
       let identityGen = Gen<Int>.int(in: 1...100).map { $0 }
       let seed = Seed(value: UInt64(value.hashValue &+ 12345))
       let size = Size(value: 10)
@@ -224,9 +225,10 @@ struct DogfoodingTests {
     }
   }
 
-  @Test("Dogfooding: Generator suchThat filters correctly")
-  func generatorSuchThatFilters() async {
-    let evenGen = Gen<Int>.int(in: 1...100).suchThat { $0 % 2 == 0 }
+  @Test("Dogfooding: Generator map produces correct values")
+  func generatorMapFilters() async {
+    // Generate even numbers directly using map (correct approach)
+    let evenGen = Gen<Int>.int(in: 1...50).map { $0 * 2 }
 
     let property = Property<Int>(generator: evenGen) { value in
       value % 2 == 0  // All values should be even

@@ -56,8 +56,7 @@ let packageProducts: [Product] = [
 ]
 
 let packageDependencies: [Package.Dependency] = [
-  .package(url: "https://github.com/pointfreeco/swift-custom-dump", from: "1.3.3"),
-  .package(url: "https://github.com/swiftlang/swift-syntax", exact: "602.0.0"),
+  .package(url: "https://github.com/swiftlang/swift-syntax", from: "602.0.0"),
   .package(url: "https://github.com/google/swift-benchmark", from: "0.1.2"),
 ]
 
@@ -66,6 +65,26 @@ let coreTargets: [Target] = [
     name: "InvariantSwiftCore",
     dependencies: [],
     path: "Sources/InvariantSwift",
+    exclude: [
+      "Contract",
+      "Database",
+      "Differential",
+      "Generators",
+      "Ghostwriter",
+      "Persistence",
+      "Presentation",
+      "Testing",
+      "Advanced",
+      "Coverage",
+      "Fuzzing",
+      "Reliability",
+      "Observability",
+      "SwiftTesting",
+      "Macros",
+      "FunctionalTesting.swift",
+      "CLAUDE.md",
+      "AGENTS.md",
+    ],
     sources: [
       "Core"
     ],
@@ -82,14 +101,26 @@ let libraryTargets: [Target] = [
       "InvariantSwiftCore"
     ],
     path: "Sources/InvariantSwift",
+    exclude: [
+      "Core",  // InvariantSwiftCore
+      "Advanced",  // InvariantSwiftExperimental
+      "Coverage",  // InvariantSwiftExperimental
+      "Fuzzing",  // InvariantSwiftExperimental
+      "Reliability",  // InvariantSwiftExperimental
+      "Observability",  // InvariantSwiftExperimental
+      "SwiftTesting",  // InvariantSwiftTesting
+      "Macros",  // InvariantSwiftTesting
+      "CLAUDE.md",
+      "AGENTS.md",
+    ],
     sources: [
       "Contract",
       "Database",
       "Differential",
       "Generators",
       "Ghostwriter",
-      "Presentation",
       "Persistence",
+      "Presentation",
       "Testing",
       "FunctionalTesting.swift",
     ],
@@ -123,7 +154,24 @@ let libraryTargets: [Target] = [
     ],
     path: "Sources/InvariantSwift",
     exclude: [
-      "Macros/LawGeneration.swift.disabled"
+      "Core",
+      "Contract",
+      "Database",
+      "Differential",
+      "Generators",
+      "Ghostwriter",
+      "Persistence",
+      "Presentation",
+      "Testing",
+      "Advanced",
+      "Coverage",
+      "Fuzzing",
+      "Reliability",
+      "Observability",
+      "FunctionalTesting.swift",
+      "Macros/LawGeneration.swift.disabled",
+      "CLAUDE.md",
+      "AGENTS.md",
     ],
     sources: [
       "SwiftTesting",
@@ -140,6 +188,22 @@ let libraryTargets: [Target] = [
       "InvariantSwift",
     ],
     path: "Sources/InvariantSwift",
+    exclude: [
+      "Core",
+      "Contract",
+      "Database",
+      "Differential",
+      "Generators",
+      "Ghostwriter",
+      "Persistence",
+      "Presentation",
+      "Testing",
+      "SwiftTesting",
+      "Macros",
+      "FunctionalTesting.swift",
+      "CLAUDE.md",
+      "AGENTS.md",
+    ],
     sources: [
       "Advanced",
       "Coverage",
@@ -273,6 +337,23 @@ let testTargets: [Target] = [
       "GhostwriterLib",
     ],
     path: "Tests/InvariantSwiftTests",
+    exclude: [
+      "FunctionalTesting/CollectionShrinkingV2Tests.swift.disabled",
+      "FunctionalTesting/SMTSolverTests.swift.disabled",
+      "FunctionalTesting/LensSystemTests.swift.disabled",
+      "FunctionalTesting/NumericGeneratorTests.swift.disabled",
+      "FunctionalTesting/CollectionGeneratorTests.swift.disabled",
+      "FunctionalTesting/LinearizabilityTests.swift.disabled",
+      "FunctionalTesting/FailurePersistenceTests.swift.disabled",
+      "FunctionalTesting/MetaPropertyTests.swift.disabled",
+      "FunctionalTesting/LibFuzzerTests.swift.disabled",
+      "FunctionalTesting/MetamorphicTests.swift.disabled",
+      "FunctionalTesting/CoverageCompletionTests.swift.disabled",
+      "FunctionalTesting/CoverageGuidedTests.swift.disabled",
+      "FunctionalTesting/FloatingPointModeTests.swift.disabled",
+      "FunctionalTesting/PrettyPrinterEnhancementTests.swift.disabled",
+      "FunctionalTesting/GeneratorRegistryTests.swift.disabled",
+    ],
     swiftSettings: commonSwiftSettings + [
       .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
     ]
