@@ -217,8 +217,9 @@ struct DogfoodPropertyTests {
   @Test("Shrinking Finds Minimal Counterexample")
   func shrinkingFindsMinimalCounterexample() async {
     // Test property: "no array contains the number 42"
-    let property = Property<[Int]>(generator: Gen<[Int]>.array(Gen<Int>.int(in: 0...100))) {
-      array in
+    let property = Property<[Int]>(
+      generator: Gen<[Int]>.array(Gen<Int>.int(in: 0...100))
+    ) { array in
       !array.contains(42)
     }
 
