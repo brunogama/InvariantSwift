@@ -149,8 +149,9 @@ struct ClassificationTests {
     let report = context.report()
     let formatted = report.format()
 
-    #expect(formatted.contains("Classification Report"))
-    #expect(formatted.contains("Labels:"))
+    // Format starts with "Labels (...)" not "Classification Report"
+    #expect(formatted.contains("Labels"))
+    #expect(formatted.contains("iterations"))
     #expect(formatted.contains("sign:"))
     #expect(formatted.contains("positive"))
     #expect(formatted.contains("negative"))
@@ -282,7 +283,8 @@ struct ClassificationTests {
 
     if let report = FailureReport.from(result, config: .default) {
       let formatted = report.format()
-      #expect(formatted.contains("Classification Report"))
+      // Classification is included in failure report with "Labels" header
+      #expect(formatted.contains("Labels"))
       #expect(formatted.contains("size:"))
     }
   }
