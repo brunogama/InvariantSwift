@@ -223,11 +223,9 @@ struct PropertyCombinatorOperatorTests {
 
   @Test("implies - division property example")
   func impliesDivisionProperty() {
-    typealias IntPair = (Int, Int)
-    let gen: Gen<IntPair> = Gen.zip(
-      Gen<Int> { rng, _ in Int.random(in: 1...100, using: &rng) },
-      Gen<Int> { rng, _ in Int.random(in: -5...5, using: &rng) }
-    )
+    let genN = Gen<Int> { rng, _ in Int.random(in: 1...100, using: &rng) }
+    let genD = Gen<Int> { rng, _ in Int.random(in: -5...5, using: &rng) }
+    let gen = genN.zip(genD)
 
     let divProp = Property(generator: gen) { n, d in
       (n / d) * d == n
