@@ -28,6 +28,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - TimeoutExtractor utility for parsing timeout attributes
     - MacroPlugin registration for TimeoutMacro
     - PropertyMacro integration: wraps async property tests with withPropertyTimeout when @Timeout attribute present
+  - Plan 03: Generator middleware/interceptor system ✅ COMPLETE
+    - GeneratorInterceptor protocol for logging, validation, and metrics
+    - Default no-op implementations for minimal boilerplate
+    - MetricsInterceptor with OSAllocatedUnfairLock for thread-safe counters
+    - LoggingInterceptor for debugging generator output
+    - Gen.withInterceptors for type-erased interceptor chaining
+    - Convenience methods: logged(), withMetrics()
+    - 13 comprehensive tests covering all interceptor types
+  - Plan 05: Parallel shrinking with Swift Concurrency ✅ COMPLETE
+    - ShrinkTree+Parallel.swift with concurrent search methods
+    - findMinimalParallel using TaskGroup for concurrent exploration
+    - findMinimalParallelComparable for Comparable types with guaranteed minimum selection
+    - findMinimalParallelWithFallback for error recovery with sequential fallback
+    - ParallelShrinker actor for coordinated parallel shrinking
+    - Configurable worker count (default: processor count)
+    - Automatic sequential fallback for small trees (budget < 100)
+    - Deterministic result selection for reproducibility
+    - Array chunking helper for work distribution across workers
+    - Benchmarking capabilities comparing parallel vs sequential performance
+    - 20+ comprehensive tests covering correctness, determinism, performance, and edge cases
+    - Zero SwiftLint violations
   - Plan 06: FlakeHunter integration for flaky test detection 🔄 IN PROGRESS
     - FlakeDetectionConfig for configurable flake detection (runs, threshold, failOnFlaky)
     - FlakeDetectionResult with flakiness scoring and action recommendations
