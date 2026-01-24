@@ -766,6 +766,107 @@ func add(_ a: Int, _ b: Int) -> Int {
 
 ---
 
+## @Timeout
+
+The `@Timeout` macro enforces a timeout on property test execution. If the test exceeds the specified duration, it fails with a clear timeout message.
+
+> **Availability:** InvariantSwift 2.0+
+>
+> Import: `import InvariantSwift`
+
+### Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `seconds` | `Double` | - | Maximum execution time in seconds |
+
+### Usage
+
+```swift
+import InvariantSwift
+
+// Basic timeout (5 seconds)
+@Timeout(seconds: 5.0)
+@PropertyTest
+func slowProperty(data: [Int]) -> Bool {
+  expensiveComputation(data)
+}
+
+// Millisecond precision (500ms)
+@Timeout(seconds: 0.5)
+@PropertyTest
+func fastProperty(n: Int) -> Bool {
+  quickCheck(n)
+}
+```
+
+### Timeout Behavior
+
+- Uses Swift Concurrency task racing (cooperative cancellation)
+- Failure message includes elapsed time and limit
+- Does not forcefully terminate (allows cleanup)
+- Combines with other @PropertyTest parameters
+
+### When to Use
+
+- CI environments where hanging tests are problematic
+- Tests involving I/O or network operations
+- Complex algorithms that might have edge cases causing infinite loops
+
+---
+
+## @ShrinkTowards
+
+The `@ShrinkTowards` macro guides shrinking toward semantically meaningful values rather than arbitrary minimal values (like zero).
+
+> **Availability:** InvariantSwift 2.0+
+>
+> Import: `import InvariantSwift`
+
+### Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `target` | `T` | - | The value to shrink toward |
+
+### Usage
+
+```swift
+// Shrink toward 1 (not 0) for positive count tests
+@PropertyTest
+func testPositiveCount(@ShrinkTowards(1) count: Int) -> Bool {
+  count > 0
+}
+
+// Shrink toward "test" instead of ""
+@PropertyTest
+func testNonEmptyName(@ShrinkTowards("test") name: String) -> Bool {
+  !name.isEmpty
+}
+
+// Multiple parameters with different hints
+@PropertyTest
+func testRangeCheck(
+  @ShrinkTowards(10) min: Int,
+  @ShrinkTowards(100) max: Int
+) -> Bool {
+  min < max
+}
+```
+
+### How Shrinking Works
+
+Without hint: `42` might shrink to `0`, `1`, `21`, etc.
+With `@ShrinkTowards(10)`: prefers `10`, then values approaching `10`
+
+### When to Use
+
+- When 0 or empty is not a valid test case
+- When you want counterexamples to be more representative
+- For domain-specific neutral elements (e.g., identity values)
+
+---
+
 ## @Regression
 
 The `@Regression` macro automatically saves failing property test cases and replays them on subsequent runs. This bridges property testing and regression testing by preserving valuable counterexamples.

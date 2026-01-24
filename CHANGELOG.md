@@ -21,6 +21,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Phase 04.6: Advanced Property Testing Features** - In Progress
+  - Plan 09: Documentation Updates ✅ COMPLETE
+    - Updated MACROS.md with @Timeout and @ShrinkTowards documentation
+    - Updated COOKBOOK.md with Advanced Property Testing section
+    - Updated GENERATORS.md with middleware section and CLI catalog usage
+    - All code examples syntactically correct and copy-pasteable
+    - Cross-references between documentation files
   - Plan 08: Generator Catalog Browser CLI ✅ COMPLETE
     - Interactive CLI for browsing and exploring 24+ built-in generators
     - Catalog with 6 categories: Primitive, Numeric, String, Collection, Composite, Domain Data
