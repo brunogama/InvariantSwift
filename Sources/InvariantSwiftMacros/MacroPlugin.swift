@@ -10,6 +10,7 @@ struct InvariantSwiftMacroPlugin: CompilerPlugin {
     BusinessRuleMacro.self,
     DeriveGenMacro.self,
     ArbitraryMacro.self,
+    LawCheckedMacro.self,
     LabelMacro.self,
     StateMachineMacro.self,
     CommandMacro.self,
