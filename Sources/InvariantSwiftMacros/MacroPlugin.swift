@@ -36,5 +36,6 @@ struct InvariantSwiftMacroPlugin: CompilerPlugin {
     PureMacro.self,
     EquivalenceMacro.self,
     TimeoutMacro.self,
+    ShrinkTowardsMacro.self,
   ]
 }
