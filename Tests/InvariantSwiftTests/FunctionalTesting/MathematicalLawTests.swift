@@ -4,7 +4,6 @@ import InvariantSwiftCore
 
 /// Comprehensive mathematical law verification for category theory foundations
 /// Tests functor, applicative, and monad laws with concrete validation
-// swiftlint:disable:next type_body_length
 struct MathematicalLawTests {
 
   // MARK: - Functor Laws

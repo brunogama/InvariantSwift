@@ -3,10 +3,7 @@ import Foundation
 import InvariantSwiftCore
 @testable import InvariantSwift
 
-// swiftlint:disable file_length
-
 /// Performance and edge case testing to achieve 99%+ code coverage
-// swiftlint:disable:next type_body_length
 struct PerformanceAndEdgeCaseTests {
 
   // MARK: - Performance Testing with Large Iteration Counts (Task 7)

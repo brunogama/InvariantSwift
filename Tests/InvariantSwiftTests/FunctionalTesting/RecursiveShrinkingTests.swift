@@ -625,7 +625,10 @@ func stringShrinkTreeBetterMinimality() {
       // New method should find equal or smaller counterexamples
       #expect(
         newMin.count <= oldMin.count,
-        "New shrinking should produce smaller or equal counterexample. Old: '\(oldMin)' (\(oldMin.count) chars), New: '\(newMin)' (\(newMin.count) chars)"
+        """
+        New shrinking should produce smaller or equal counterexample. \
+        Old: '\(oldMin)' (\(oldMin.count) chars), New: '\(newMin)' (\(newMin.count) chars)
+        """
       )
 
       // Both should still fail the predicate
@@ -645,7 +648,10 @@ func stringShrinkTreeEdgeCases() {
   let singleTree = stringShrinkTree("a")
   let singleCandidates = singleTree.breadthFirst()
   #expect(singleCandidates.contains(""), "Single char should shrink to empty string")
-  #expect(!singleCandidates.contains("a"), "Single char should not contain itself in shrinks")
+  // breadthFirst() includes the root, so "a" appears once at the beginning
+  // The children (shrink candidates) should not contain "a"
+  let shrinkCandidates = singleTree.children.flatMap { $0.breadthFirst() }
+  #expect(!shrinkCandidates.contains("a"), "Single char shrinks should not contain itself")
 
   // Unicode string
   let unicodeString = "héllo wörld"

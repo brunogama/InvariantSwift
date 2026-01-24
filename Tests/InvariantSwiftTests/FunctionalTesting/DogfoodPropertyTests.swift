@@ -11,7 +11,8 @@ struct DogfoodPropertyTests {
   @Test("Generator Functor Identity Law")
   func generatorFunctorIdentityLaw() async {
     let property = Property<Int>(generator: Gen<Int>.int) { n in
-      _ = Gen<Int>.int.map { $0 }  // Identity function
+      // swiftlint:disable:next array_init
+      _ = Gen<Int>.int.map { $0 }  // Identity function for functor law testing
       _ = n
 
       // Test that map with identity preserves the value structure
@@ -171,7 +172,10 @@ struct DogfoodPropertyTests {
 
     case .failure(let counterexample, _, _, _, _):
       Issue.record(
-        "Shrinking failed to reduce size: original \(counterexample.count), shrunk variants exist that don't follow rule"
+        """
+        Shrinking failed to reduce size: original \(counterexample.count), \
+        shrunk variants exist that don't follow rule
+        """
       )
 
     case .gaveUp:
