@@ -54,6 +54,8 @@ public enum GhostwriterCore {
 
   // MARK: - Argument Parsing
 
+  // CLI argument parsing requires switch over multiple flags
+  // swiftlint:disable:next cyclomatic_complexity
   public static func parseArguments(_ arguments: [String]) -> GhostwriterConfig {
     var config = GhostwriterConfig()
     var i = 1  // Skip program name
@@ -108,6 +110,8 @@ public enum GhostwriterCore {
 
   // MARK: - Main Execution
 
+  // Main execution flow with file analysis, test generation, and compilation verification
+  // swiftlint:disable:next cyclomatic_complexity function_body_length
   public static func run(config: GhostwriterConfig) async throws -> GhostwriterRunResult {
     var result = GhostwriterRunResult()
 
