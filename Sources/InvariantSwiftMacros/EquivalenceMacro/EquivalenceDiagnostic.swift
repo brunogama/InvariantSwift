@@ -21,7 +21,8 @@ public enum EquivalenceDiagnostic: String, DiagnosticMessage {
 
     case .toleranceRequiresBinaryFloatingPoint:
       return
-        "tolerance parameter requires Output type to conform to BinaryFloatingPoint (Double, Float, Float16, Float80, CGFloat)"
+        "tolerance parameter requires Output type to conform to BinaryFloatingPoint "
+        + "(Double, Float, Float16, Float80, CGFloat)"
     }
   }
 
