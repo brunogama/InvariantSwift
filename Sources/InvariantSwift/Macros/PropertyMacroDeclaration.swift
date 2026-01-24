@@ -2,12 +2,53 @@ import InvariantSwift
 import InvariantSwiftExperimental
 import InvariantSwiftCore
 import Foundation
+/// Property-based testing macro with flaky test detection support.
+///
+/// Use `@Property` to turn a function into a property test that runs with
+/// randomly generated inputs.
+///
+/// **Basic Usage:**
+/// ```swift
+/// @Property
+/// func commutative(a: Int, b: Int) -> Bool {
+///   a + b == b + a
+/// }
+/// ```
+///
+/// **Flaky Test Detection:**
+/// Use `detectFlakiness: true` to run the test multiple times and detect
+/// inconsistent behavior:
+///
+/// ```swift
+/// @Property(detectFlakiness: true, runs: 100)
+/// func maybeFlaky(n: Int) -> Bool {
+///   // This test might be flaky
+///   someUnstableOperation(n)
+/// }
+/// ```
+///
+/// When flakiness is detected, you'll get a report showing:
+/// - Flakiness score (0.0 = stable, 1.0 = maximally flaky)
+/// - Seeds that caused failures
+/// - Recommendation (stable, investigate, quarantine, fix)
+///
+/// - Parameters:
+///   - iterations: Number of test iterations (default: 100)
+///   - seed: Optional fixed seed for reproducibility
+///   - maxShrinks: Maximum shrinking attempts (default: 1000)
+///   - verbose: Enable verbose output (default: false)
+///   - detectFlakiness: Enable flaky test detection mode (default: false)
+///   - runs: Number of runs for flake detection (default: 100)
+///   - failOnFlaky: Fail test if flakiness detected (default: false)
 @attached(peer, names: suffixed(_PropertyTest))
 public macro Property(
   iterations: Int = 100,
   seed: UInt64? = nil,
   maxShrinks: Int = 1000,
-  verbose: Bool = false
+  verbose: Bool = false,
+  detectFlakiness: Bool = false,
+  runs: Int = 100,
+  failOnFlaky: Bool = false
 ) = #externalMacro(module: "InvariantSwiftMacros", type: "PropertyMacro")
 
 // MARK: - @AsyncPropertyTest Macro Declaration

@@ -33,9 +33,7 @@ enum ShrinkHintExtractor {
   /// - Parameter param: The parameter to analyze
   /// - Returns: Shrink hint metadata if @ShrinkTowards is present, nil otherwise
   private static func extractHint(from param: FunctionParameterSyntax) -> ShrinkHintMetadata? {
-    guard let attributes = param.attributes else {
-      return nil
-    }
+    let attributes = param.attributes
 
     for attribute in attributes {
       guard let attr = attribute.as(AttributeSyntax.self),

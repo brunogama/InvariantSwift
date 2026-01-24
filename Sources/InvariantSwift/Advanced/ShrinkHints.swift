@@ -139,7 +139,7 @@ public struct ShrinkHint<T: Sendable>: Sendable {
 
 // MARK: - Shrink Extensions for Targeted Shrinking
 
-extension Shrink {
+extension Shrink where T: Comparable {
   /// Creates a shrink strategy that prefers values closer to target.
   ///
   /// The shrink tree prioritizes candidates that are "closer" to the target,
@@ -163,13 +163,12 @@ extension Shrink {
   ///   let shrink = Shrink<Int>.towards(10, from: 100)
   ///   // Returns: [10]
   ///   ```
-  public static func towards<U: Comparable & Sendable>(
-    _ target: U,
-    from value: U
-  ) -> [U] where T == U {
+  public static func towards(_ target: T, from value: T) -> [T] {
     value == target ? [] : [target]
   }
+}
 
+extension Shrink where T: BinaryInteger & Comparable {
   /// Creates a shrink strategy for integers that uses binary shrinking toward target.
   ///
   /// Generates intermediate values between current and target using binary search pattern,
@@ -186,13 +185,10 @@ extension Shrink {
   ///   let shrink = Shrink<Int>.towardsInt(10, from: 100)
   ///   // Returns: [10, 55, 77, 88, 94, 97, 98, 99]
   ///   ```
-  public static func towardsInt<U: BinaryInteger & Comparable & Sendable>(
-    _ target: U,
-    from value: U
-  ) -> [U] where T == U {
+  public static func towardsInt(_ target: T, from value: T) -> [T] {
     guard value != target else { return [] }
 
-    var candidates: [U] = [target]
+    var candidates: [T] = [target]
     candidates.append(contentsOf: binaryShrinkSteps(from: value, to: target))
     candidates.append(contentsOf: boundarySteps(from: value, to: target))
 
@@ -201,10 +197,10 @@ extension Shrink {
 
   // MARK: - Private Helpers
 
-  private static func binaryShrinkSteps<U: BinaryInteger>(from value: U, to target: U) -> [U] {
+  private static func binaryShrinkSteps(from value: T, to target: T) -> [T] {
     let distance = value > target ? value - target : target - value
     var step = distance / 2
-    var steps: [U] = []
+    var steps: [T] = []
 
     while step > 0 {
       let intermediate = value > target ? target + step : value + step
@@ -217,7 +213,7 @@ extension Shrink {
     return steps
   }
 
-  private static func boundarySteps<U: BinaryInteger>(from value: U, to target: U) -> [U] {
+  private static func boundarySteps(from value: T, to target: T) -> [T] {
     if value > target {
       let oneStepBack = target + 1
       return oneStepBack != target && oneStepBack != value ? [oneStepBack] : []
@@ -228,7 +224,7 @@ extension Shrink {
     return []
   }
 
-  private static func removeDuplicates<U: Sendable>(from candidates: [U]) -> [U] {
+  private static func removeDuplicates(from candidates: [T]) -> [T] {
     var seen = Set<String>()
     return candidates.filter { candidate in
       let key = "\(candidate)"
