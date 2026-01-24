@@ -489,6 +489,26 @@ public struct PropertyConfig: Sendable {
   /// Required when using regression bank. Should be stable across runs.
   public let propertyId: String?
 
+  /// Failing example database for automatic persistence and replay.
+  ///
+  /// When set, failed test cases are automatically saved to the database
+  /// and replayed on subsequent runs before random generation.
+  public let failingExampleDatabase: FailingExampleDatabase?
+
+  /// Test identifier for database lookup.
+  ///
+  /// Required when using failingExampleDatabase. Generated from function context.
+  public let testIdentifier: TestIdentifier?
+
+  /// Whether to replay saved failures before random generation.
+  ///
+  /// When true (default), saved failing examples are tested first.
+  /// If they now pass, they're marked as fixed.
+  public let replayFirst: Bool
+
+  /// Maximum examples to replay from database (nil = all).
+  public let maxReplayExamples: Int?
+
   /// Unicode handling mode for string shrinking.
   ///
   /// Controls how Unicode characters are handled during string shrinking:
@@ -656,6 +676,10 @@ public struct PropertyConfig: Sendable {
   ///   - verbosity: Output verbosity level. Default: .normal.
   ///   - regressionBank: Optional regression bank for persisting failures. Default: nil.
   ///   - propertyId: Unique identifier for regression storage. Default: nil.
+  ///   - failingExampleDatabase: Optional database for persisting failures. Default: nil.
+  ///   - testIdentifier: TestIdentifier for database lookup. Default: nil.
+  ///   - replayFirst: Whether to replay saved failures first. Default: true.
+  ///   - maxReplayExamples: Max examples to replay (nil = all). Default: nil.
   ///   - unicodeMode: Unicode handling mode for strings. Default: .scalarSafe.
   ///   - maxStringShrinkSteps: Maximum steps for string shrinking. Default: 500.
   ///
@@ -684,6 +708,10 @@ public struct PropertyConfig: Sendable {
     verbosity: Verbosity = .normal,
     regressionBank: RegressionBank? = nil,
     propertyId: String? = nil,
+    failingExampleDatabase: FailingExampleDatabase? = nil,
+    testIdentifier: TestIdentifier? = nil,
+    replayFirst: Bool = true,
+    maxReplayExamples: Int? = nil,
     unicodeMode: UnicodeMode = .scalarSafe,
     maxStringShrinkSteps: Int = 500,
     coverage: CoverageConfig = .default,
@@ -698,6 +726,10 @@ public struct PropertyConfig: Sendable {
     self.verbosity = verbosity
     self.regressionBank = regressionBank
     self.propertyId = propertyId
+    self.failingExampleDatabase = failingExampleDatabase
+    self.testIdentifier = testIdentifier
+    self.replayFirst = replayFirst
+    self.maxReplayExamples = maxReplayExamples
     self.unicodeMode = unicodeMode
     self.maxStringShrinkSteps = max(1, maxStringShrinkSteps)
     self.coverage = coverage
@@ -824,6 +856,26 @@ public actor PropertyRunner {
     _ property: Property<T>,
     config: PropertyConfig = .default
   ) -> PropertyResult<T> {
+    // Check for FailingExampleDatabase first (newer API)
+    if let database = config.failingExampleDatabase,
+      let testID = config.testIdentifier
+    {
+      let semaphore = DispatchSemaphore(value: 0)
+      var result: PropertyResult<T>!
+      Task {
+        result = await runPropertyWithFailingExamples(
+          property,
+          config: config,
+          database: database,
+          testID: testID
+        )
+        semaphore.signal()
+      }
+      semaphore.wait()
+      return result
+    }
+
+    // Legacy RegressionBank path
     if let bank = config.regressionBank, let propertyId = config.propertyId {
       let semaphore = DispatchSemaphore(value: 0)
       var result: PropertyResult<T>!
@@ -877,6 +929,101 @@ public actor PropertyRunner {
         failedAtIteration: iteration
       )
       try? await bank.recordFailureEntry(entry)
+    }
+
+    return result
+  }
+
+  /// Run a property with FailingExampleDatabase integration.
+  ///
+  /// - Replays saved failures first (if replayFirst=true)
+  /// - Marks examples as fixed if they now pass
+  /// - Saves new failures to database
+  /// - Continues with random generation after replay
+  // swiftlint:disable cyclomatic_complexity
+  @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
+  private func runPropertyWithFailingExamples<T>(
+    _ property: Property<T>,
+    config: PropertyConfig,
+    database: FailingExampleDatabase,
+    testID: TestIdentifier
+  ) async -> PropertyResult<T> {
+    // Phase 1: Replay saved examples if replayFirst=true
+    if config.replayFirst {
+      let savedExamples = await database.examples(for: testID)
+      let examplesToReplay: [FailingExample]
+      if let max = config.maxReplayExamples {
+        examplesToReplay = Array(savedExamples.prefix(max))
+      } else {
+        examplesToReplay = savedExamples
+      }
+
+      for example in examplesToReplay {
+        // Replay using seed from saved example
+        let replaySeed = Seed(value: example.seed)
+        let replayConfig = PropertyConfig(
+          iterations: 1,
+          maxShrinks: config.maxShrinks,
+          seed: replaySeed,
+          verbose: config.verbose
+        )
+
+        let replayResult = runPropertyCore(property, config: replayConfig)
+
+        switch replayResult {
+        case .failure(_, _, let shrunk, let reason, let failSeed):
+          // Still failing - return immediately with regression info
+          if config.verbose {
+            // swiftlint:disable:next no_print
+            print(
+              "[Regression] Replayed failure still fails: \(example.inputDescription ?? "unknown")"
+            )
+          }
+          return .failure(
+            counterexample: shrunk,
+            iterations: 0,
+            shrunk: shrunk,
+            reason: reason,
+            seed: failSeed
+          )
+
+        case .success:
+          // Example now passes - mark as fixed
+          await database.markFixed(testID: testID, example: example)
+          if config.verbose {
+            // swiftlint:disable:next no_print
+            print("[Regression] Example now passes, marked as fixed")
+          }
+
+        case .gaveUp:
+          // Couldn't replay (assumption failed) - keep for now
+          break
+        }
+      }
+    }
+
+    // Phase 2: Run normal property test with random generation
+    let result = runPropertyCore(property, config: config)
+
+    // Phase 3: Save new failures to database
+    switch result {
+    case .failure(_, _, let shrunk, let reason, let failSeed):
+      let example = FailingExample(
+        seed: failSeed.rawValue,
+        size: config.iterations,
+        shrinkPath: nil,
+        serializedInput: nil,
+        inputDescription: String(describing: shrunk),
+        failureMessage: reason.description
+      )
+      await database.save(testID: testID, example: example)
+      if config.verbose {
+        // swiftlint:disable:next no_print
+        print("[Regression] Saved failing example to database")
+      }
+
+    case .success, .gaveUp:
+      break
     }
 
     return result
@@ -947,6 +1094,7 @@ public actor PropertyRunner {
 
     return .success(iterations: successfulIterations)
   }
+  // swiftlint:enable cyclomatic_complexity
 
   /// Run a throwing property test and return the result.
   ///
@@ -958,6 +1106,7 @@ public actor PropertyRunner {
   ///   - config: Configuration for test execution
   ///
   /// - Returns: The result of running the property
+  // swiftlint:disable function_body_length
   public func runThrowingProperty<T>(
     _ property: ThrowingProperty<T>,
     config: PropertyConfig = .default
@@ -1038,6 +1187,7 @@ public actor PropertyRunner {
 
     return .success(iterations: successfulIterations)
   }
+  // swiftlint:enable function_body_length
 
   // MARK: - Evaluating Property Runner (S012)
 
@@ -1423,6 +1573,7 @@ public actor PropertyRunner {
     return .success(iterations: successfulIterations)
   }
 
+  // swiftlint:disable function_body_length
   @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
   public func runAsyncThrowingProperty<T>(
     _ property: AsyncThrowingProperty<T>,
@@ -1499,6 +1650,7 @@ public actor PropertyRunner {
 
     return .success(iterations: successfulIterations)
   }
+  // swiftlint:enable function_body_length
 
   @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
   private func shrinkAsyncFailureWithTree<T: Sendable>(
