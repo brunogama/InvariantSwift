@@ -109,7 +109,7 @@ struct ShrinkCombinatorTests {
     let candidates = Shrink<Int>.removeElements(from: [1, 2, 3])
 
     // Empty array should be first (most aggressive shrink)
-    #expect(candidates.first == [])
+    #expect(candidates.first?.isEmpty == true)
   }
 
   @Test("removeElements includes halves for multi-element arrays")

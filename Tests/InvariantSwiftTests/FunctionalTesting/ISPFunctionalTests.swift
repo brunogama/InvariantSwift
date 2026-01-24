@@ -24,7 +24,7 @@ struct RuleBasedStatefulTests {
 
     var state = MockStateMachine()
     #expect(rule.precondition(state) == true)
-    try! rule.execute(&state)
+    try rule.execute(&state)
     #expect(state.value == 1)
   }
 

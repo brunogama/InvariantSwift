@@ -213,8 +213,9 @@ struct IsolatedPropertyRunnerTests {
   @Test("Isolated runner with array shrinking")
   func isolatedRunnerArrayShrinking() async {
     let runner = IsolatedPropertyRunner()
-    let property = Property<[Int]>(generator: Gen<[Int]>.array(Gen<Int>.int(in: 1...100))) {
-      array in
+    let property = Property<[Int]>(
+      generator: Gen<[Int]>.array(Gen<Int>.int(in: 1...100))
+    ) { array in
       !array.contains(42)  // Fails if array contains 42
     }
 
