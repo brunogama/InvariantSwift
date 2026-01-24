@@ -20,7 +20,7 @@ import Foundation
 ///     reason: .predicateFailed,
 ///     replayToken: token
 ///   )
-///   print(report.format())
+///   // Use report.format() to get formatted output
 ///   ```
 ///
 /// - See Also: ``ReplayToken``, ``PropertyResult``

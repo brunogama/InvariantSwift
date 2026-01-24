@@ -18,7 +18,7 @@ import InvariantSwift
 ///
 /// **What @Pure CANNOT Test:**
 /// - State mutations: `var counter = 0; func f() { counter += 1; return counter }`
-/// - Side effects: `func f() { print("side effect"); return 42 }`
+/// - Side effects: `func f() { Logger.log("side effect"); return 42 }`
 /// - Hidden I/O: `func f() { saveToDatabase(); return true }`
 ///
 /// **Recommendation:**
@@ -93,7 +93,7 @@ import InvariantSwift
 ///
 /// // ❌ BAD: I/O side effect (not caught by @Pure!)
 /// func logAndReturn(_ x: Int) -> Int {
-///   print("Logging: \(x)")  // Side effect!
+///   Logger.log("Logging: \(x)")  // Side effect!
 ///   return x
 /// }
 /// ```

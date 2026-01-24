@@ -36,7 +36,7 @@ import Foundation
 ///
 ///   // Retrieve original value
 ///   if let original = intValue.base as? Int {
-///       print(original)  // 42
+///       // Use original (value is 42)
 ///   }
 ///   ```
 ///
@@ -74,17 +74,20 @@ public struct AnySendable: @unchecked Sendable {
   ///   let wrapped = AnySendable(42)
   ///
   ///   if let value = wrapped.base as? Int {
-  ///       print(value)  // 42
+  ///       // Use value (value is 42)
   ///   }
   ///
   ///   // Pattern matching also works
   ///   switch wrapped.base {
   ///   case let int as Int:
-  ///       print("Got an Int: \(int)")
+  ///       // Handle Int case
+  ///       _ = int
   ///   case let string as String:
-  ///       print("Got a String: \(string)")
+  ///       // Handle String case
+  ///       _ = string
   ///   default:
-  ///       print("Unknown type")
+  ///       // Handle unknown type
+  ///       break
   ///   }
   ///   ```
   public var base: any Sendable {
@@ -154,7 +157,7 @@ extension AnySendable: Hashable {
   ///       AnySendable("hello"),
   ///       AnySendable(42)  // Duplicate, will be deduplicated
   ///   ]
-  ///   print(set.count)  // 2
+  ///   // set.count is 2
   ///   ```
   public func hash(into hasher: inout Hasher) {
     // Hash based on common Sendable + Hashable types
@@ -189,10 +192,10 @@ extension AnySendable: CustomStringConvertible {
   /// - Example:
   ///   ```swift
   ///   let wrapped = AnySendable(42)
-  ///   print(wrapped)  // "42"
+  ///   // wrapped.description is "42"
   ///
   ///   let anotherWrapped = AnySendable([1, 2, 3])
-  ///   print(anotherWrapped)  // "[1, 2, 3]"
+  ///   // anotherWrapped.description is "[1, 2, 3]"
   ///   ```
   public var description: String {
     if let describable = base as? CustomStringConvertible {
@@ -212,7 +215,7 @@ extension AnySendable: CustomDebugStringConvertible {
   /// - Example:
   ///   ```swift
   ///   let wrapped = AnySendable(42)
-  ///   debugPrint(wrapped)  // "AnySendable(Int: 42)"
+  ///   // wrapped.debugDescription is "AnySendable(Int: 42)"
   ///   ```
   public var debugDescription: String {
     let typeName = String(describing: type(of: base))

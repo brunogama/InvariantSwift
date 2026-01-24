@@ -11,7 +11,7 @@ public struct TimeoutConfig: Sendable, Equatable {
   }
 
   /// Disabled timeout (equivalent to .none).
-  public static let none = TimeoutConfig(seconds: nil)
+  public static let none = Self(seconds: nil)
 }
 
 /// Extracts timeout configuration from function attributes.
@@ -27,7 +27,7 @@ public enum TimeoutExtractor {
   ///
   /// Returns `nil` if no @Timeout attribute is present.
   public static func extractConfig(from funcDecl: FunctionDeclSyntax) -> TimeoutConfig? {
-    for attr in funcDecl.attributes {
+    for attr in funcDecl.attributes where attr.as(AttributeSyntax.self) != nil {
       guard let attrSyntax = attr.as(AttributeSyntax.self) else { continue }
 
       let attrName = attrSyntax.attributeName.description.trimmingCharacters(
@@ -46,52 +46,13 @@ public enum TimeoutExtractor {
       switch args {
       case .argumentList(let labeledList):
         // @Timeout(seconds: 5.0)
-        for labeled in labeledList {
-          if labeled.label?.text == "seconds" {
-            if let literal = labeled.expression.as(FloatLiteralExprSyntax.self) {
-              if let seconds = Double(literal.literal.text) {
-                return TimeoutConfig(seconds: seconds)
-              }
-            } else if let intLiteral = labeled.expression.as(IntegerLiteralExprSyntax.self) {
-              if let seconds = Double(intLiteral.literal.text) {
-                return TimeoutConfig(seconds: seconds)
-              }
-            }
-          }
+        if let config = extractLabeledSeconds(from: labeledList) {
+          return config
         }
 
         // @Timeout(.seconds(10.0)) or @Timeout(.milliseconds(500)) or @Timeout(.none)
-        if let firstArg = labeledList.first,
-          firstArg.label == nil,
-          let memberAccess = firstArg.expression.as(MemberAccessExprSyntax.self)
-        {
-          let memberName = memberAccess.declName.baseName.text
-
-          if memberName == "none" {
-            return TimeoutConfig.none
-          } else if memberName == "seconds",
-            let funcCall = firstArg.expression.as(FunctionCallExprSyntax.self),
-            let firstCallArg = funcCall.arguments.first
-          {
-            if let literal = firstCallArg.expression.as(FloatLiteralExprSyntax.self) {
-              if let seconds = Double(literal.literal.text) {
-                return TimeoutConfig(seconds: seconds)
-              }
-            } else if let intLiteral = firstCallArg.expression.as(IntegerLiteralExprSyntax.self) {
-              if let seconds = Double(intLiteral.literal.text) {
-                return TimeoutConfig(seconds: seconds)
-              }
-            }
-          } else if memberName == "milliseconds",
-            let funcCall = firstArg.expression.as(FunctionCallExprSyntax.self),
-            let firstCallArg = funcCall.arguments.first
-          {
-            if let literal = firstCallArg.expression.as(IntegerLiteralExprSyntax.self) {
-              if let ms = Int(literal.literal.text) {
-                return TimeoutConfig(seconds: Double(ms) / 1000.0)
-              }
-            }
-          }
+        if let config = extractMemberAccessTimeout(from: labeledList) {
+          return config
         }
 
       default:
@@ -99,6 +60,75 @@ public enum TimeoutExtractor {
       }
     }
 
+    return nil
+  }
+
+  /// Extract timeout from labeled argument like `@Timeout(seconds: 5.0)`.
+  private static func extractLabeledSeconds(from list: LabeledExprListSyntax) -> TimeoutConfig? {
+    for labeled in list where labeled.label?.text == "seconds" {
+      if let literal = labeled.expression.as(FloatLiteralExprSyntax.self),
+        let seconds = Double(literal.literal.text)
+      {
+        return TimeoutConfig(seconds: seconds)
+      } else if let intLiteral = labeled.expression.as(IntegerLiteralExprSyntax.self),
+        let seconds = Double(intLiteral.literal.text)
+      {
+        return TimeoutConfig(seconds: seconds)
+      }
+    }
+    return nil
+  }
+
+  /// Extract timeout from member access like `@Timeout(.seconds(10.0))` or `@Timeout(.none)`.
+  private static func extractMemberAccessTimeout(from list: LabeledExprListSyntax) -> TimeoutConfig?
+  {
+    guard let firstArg = list.first,
+      firstArg.label == nil,
+      let memberAccess = firstArg.expression.as(MemberAccessExprSyntax.self)
+    else {
+      return nil
+    }
+
+    let memberName = memberAccess.declName.baseName.text
+
+    if memberName == "none" {
+      return TimeoutConfig.none
+    } else if memberName == "seconds",
+      let funcCall = firstArg.expression.as(FunctionCallExprSyntax.self),
+      let firstCallArg = funcCall.arguments.first
+    {
+      return extractSecondsFromCall(firstCallArg)
+    } else if memberName == "milliseconds",
+      let funcCall = firstArg.expression.as(FunctionCallExprSyntax.self),
+      let firstCallArg = funcCall.arguments.first
+    {
+      return extractMillisecondsFromCall(firstCallArg)
+    }
+
+    return nil
+  }
+
+  /// Extract seconds from function call argument.
+  private static func extractSecondsFromCall(_ arg: LabeledExprSyntax) -> TimeoutConfig? {
+    if let literal = arg.expression.as(FloatLiteralExprSyntax.self),
+      let seconds = Double(literal.literal.text)
+    {
+      return TimeoutConfig(seconds: seconds)
+    } else if let intLiteral = arg.expression.as(IntegerLiteralExprSyntax.self),
+      let seconds = Double(intLiteral.literal.text)
+    {
+      return TimeoutConfig(seconds: seconds)
+    }
+    return nil
+  }
+
+  /// Extract milliseconds from function call argument and convert to seconds.
+  private static func extractMillisecondsFromCall(_ arg: LabeledExprSyntax) -> TimeoutConfig? {
+    if let literal = arg.expression.as(IntegerLiteralExprSyntax.self),
+      let ms = Int(literal.literal.text)
+    {
+      return TimeoutConfig(seconds: Double(ms) / 1000.0)
+    }
     return nil
   }
 }
