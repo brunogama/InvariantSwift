@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Phase 05-02: Enhanced Failure Messages** - Comprehensive failure reporting with shrinking metrics
+  - Core FailureReport now includes shrinkingSummary and reductionPercentage computed properties
+  - Detailed shrinking statistics (attempts, successful, reduction %) in failure output
+  - PropertyConfig extended with showProgress and progressInterval fields
+
 ### Fixed
 - **Wave 2 Orchestrator Corrections** - Phase 04.6 test compilation fixes
   - Fixed ShrinkTowardsMacroTests.swift compilation errors using SwiftParser API
