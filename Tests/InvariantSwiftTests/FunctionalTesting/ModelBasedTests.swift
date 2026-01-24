@@ -20,7 +20,10 @@ struct ModelBasedTests {
 
     case .failure(let commands, let failedCommand, let iterations, let shrunk):
       Issue.record(
-        "Counter model failed: \(failedCommand) in sequence \(commands.count), shrunk to \(shrunk.count) commands after \(iterations) iterations"
+        """
+        Counter model failed: \(failedCommand) in sequence \(commands.count), \
+        shrunk to \(shrunk.count) commands after \(iterations) iterations
+        """
       )
 
     case .gaveUp(let discarded, let iterations):
@@ -265,7 +268,10 @@ struct ModelBasedTests {
       break  // Integration successful
     case .failure(let counterexample, let iterations, let shrunk, _, _):
       Issue.record(
-        "Model property failed: \(counterexample.count) commands, shrunk to \(shrunk.count) after \(iterations) iterations"
+        """
+        Model property failed: \(counterexample.count) commands, \
+        shrunk to \(shrunk.count) after \(iterations) iterations
+        """
       )
 
     case .gaveUp:
@@ -288,7 +294,10 @@ struct ModelBasedTests {
 
     case .failure(let commands, let failedCommand, _, let shrunk):
       Issue.record(
-        "Complex state machine failed at command \(failedCommand) in sequence of \(commands.count), shrunk to \(shrunk.count)"
+        """
+        Complex state machine failed at command \(failedCommand) \
+        in sequence of \(commands.count), shrunk to \(shrunk.count)
+        """
       )
 
     case .gaveUp:

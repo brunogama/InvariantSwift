@@ -21,7 +21,8 @@ struct PropertyMacroIntegrationTests {
 
     let generator = Gen<Int>.int
     let property = Property(generator: generator) { (x: Int) in
-      x == x  // Always true - identity property
+      // swiftlint:disable:next identical_operands
+      x == x  // Always true - identity property (testing reflexivity)
     }
 
     let config = PropertyConfig(iterations: 100, maxShrinks: 100)
@@ -63,7 +64,8 @@ struct PropertyMacroIntegrationTests {
   func propertyTestBoolSucceeds() throws {
     let generator = Gen<Bool>.bool
     let property = Property(generator: generator) { (b: Bool) in
-      b == b  // Identity
+      // swiftlint:disable:next identical_operands
+      b == b  // Identity (testing reflexivity)
     }
 
     let config = PropertyConfig(iterations: 100, maxShrinks: 100)
@@ -112,11 +114,13 @@ struct PropertyMacroIntegrationTests {
 
   @Test("Property test with three parameters using Gen.zip3")
   func propertyTestThreeParamsWithZip() throws {
+    // swiftlint:disable:next large_tuple
     let generator = Gen<(Int, String, Bool)>.zip3(
       Gen<Int>.int,
       Gen<String>.string,
       Gen<Bool>.bool
     )
+    // swiftlint:disable:next large_tuple
     let property = Property(generator: generator) { (tuple: (Int, String, Bool)) in
       let (_, s, _) = tuple
       return s.isEmpty  // Always true
@@ -289,7 +293,8 @@ struct PropertyMacroIntegrationTests {
   func propertyTestSeedDeterminism() throws {
     let generator = Gen<Int>.int
     let property = Property(generator: generator) { (x: Int) in
-      x == x
+      // swiftlint:disable:next identical_operands
+      x == x  // Testing reflexivity
     }
 
     let seed = Seed(value: 12345)
@@ -390,7 +395,8 @@ struct GeneratorInferenceIntegrationTests {
     let generator = Gen<Int>.int
     let property = Property(generator: generator) { (x: Int) in
       // Verify it's a valid Int (always true by type system)
-      x == x
+      // swiftlint:disable:next identical_operands
+      x == x  // Testing reflexivity
     }
 
     let result = runPropertySynchronously(
@@ -405,7 +411,8 @@ struct GeneratorInferenceIntegrationTests {
     let generator = Gen<Double>.double
     let property = Property(generator: generator) { (x: Double) in
       // NaN is the only Double not equal to itself
-      x.isNaN || x == x
+      // swiftlint:disable:next identical_operands
+      x.isNaN || x == x  // Testing NaN behavior
     }
 
     let result = runPropertySynchronously(
