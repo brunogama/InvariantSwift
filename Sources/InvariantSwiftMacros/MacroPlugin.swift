@@ -32,5 +32,6 @@ struct InvariantSwiftMacroPlugin: CompilerPlugin {
     TargetMacro.self,
     IdempotentMacro.self,
     DeterministicMacro.self,
+    PureMacro.self,
   ]
 }

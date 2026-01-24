@@ -7,6 +7,7 @@ import Testing
 import Foundation
 import InvariantSwiftCore
 @testable import InvariantSwift
+@testable import InvariantSwiftExperimental
 
 @Suite("ShrinkPredicate Tests")
 struct ShrinkPredicateTests {
@@ -130,8 +131,8 @@ struct ShrinkPredicateTests {
 
   @Test("And combinator")
   func testAndCombinator() {
-    let positive = ShrinkPredicate<Int> { _, c in c >= 0 }
-    let small = ShrinkPredicate<Int> { _, c in c <= 10 }
+    let positive = ShrinkPredicate<Int>(isValid: { _, c in c >= 0 })
+    let small = ShrinkPredicate<Int>(isValid: { _, c in c <= 10 })
     let combined = positive.and(small)
 
     #expect(combined.validate(original: 100, candidate: 5))
@@ -141,8 +142,8 @@ struct ShrinkPredicateTests {
 
   @Test("Or combinator")
   func testOrCombinator() {
-    let zero = ShrinkPredicate<Int> { _, c in c == 0 }
-    let ten = ShrinkPredicate<Int> { _, c in c == 10 }
+    let zero = ShrinkPredicate<Int>(isValid: { _, c in c == 0 })
+    let ten = ShrinkPredicate<Int>(isValid: { _, c in c == 10 })
     let combined = zero.or(ten)
 
     #expect(combined.validate(original: 100, candidate: 0))
@@ -152,7 +153,7 @@ struct ShrinkPredicateTests {
 
   @Test("Not combinator")
   func testNotCombinator() {
-    let positive = ShrinkPredicate<Int> { _, c in c >= 0 }
+    let positive = ShrinkPredicate<Int>(isValid: { _, c in c >= 0 })
     let negative = positive.not
 
     #expect(!negative.validate(original: 100, candidate: 0))

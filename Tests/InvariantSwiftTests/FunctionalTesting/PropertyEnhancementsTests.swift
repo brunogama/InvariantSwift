@@ -193,7 +193,7 @@ struct PropertyCombinatorTests {
     let gen = Gen<Int> { rng, _ in Int.random(in: 0..<100, using: &rng) }
     let prop = Property(generator: gen) { $0 >= 0 }
 
-    let labeled = prop.label("non-negative integers")
+    let labeled: LabeledProperty<Int> = prop.label("non-negative integers")
 
     #expect(labeled.label == "non-negative integers")
     #expect(labeled.property.predicate(50) == true)

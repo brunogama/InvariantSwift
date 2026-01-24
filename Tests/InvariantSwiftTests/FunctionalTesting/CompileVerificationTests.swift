@@ -4,7 +4,7 @@
 import Foundation
 import Testing
 
-@testable import GhostwriterCLI
+@testable import GhostwriterLib
 
 @Suite("CompileVerifier Tests")
 struct CompileVerifierTests {
@@ -177,20 +177,20 @@ struct CompileVerificationCLITests {
 
   @Test("Config defaults skipCompileTest to false")
   func configDefaultSkipCompileTest() {
-    let config = GhostwriterCLI.Config()
+    let config = GhostwriterConfig()
     #expect(config.skipCompileTest == false)
   }
 
   @Test("--skip-compile-test flag is parsed")
   func parseSkipCompileTestFlag() {
     let args = ["ghostwriter", "--skip-compile-test", "Sources/"]
-    let config = GhostwriterCLI.parseArguments(args)
+    let config = GhostwriterCore.parseArguments(args)
     #expect(config.skipCompileTest == true)
   }
 
   @Test("Verification disabled with flag")
   func verificationDisabledWithFlag() {
-    let config = GhostwriterCLI.Config(
+    let config = GhostwriterConfig(
       sources: [],
       outputDirectory: "",
       dryRun: false,
@@ -204,14 +204,14 @@ struct CompileVerificationCLITests {
 
   @Test("RunResult tracks skipped compile count")
   func runResultTracksSkippedCompile() {
-    var result = GhostwriterCLI.RunResult()
+    var result = GhostwriterRunResult()
     result.skippedCompile = 3
     #expect(result.skippedCompile == 3)
   }
 
   @Test("Default RunResult has zero skipped")
   func defaultRunResultZeroSkipped() {
-    let result = GhostwriterCLI.RunResult()
+    let result = GhostwriterRunResult()
     #expect(result.skippedCompile == 0)
   }
 }

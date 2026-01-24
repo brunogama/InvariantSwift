@@ -157,9 +157,11 @@ struct ImplicationOperatorTests {
   @Test("Dogfood: Implication semantics verified by property test")
   func dogfoodImplicationSemantics() async {
     // Property: For all booleans, implication follows truth table
-    let property = Property(
-      generator: Gen.zip(Gen<Bool>.bool, Gen<Bool>.bool)
-    ) { precond, conseq in
+    let boolGen: Gen<(Bool, Bool)> = Gen<Bool>.bool.zip(Gen<Bool>.bool)
+    let property = Property<(Bool, Bool)>(
+      generator: boolGen
+    ) { tuple in
+      let (precond, conseq) = tuple
       let result = precond ==> conseq
 
       if !precond {
