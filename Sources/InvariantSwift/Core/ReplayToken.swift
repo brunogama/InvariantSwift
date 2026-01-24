@@ -20,7 +20,7 @@ import Foundation
 ///
 ///   // Encode for copy-paste
 ///   let encoded = token.encode()
-///   print("Replay with: \(encoded)")
+///   // Use encoded token for replay
 ///
 ///   // Parse and replay
 ///   if let parsed = ReplayToken.parse(encoded) {
