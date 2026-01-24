@@ -424,7 +424,6 @@ let testTargets: [Target] = [
       "InvariantSwiftTesting",
       "InvariantSwiftExperimental",
     ],
-    path: "Tests/Generated",
     swiftSettings: commonSwiftSettings + [
       .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
     ]

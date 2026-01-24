@@ -449,8 +449,7 @@ extension Scheduler {
 /// Container for thread-local scheduler context
 public enum SchedulerContext {
   /// Thread-local scheduler for use within `@AsyncPropertyTest`
-  @TaskLocal
-  public static var current: Scheduler?
+  @TaskLocal public static var current: Scheduler?
 }
 
 /// Execute code with a scheduler context
