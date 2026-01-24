@@ -12,6 +12,7 @@ InvariantSwift uses a powerful macro system to automate the generation of proper
 - [@LawChecked](#lawchecked)
 - [@DeriveGen](#derivegen)
 - [@Equivalence](#equivalence)
+- [@Regression](#regression)
 
 ---
 
@@ -762,3 +763,153 @@ func add(_ a: Int, _ b: Int) -> Int {
 ```
 
 **Recommendation:** Use @Pure for documentation purposes and determinism verification. For true purity guarantees, combine with code review for side effect detection.
+
+---
+
+## @Regression
+
+The `@Regression` macro automatically saves failing property test cases and replays them on subsequent runs. This bridges property testing and regression testing by preserving valuable counterexamples.
+
+> **Availability:** InvariantSwift 2.0+
+>
+> Import: `import InvariantSwift`
+
+### Basic Usage
+
+```swift
+@PropertyTest
+@Regression
+func testSorting(array: [Int]) -> Bool {
+  let sorted = array.sorted()
+  return sorted.isSorted && sorted.count == array.count
+}
+```
+
+When this test fails:
+1. The counterexample is automatically saved to `~/.invariant/examples/`
+2. On the next run, saved examples are replayed first (before random generation)
+3. If a saved example now passes, it's marked as fixed and removed
+
+### Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `replayFirst` | `Bool` | `true` | Replay saved failures before random generation |
+| `maxExamples` | `Int?` | `nil` | Maximum saved examples to replay (nil = all) |
+
+### Examples
+
+**Default behavior (recommended):**
+```swift
+@PropertyTest
+@Regression
+func testInvariant(data: MyData) -> Bool {
+  // Failures saved automatically, replayed on next run
+  data.isValid
+}
+```
+
+**Disable replay (save-only mode):**
+```swift
+@PropertyTest
+@Regression(replayFirst: false)
+func testWithoutReplay(value: Int) -> Bool {
+  // Save failures but don't replay them
+  value >= 0
+}
+```
+
+**Limit replay count:**
+```swift
+@PropertyTest
+@Regression(maxExamples: 10)
+func testLimitedReplay(items: [Item]) -> Bool {
+  // Only replay up to 10 saved failures
+  items.allSatisfy { $0.isValid }
+}
+```
+
+### How It Works
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Test Execution Flow                       │
+├─────────────────────────────────────────────────────────────┤
+│  1. Load saved examples from ~/.invariant/examples/          │
+│     └─ Filter by TestIdentifier (file + function)           │
+│                                                              │
+│  2. Replay Phase (if replayFirst: true)                     │
+│     ├─ For each saved example:                              │
+│     │   ├─ Regenerate input using saved seed                │
+│     │   ├─ Run property                                     │
+│     │   ├─ If FAIL → Return failure immediately             │
+│     │   └─ If PASS → Mark as fixed, remove from database    │
+│     └─ Continue to random generation                        │
+│                                                              │
+│  3. Random Generation Phase                                  │
+│     ├─ Generate random inputs (normal property testing)     │
+│     └─ If FAIL → Save new example to database               │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### @Regression vs @Reproduce
+
+| Feature | @Reproduce | @Regression |
+|---------|------------|-------------|
+| **Purpose** | Debug specific failure | Prevent regressions |
+| **Activation** | Manual (add after failure) | Automatic |
+| **Persistence** | None (compile-time only) | Disk (~/.invariant/examples/) |
+| **Replay** | Single specific case | All saved failures |
+| **Use Case** | Debugging | Continuous testing |
+
+**Use @Reproduce when:** You want to debug a specific failure with exact parameters.
+
+**Use @Regression when:** You want ongoing regression prevention with automatic save/replay.
+
+**Important:** `@Regression` and `@Reproduce` cannot be used together on the same function. They are mutually exclusive.
+
+### Environment Variables
+
+| Variable | Effect |
+|----------|--------|
+| `INVARIANT_EXAMPLES_DISABLED=1` | Disable database entirely |
+| `INVARIANT_EXAMPLES_PATH=/path` | Custom database location |
+| `INVARIANT_CLEAR_EXAMPLES=1` | Clear database before run |
+| `INVARIANT_DEBUG=1` | Enable debug logging |
+
+### Storage Format
+
+Examples are stored as JSON files in `~/.invariant/examples/`:
+
+```
+~/.invariant/examples/
+└── testSorting/
+    ├── example_001.json
+    ├── example_002.json
+    └── example_003.json
+```
+
+Each file contains:
+- `seed`: Random seed for reproduction
+- `size`: Generation size
+- `shrinkPath`: Path to shrunk value
+- `inputDescription`: Human-readable input
+- `failureMessage`: Why it failed
+- `timestamp`: When it was recorded
+
+### Important Notes
+
+1. **Mutual Exclusion**: `@Regression` and `@Reproduce` cannot be used together on the same function. Use `@Reproduce` for debugging, `@Regression` for regression prevention.
+
+2. **Database Limits**: By default, up to 100 examples are stored per test. Older examples are pruned after 30 days.
+
+3. **CI Integration**: Set `INVARIANT_EXAMPLES_PATH` to a shared location for team-wide regression tracking.
+
+4. **Git Integration**: Consider adding `~/.invariant/examples/` to your repo for version-controlled regression tests.
+
+### Constraints
+
+- Must be applied to a function declaration (alongside `@PropertyTest`)
+- Cannot be combined with `@Reproduce` (mutually exclusive)
+- Requires `@PropertyTest` to be present for test generation
+- All parameter types must have inferable generators
