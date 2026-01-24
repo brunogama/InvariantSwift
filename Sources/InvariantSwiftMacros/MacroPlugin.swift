@@ -22,6 +22,7 @@ struct InvariantSwiftMacroPlugin: CompilerPlugin {
     PreconditionMacro.self,
     InvariantMacro.self,
     BundleMacro.self,
+    RegressionMacro.self,
     ReproduceMacro.self,
     DifferentialTestMacro.self,
     ContractMacro.self,

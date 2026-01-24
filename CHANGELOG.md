@@ -7,13 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Phase 04.5: @Regression Macro Infrastructure**: @Regression macro for automatic failure persistence
+  - Marker macro (PeerMacro) for attaching to property test functions
+  - RegressionExtractor utility for parsing replayFirst and maxExamples parameters
+  - PropertyMacro integration to configure FailingExampleDatabase in generated code
+  - Mutual exclusion diagnostic when used with @Reproduce (conflicting reproduction strategies)
+  - PropertyConfig extended with failingExampleDatabase, testIdentifier, replayFirst, maxReplayExamples fields
+  - runPropertyWithFailingExamples function with 3-phase execution: Replay → Generate → Save
+  - Moved FailingExample and ExampleDatabase from Persistence/ to Core/ for module boundary compliance
+
 ### Planning
-- **Phase 04.5: @Regression Auto-Save Failing Cases**: Context gathering complete
-  - Implementation decisions documented for researcher and planner
-  - Database persistence: JSON format, test-target specific storage, custom serialization protocol
-  - Replay behavior: Always replay first (before random), insertion order, auto-cleanup passing failures
-  - Failure identification: SHA256 hash-based deduplication, store timestamp + reason metadata
-  - Database lifecycle: 30-day TTL, 100-failure cap per test, CLI pruning, auto-migration, file locking
 - **Phase 04.4: Property Assertion Macros**: Phase complete - all 3 plans executed
   - 3 plans in 3 waves (all sequential)
   - Plan 01 (Wave 1): Implement @Idempotent and @Deterministic macros [COMPLETE]

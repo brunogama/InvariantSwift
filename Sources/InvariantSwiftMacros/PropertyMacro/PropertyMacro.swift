@@ -28,6 +28,23 @@ public struct PropertyMacro: PeerMacro {
 
     let config = PropertyConfigExtractor.extract(from: node)
 
+    // Extract @Reproduce presence
+    let hasReproduce = funcDecl.attributes.contains { attr in
+      attr.as(AttributeSyntax.self)?.attributeName.description.contains("Reproduce") == true
+    }
+
+    // Extract @Regression config
+    let regressionConfig = RegressionExtractor.extractConfig(from: funcDecl)
+
+    // Validate mutual exclusion
+    if hasReproduce && regressionConfig != nil {
+      ctx.error(
+        MutuallyExclusiveMacrosDiagnostic("@Reproduce", "@Regression"),
+        at: funcDecl
+      )
+      return []
+    }
+
     guard let originalBody = funcDecl.body else {
       return []
     }
@@ -42,6 +59,7 @@ public struct PropertyMacro: PeerMacro {
       parameters: parameters,
       originalBody: originalBody,
       config: config,
+      regressionConfig: regressionConfig,
       isAsync: isAsync
     )
 
@@ -57,6 +75,7 @@ public struct PropertyMacro: PeerMacro {
     parameters: [ExtractedParameter],
     originalBody: CodeBlockSyntax,
     config: PropertyMacroConfig,
+    regressionConfig: RegressionConfig?,
     isAsync: Bool
   ) -> EnumDeclSyntax {
     let enumName = "\(funcDecl.name.text)_PropertyTest"
@@ -66,6 +85,7 @@ public struct PropertyMacro: PeerMacro {
       parameters: parameters,
       originalBody: originalBody,
       config: config,
+      regressionConfig: regressionConfig,
       isAsync: isAsync
     )
 
@@ -110,6 +130,7 @@ public struct PropertyMacro: PeerMacro {
     parameters: [ExtractedParameter],
     originalBody: CodeBlockSyntax,
     config: PropertyMacroConfig,
+    regressionConfig: RegressionConfig?,
     isAsync: Bool
   ) -> FunctionDeclSyntax {
 
@@ -119,6 +140,7 @@ public struct PropertyMacro: PeerMacro {
       parameters: parameters,
       originalBody: originalBody,
       config: config,
+      regressionConfig: regressionConfig,
       isAsync: isAsync
     )
 
@@ -167,10 +189,12 @@ public struct PropertyMacro: PeerMacro {
     )
   }
 
+  // swiftlint:disable:next function_parameter_count
   private static func buildPropertyTestBody(
     parameters: [ExtractedParameter],
     originalBody: CodeBlockSyntax,
     config: PropertyMacroConfig,
+    regressionConfig: RegressionConfig?,
     isAsync: Bool
   ) -> CodeBlockSyntax {
     let labels = PropertyFailureFormatter.extractLabels(from: parameters)
@@ -179,7 +203,7 @@ public struct PropertyMacro: PeerMacro {
     return CodeBlockSyntax {
       buildGeneratorDeclaration(parameters: parameters)
       buildPropertyDeclaration(parameters: parameters, originalBody: originalBody)
-      buildConfigDeclaration(config: config)
+      buildConfigDeclaration(config: config, regressionConfig: regressionConfig)
       if isAsync {
         buildAsyncResultDeclaration()
       } else {
@@ -328,7 +352,10 @@ public struct PropertyMacro: PeerMacro {
   }
 
   // swiftlint:disable:next function_body_length
-  private static func buildConfigDeclaration(config: PropertyMacroConfig) -> VariableDeclSyntax {
+  private static func buildConfigDeclaration(
+    config: PropertyMacroConfig,
+    regressionConfig: RegressionConfig?
+  ) -> VariableDeclSyntax {
     var arguments: [LabeledExprSyntax] = []
 
     // Add iterations argument
@@ -379,6 +406,112 @@ public struct PropertyMacro: PeerMacro {
           expression: BooleanLiteralExprSyntax(booleanLiteral: true)
         )
       )
+    }
+
+    // Add FailingExampleDatabase and TestIdentifier if @Regression present
+    if let regConfig = regressionConfig {
+      // failingExampleDatabase: FailingExampleDatabase.shared
+      let databaseExpr = MemberAccessExprSyntax(
+        base: DeclReferenceExprSyntax(baseName: .identifier("FailingExampleDatabase")),
+        period: .periodToken(),
+        declName: DeclReferenceExprSyntax(baseName: .identifier("shared"))
+      )
+      arguments.append(
+        LabeledExprSyntax(
+          label: .identifier("failingExampleDatabase"),
+          colon: .colonToken(),
+          expression: ExprSyntax(databaseExpr)
+        )
+      )
+
+      // testIdentifier: TestIdentifier(module: "", file: String(describing: #file), ...)
+      let testIDExpr = FunctionCallExprSyntax(
+        calledExpression: DeclReferenceExprSyntax(baseName: .identifier("TestIdentifier")),
+        leftParen: .leftParenToken(),
+        arguments: LabeledExprListSyntax {
+          LabeledExprSyntax(
+            label: .identifier("module"),
+            colon: .colonToken(),
+            expression: StringLiteralExprSyntax(content: "")
+          )
+          .with(\.trailingComma, .commaToken())
+          LabeledExprSyntax(
+            label: .identifier("file"),
+            colon: .colonToken(),
+            expression: FunctionCallExprSyntax(
+              calledExpression: DeclReferenceExprSyntax(baseName: .identifier("String")),
+              leftParen: .leftParenToken(),
+              arguments: LabeledExprListSyntax {
+                LabeledExprSyntax(
+                  label: .identifier("describing"),
+                  colon: .colonToken(),
+                  expression: MacroExpansionExprSyntax(
+                    pound: .poundToken(),
+                    macroName: .identifier("file"),
+                    arguments: LabeledExprListSyntax([])
+                  )
+                )
+              },
+              rightParen: .rightParenToken()
+            )
+          )
+          .with(\.trailingComma, .commaToken())
+          LabeledExprSyntax(
+            label: .identifier("function"),
+            colon: .colonToken(),
+            expression: FunctionCallExprSyntax(
+              calledExpression: DeclReferenceExprSyntax(baseName: .identifier("String")),
+              leftParen: .leftParenToken(),
+              arguments: LabeledExprListSyntax {
+                LabeledExprSyntax(
+                  label: .identifier("describing"),
+                  colon: .colonToken(),
+                  expression: MacroExpansionExprSyntax(
+                    pound: .poundToken(),
+                    macroName: .identifier("function"),
+                    arguments: LabeledExprListSyntax([])
+                  )
+                )
+              },
+              rightParen: .rightParenToken()
+            )
+          )
+          .with(\.trailingComma, .commaToken())
+          LabeledExprSyntax(
+            label: .identifier("signature"),
+            colon: .colonToken(),
+            expression: StringLiteralExprSyntax(content: "")
+          )
+        },
+        rightParen: .rightParenToken()
+      )
+      arguments.append(
+        LabeledExprSyntax(
+          label: .identifier("testIdentifier"),
+          colon: .colonToken(),
+          expression: ExprSyntax(testIDExpr)
+        )
+      )
+
+      // replayFirst: true/false
+      arguments.append(
+        LabeledExprSyntax(
+          label: .identifier("replayFirst"),
+          colon: .colonToken(),
+          expression: BooleanLiteralExprSyntax(booleanLiteral: regConfig.replayFirst)
+        )
+      )
+
+      // maxReplayExamples: N (if specified)
+      if let maxExamples = regConfig.maxExamples {
+        arguments.append(
+          LabeledExprSyntax(
+            label: .identifier("maxReplayExamples"),
+            colon: .colonToken(),
+            expression: IntegerLiteralExprSyntax(literal: .integerLiteral("\(maxExamples)"))
+          )
+        )
+      }
     }
 
     // Add trailing commas to all but the last argument

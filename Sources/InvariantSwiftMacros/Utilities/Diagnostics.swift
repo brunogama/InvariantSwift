@@ -40,6 +40,27 @@ public enum PropertyMacroDiagnostic: String, MacroDiagnostic {
   }
 }
 
+/// Diagnostic for mutually exclusive macro combinations.
+public struct MutuallyExclusiveMacrosDiagnostic: DiagnosticMessage {
+  public let macro1: String
+  public let macro2: String
+
+  public init(_ macro1: String, _ macro2: String) {
+    self.macro1 = macro1
+    self.macro2 = macro2
+  }
+
+  public var message: String {
+    "\(macro1) and \(macro2) cannot be used together on the same function"
+  }
+
+  public var diagnosticID: MessageID {
+    MessageID(domain: "InvariantSwift.PropertyMacro", id: "property_mutually_exclusive_macros")
+  }
+
+  public var severity: DiagnosticSeverity { .error }
+}
+
 public enum ArbitraryMacroDiagnostic: String, MacroDiagnostic {
   public static let domain = "InvariantSwift.ArbitraryMacro"
 
