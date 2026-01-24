@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Planning
+- **Phase 04.4: Property Assertion Macros**: Added documentation plan (04.4-03-PLAN.md)
+  - 3 plans in 2 waves (1 parallel, 2 sequential)
+  - Plan 01 (Wave 1): Implement @Idempotent and @Deterministic macros [COMPLETE]
+  - Plan 02 (Wave 2): Implement @Pure macro and comprehensive test suite
+  - Plan 03 (Wave 2): Update docs/MACROS.md with property assertion macro documentation
 - **Phase 04.3: @Equivalence Macro**: Phase execution complete with verification PASSED
   - All 2 plans executed successfully (04.3-01: implementation, 04.3-02: tests and docs)
   - Verification: 11/11 must-haves verified against codebase
