@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - All tests use Swift 6 strict concurrency (@unchecked Sendable pattern)
     - SUMMARY.md: 14 minutes execution, 6 auto-fixed bugs, zero deviations
     - STATE.md updated with completion status
-  - Plan 02: @Timeout macro with Swift Concurrency-based timeout infrastructure
+  - Plan 02: @Timeout macro with Swift Concurrency-based timeout infrastructure ✅ COMPLETE
     - PropertyTimeoutError error type with elapsed/limit reporting
     - TimeoutDuration enum supporting .seconds, .milliseconds, and .none (for debugging)
     - withPropertyTimeout function using task racing pattern for cooperative cancellation
@@ -28,6 +28,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - TimeoutExtractor utility for parsing timeout attributes
     - MacroPlugin registration for TimeoutMacro
     - PropertyMacro integration: wraps async property tests with withPropertyTimeout when @Timeout attribute present
+  - Plan 06: FlakeHunter integration for flaky test detection 🔄 IN PROGRESS
+    - FlakeDetectionConfig for configurable flake detection (runs, threshold, failOnFlaky)
+    - FlakeDetectionResult with flakiness scoring and action recommendations
+    - runPropertyWithFlakeDetection function integrating with existing FlakeHunter actor
+    - Safe collection subscript extension for seed array access
+    - Comprehensive flakiness analysis (passes, failures, flakiness score)
+    - FlakeRecommendation enum (stable, investigate, quarantine, fix)
+    - FlakeDetectionTests with 11 comprehensive tests
+    - @PropertyTest macro extended with detectFlakiness, runs, failOnFlaky parameters (declaration only)
+    - PropertyConfigExtractor updated to parse new flake detection parameters
+    - NOTE: PropertyMacro code generation for flake detection mode incomplete
     - 13 comprehensive tests for TimeoutExtractor and PropertyMacro integration
 
 - **Phase 04.5: @Regression Macro** ✓ COMPLETE: Automatic failure persistence and replay-first testing

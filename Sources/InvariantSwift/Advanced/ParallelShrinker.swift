@@ -4,6 +4,7 @@
 /// configurable worker count, budget allocation, and progress tracking.
 
 import Foundation
+import InvariantSwiftCore
 
 // MARK: - ParallelShrinker Actor
 
