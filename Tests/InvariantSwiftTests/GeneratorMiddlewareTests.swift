@@ -1,7 +1,39 @@
 import Foundation
 import InvariantSwift
 import InvariantSwiftCore
+import InvariantSwiftExperimental
 import Testing
+
+// MARK: - Test Helpers
+
+final class ThreadSafeArray<Element>: @unchecked Sendable {
+  private var storage: [Element] = []
+  private let lock = NSLock()
+
+  func append(_ element: Element) {
+    lock.lock()
+    defer { lock.unlock() }
+    storage.append(element)
+  }
+
+  var count: Int {
+    lock.lock()
+    defer { lock.unlock() }
+    return storage.count
+  }
+
+  subscript(index: Int) -> Element {
+    lock.lock()
+    defer { lock.unlock() }
+    return storage[index]
+  }
+
+  var values: [Element] {
+    lock.lock()
+    defer { lock.unlock() }
+    return storage
+  }
+}
 
 @Suite("Generator Middleware Tests")
 struct GeneratorMiddlewareTests {
@@ -10,7 +42,7 @@ struct GeneratorMiddlewareTests {
 
   @Test("LoggingInterceptor logs generated values")
   func loggingInterceptorLogsGeneration() {
-    var logs: [String] = []
+    let logs = ThreadSafeArray<String>()
     let logger = LoggingInterceptor(
       output: { logs.append($0) },
       includeSize: true,
@@ -27,7 +59,7 @@ struct GeneratorMiddlewareTests {
 
   @Test("LoggingInterceptor logs shrink steps when enabled")
   func loggingInterceptorLogsShrinking() {
-    var logs: [String] = []
+    let logs = ThreadSafeArray<String>()
     let logger = LoggingInterceptor(
       output: { logs.append($0) },
       includeSize: false,
@@ -43,7 +75,7 @@ struct GeneratorMiddlewareTests {
 
   @Test("LoggingInterceptor logs property evaluation")
   func loggingInterceptorLogsPropertyEvaluation() {
-    var logs: [String] = []
+    let logs = ThreadSafeArray<String>()
     let logger = LoggingInterceptor(output: { logs.append($0) })
 
     logger.onPropertyEvaluated(42, passed: true)
@@ -126,7 +158,7 @@ struct GeneratorMiddlewareTests {
 
   @Test("ValidationInterceptor calls onInvalid for invalid values")
   func validationInterceptorCallsOnInvalid() {
-    var invalidValues: [Int] = []
+    let invalidValues = ThreadSafeArray<Int>()
     let validator = ValidationInterceptor<Int>(
       validate: { $0 >= 0 },
       onInvalid: { invalidValues.append($0) }
@@ -141,7 +173,7 @@ struct GeneratorMiddlewareTests {
 
   @Test("ValidationInterceptor validates shrunk values")
   func validationInterceptorValidatesShrunkValues() {
-    var invalidValues: [Int] = []
+    let invalidValues = ThreadSafeArray<Int>()
     let validator = ValidationInterceptor<Int>(
       validate: { $0 >= 0 },
       onInvalid: { invalidValues.append($0) }
@@ -158,7 +190,7 @@ struct GeneratorMiddlewareTests {
 
   @Test("Gen.withInterceptor attaches single interceptor")
   func genWithInterceptorAttachesSingle() {
-    var logs: [String] = []
+    let logs = ThreadSafeArray<String>()
     let logger = LoggingInterceptor(output: { logs.append($0) })
 
     let gen = Gen<Int>.int.withInterceptor(logger)
@@ -171,7 +203,7 @@ struct GeneratorMiddlewareTests {
 
   @Test("Gen.withInterceptors chains multiple interceptors")
   func genWithInterceptorsChains() {
-    var logs: [String] = []
+    let logs = ThreadSafeArray<String>()
     let logger = LoggingInterceptor(output: { logs.append($0) })
     let metrics = MetricsInterceptor()
 
@@ -184,7 +216,7 @@ struct GeneratorMiddlewareTests {
 
   @Test("Gen.logged convenience method works")
   func genLoggedConvenienceWorks() {
-    var logs: [String] = []
+    let logs = ThreadSafeArray<String>()
     let gen = Gen<Int>.int.logged { logs.append($0) }
 
     _ = gen.sample(size: Size(value: 50), seed: Seed(value: 42))
@@ -198,7 +230,7 @@ struct GeneratorMiddlewareTests {
     let (gen, metrics) = Gen<Int>.int.withMetrics()
 
     for _ in 0..<10 {
-      _ = gen.sample(size: Size(value: 50), seed: Seed.random())
+      _ = gen.sample(size: Size(value: 50), seed: Seed.random)
     }
 
     let stats = metrics.metrics

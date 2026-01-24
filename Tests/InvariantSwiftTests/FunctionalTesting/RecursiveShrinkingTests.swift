@@ -583,8 +583,9 @@ func stringShrinkTreeDeterminism() {
 
 @Test("StringShrinkTree finds smaller counterexamples than old shrinking")
 func stringShrinkTreeBetterMinimality() {
-  // Test case: property fails when string contains "error"
-  let failingPredicate: (String) -> Bool = { !$0.contains("error") }
+  // Test case: We want to find minimal string that still contains "error"
+  // findMinimal finds values that satisfy the predicate, so return true for strings containing "error"
+  let failingPredicate: (String) -> Bool = { $0.contains("error") }
 
   let testCases = [
     "prefix error suffix",

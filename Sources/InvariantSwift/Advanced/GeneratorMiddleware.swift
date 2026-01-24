@@ -1,6 +1,5 @@
 import Foundation
 import InvariantSwiftCore
-import Synchronization
 
 // MARK: - GeneratorInterceptor Protocol
 
@@ -162,8 +161,8 @@ public final class LoggingInterceptor: GeneratorInterceptor, @unchecked Sendable
 /// - **Pass/fail counts**: Property test outcomes
 /// - **Average size**: Mean complexity of generated values
 ///
-/// All counters are thread-safe using `OSAllocatedUnfairLock` for
-/// Swift 6 concurrency compliance.
+/// All counters are thread-safe using `NSLock` for compatibility
+/// with iOS 17+/macOS 14+ platform requirements.
 ///
 /// - Example:
 ///   ```swift
@@ -203,52 +202,56 @@ public final class MetricsInterceptor: GeneratorInterceptor, @unchecked Sendable
     }
   }
 
-  private let _metrics: OSAllocatedUnfairLock<Metrics>
+  private let _lock: NSLock
+  private var _metricsStorage: Metrics
 
   /// Current metrics snapshot.
   ///
   /// Thread-safe read of the current metrics state.
   public var metrics: Metrics {
-    _metrics.withLock { $0 }
+    _lock.lock()
+    defer { _lock.unlock() }
+    return _metricsStorage
   }
 
   /// Initialize a metrics interceptor with zero counters.
   public init() {
-    _metrics = OSAllocatedUnfairLock(initialState: Metrics())
+    _lock = NSLock()
+    _metricsStorage = Metrics()
   }
 
   public func onGenerate<T: Sendable>(_ value: T, size: Size) -> T {
-    _metrics.withLock { metrics in
-      metrics.generationCount += 1
-      metrics.totalSize += size.value
-    }
+    _lock.lock()
+    _metricsStorage.generationCount += 1
+    _metricsStorage.totalSize += size.value
+    _lock.unlock()
     return value
   }
 
   public func onShrink<T: Sendable>(_ original: T, shrunk: T, step: Int) -> T {
-    _metrics.withLock { metrics in
-      metrics.shrinkSteps += 1
-    }
+    _lock.lock()
+    _metricsStorage.shrinkSteps += 1
+    _lock.unlock()
     return shrunk
   }
 
   public func onPropertyEvaluated<T: Sendable>(_ value: T, passed: Bool) {
-    _metrics.withLock { metrics in
-      if passed {
-        metrics.passCount += 1
-      } else {
-        metrics.failCount += 1
-      }
+    _lock.lock()
+    if passed {
+      _metricsStorage.passCount += 1
+    } else {
+      _metricsStorage.failCount += 1
     }
+    _lock.unlock()
   }
 
   /// Reset all metrics to zero.
   ///
   /// Thread-safe reset of all counters.
   public func reset() {
-    _metrics.withLock { metrics in
-      metrics = Metrics()
-    }
+    _lock.lock()
+    _metricsStorage = Metrics()
+    _lock.unlock()
   }
 }
 

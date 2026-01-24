@@ -273,7 +273,6 @@ let testTargets: [Target] = [
       "GhostwriterLib",
     ],
     path: "Tests/InvariantSwiftTests",
-    exclude: ["FakeryGeneratorsTests.swift.disabled"],
     swiftSettings: commonSwiftSettings + [
       .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
     ]
