@@ -11,6 +11,7 @@ InvariantSwift uses a powerful macro system to automate the generation of proper
 - [@BusinessRule](#businessrule)
 - [@LawChecked](#lawchecked)
 - [@DeriveGen](#derivegen)
+- [@Equivalence](#equivalence)
 
 ---
 
@@ -400,3 +401,226 @@ extension Profile {
 ### Constraints
 - All fields must have an inferable generator or be specified in `customFields`.
 - For classes, a memberwise initializer or a default initializer must be accessible.
+
+---
+
+## @Equivalence
+
+The `@Equivalence` macro generates property-based tests to verify that two function implementations produce equivalent outputs across randomly generated inputs. This is essential for safe refactoring, algorithm optimization, and migration validation.
+
+> **Availability:** InvariantSwift 2.0+
+>
+> **Import:** `import InvariantSwift`
+
+### Usage Syntax
+
+```swift
+@Equivalence(
+    iterations: Int = 500,
+    tolerance: Double? = nil
+)
+func testFunctionName(
+    reference: @escaping (Input) -> Output,
+    candidate: @escaping (Input) -> Output
+) {
+}
+```
+
+### Parameters
+
+| Name | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `iterations` | `Int` | `500` | Number of randomly generated inputs to test. |
+| `tolerance` | `Double?` | `nil` | Optional tolerance for floating-point comparisons. When `nil`, uses exact equality (`!=`). When specified, uses `isApproximatelyEqual(to:tolerance:)` with `FloatingPointTolerance.absolute(tolerance)`. |
+
+### Use Cases
+
+**Safe Refactoring:**
+Verify that an optimized implementation produces the same results as the original.
+
+**Algorithm Comparison:**
+Compare multiple implementations of the same algorithm (e.g., sorting algorithms).
+
+**Migration Validation:**
+Ensure new code produces identical outputs to legacy code during incremental migration.
+
+### Code Examples
+
+#### Basic Usage (Exact Equality)
+
+**Before Expansion:**
+
+```swift
+@Equivalence(iterations: 1000)
+func testSortEquivalence(
+    reference: @escaping ([Int]) -> [Int],
+    candidate: @escaping ([Int]) -> [Int]
+) {
+}
+```
+
+**After Expansion (Simplified):**
+
+```swift
+private enum testSortEquivalence_EquivalenceTest {
+    @Test("testSortEquivalence")
+    static func run() throws {
+        for _ in 0..<1000 {
+            var rng = SystemRandomNumberGenerator()
+            let input = Gen<[Int]>.array(Gen<Int>.int).generate(&rng, Size.default)
+
+            let referenceResult = reference(input)
+            let candidateResult = candidate(input)
+
+            if referenceResult != candidateResult {
+                Issue.record(Comment(rawValue: "Equivalence test failed: reference and candidate produced different outputs"))
+            }
+        }
+    }
+}
+```
+
+#### Floating-Point Comparison with Tolerance
+
+**Before Expansion:**
+
+```swift
+@Equivalence(iterations: 500, tolerance: 0.0001)
+func testNumericalMethodEquivalence(
+    reference: @escaping (Double) -> Double,
+    candidate: @escaping (Double) -> Double
+) {
+}
+```
+
+**After Expansion (Simplified):**
+
+```swift
+private enum testNumericalMethodEquivalence_EquivalenceTest {
+    @Test("testNumericalMethodEquivalence")
+    static func run() throws {
+        for _ in 0..<500 {
+            var rng = SystemRandomNumberGenerator()
+            let input = Gen<Double>.double.generate(&rng, Size.default)
+
+            let referenceResult = reference(input)
+            let candidateResult = candidate(input)
+
+            if !referenceResult.isApproximatelyEqual(to: candidateResult, tolerance: .absolute(0.0001)) {
+                Issue.record(Comment(rawValue: "Equivalence test failed: reference and candidate produced different outputs"))
+            }
+        }
+    }
+}
+```
+
+#### Multiple Input Parameters
+
+The macro automatically infers generators for multiple input parameters:
+
+```swift
+@Equivalence(iterations: 300)
+func testStringTransformEquivalence(
+    reference: @escaping (String, Int) -> String,
+    candidate: @escaping (String, Int) -> String
+) {
+}
+```
+
+Generates: `Gen<String>.string.zip(Gen<Int>.int)` for tuple input generation.
+
+### Supported Types
+
+**Exact Comparison (tolerance: nil):**
+- Any `Equatable` type
+- Arrays: `[T]` where `T: Equatable`
+- Optionals: `T?` where `T: Equatable`
+- Tuples, custom types
+
+**Tolerance Comparison (tolerance: Double):**
+- `Double`
+- `Float`
+- `Float16`
+- `Float80`
+- `CGFloat`
+
+### Error Handling
+
+The macro validates usage at compile time and emits clear diagnostics:
+
+**Error: Applied to non-function**
+```swift
+@Equivalence(iterations: 100)
+var testVariable: Int = 42  // Error: @Equivalence can only be applied to functions
+```
+
+**Error: Wrong parameter count**
+```swift
+@Equivalence(iterations: 100)
+func testWrong(x: Int) {}  // Error: @Equivalence requires exactly two function parameters (reference, candidate)
+```
+
+**Error: Tolerance on non-floating-point type**
+```swift
+@Equivalence(tolerance: 0.1)
+func testIntEquivalence(
+    reference: @escaping (Int) -> Int,
+    candidate: @escaping (Int) -> Int
+) {}  // Error: tolerance parameter requires Output type to conform to BinaryFloatingPoint (Double, Float, Float16, Float80, CGFloat)
+```
+
+**Error: Incompatible function types**
+```swift
+@Equivalence(iterations: 100)
+func testIncompatible(
+    reference: @escaping (Int) -> Int,
+    candidate: String  // Error: Reference and candidate functions must have matching signatures
+) {}
+```
+
+### Generated Code Structure
+
+The macro generates:
+1. **Private wrapper enum** named `{functionName}_EquivalenceTest`
+2. **Static `@Test` function** named `run()`
+3. **For loop** iterating `iterations` times
+4. **Input generation** using inferred `Gen<T>` generators
+5. **Function calls** to both reference and candidate with same input
+6. **Comparison logic** (exact or tolerance-based)
+7. **Issue recording** on divergence
+
+### Edge Cases
+
+**Async functions:**
+```swift
+@Equivalence(iterations: 100)
+func testAsyncEquivalence(
+    reference: @escaping (Int) async -> Int,
+    candidate: @escaping (Int) async -> Int
+) {}
+```
+Generates: `static func run() async throws { ... }`
+
+**Throwing functions:**
+```swift
+@Equivalence(iterations: 100)
+func testThrowingEquivalence(
+    reference: @escaping (Int) throws -> Int,
+    candidate: @escaping (Int) throws -> Int
+) {}
+```
+Generates: `static func run() throws { ... }` with proper `try` handling
+
+### See Also
+
+- [@Property](#property) - General property-based testing
+- [@DifferentialTest](#differentialtest) - Differential testing across implementations
+- [PropertyConfig](../Sources/InvariantSwift/Property/PropertyConfig.swift) - Configuration options
+
+### Constraints
+
+- Must be applied to a function declaration.
+- The function must have exactly two parameters.
+- Both parameters must be function types with matching signatures.
+- When `tolerance` is specified, the output type must conform to `BinaryFloatingPoint`.
+- Input types must have inferable generators (Int, String, Bool, arrays, optionals, etc.).

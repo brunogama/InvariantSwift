@@ -24,6 +24,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Plan 03 (Wave 2): Verify and update docs/MACROS.md accuracy after declarations exposed
 
 ### Added
+- **Phase 04.3: @Equivalence Macro**: Comprehensive test suite and documentation for function equivalence testing
+  - Created EquivalenceMacroTests.swift with 14 comprehensive test functions
+  - Tests verify wrapper enum generation with @Test attribute
+  - Tests validate tolerance parameter for floating-point type comparisons
+  - Tests verify error diagnostics (non-function, wrong params, incompatible types, tolerance type mismatch)
+  - Tests cover edge cases (async, throwing, multiple inputs, arrays)
+  - Added @Equivalence section to docs/MACROS.md with purpose, usage examples, parameters
+  - Documented exact equality and tolerance-based comparison modes
+  - Included error handling and edge case documentation
 - **Phase 04.2: Expose Missing Macros**: Updated docs/MACROS.md with accurate @LawChecked and @DeriveGen documentation
   - Added availability notes (InvariantSwift 2.0+)
   - Documented all 18 MathematicalLaw enum cases (.functor, .applicative, .monad, .comonad, .semigroup, .monoid, .group, .ring, .field, .partialOrder, .totalOrder, .lattice, .metric, .norm, .foldable, .traversable, .bifunctor, .profunctor)
