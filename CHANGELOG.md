@@ -15,10 +15,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Phase 04.7-09: Compiler Warning Cleanup** - Achieving zero warnings for warnings-as-errors build
-  - Analyzed all compiler warnings (1 total: Package structure warning)
+  - Analyzed all compiler warnings (1 total: Package structure warning - SPM only, not compiler)
+  - Zero Swift compiler warnings - `swift build -Xswiftc -warnings-as-errors` passes
   - Zero Sendable/concurrency warnings in Swift 6 codebase
   - Zero unused variable warnings
   - Zero deprecation warnings
+  - Renamed Tests/Generated → Tests/GeneratedPropertyTests for SPM convention
+  - Fixed duplicate generateTest function in GhostwriterLib (removed from main file, kept in extension)
 - **Wave 2 Orchestrator Corrections** - Phase 04.6 test compilation fixes
   - Fixed ShrinkTowardsMacroTests.swift compilation errors using SwiftParser API
   - Fixed FlakeDetectionTests.swift missing imports (Foundation, InvariantSwiftExperimental)
