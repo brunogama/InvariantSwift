@@ -21,6 +21,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Phase 04.6: Advanced Property Testing Features** - In Progress
+  - Plan 08: Generator Catalog Browser CLI ✅ COMPLETE
+    - Interactive CLI for browsing and exploring 24+ built-in generators
+    - Catalog with 6 categories: Primitive, Numeric, String, Collection, Composite, Domain Data
+    - Search and filter functionality for discovering generators
+    - Sample value generation to demonstrate generator behavior
+    - Swift package plugin: `swift package browse-generators`
+    - Command-line modes: --list, --search, --category, --sample, --help
   - Plan 01: Property combinators and forAll block syntax ✅ COMPLETE
     - Implementation already existed (Property+Combinators.swift, ForAll.swift)
     - Created comprehensive test suite: 25+ tests across 3 suites
