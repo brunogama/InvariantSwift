@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - TimeoutDuration enum supporting .seconds, .milliseconds, and .none (for debugging)
     - withPropertyTimeout function using task racing pattern for cooperative cancellation
     - Thread-safe timeout enforcement using Swift Concurrency structured concurrency
+    - @Timeout macro declaration with comprehensive documentation
+    - TimeoutMacro PeerMacro implementation (marker pattern)
+    - TimeoutExtractor utility for parsing timeout attributes
+    - MacroPlugin registration for TimeoutMacro
 
 - **Phase 04.5: @Regression Macro** ✓ COMPLETE: Automatic failure persistence and replay-first testing
   - Marker macro (PeerMacro) for attaching to property test functions
