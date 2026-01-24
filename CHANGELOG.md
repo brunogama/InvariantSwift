@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Phase 04.7: Codebase Cleanup** - Custom SwiftLint configurations for test directories
+  - Tests/InvariantSwiftMacroTests/.swiftlint.yml: disable line_length for macro expansion tests
+  - Tests/InvariantSwiftTests/FunctionalTesting/.swiftlint.yml: disable file/type/line length for comprehensive test suites
+  - Resolves tooling conflict between swift-format and SwiftLint in pre-commit hooks
 - **Phase 04.7-09: Compiler Warning Cleanup** - Complete (3/3 tasks)
   - Warnings-as-errors build quality gate established
   - Extension file pattern for large file refactoring

@@ -1,0 +1,15 @@
+# Custom SwiftLint configuration for macro tests
+# Overrides root .swiftlint.yml for this directory
+
+# Macro expansion tests have legitimately long assertion strings
+# swift-format prioritizes keeping function output together, causing line_length conflicts
+disabled_rules:
+  - line_length
+
+# Keep other rules from parent config
+opt_in_rules:
+  - closure_parameter_position
+  - identical_operands
+
+# Inherit file_length and type_body_length from parent
+# (still enforced unless explicitly disabled in specific files)
