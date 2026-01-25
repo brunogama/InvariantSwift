@@ -1,6 +1,3 @@
-// swiftlint:disable type_body_length function_body_length
-// Justification: Macro expansion tests require complete expected outputs in cohesive suite
-// See .swiftlint.yml in this directory for per-directory config (not used by pre-commit hook)
 import XCTest
 import SwiftSyntax
 import SwiftSyntaxMacros

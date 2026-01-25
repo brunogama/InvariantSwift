@@ -4,7 +4,6 @@ import SwiftSyntaxMacrosTestSupport
 import InvariantSwiftCore
 @testable import InvariantSwiftMacros
 
-// swiftlint:disable type_body_length function_body_length line_length
 final class LawCheckedMacroTests: XCTestCase {
 
   let testMacros: [String: Macro.Type] = [
