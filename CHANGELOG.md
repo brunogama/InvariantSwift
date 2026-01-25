@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Phase 04.7-13: PropertyConfig Lens Extensions** - Functional programming lenses for PropertyConfig
+  - Created `PropertyConfig+Lenses.swift` with lens extensions for all properties
+  - Lenses for: iterations, maxShrinks, maxDiscarded, seed, verbose, timeout, verbosity
+  - Enables immutable functional updates to configuration
+  - Operation<Input, Output> confirmed as generic type in Linearizability.swift
+  - FailingExampleDatabase confirmed as actor with async methods
 - **Phase 04.7: Codebase Cleanup** - Gap closure plans for deferred test files
   - Plan 11: ShrinkTree traversal methods, expectNoDifference(), LibFuzzer skip conditions (2 files + 1 fix)
   - Plan 12: PropertyRunner coverage methods for coverage-guided testing (2 files)
