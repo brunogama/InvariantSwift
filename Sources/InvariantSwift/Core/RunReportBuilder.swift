@@ -4,7 +4,7 @@ import Foundation
 ///
 /// Reduces parameter count in buildReport by encapsulating
 /// report construction logic with a fluent API.
-struct RunReportBuilder<T> {
+struct RunReportBuilder<T: Sendable> {
   private let result: PropertyResult<T>
   private let propertyName: String?
   private let durationMs: Int
