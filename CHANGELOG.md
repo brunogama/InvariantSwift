@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Phase 04.7-26: ConfigBuilder SwiftLint Cleanup** - Gap closure (wave 2)
+  - Fixed 5 SwiftLint violations in Sources/InvariantSwift/Testing/ConfigBuilder.swift
+  - Removed unneeded synthesized initializer (Swift auto-generates memberwise init for structs)
+  - Replaced ConfigBuilder<T> return types with Self in from/set/update methods
+  - Fixed line_length violation in set method (split to 4 lines)
+  - All strict mode violations resolved
+  - swiftlint lint --strict passes with 0 violations
+  - Plan complete: 1 commit, SUMMARY.md created
 - **Phase 04.7-22: Test Helper Implementation** - Gap closure (wave 2) - COMPLETE
   - Added expectNoDifference and expectDifference test assertion helpers
   - Created Tests/InvariantSwiftTests/TestHelpers/DiffAssertions.swift

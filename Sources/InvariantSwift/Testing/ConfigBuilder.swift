@@ -26,10 +26,6 @@ import Foundation
 public struct ConfigBuilder<T> {
   private var config: T
 
-  private init(config: T) {
-    self.config = config
-  }
-
   /// Start building from an existing configuration instance
   ///
   /// - Parameter initial: The starting configuration to build upon
@@ -39,8 +35,8 @@ public struct ConfigBuilder<T> {
   /// ```swift
   /// ConfigBuilder<PropertyConfig>.from(.default)
   /// ```
-  public static func from(_ initial: T) -> ConfigBuilder<T> {
-    ConfigBuilder(config: initial)
+  public static func from(_ initial: T) -> Self {
+    Self(config: initial)
   }
 
   /// Set a field to a specific value using a key path
@@ -54,10 +50,13 @@ public struct ConfigBuilder<T> {
   /// ```swift
   /// builder.set(\.iterations, to: 200)
   /// ```
-  public func set<Value>(_ keyPath: WritableKeyPath<T, Value>, to value: Value) -> ConfigBuilder<T> {
+  public func set<Value>(
+    _ keyPath: WritableKeyPath<T, Value>,
+    to value: Value
+  ) -> Self {
     var updated = config
     updated[keyPath: keyPath] = value
-    return ConfigBuilder(config: updated)
+    return Self(config: updated)
   }
 
   /// Update a field by transforming its current value using a key path
@@ -74,11 +73,11 @@ public struct ConfigBuilder<T> {
   public func update<Value>(
     _ keyPath: WritableKeyPath<T, Value>,
     _ transform: (Value) -> Value
-  ) -> ConfigBuilder<T> {
+  ) -> Self {
     var updated = config
     let currentValue = updated[keyPath: keyPath]
     updated[keyPath: keyPath] = transform(currentValue)
-    return ConfigBuilder(config: updated)
+    return Self(config: updated)
   }
 
   /// Extract the final configuration instance
