@@ -966,7 +966,6 @@ public actor PropertyRunner {
   /// - Marks examples as fixed if they now pass
   /// - Saves new failures to database
   /// - Continues with random generation after replay
-  // swiftlint:disable cyclomatic_complexity
   @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
   private func runPropertyWithFailingExamples<T>(
     _ property: Property<T>,
@@ -977,34 +976,24 @@ public actor PropertyRunner {
     // Phase 1: Replay saved examples if replayFirst=true
     if config.replayFirst {
       let savedExamples = await database.examples(for: testID)
-      let examplesToReplay: [FailingExample]
-      if let max = config.maxReplayExamples {
-        examplesToReplay = Array(savedExamples.prefix(max))
-      } else {
-        examplesToReplay = savedExamples
-      }
+      let examplesToReplay = PropertyExecution.selectExamplesToReplay(
+        savedExamples,
+        maxExamples: config.maxReplayExamples
+      )
 
       for example in examplesToReplay {
-        // Replay using seed from saved example
-        let replaySeed = Seed(value: example.seed)
-        let replayConfig = PropertyConfig(
-          iterations: 1,
-          maxShrinks: config.maxShrinks,
-          seed: replaySeed,
-          verbose: config.verbose
+        let replayConfig = PropertyExecution.createReplayConfig(
+          for: example,
+          baseConfig: config
         )
-
         let replayResult = runPropertyCore(property, config: replayConfig)
 
-        switch replayResult {
-        case .failure(_, _, let shrunk, let reason, let failSeed):
+        if case .failure(_, _, let shrunk, let reason, let failSeed) = replayResult {
           // Still failing - return immediately with regression info
-          if config.verbose {
-            // swiftlint:disable:next no_print
-            print(
-              "[Regression] Replayed failure still fails: \(example.inputDescription ?? "unknown")"
-            )
-          }
+          PropertyExecution.logReplayVerbose(
+            "[Regression] Replayed failure still fails: \(example.inputDescription ?? "unknown")",
+            verbose: config.verbose
+          )
           return .failure(
             counterexample: shrunk,
             iterations: 0,
@@ -1012,19 +1001,18 @@ public actor PropertyRunner {
             reason: reason,
             seed: failSeed
           )
+        }
 
-        case .success:
+        if case .success = replayResult {
           // Example now passes - mark as fixed
           await database.markFixed(testID: testID, example: example)
-          if config.verbose {
-            // swiftlint:disable:next no_print
-            print("[Regression] Example now passes, marked as fixed")
-          }
-
-        case .gaveUp:
-          // Couldn't replay (assumption failed) - keep for now
-          break
+          PropertyExecution.logReplayVerbose(
+            "[Regression] Example now passes, marked as fixed",
+            verbose: config.verbose
+          )
         }
+
+        // .gaveUp case: Couldn't replay (assumption failed) - keep for now
       }
     }
 
@@ -1032,24 +1020,9 @@ public actor PropertyRunner {
     let result = runPropertyCore(property, config: config)
 
     // Phase 3: Save new failures to database
-    switch result {
-    case .failure(_, _, let shrunk, let reason, let failSeed):
-      let example = FailingExample(
-        seed: failSeed.rawValue,
-        size: config.iterations,
-        shrinkPath: nil,
-        serializedInput: nil,
-        inputDescription: String(describing: shrunk),
-        failureMessage: reason.description
-      )
-      await database.save(testID: testID, example: example)
-      if config.verbose {
-        // swiftlint:disable:next no_print
-        print("[Regression] Saved failing example to database")
-      }
-
-    case .success, .gaveUp:
-      break
+    if let failingExample = PropertyExecution.createFailingExample(from: result, config: config) {
+      await database.save(testID: testID, example: failingExample)
+      PropertyExecution.logSaveVerbose(verbose: config.verbose)
     }
 
     return result
@@ -1120,7 +1093,6 @@ public actor PropertyRunner {
 
     return .success(iterations: successfulIterations)
   }
-  // swiftlint:enable cyclomatic_complexity
 
   /// Run a throwing property test and return the result.
   ///
