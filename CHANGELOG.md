@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Phase 04.7-14: Size/Seed Lens Extensions** - Functional programming lenses for Size type (Task 1/3)
+  - Created `Sources/InvariantSwift/Extensions/Size+Lenses.swift`
+  - Size.valueLens for functional value access and updates
+  - Size.scale(by:) utility for multiplicative size transformations
+  - Size.clamp(to:) utility for range-based size clamping
+  - Note: Using valueLens instead of value due to Swift compiler limitation with static/instance property name collision
 - **Phase 04.7-13: PropertyConfig Lens Extensions** - Functional programming lenses for PropertyConfig
   - Created `PropertyConfig+Lenses.swift` with lens extensions for all properties
   - Lenses for: iterations, maxShrinks, maxDiscarded, seed, verbose, timeout, verbosity

@@ -207,6 +207,7 @@ let libraryTargets: [Target] = [
     sources: [
       "Advanced",
       "Coverage",
+      "Extensions",
       "Fuzzing",
       "Reliability",
       "Observability",
