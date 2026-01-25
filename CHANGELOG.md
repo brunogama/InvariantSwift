@@ -20,6 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Disabled ConfigBuilder and ConfigTemplate tests (not yet implemented)
   - Fixed Size.value to Size.valueLens per Plan 14 implementation
   - Zero compilation errors, zero SwiftLint violations for LensSystemTests
+  - Removed Package.swift exclude entries for re-enabled test files (FailurePersistenceTests, LinearizabilityTests, LensSystemTests)
+  - Verified zero .swift.disabled files remain in Tests/ directory
+  - All 3 final test files compile with zero errors and zero SwiftLint violations
 - **Phase 04.7-17: Coverage Type Exports** - Infrastructure 4/4 complete
   - Added `@testable import InvariantSwiftExperimental` to MetaPropertyTests.swift
   - Coverage types (CoverageCollector, CoverageReport, CoverageBudget, CoverageStrategy, CoverageConfig) are public in Advanced/CoverageGuided.swift
