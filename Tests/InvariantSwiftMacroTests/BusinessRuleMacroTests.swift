@@ -1,3 +1,6 @@
+// swiftlint:disable type_body_length function_body_length
+// Justification: Macro expansion tests require complete expected outputs in cohesive suite
+// See .swiftlint.yml in this directory for per-directory config (not used by pre-commit hook)
 import XCTest
 import SwiftSyntax
 import SwiftSyntaxMacros
@@ -29,18 +32,42 @@ final class BusinessRuleMacroTests: XCTestCase {
             let property = Property<Int>(generator: Gen<Int>.age, predicate: { value in
                     validateAge(age: value)
                 })
-            let config = PropertyConfig(iterations: PropertyConfig.smartIterations, maxShrinks: 1000, maxDiscarded: 1000, seed: nil)
+            let config = PropertyConfig(
+              iterations: PropertyConfig.smartIterations,
+              maxShrinks: 1000,
+              maxDiscarded: 1000,
+              seed: nil
+            )
             let runner = PropertyRunner()
             let result = await runner.runProperty(property, config: config)
             switch result {
             case .success:
                 break
 
-            case .failure(counterexample: let counterexample, iterations: let iterations, shrunk: let shrunk, _: _, _: _):
-                throw BusinessRuleViolation(rule: "Age must be at least 18", counterexample: String(describing: counterexample), shrunk: String(describing: shrunk), iterations: iterations, businessImpact: "Business rule validation failed - this may indicate a logical error in business constraints")
+            case .failure(
+              counterexample: let counterexample,
+              iterations: let iterations,
+              shrunk: let shrunk,
+              _: _,
+              _: _
+            ):
+                throw BusinessRuleViolation(
+                  rule: "Age must be at least 18",
+                  counterexample: String(describing: counterexample),
+                  shrunk: String(describing: shrunk),
+                  iterations: iterations,
+                  businessImpact: "Business rule validation failed - " +
+                    "this may indicate a logical error in business constraints"
+                )
 
             case .gaveUp(discarded: let discarded, iterations: let iterations):
-                throw BusinessRuleGaveUp(rule: "Age must be at least 18", discarded: discarded, iterations: iterations, suggestion: "Consider relaxing generator constraints or providing more specific generators")
+                throw BusinessRuleGaveUp(
+                  rule: "Age must be at least 18",
+                  discarded: discarded,
+                  iterations: iterations,
+                  suggestion: "Consider relaxing generator constraints or " +
+                    "providing more specific generators"
+                )
             }
         }
         """,
@@ -63,21 +90,48 @@ final class BusinessRuleMacroTests: XCTestCase {
 
         @Test("Discount cannot exceed price")
         func validateDiscount_PropertyTest() async throws {
-            let property = Property<(Double, Double)>(generator: Gen.zip(Gen<Decimal>.currency, Gen<Double>.double), predicate: { value in
+            let property = Property<(Double, Double)>(
+              generator: Gen.zip(Gen<Decimal>.currency, Gen<Double>.double),
+              predicate: { value in
                     validateDiscount(price: value.0, discount: value.1)
-                })
-            let config = PropertyConfig(iterations: PropertyConfig.smartIterations, maxShrinks: 1000, maxDiscarded: 1000, seed: nil)
+                }
+            )
+            let config = PropertyConfig(
+              iterations: PropertyConfig.smartIterations,
+              maxShrinks: 1000,
+              maxDiscarded: 1000,
+              seed: nil
+            )
             let runner = PropertyRunner()
             let result = await runner.runProperty(property, config: config)
             switch result {
             case .success:
                 break
 
-            case .failure(counterexample: let counterexample, iterations: let iterations, shrunk: let shrunk, _: _, _: _):
-                throw BusinessRuleViolation(rule: "Discount cannot exceed price", counterexample: String(describing: counterexample), shrunk: String(describing: shrunk), iterations: iterations, businessImpact: "Business rule validation failed - this may indicate a logical error in business constraints")
+            case .failure(
+              counterexample: let counterexample,
+              iterations: let iterations,
+              shrunk: let shrunk,
+              _: _,
+              _: _
+            ):
+                throw BusinessRuleViolation(
+                  rule: "Discount cannot exceed price",
+                  counterexample: String(describing: counterexample),
+                  shrunk: String(describing: shrunk),
+                  iterations: iterations,
+                  businessImpact: "Business rule validation failed - " +
+                    "this may indicate a logical error in business constraints"
+                )
 
             case .gaveUp(discarded: let discarded, iterations: let iterations):
-                throw BusinessRuleGaveUp(rule: "Discount cannot exceed price", discarded: discarded, iterations: iterations, suggestion: "Consider relaxing generator constraints or providing more specific generators")
+                throw BusinessRuleGaveUp(
+                  rule: "Discount cannot exceed price",
+                  discarded: discarded,
+                  iterations: iterations,
+                  suggestion: "Consider relaxing generator constraints or " +
+                    "providing more specific generators"
+                )
             }
         }
         """,
@@ -100,21 +154,45 @@ final class BusinessRuleMacroTests: XCTestCase {
 
         @Test("Amount must be positive")
         func validateAmount_PropertyTest() async throws {
-            let property = Property<Double>(generator: Gen<Decimal>.currency, predicate: { value in
+            let property = Property<Double>(
+              generator: Gen<Decimal>.currency,
+              predicate: { value in
                     validateAmount(amount: value)
-                })
-            let config = PropertyConfig(iterations: 500, maxShrinks: 1000, maxDiscarded: 1000, seed: nil)
+                }
+            )
+            let config = PropertyConfig(
+              iterations: 500, maxShrinks: 1000, maxDiscarded: 1000, seed: nil
+            )
             let runner = PropertyRunner()
             let result = await runner.runProperty(property, config: config)
             switch result {
             case .success:
                 break
 
-            case .failure(counterexample: let counterexample, iterations: let iterations, shrunk: let shrunk, _: _, _: _):
-                throw BusinessRuleViolation(rule: "Amount must be positive", counterexample: String(describing: counterexample), shrunk: String(describing: shrunk), iterations: iterations, businessImpact: "Business rule validation failed - this may indicate a logical error in business constraints")
+            case .failure(
+              counterexample: let counterexample,
+              iterations: let iterations,
+              shrunk: let shrunk,
+              _: _,
+              _: _
+            ):
+                throw BusinessRuleViolation(
+                  rule: "Amount must be positive",
+                  counterexample: String(describing: counterexample),
+                  shrunk: String(describing: shrunk),
+                  iterations: iterations,
+                  businessImpact: "Business rule validation failed - " +
+                    "this may indicate a logical error in business constraints"
+                )
 
             case .gaveUp(discarded: let discarded, iterations: let iterations):
-                throw BusinessRuleGaveUp(rule: "Amount must be positive", discarded: discarded, iterations: iterations, suggestion: "Consider relaxing generator constraints or providing more specific generators")
+                throw BusinessRuleGaveUp(
+                  rule: "Amount must be positive",
+                  discarded: discarded,
+                  iterations: iterations,
+                  suggestion: "Consider relaxing generator constraints or " +
+                    "providing more specific generators"
+                )
             }
         }
         """,
@@ -209,21 +287,48 @@ final class BusinessRuleMacroTests: XCTestCase {
 
         @Test("Email must be valid format")
         func validateEmail_PropertyTest() async throws {
-            let property = Property<String>(generator: Gen<String>.email, predicate: { value in
+            let property = Property<String>(
+              generator: Gen<String>.email,
+              predicate: { value in
                     validateEmail(email: value)
-                })
-            let config = PropertyConfig(iterations: PropertyConfig.smartIterations, maxShrinks: 1000, maxDiscarded: 1000, seed: nil)
+                }
+            )
+            let config = PropertyConfig(
+              iterations: PropertyConfig.smartIterations,
+              maxShrinks: 1000,
+              maxDiscarded: 1000,
+              seed: nil
+            )
             let runner = PropertyRunner()
             let result = await runner.runProperty(property, config: config)
             switch result {
             case .success:
                 break
 
-            case .failure(counterexample: let counterexample, iterations: let iterations, shrunk: let shrunk, _: _, _: _):
-                throw BusinessRuleViolation(rule: "Email must be valid format", counterexample: String(describing: counterexample), shrunk: String(describing: shrunk), iterations: iterations, businessImpact: "Business rule validation failed - this may indicate a logical error in business constraints")
+            case .failure(
+              counterexample: let counterexample,
+              iterations: let iterations,
+              shrunk: let shrunk,
+              _: _,
+              _: _
+            ):
+                throw BusinessRuleViolation(
+                  rule: "Email must be valid format",
+                  counterexample: String(describing: counterexample),
+                  shrunk: String(describing: shrunk),
+                  iterations: iterations,
+                  businessImpact: "Business rule validation failed - " +
+                    "this may indicate a logical error in business constraints"
+                )
 
             case .gaveUp(discarded: let discarded, iterations: let iterations):
-                throw BusinessRuleGaveUp(rule: "Email must be valid format", discarded: discarded, iterations: iterations, suggestion: "Consider relaxing generator constraints or providing more specific generators")
+                throw BusinessRuleGaveUp(
+                  rule: "Email must be valid format",
+                  discarded: discarded,
+                  iterations: iterations,
+                  suggestion: "Consider relaxing generator constraints or " +
+                    "providing more specific generators"
+                )
             }
         }
         """,

@@ -1,3 +1,5 @@
+// swiftlint:disable file_length
+// Comprehensive macro expansion tests require cohesive test suite
 import SwiftSyntax
 import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
@@ -8,8 +10,8 @@ import Testing
 import InvariantSwiftCore
 @testable import InvariantSwiftMacros
 
-/// Base class for macro testing with helper methods and validation utilities
-class MacroTestCase {
+/// Base struct for macro testing with helper methods and validation utilities
+struct MacroTestCase {
 
   /// Helper method for validating macro expansion with source location tracking
   func assertMacroExpansion(
@@ -244,7 +246,8 @@ struct PropertyMacroInfrastructureTests {
 
           case .failure(let counterexample, let iterations, let shrunk, _, _):
               throw PropertyTestFailure(
-                  message: "Property 'Basic test' failed after \\(iterations) iterations.\\nCounterexample: \\(counterexample)\\nShrunk: \\(shrunk)",
+                  message: "Property 'Basic test' failed after \\(iterations) iterations." +
+                    "\\nCounterexample: \\(counterexample)\\nShrunk: \\(shrunk)",
                   counterexample: counterexample,
                   shrunk: shrunk,
                   iterations: iterations
@@ -252,7 +255,8 @@ struct PropertyMacroInfrastructureTests {
 
           case .gaveUp(let discarded, let iterations):
               throw PropertyTestGaveUp(
-                  message: "Property 'Basic test' gave up after discarding \\(discarded) cases in \\(iterations) iterations",
+                  message: "Property 'Basic test' gave up after discarding " +
+                    "\\(discarded) cases in \\(iterations) iterations",
                   discarded: discarded,
                   iterations: iterations
               )
@@ -313,7 +317,9 @@ struct MacroExpansionTests {
 
           case .failure(let counterexample, let iterations, let shrunk, _, _):
               throw PropertyTestFailure(
-                  message: "Property 'Int property test' failed after \\\\(iterations) iterations.\\\\nCounterexample: \\\\(counterexample)\\\\nShrunk: \\\\(shrunk)",
+                  message: "Property 'Int property test' failed after " +
+                    "\\\\(iterations) iterations.\\\\nCounterexample: " +
+                    "\\\\(counterexample)\\\\nShrunk: \\\\(shrunk)",
                   counterexample: counterexample,
                   shrunk: shrunk,
                   iterations: iterations
@@ -321,7 +327,8 @@ struct MacroExpansionTests {
 
           case .gaveUp(let discarded, let iterations):
               throw PropertyTestGaveUp(
-                  message: "Property 'Int property test' gave up after discarding \\\\(discarded) cases in \\\\(iterations) iterations",
+                  message: "Property 'Int property test' gave up after discarding " +
+                    "\\\\(discarded) cases in \\\\(iterations) iterations",
                   discarded: discarded,
                   iterations: iterations
               )
@@ -368,7 +375,9 @@ struct MacroExpansionTests {
 
           case .failure(let counterexample, let iterations, let shrunk, _, _):
               throw PropertyTestFailure(
-                  message: "Property 'Two parameter property' failed after \\\\(iterations) iterations.\\\\nCounterexample: \\\\(counterexample)\\\\nShrunk: \\\\(shrunk)",
+                  message: "Property 'Two parameter property' failed after " +
+                    "\\\\(iterations) iterations.\\\\nCounterexample: " +
+                    "\\\\(counterexample)\\\\nShrunk: \\\\(shrunk)",
                   counterexample: counterexample,
                   shrunk: shrunk,
                   iterations: iterations
@@ -376,7 +385,8 @@ struct MacroExpansionTests {
 
           case .gaveUp(let discarded, let iterations):
               throw PropertyTestGaveUp(
-                  message: "Property 'Two parameter property' gave up after discarding \\\\(discarded) cases in \\\\(iterations) iterations",
+                  message: "Property 'Two parameter property' gave up after discarding " +
+                    "\\\\(discarded) cases in \\\\(iterations) iterations",
                   discarded: discarded,
                   iterations: iterations
               )
@@ -423,7 +433,9 @@ struct MacroExpansionTests {
 
           case .failure(let counterexample, let iterations, let shrunk, _, _):
               throw PropertyTestFailure(
-                  message: "Property 'Three parameter property' failed after \\\\(iterations) iterations.\\\\nCounterexample: \\\\(counterexample)\\\\nShrunk: \\\\(shrunk)",
+                  message: "Property 'Three parameter property' failed after " +
+                    "\\\\(iterations) iterations.\\\\nCounterexample: " +
+                    "\\\\(counterexample)\\\\nShrunk: \\\\(shrunk)",
                   counterexample: counterexample,
                   shrunk: shrunk,
                   iterations: iterations
@@ -431,7 +443,8 @@ struct MacroExpansionTests {
 
           case .gaveUp(let discarded, let iterations):
               throw PropertyTestGaveUp(
-                  message: "Property 'Three parameter property' gave up after discarding \\\\(discarded) cases in \\\\(iterations) iterations",
+                  message: "Property 'Three parameter property' gave up after discarding " +
+                    "\\\\(discarded) cases in \\\\(iterations) iterations",
                   discarded: discarded,
                   iterations: iterations
               )
@@ -483,7 +496,9 @@ struct MacroArgumentParsingTests {
 
           case .failure(let counterexample, let iterations, let shrunk, _, _):
               throw PropertyTestFailure(
-                  message: "Property 'Custom iterations test' failed after \\\\(iterations) iterations.\\\\nCounterexample: \\\\(counterexample)\\\\nShrunk: \\\\(shrunk)",
+                  message: "Property 'Custom iterations test' failed after " +
+                    "\\\\(iterations) iterations.\\\\nCounterexample: " +
+                    "\\\\(counterexample)\\\\nShrunk: \\\\(shrunk)",
                   counterexample: counterexample,
                   shrunk: shrunk,
                   iterations: iterations
@@ -491,7 +506,8 @@ struct MacroArgumentParsingTests {
 
           case .gaveUp(let discarded, let iterations):
               throw PropertyTestGaveUp(
-                  message: "Property 'Custom iterations test' gave up after discarding \\\\(discarded) cases in \\\\(iterations) iterations",
+                  message: "Property 'Custom iterations test' gave up after discarding " +
+                    "\\\\(discarded) cases in \\\\(iterations) iterations",
                   discarded: discarded,
                   iterations: iterations
               )
@@ -538,7 +554,8 @@ struct MacroArgumentParsingTests {
 
           case .failure(let counterexample, let iterations, let shrunk, _, _):
               throw PropertyTestFailure(
-                  message: "Property 'Custom seed test' failed after \\\\(iterations) iterations.\\\\nCounterexample: \\\\(counterexample)\\\\nShrunk: \\\\(shrunk)",
+                  message: "Property 'Custom seed test' failed after \\\\(iterations) iterations." +
+                    "\\\\nCounterexample: \\\\(counterexample)\\\\nShrunk: \\\\(shrunk)",
                   counterexample: counterexample,
                   shrunk: shrunk,
                   iterations: iterations
@@ -546,7 +563,8 @@ struct MacroArgumentParsingTests {
 
           case .gaveUp(let discarded, let iterations):
               throw PropertyTestGaveUp(
-                  message: "Property 'Custom seed test' gave up after discarding \\\\(discarded) cases in \\\\(iterations) iterations",
+                  message: "Property 'Custom seed test' gave up after discarding " +
+                    "\\\\(discarded) cases in \\\\(iterations) iterations",
                   discarded: discarded,
                   iterations: iterations
               )
@@ -593,7 +611,9 @@ struct MacroArgumentParsingTests {
 
           case .failure(let counterexample, let iterations, let shrunk, _, _):
               throw PropertyTestFailure(
-                  message: "Property 'Custom maxShrinks test' failed after \\\\(iterations) iterations.\\\\nCounterexample: \\\\(counterexample)\\\\nShrunk: \\\\(shrunk)",
+                  message: "Property 'Custom maxShrinks test' failed after " +
+                    "\\\\(iterations) iterations.\\\\nCounterexample: " +
+                    "\\\\(counterexample)\\\\nShrunk: \\\\(shrunk)",
                   counterexample: counterexample,
                   shrunk: shrunk,
                   iterations: iterations
@@ -601,7 +621,8 @@ struct MacroArgumentParsingTests {
 
           case .gaveUp(let discarded, let iterations):
               throw PropertyTestGaveUp(
-                  message: "Property 'Custom maxShrinks test' gave up after discarding \\\\(discarded) cases in \\\\(iterations) iterations",
+                  message: "Property 'Custom maxShrinks test' gave up after discarding " +
+                    "\\\\(discarded) cases in \\\\(iterations) iterations",
                   discarded: discarded,
                   iterations: iterations
               )
@@ -648,7 +669,9 @@ struct MacroArgumentParsingTests {
 
           case .failure(let counterexample, let iterations, let shrunk, _, _):
               throw PropertyTestFailure(
-                  message: "Property 'All custom arguments' failed after \\\\(iterations) iterations.\\\\nCounterexample: \\\\(counterexample)\\\\nShrunk: \\\\(shrunk)",
+                  message: "Property 'All custom arguments' failed after " +
+                    "\\\\(iterations) iterations.\\\\nCounterexample: " +
+                    "\\\\(counterexample)\\\\nShrunk: \\\\(shrunk)",
                   counterexample: counterexample,
                   shrunk: shrunk,
                   iterations: iterations
@@ -656,7 +679,8 @@ struct MacroArgumentParsingTests {
 
           case .gaveUp(let discarded, let iterations):
               throw PropertyTestGaveUp(
-                  message: "Property 'All custom arguments' gave up after discarding \\\\(discarded) cases in \\\\(iterations) iterations",
+                  message: "Property 'All custom arguments' gave up after discarding " +
+                    "\\\\(discarded) cases in \\\\(iterations) iterations",
                   discarded: discarded,
                   iterations: iterations
               )
@@ -708,7 +732,8 @@ struct FunctionNamingTests {
 
           case .failure(let counterexample, let iterations, let shrunk, _, _):
               throw PropertyTestFailure(
-                  message: "Property 'Test naming' failed after \\\\(iterations) iterations.\\\\nCounterexample: \\\\(counterexample)\\\\nShrunk: \\\\(shrunk)",
+                  message: "Property 'Test naming' failed after \\\\(iterations) iterations." +
+                    "\\\\nCounterexample: \\\\(counterexample)\\\\nShrunk: \\\\(shrunk)",
                   counterexample: counterexample,
                   shrunk: shrunk,
                   iterations: iterations
@@ -716,7 +741,8 @@ struct FunctionNamingTests {
 
           case .gaveUp(let discarded, let iterations):
               throw PropertyTestGaveUp(
-                  message: "Property 'Test naming' gave up after discarding \\\\(discarded) cases in \\\\(iterations) iterations",
+                  message: "Property 'Test naming' gave up after discarding " +
+                    "\\\\(discarded) cases in \\\\(iterations) iterations",
                   discarded: discarded,
                   iterations: iterations
               )
@@ -768,7 +794,9 @@ struct AsyncPropertyMacroTests {
 
           case .failure(let counterexample, let iterations, let shrunk, _, _):
               throw PropertyTestFailure(
-                  message: "Property 'Async property test' failed after \\\\(iterations) iterations.\\\\nCounterexample: \\\\(counterexample)\\\\nShrunk: \\\\(shrunk)",
+                  message: "Property 'Async property test' failed after " +
+                    "\\\\(iterations) iterations.\\\\nCounterexample: " +
+                    "\\\\(counterexample)\\\\nShrunk: \\\\(shrunk)",
                   counterexample: counterexample,
                   shrunk: shrunk,
                   iterations: iterations
@@ -776,7 +804,8 @@ struct AsyncPropertyMacroTests {
 
           case .gaveUp(let discarded, let iterations):
               throw PropertyTestGaveUp(
-                  message: "Property 'Async property test' gave up after discarding \\\\(discarded) cases in \\\\(iterations) iterations",
+                  message: "Property 'Async property test' gave up after discarding " +
+                    "\\\\(discarded) cases in \\\\(iterations) iterations",
                   discarded: discarded,
                   iterations: iterations
               )
