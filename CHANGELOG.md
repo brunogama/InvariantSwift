@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Phase 04.7-17: Coverage Type Exports** - Infrastructure 4/4 complete
+  - Added `@testable import InvariantSwiftExperimental` to MetaPropertyTests.swift
+  - Coverage types (CoverageCollector, CoverageReport, CoverageBudget, CoverageStrategy, CoverageConfig) are public in Advanced/CoverageGuided.swift
+  - InvariantSwiftExperimental target includes Advanced/ directory per Package.swift
+  - Tests now properly import experimental features to access coverage infrastructure
+  - Resolves all ~30 coverage-related compilation errors
+
 ### Added
 - **Phase 04.7-14: Size/Seed Lens Extensions + PropertyConfig Helpers** - Infrastructure 1/4 complete
   - Created `Sources/InvariantSwift/Extensions/Size+Lenses.swift`
