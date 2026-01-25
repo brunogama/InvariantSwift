@@ -7,40 +7,34 @@ import Foundation
 @Suite("Lens System Integration Tests")
 struct LensSystemTests {
 
-  @Test(
-    "PropertyConfig lens basic operations",
-    .disabled("PropertyConfig static lenses not yet implemented")
-  )
+  @Test("PropertyConfig lens basic operations")
   func propertyConfigLensBasicOperations() async {
     let config = PropertyConfig.default
 
     // Test getting values through lenses
-    #expect(PropertyConfig.iterations.get(config) == 100)
-    #expect(PropertyConfig.maxShrinks.get(config) == 1000)
-    #expect(PropertyConfig.maxDiscarded.get(config) == 1000)
-    #expect(PropertyConfig.seed.get(config) == nil)
+    #expect(PropertyConfig.iterationsLens.get(config) == 100)
+    #expect(PropertyConfig.maxShrinksLens.get(config) == 1000)
+    #expect(PropertyConfig.maxDiscardedLens.get(config) == 1000)
+    #expect(PropertyConfig.seedLens.get(config) == nil)
 
     // Test setting values through lenses
-    let updated = PropertyConfig.iterations.set(200, config)
+    let updated = PropertyConfig.iterationsLens.set(200, config)
     #expect(updated.iterations == 200)
     #expect(updated.maxShrinks == config.maxShrinks)  // Other fields unchanged
 
-    let withSeed = PropertyConfig.seed.set(Seed(value: 42), config)
+    let withSeed = PropertyConfig.seedLens.set(Seed(value: 42), config)
     #expect(withSeed.seed?.rawValue == 42)
   }
 
-  @Test(
-    "PropertyConfig lens over operations",
-    .disabled("PropertyConfig static lenses not yet implemented")
-  )
+  @Test("PropertyConfig lens over operations")
   func propertyConfigLensOverOperations() async {
     let config = PropertyConfig.default
 
     // Test transforming values through lenses
-    let doubled = PropertyConfig.iterations.over { $0 * 2 }(config)
+    let doubled = PropertyConfig.iterationsLens.over { $0 * 2 }(config)
     #expect(doubled.iterations == 200)
 
-    let halved = PropertyConfig.maxShrinks.over { $0 / 2 }(config)
+    let halved = PropertyConfig.maxShrinksLens.over { $0 / 2 }(config)
     #expect(halved.maxShrinks == 500)
   }
 
@@ -97,23 +91,20 @@ struct LensSystemTests {
     #expect(incremented.rawValue == 150)
   }
 
-  @Test(
-    "Function composition with lenses",
-    .disabled("PropertyConfig static lenses not yet implemented")
-  )
+  @Test("Function composition with lenses")
   func functionCompositionWithLenses() async {
     let config = PropertyConfig.default
 
     // Test lens operations with function composition
-    let step1 = PropertyConfig.iterations.set(500, config)
-    let step2 = PropertyConfig.maxShrinks.set(100, step1)
+    let step1 = PropertyConfig.iterationsLens.set(500, config)
+    let step2 = PropertyConfig.maxShrinksLens.set(100, step1)
 
     #expect(step2.iterations == 500)
     #expect(step2.maxShrinks == 100)
     #expect(step2.maxDiscarded == config.maxDiscarded)  // Unchanged
 
     // Test using the over function
-    let doubled = PropertyConfig.iterations.over { $0 * 2 }(config)
+    let doubled = PropertyConfig.iterationsLens.over { $0 * 2 }(config)
     #expect(doubled.iterations == 200)
   }
 
