@@ -8,6 +8,9 @@ import Foundation
 @testable import InvariantSwift
 @testable import InvariantSwiftExperimental
 
+// Disambiguate from Foundation.Operation (NSOperation)
+typealias Operation = InvariantSwiftExperimental.Operation
+
 @Suite("Linearizability Checking")
 struct LinearizabilityTests {
 
@@ -486,8 +489,8 @@ struct LinearizabilityTests {
     start: ContinuousClock.Instant,
     end: ContinuousClock.Instant,
     call: Int
-  ) -> Operation<Int, Int> {
-    Operation(
+  ) -> InvariantSwiftExperimental.Operation<Int, Int> {
+    InvariantSwiftExperimental.Operation(
       call: call,
       response: call * 2,
       startTime: start,
