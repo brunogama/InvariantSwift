@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Phase 04.7-18: Final Test Re-enablement** - Wave 6 complete
+  - Fixed FailurePersistenceTests.swift by adding `@testable import InvariantSwiftTesting`
+  - SwiftTesting directory types (PersistedFailure, FailureDatabase, FailurePersistenceManager) are in InvariantSwiftTesting target
+  - Zero compilation errors, zero SwiftLint violations for FailurePersistenceTests
 - **Phase 04.7-17: Coverage Type Exports** - Infrastructure 4/4 complete
   - Added `@testable import InvariantSwiftExperimental` to MetaPropertyTests.swift
   - Coverage types (CoverageCollector, CoverageReport, CoverageBudget, CoverageStrategy, CoverageConfig) are public in Advanced/CoverageGuided.swift
