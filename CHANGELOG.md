@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Phase 04.7-22: Test Helper Implementation** - Gap closure (wave 2)
+  - Added expectNoDifference and expectDifference test assertion helpers
+  - Created Tests/InvariantSwiftTests/TestHelpers/DiffAssertions.swift
+  - Enable PrettyPrinterEnhancementTests.swift compilation
+  - Simple equality-based assertions for test infrastructure
 - **Phase 04.7-20: SwiftLint Disable Documentation** - Gap 1 closure (complete)
   - Documented Generator.swift file_length blanket disable with TECH DEBT comment
   - Explained why blanket disable is unavoidable: file_length is file-level rule, cannot use function-scoped disable
