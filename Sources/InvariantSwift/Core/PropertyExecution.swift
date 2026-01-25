@@ -82,4 +82,14 @@ enum PropertyExecution {
     // swiftlint:disable:next no_print
     print("[Regression] Saved failing example to database")
   }
+
+  // MARK: - Discard Ratio Logging
+
+  /// Log discard ratio warning message if needed.
+  static func logDiscardWarning(_ message: String, config: PropertyConfig) {
+    if config.verbose || config.verbosity == .verbose {
+      // swiftlint:disable:next no_print
+      print(message)
+    }
+  }
 }

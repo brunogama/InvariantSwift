@@ -1104,7 +1104,6 @@ public actor PropertyRunner {
   ///   - config: Configuration for test execution
   ///
   /// - Returns: The result of running the property
-  // swiftlint:disable function_body_length
   public func runThrowingProperty<T>(
     _ property: ThrowingProperty<T>,
     config: PropertyConfig = .default
@@ -1114,7 +1113,6 @@ public actor PropertyRunner {
 
     while successfulIterations < config.iterations {
       let size = Size(value: min(successfulIterations, 100))
-      // Generate tree for proper shrinking (essential for flatMap)
       let tree = property.generator.generateTree(&rng, size)
       let testCase = tree.value
 
@@ -1130,7 +1128,6 @@ public actor PropertyRunner {
       // Assumption passed, check the predicate
       do {
         if try !property.predicate(testCase) {
-          // Predicate returned false - use tree-based shrinking
           let shrunkCase = shrinkThrowingFailureWithTree(
             tree,
             property: property,
@@ -1145,7 +1142,6 @@ public actor PropertyRunner {
           )
         }
       } catch {
-        // Predicate threw an error - use tree-based shrinking
         let errorDescription = String(describing: error)
         let shrunkCase = shrinkThrowingFailureWithTree(
           tree,
@@ -1175,9 +1171,7 @@ public actor PropertyRunner {
       break
 
     case .warn(let message):
-      if config.verbose || config.verbosity == .verbose {
-        print(message)  // swiftlint:disable:this no_print
-      }
+      PropertyExecution.logDiscardWarning(message, config: config)
 
     case .fail:
       return .gaveUp(discarded: discarded, iterations: successfulIterations)
@@ -1185,7 +1179,6 @@ public actor PropertyRunner {
 
     return .success(iterations: successfulIterations)
   }
-  // swiftlint:enable function_body_length
 
   // MARK: - Evaluating Property Runner (S012)
 
@@ -1571,7 +1564,6 @@ public actor PropertyRunner {
     return .success(iterations: successfulIterations)
   }
 
-  // swiftlint:disable function_body_length
   @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
   public func runAsyncThrowingProperty<T>(
     _ property: AsyncThrowingProperty<T>,
@@ -1638,9 +1630,7 @@ public actor PropertyRunner {
       break
 
     case .warn(let message):
-      if config.verbose || config.verbosity == .verbose {
-        print(message)  // swiftlint:disable:this no_print
-      }
+      PropertyExecution.logDiscardWarning(message, config: config)
 
     case .fail:
       return .gaveUp(discarded: discarded, iterations: successfulIterations)
@@ -1648,7 +1638,6 @@ public actor PropertyRunner {
 
     return .success(iterations: successfulIterations)
   }
-  // swiftlint:enable function_body_length
 
   @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
   private func shrinkAsyncFailureWithTree<T: Sendable>(
