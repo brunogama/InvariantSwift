@@ -361,11 +361,8 @@ let testTargets: [Target] = [
     exclude: [
       "FunctionalTesting/CollectionShrinkingV2Tests.swift.disabled",
       "FunctionalTesting/SMTSolverTests.swift.disabled",
-      "FunctionalTesting/LensSystemTests.swift.disabled",
       "FunctionalTesting/NumericGeneratorTests.swift.disabled",
       "FunctionalTesting/CollectionGeneratorTests.swift.disabled",
-      "FunctionalTesting/LinearizabilityTests.swift.disabled",
-      "FunctionalTesting/FailurePersistenceTests.swift.disabled",
       "FunctionalTesting/MetaPropertyTests.swift.disabled",
       "FunctionalTesting/LibFuzzerTests.swift.disabled",
       "FunctionalTesting/MetamorphicTests.swift.disabled",
