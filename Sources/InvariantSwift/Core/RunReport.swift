@@ -195,6 +195,14 @@ extension RunReport {
 // MARK: - Factory Methods
 
 extension RunReport {
+  /// Report metadata for building RunReport instances.
+  private struct ReportMetadata {
+    let propertyName: String?
+    let durationMs: Int
+    let config: PropertyConfig
+    let shrinkTrace: [ShrinkStep]?
+  }
+
   /// Creates a run report from a PropertyResult.
   ///
   /// - Parameters:
@@ -211,99 +219,27 @@ extension RunReport {
     config: PropertyConfig,
     shrinkTrace: [ShrinkStep]? = nil
   ) -> RunReport {
-    buildReport(
-      from: result,
+    let metadata = ReportMetadata(
       propertyName: propertyName,
       durationMs: durationMs,
       config: config,
       shrinkTrace: shrinkTrace
     )
+    return buildReport(from: result, metadata: metadata)
   }
 
-  // swiftlint:disable function_body_length function_parameter_count
-  // Complexity: Each case builds different report structure; extraction would obscure logic flow
   private static func buildReport<T>(
     from result: PropertyResult<T>,
-    propertyName: String?,
-    durationMs: Int,
-    config: PropertyConfig,
-    shrinkTrace: [ShrinkStep]?
+    metadata: ReportMetadata
   ) -> RunReport {
-    switch result {
-    case .success(let iterations):
-      return RunReport(
-        propertyName: propertyName,
-        outcome: .success,
-        statistics: RunStatistics(
-          totalIterations: iterations,
-          successfulIterations: iterations,
-          failedIterations: 0,
-          discardedCases: 0,
-          durationMs: durationMs,
-          shrinkSteps: nil
-        ),
-        failure: nil,
-        classification: nil
-      )
-
-    case .failure(let counterexample, let iterations, let shrunk, let reason, let seed):
-      let token = ReplayToken(seed: seed, config: config)
-      let failureDetails = FailureDetails(
-        failedAtIteration: iterations,
-        reason: reason.description,
-        originalCounterexample: String(describing: counterexample),
-        minimalCounterexample: String(describing: shrunk),
-        replayToken: token,
-        shrinkTrace: shrinkTrace
-      )
-
-      return RunReport(
-        propertyName: propertyName,
-        outcome: .failed,
-        statistics: RunStatistics(
-          totalIterations: iterations,
-          successfulIterations: iterations - 1,
-          failedIterations: 1,
-          discardedCases: 0,
-          durationMs: durationMs,
-          shrinkSteps: shrinkTrace?.count
-        ),
-        failure: failureDetails,
-        classification: nil
-      )
-
-    case .gaveUp(let discarded, let iterations):
-      let token = ReplayToken(
-        seed: config.seed?.rawValue ?? 0,
-        iterations: config.iterations,
-        maxDiscarded: config.maxDiscarded
-      )
-      let failureDetails = FailureDetails(
-        failedAtIteration: iterations,
-        reason: "Too many discarded cases",
-        originalCounterexample: "N/A",
-        minimalCounterexample: "N/A",
-        replayToken: token,
-        shrinkTrace: nil
-      )
-
-      return RunReport(
-        propertyName: propertyName,
-        outcome: .gaveUp,
-        statistics: RunStatistics(
-          totalIterations: iterations,
-          successfulIterations: 0,
-          failedIterations: 0,
-          discardedCases: discarded,
-          durationMs: durationMs,
-          shrinkSteps: nil
-        ),
-        failure: failureDetails,
-        classification: nil
-      )
-    }
+    RunReportBuilder(
+      result: result,
+      propertyName: metadata.propertyName,
+      durationMs: metadata.durationMs,
+      config: metadata.config,
+      shrinkTrace: metadata.shrinkTrace
+    ).build()
   }
-  // swiftlint:enable function_body_length function_parameter_count
 
   /// Creates a run report from a ClassifyingPropertyResult.
   ///
