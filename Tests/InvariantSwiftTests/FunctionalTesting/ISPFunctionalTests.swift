@@ -14,7 +14,7 @@ import InvariantSwiftCore
 struct RuleBasedStatefulTests {
 
   @Test("AnyRule wraps rules correctly")
-  func anyRuleWrapsRules() {
+  func anyRuleWrapsRules() throws {
     let rule = AnyRule<MockStateMachine>(
       name: "increment",
       precondition: { $0.value < 100 },
