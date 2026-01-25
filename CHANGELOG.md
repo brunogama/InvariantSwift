@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Phase 04.7: Codebase Cleanup** - Gap closure plans for deferred test files
+  - Plan 11: ShrinkTree traversal methods, expectNoDifference(), LibFuzzer skip conditions (2 files + 1 fix)
+  - Plan 12: PropertyRunner coverage methods for coverage-guided testing (2 files)
+  - Plan 13: Actor-based ExampleDatabase, generic Operation type, PropertyConfig lenses (3 files)
+  - Total: 7 deferred test files scheduled for re-enablement
 - **Phase 04.7: Codebase Cleanup** - Custom SwiftLint configurations for test directories
   - Tests/InvariantSwiftMacroTests/.swiftlint.yml: disable line_length for macro expansion tests
   - Tests/InvariantSwiftTests/FunctionalTesting/.swiftlint.yml: disable file/type/line length for comprehensive test suites
