@@ -43,11 +43,12 @@ extension PropertyRunner {
     // Create coverage report
     // For now, stub implementation that reports zero coverage
     // Full implementation would integrate with LLVM coverage tools
+    let executionCount = config.iterations
     let report = CoverageReport(
       initialCoverage: 0.0,
       finalCoverage: 0.0,
       improvement: 0.0,
-      executionCount: config.iterations,
+      executionCount: executionCount,
       uncoveredSymbols: Array(knownSymbols)
     )
 
@@ -107,11 +108,12 @@ extension PropertyRunner {
     let finalCoverage = finalBudget.coveragePercentage
 
     // Create coverage report
+    let executionCount = config.iterations
     let report = CoverageReport(
       initialCoverage: initialCoverage,
       finalCoverage: finalCoverage,
       improvement: finalCoverage - initialCoverage,
-      executionCount: config.iterations,
+      executionCount: executionCount,
       uncoveredSymbols: finalBudget.criticalGaps
     )
 
