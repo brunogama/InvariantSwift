@@ -1026,13 +1026,15 @@ extension PropertyRunner {
     let duration = CFAbsoluteTimeGetCurrent() - startTime
 
     // Record execution
+    let seedValue = config.seed?.rawValue
+    let iterationCount = config.iterations
     let execution = TestExecution(
       testId: testId,
       result: result.toTestResult(),
       duration: duration,
       environment: ExecutionEnvironment(),
-      seed: config.seed?.rawValue,
-      iterations: config.iterations,
+      seed: seedValue,
+      iterations: iterationCount,
       memoryUsage: Int64(ProcessInfo.processInfo.physicalMemory),
       cpuUsage: 0.0  // This would be measured dynamically
     )
