@@ -14,6 +14,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Enables immutable functional updates to configuration
   - Operation<Input, Output> confirmed as generic type in Linearizability.swift
   - FailingExampleDatabase confirmed as actor with async methods
+- **Phase 04.7: Codebase Cleanup** - Infrastructure implementation plans (Wave 6)
+  - Plan 14: Size/Seed lens extensions + PropertyConfig helper methods (~2 hrs)
+    - Size.value and Size.scale lenses for functional updates
+    - Seed.seedValue and Seed.increment lenses
+    - PropertyConfig.quickConfig(), performanceConfig(), stressConfig(), devConfig() helpers
+  - Plan 15: PrettyPrinter infrastructure for test output formatting (~3-4 hrs)
+    - PrettyPrintable protocol with default implementations
+    - DiffFormat enum and DiffResult struct for diff rendering
+    - PrettyPrinter struct with print() and diff() methods
+  - Plan 16: LibFuzzer integration stub for fuzzing tests (~2-3 hrs)
+    - FuzzDataProvider struct with consumeByte(), consumeBytes(), consumeString(), consumeInt()
+    - Conditional compilation support for LibFuzzerTests
+  - Plan 17: Coverage type exports from InvariantSwiftExperimental (~1 hr)
+    - CoverageReport, CoverageCollector, CoverageStrategy public exports
+  - Plan 18: Final test re-enablement after infrastructure complete (~1 hr)
+    - Fix FailurePersistenceTests with lens/config infrastructure
+    - Fix LinearizabilityTests with PrettyPrinter infrastructure
+    - Fix LensSystemTests with all infrastructure
+    - Verify zero .swift.disabled files remain
+  - Total estimated effort: 9-11 hours across 5 plans
+  - Goal: Re-enable final 3 test files, complete Phase 04.7 with zero deferrals
 - **Phase 04.7: Codebase Cleanup** - Gap closure plans for deferred test files
   - Plan 11: ShrinkTree traversal methods, expectNoDifference(), LibFuzzer skip conditions (2 files + 1 fix)
   - Plan 12: PropertyRunner coverage methods for coverage-guided testing (2 files)
