@@ -1,7 +1,7 @@
 import Testing
 import Foundation
-import InvariantSwiftCore
 @testable import InvariantSwift
+@testable import InvariantSwiftExperimental
 
 /// Tests for the lens system integration with FunctionalTesting configuration objects
 @Suite("Lens System Integration Tests")

@@ -1,4 +1,3 @@
-// swiftlint:disable no_print
 import Foundation
 
 struct GeneratorCatalogCLI {

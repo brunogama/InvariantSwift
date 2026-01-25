@@ -121,7 +121,8 @@ final class FunctionCallBuilderTests: XCTestCase {
         (label: "name", value: ExprSyntax(SyntaxFactory.stringLiteral("John"))),
         (label: "age", value: ExprSyntax(SyntaxFactory.intLiteral(30))),
       ]
-    ).build()
+    )
+    .build()
 
     let desc = call.description
     XCTAssertTrue(desc.contains("Person"))

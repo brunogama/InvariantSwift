@@ -5,14 +5,18 @@
 # - line_length: swift-format prioritizes keeping function output together
 # - function_body_length: assertMacroExpansion calls contain complete expected expansions
 # - type_body_length: comprehensive test suites are cohesive and shouldn't be split
+# - file_length: macro expansion tests include full golden outputs (589+ lines)
 # - blanket_disable_command: needed to disable above rules for entire file
 # - trailing_comma: swift-format adds trailing commas (Google style)
+# - empty_xctest_method: documentation test methods don't need implementations
 disabled_rules:
   - line_length
   - function_body_length
   - type_body_length
+  - file_length
   - blanket_disable_command
   - trailing_comma
+  - empty_xctest_method
 
 # Keep other rules from parent config
 opt_in_rules:

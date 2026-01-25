@@ -264,6 +264,7 @@ private struct TypeVisitor {
 
   // MARK: - Type Extraction Helper
 
+  // swiftlint:disable:next function_parameter_count
   private func extractTypeInfo(
     name: String,
     kind: String,

@@ -260,54 +260,36 @@ public struct TestCodeGenerator {
     }
 
     // Recursively check inner type
-    let innerResult: GeneratorResult
+    let innerResult = checkInnerTypeResult(for: cleanedType)
 
+    // Wrap in optional if needed
+    switch innerResult {
+    case .success(let expr):
+      return .success(isOptional ? "composer.generate(using: Gen.optional(\(expr)))" : expr)
+
+    case .todoRequired:
+      return innerResult
+    }
+  }
+
+  /// Check generator result for inner (non-optional) type
+  private func checkInnerTypeResult(for cleanedType: String) -> GeneratorResult {
     // Handle Array<T> or [T]
     if cleanedType.hasPrefix("Array<") && cleanedType.hasSuffix(">") {
       let inner = String(cleanedType.dropFirst(6).dropLast())
-      let innerCheck = generatorResult(for: inner)
-      switch innerCheck {
-      case .success:
-        innerResult = .success("composer.generate(using: Gen.array(of: \(inner).arbitrary))")
-
-      case .todoRequired(let typeName, let reason):
-        return .todoRequired(
-          typeName: "[\(typeName)]",
-          reason: "Array element type cannot be generated: \(reason)"
-        )
-      }
-    } else if cleanedType.hasPrefix("[") && cleanedType.hasSuffix("]") && !cleanedType.contains(":")
-    {
+      return checkArrayResult(inner: inner, wrapper: "[\(inner)]")
+    }
+    if cleanedType.hasPrefix("[") && cleanedType.hasSuffix("]") && !cleanedType.contains(":") {
       let inner = String(cleanedType.dropFirst().dropLast())
-      let innerCheck = generatorResult(for: inner)
-      switch innerCheck {
-      case .success:
-        innerResult = .success("composer.generate(using: Gen.array(of: \(inner).arbitrary))")
-
-      case .todoRequired(let typeName, let reason):
-        return .todoRequired(
-          typeName: "[\(typeName)]",
-          reason: "Array element type cannot be generated: \(reason)"
-        )
-      }
+      return checkArrayResult(inner: inner, wrapper: "[\(inner)]")
     }
     // Handle Set<T>
-    else if cleanedType.hasPrefix("Set<") && cleanedType.hasSuffix(">") {
+    if cleanedType.hasPrefix("Set<") && cleanedType.hasSuffix(">") {
       let inner = String(cleanedType.dropFirst(4).dropLast())
-      let innerCheck = generatorResult(for: inner)
-      switch innerCheck {
-      case .success:
-        innerResult = .success("Set(composer.generate(using: Gen.array(of: \(inner).arbitrary)))")
-
-      case .todoRequired(let typeName, let reason):
-        return .todoRequired(
-          typeName: "Set<\(typeName)>",
-          reason: "Set element type cannot be generated: \(reason)"
-        )
-      }
+      return checkSetResult(inner: inner)
     }
     // Handle Dictionary (not supported yet - requires TODO)
-    else if cleanedType.hasPrefix("Dictionary<")
+    if cleanedType.hasPrefix("Dictionary<")
       || (cleanedType.hasPrefix("[") && cleanedType.contains(":"))
     {
       return .todoRequired(
@@ -316,23 +298,43 @@ public struct TestCodeGenerator {
       )
     }
     // Standard types
-    else if Self.knownGeneratableTypes.contains(cleanedType) {
-      innerResult = .success("composer.generate(using: \(cleanedType).arbitrary)")
-    } else {
+    if Self.knownGeneratableTypes.contains(cleanedType) {
+      return .success("composer.generate(using: \(cleanedType).arbitrary)")
+    }
+    return .todoRequired(
+      typeName: cleanedType,
+      reason: "Type does not have a known generator"
+    )
+  }
+
+  /// Check array type generation
+  private func checkArrayResult(inner: String, wrapper: String) -> GeneratorResult {
+    let innerCheck = generatorResult(for: inner)
+    switch innerCheck {
+    case .success:
+      return .success("composer.generate(using: Gen.array(of: \(inner).arbitrary))")
+
+    case .todoRequired(_, let reason):
       return .todoRequired(
-        typeName: cleanedType,
-        reason: "Type does not have a known generator"
+        typeName: wrapper,
+        reason: "Array element type cannot be generated: \(reason)"
       )
     }
+  }
 
-    // Wrap in Optional if needed
-    if isOptional {
-      if case .success = innerResult {
-        return .success("composer.generate(using: Gen.optional(\(cleanedType).arbitrary))")
-      }
+  /// Check set type generation
+  private func checkSetResult(inner: String) -> GeneratorResult {
+    let innerCheck = generatorResult(for: inner)
+    switch innerCheck {
+    case .success:
+      return .success("Set(composer.generate(using: Gen.array(of: \(inner).arbitrary)))")
+
+    case .todoRequired(let innerTypeName, let reason):
+      return .todoRequired(
+        typeName: "Set<\(innerTypeName)>",
+        reason: "Set element type cannot be generated: \(reason)"
+      )
     }
-
-    return innerResult
   }
 
   /// Generate the Gen expression for a type.

@@ -367,3 +367,195 @@ Before creating a PR, ensure:
 6. ✅ CHANGELOG.md updated (if user-facing change)
 
 **Quick check**: `make validate`
+
+---
+
+## Claude Code Integration
+
+This project is optimized for Claude Code with hooks, MCP servers, custom commands, and specialized subagents.
+
+### Hooks System
+
+Claude Code hooks automate quality checks and formatting. Configuration in `.claude/settings.json`.
+
+**PostToolUse Hooks** (Auto-run after file edits):
+
+```bash
+# Formatting Pipeline (runs in sequence)
+1. trailing-whitespace removal
+2. end-of-file-fixer (ensure final newline)
+3. mixed-line-ending normalization (LF)
+4. swift-format (Google style, 2-space indent)
+5. swiftlint --fix (auto-fix violations)
+```
+
+**PreToolUse Hooks** (Safety checks before dangerous operations):
+
+- Block `rm -rf` without confirmation
+- Block `git push -f` to main/dev branches
+- Block `--no-verify` flag usage
+- Warn before editing protected files (LICENSE, SECURITY.md, .github/workflows/)
+
+**Hook Bypass** (use sparingly):
+```bash
+# Skip specific hook in pre-commit
+SKIP=swift-coverage-guard git commit -m "..."
+
+# Skip all hooks (STRONGLY DISCOURAGED)
+# git commit --no-verify  # BLOCKED by PreToolUse hook
+```
+
+### MCP Servers
+
+Model Context Protocol servers extend Claude Code capabilities:
+
+**Installed MCP Servers** (see `.mcp.json` or run `claude mcp list`):
+
+| Server | Purpose | Usage |
+|--------|---------|-------|
+| `exa-search` | Internet research for property testing patterns | Find papers, libraries, algorithms |
+| `firecrawl` | Deep web scraping for documentation | SwiftSyntax API docs, Swift Evolution proposals |
+| `repomix` | Codebase analysis and packaging | Analyze InvariantSwift structure, dependencies |
+| `semly-rag` | RAG for codebase QA | "Where is shrinking implemented?", "How do generators work?" |
+| `sequential-thinking` | Complex refactoring decisions | Respect RULES.md budgets, architecture decisions |
+| `memory` (project) | Track decisions across sessions | Remember ISP decisions, refactoring rationale |
+| `github` | Issue/PR management | Manage ISP proposals, releases, CI failures |
+
+**MCP Setup Instructions**: See section "MCP Server Configuration" at end of this file.
+
+### Custom Slash Commands
+
+Use `/` prefix to run predefined workflows:
+
+| Command | Purpose | Usage |
+|---------|---------|-------|
+| `/fix-lint` | Auto-fix SwiftLint violations | `/fix-lint Sources/Core/Gen.swift` |
+| `/run-tests` | Run tests for specific component | `/run-tests GeneratorTests` |
+| `/generate-golden` | Regenerate macro expansion golden files | `/generate-golden ArbitraryMacro` |
+| `/check-coverage` | Check coverage for specific files | `/check-coverage Sources/Core/` |
+| `/create-isp` | Create new ISP proposal | `/create-isp "Stateful Property Testing"` |
+| `/benchmark` | Run performance benchmarks | `/benchmark GeneratorBenchmarks` |
+| `/check-docs` | Run documentation coverage check | `/check-docs --verbose` |
+| `/validate-pr` | Full validation before PR | `/validate-pr` |
+
+**Command Files**: `.claude/commands/*.md`
+
+### Subagents
+
+Specialized agents with isolated contexts for focused work:
+
+| Agent | Type | Tools | Purpose |
+|-------|------|-------|---------|
+| `macro-dev` | Macro Developer | Read, Write, Edit, Bash, All MCPs | SwiftSyntax AST manipulation, macro expansion |
+| `test-gen` | Test Generator | Read, Write, GhostwriterCLI, All MCPs | Auto-generate property tests |
+| `docs` | Documentation | Read, Write, Grep, All MCPs | Update API docs, COOKBOOK, ISP proposals |
+| `coverage` | Coverage Analyzer | Read, Bash (coverage), All MCPs | Analyze coverage gaps, suggest tests |
+
+**Spawn Subagent**:
+```
+# Via Claude Code Task tool
+Use the Task tool with appropriate subagent_type
+```
+
+**Subagent Context**: Each subagent reads relevant CLAUDE.md files:
+- `macro-dev` → `Sources/InvariantSwiftMacros/CLAUDE.md`
+- `test-gen` → `Tests/CLAUDE.md`
+- `docs` → `docs/CLAUDE.md` (see below)
+- `coverage` → Root CLAUDE.md
+
+### Memory System
+
+Project-scoped memory for cross-session decisions:
+
+**Use `#` during sessions** to add important memories:
+```
+# Remember: We decided to use SwiftSyntax 602.0.0+ for Swift 6.2 compatibility
+# Remember: ISP-0011 planned for Ghostwriter v2 with AI-powered test generation
+# Remember: Coverage enforcement is strict 99% - use SKIP=swift-coverage-guard only for exceptional cases
+```
+
+**Query Memory**:
+```
+Ask: "What did we decide about SwiftSyntax versions?"
+Ask: "Why is coverage 99% and not 95%?"
+```
+
+---
+
+## MCP Server Configuration
+
+### Installation Commands
+
+```bash
+# Core MCP Servers (required)
+claude mcp add exa-search -- npx -y @upwinded/exa-mcp
+claude mcp add firecrawl -- npx -y @mendable/firecrawl-mcp
+claude mcp add repomix -- npx -y @repomix/mcp
+claude mcp add sequential-thinking -- npx -y @modelcontextprotocol/server-sequential-thinking
+claude mcp add memory --scope project -- npx -y @modelcontextprotocol/server-memory
+
+# Optional but Recommended
+claude mcp add github -- npx -y @modelcontextprotocol/server-github
+claude mcp add semly-rag -- npx -y semly-rag
+```
+
+### Project .mcp.json
+
+Create `.mcp.json` in project root (commit to git):
+
+```json
+{
+  "mcpServers": {
+    "memory": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory"],
+      "env": {
+        "MEMORY_SCOPE": "project"
+      }
+    },
+    "github": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
+      }
+    }
+  }
+}
+```
+
+**Environment Variables**: Add to `.env.local` (gitignored):
+```bash
+GITHUB_TOKEN=ghp_your_token_here
+EXA_API_KEY=your_exa_key_here
+FIRECRAWL_API_KEY=your_firecrawl_key_here
+```
+
+---
+
+## Budget-Based Coding (CRITICAL)
+
+See [RULES.md](RULES.md) for comprehensive budget-based coding rules. Key points:
+
+**Hard Budgets** (from .swiftlint.yml):
+- Line length: 100 chars (error)
+- Function body: 60 lines warning, 120 error
+- File length: 400 lines warning, 1000 error
+- Cyclomatic complexity: 10 warning, 15 error
+- Function parameters: 4 warning, 6 error
+
+**Refactor Triggers** (act BEFORE hitting limits):
+- Function approaching ~50 lines → split before 60
+- File trending past ~350 lines → split before 400
+- Complexity >8 → extract helpers, use dictionaries/strategies
+- God type emerging → break down responsibilities
+
+**Process** (from RULES.md):
+1. Plan with budget awareness
+2. Implement with refactoring-first mindset
+3. Self-review against budgets
+4. Run checks: format, lint --fix, lint --strict, test, warnings-as-errors
+
+**Sequential Thinking MCP**: Use for complex refactoring decisions respecting budgets.

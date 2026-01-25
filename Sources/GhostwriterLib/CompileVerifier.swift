@@ -51,6 +51,7 @@ public struct CompileVerifier: Sendable {
       try code.write(to: tempFile, atomically: true, encoding: .utf8)
 
       if verbose {
+        // swiftlint:disable:next no_print
         print("  Verifying \(fileName) with swiftc...")
       }
 
@@ -77,6 +78,7 @@ public struct CompileVerifier: Sendable {
 
       if process.terminationStatus == 0 {
         if verbose {
+          // swiftlint:disable:next no_print
           print("  ✓ Compilation successful")
         }
         return CompileVerificationResult(success: true, errors: [], output: output)
@@ -112,26 +114,24 @@ public struct CompileVerifier: Sendable {
 
     // swiftc format: "file.swift:line:column: error: message"
     let lines = output.components(separatedBy: .newlines)
-    for line in lines {
-      if line.contains(": error:") {
-        let parts = line.components(separatedBy: ":")
-        guard parts.count >= 4 else { continue }
+    for line in lines where line.contains(": error:") {
+      let parts = line.components(separatedBy: ":")
+      guard parts.count >= 4 else { continue }
 
-        let lineNum = Int(parts[1].trimmingCharacters(in: .whitespaces))
-        let colNum = Int(parts[2].trimmingCharacters(in: .whitespaces))
-        let message = parts.dropFirst(3).joined(separator: ":").trimmingCharacters(
-          in: .whitespaces
-        )
+      let lineNum = Int(parts[1].trimmingCharacters(in: .whitespaces))
+      let colNum = Int(parts[2].trimmingCharacters(in: .whitespaces))
+      let message = parts.dropFirst(3).joined(separator: ":").trimmingCharacters(
+        in: .whitespaces
+      )
 
-        errors.append(
-          CompileVerificationResult.CompileError(
-            line: lineNum,
-            column: colNum,
-            message: message,
-            file: fileName
-          )
+      errors.append(
+        CompileVerificationResult.CompileError(
+          line: lineNum,
+          column: colNum,
+          message: message,
+          file: fileName
         )
-      }
+      )
     }
 
     return errors
