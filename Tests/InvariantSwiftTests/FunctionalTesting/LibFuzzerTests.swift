@@ -7,6 +7,7 @@ import Testing
 import Foundation
 import InvariantSwiftCore
 @testable import InvariantSwift
+@testable import InvariantSwiftExperimental
 
 @Suite("LibFuzzer Integration")
 struct LibFuzzerTests {
