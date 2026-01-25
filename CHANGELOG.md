@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **Phase 04.7-14: Size/Seed Lens Extensions** - Functional programming lenses for Size and Seed types (Tasks 1-2/3)
+- **Phase 04.7-14: Size/Seed Lens Extensions + PropertyConfig Helpers** - Infrastructure 1/4 complete
   - Created `Sources/InvariantSwift/Extensions/Size+Lenses.swift`
     - Size.valueLens for functional value access and updates
     - Size.scale(by:) utility for multiplicative size transformations
@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Created `Sources/InvariantSwift/Extensions/Seed+Lenses.swift`
     - Seed.seedValue lens for functional seed value access and updates
     - Seed.increment(by:) utility for wrapping arithmetic seed transformations
+  - Created `Sources/InvariantSwift/Core/PropertyConfig+Helpers.swift`
+    - PropertyConfig.quickConfig() for fast feedback (20 iterations)
+    - PropertyConfig.performanceConfig() for thorough validation (10,000 iterations)
+    - PropertyConfig.stressConfig() for maximum coverage (100,000 iterations)
+    - PropertyConfig.devConfig() for verbose debugging
+    - Factory methods transform base configs while preserving custom settings
 - **Phase 04.7-13: PropertyConfig Lens Extensions** - Functional programming lenses for PropertyConfig
   - Created `PropertyConfig+Lenses.swift` with lens extensions for all properties
   - Lenses for: iterations, maxShrinks, maxDiscarded, seed, verbose, timeout, verbosity
