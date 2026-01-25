@@ -1,4 +1,3 @@
-// swiftlint:disable no_print file_length function_body_length type_body_length
 import Foundation
 import InvariantSwift
 

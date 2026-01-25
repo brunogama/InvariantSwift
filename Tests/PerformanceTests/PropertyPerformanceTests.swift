@@ -170,7 +170,10 @@ struct PropertyPerformanceTests {
     let sequentialEstimate = 0.1 * Double(concurrentTasks)  // Rough estimate
     #expect(
       totalDuration < sequentialEstimate * 1.5,
-      "Concurrent execution should show some performance benefit: \(totalDuration)s vs ~\(sequentialEstimate)s sequential"
+      """
+      Concurrent execution should show some performance benefit: \
+      \(totalDuration)s vs ~\(sequentialEstimate)s sequential
+      """
     )
   }
 

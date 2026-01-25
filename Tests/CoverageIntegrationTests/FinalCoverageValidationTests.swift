@@ -1,4 +1,3 @@
-// swiftlint:disable function_body_length type_body_length
 import Testing
 import Foundation
 import InvariantSwiftCore
@@ -552,7 +551,6 @@ struct FinalCoverageValidationTests {
   @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
   func finalValidationAllIntegrationPointsAndComponentInteractionsCovered() async {
     // Comprehensive integration validation
-
     // 1. Generator ↔ PropertyChecker Integration
     // Test each generator individually since they have different types
     let intResult = runPropertySynchronously(
@@ -620,8 +618,7 @@ struct FinalCoverageValidationTests {
     // 2. PropertyChecker ↔ Shrinking Integration
     let shrinkingIntegrationProperty = Property<[Int]>(
       generator: Gen<[Int]>.array(Gen<Int>.int(in: 1...100))
-    ) {
-      array in
+    ) { array in
       !array.contains(50)  // Will likely fail and trigger shrinking
     }
 
@@ -939,7 +936,9 @@ struct FinalCoverageValidationTests {
       let sequentialEstimate = 0.2 * 4  // Rough estimate for 4 sequential runs
       #expect(
         concurrentDuration < sequentialEstimate * 1.5,
-        "Concurrent execution should show performance benefit: \(concurrentDuration)s vs ~\(sequentialEstimate)s sequential"
+        Comment(
+          rawValue: "Concurrent: \(concurrentDuration)s vs Sequential: ~\(sequentialEstimate)s"
+        )
       )
     }
   }

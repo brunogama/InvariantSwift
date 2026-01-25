@@ -1,0 +1,18 @@
+# Custom SwiftLint configuration for GeneratorCatalogCLI
+# Overrides root .swiftlint.yml for this directory
+
+# CLI tools legitimately need print statements and can be long
+# - no_print: CLI tool outputs to console for user interaction
+# - file_length: Catalog browser includes comprehensive menu and navigation (800+ lines)
+# - type_body_length: CatalogBrowser is single-file CLI app (600+ lines)
+# - function_body_length: Menu rendering and navigation functions are comprehensive (80+ lines)
+disabled_rules:
+  - no_print
+  - file_length
+  - type_body_length
+  - function_body_length
+
+# Keep other rules from parent config
+opt_in_rules:
+  - closure_parameter_position
+  - identical_operands

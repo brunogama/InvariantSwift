@@ -209,7 +209,8 @@ public actor LLVMCoverageRunner {
     // Look for our source files and extract coverage metrics
     for line in lines {
       if line.contains("Sources/FunctionalTesting") && line.contains("%") {
-        // Parse line format: filename  regions  missed_regions  cover%  functions  missed_functions  executed  lines  missed_lines  cover%
+        // Parse line format:
+        // filename regions missed_regions cover% functions missed_functions executed lines missed_lines cover%
         let components = line.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
         if components.count >= 10 {
           // Extract line coverage (last percentage)

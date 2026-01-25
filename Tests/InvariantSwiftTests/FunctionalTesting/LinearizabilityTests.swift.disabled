@@ -5,8 +5,8 @@
 
 import Testing
 import Foundation
-import InvariantSwiftCore
 @testable import InvariantSwift
+@testable import InvariantSwiftExperimental
 
 @Suite("Linearizability Checking")
 struct LinearizabilityTests {
@@ -486,8 +486,8 @@ struct LinearizabilityTests {
     start: ContinuousClock.Instant,
     end: ContinuousClock.Instant,
     call: Int
-  ) -> InvariantSwiftCore.Operation<Int, Int> {
-    InvariantSwiftCore.Operation(
+  ) -> Operation<Int, Int> {
+    Operation(
       call: call,
       response: call * 2,
       startTime: start,
