@@ -1,3 +1,5 @@
+// swiftlint:disable file_length
+// Justification: Comprehensive state machine macro expansion tests require complete golden outputs
 import XCTest
 import SwiftSyntaxMacros
 import SwiftSyntaxMacrosTestSupport
