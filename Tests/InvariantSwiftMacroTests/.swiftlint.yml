@@ -6,11 +6,13 @@
 # - function_body_length: assertMacroExpansion calls contain complete expected expansions
 # - type_body_length: comprehensive test suites are cohesive and shouldn't be split
 # - blanket_disable_command: needed to disable above rules for entire file
+# - trailing_comma: swift-format adds trailing commas (Google style)
 disabled_rules:
   - line_length
   - function_body_length
   - type_body_length
   - blanket_disable_command
+  - trailing_comma
 
 # Keep other rules from parent config
 opt_in_rules:
