@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Phase 04.7-20: SwiftLint Disable Documentation** - Gap 1 closure
+  - Documented Generator.swift file_length blanket disable with TECH DEBT comment
+  - Explained why blanket disable is unavoidable: file_length is file-level rule, cannot use function-scoped disable
+  - Referenced future work: ISP proposal for generator modularization (Gen/Shrink/Size/Seed split)
+  - This is the ONLY acceptable blanket disable in codebase per RULES.md
 - **Phase 04.7-18: Final Test Re-enablement** - Wave 6 complete
   - Fixed FailurePersistenceTests.swift by adding `@testable import InvariantSwiftTesting`
   - SwiftTesting directory types (PersistedFailure, FailureDatabase, FailurePersistenceManager) are in InvariantSwiftTesting target

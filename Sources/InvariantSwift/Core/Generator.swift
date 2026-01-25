@@ -1,6 +1,7 @@
 // swiftlint:disable file_length
-// TODO: Refactor Generator.swift to split into smaller files (see ISP for generator modularization)
-// Current architecture has this file at ~600 lines per CLAUDE.md, but SwiftLint limit is 400
+// TECH DEBT: Generator.swift (1690 lines) exceeds 1000-line limit.
+// This is unavoidable without splitting Gen/Shrink/Size/Seed into separate files.
+// Future work: ISP proposal for generator modularization.
 import Foundation
 
 /// Controls the complexity of generated values in property-based testing.
