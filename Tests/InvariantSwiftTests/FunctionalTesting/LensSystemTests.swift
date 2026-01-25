@@ -108,21 +108,18 @@ struct LensSystemTests {
     #expect(doubled.iterations == 200)
   }
 
-  @Test("ConfigBuilder pattern", .disabled("ConfigBuilder not yet implemented"))
+  @Test(
+    "ConfigBuilder pattern",
+    .disabled("PropertyConfig is immutable - needs specialized builder")
+  )
   func configBuilderPattern() async {
-    let config = ConfigBuilder<PropertyConfig>
-      .from(.default)
-      .set(PropertyConfig.iterations, to: 300)
-      .set(PropertyConfig.maxShrinks, to: 50)
-      .update(PropertyConfig.maxDiscarded) { $0 / 2 }
-      .build()
-
-    #expect(config.iterations == 300)
-    #expect(config.maxShrinks == 50)
-    #expect(config.maxDiscarded == 500)  // Half of default 1000
+    // NOTE: PropertyConfig has all `let` properties, so WritableKeyPath doesn't work.
+    // Needs specialized PropertyConfigBuilder with named methods or lens-based API.
+    // Temporarily disabled pending design decision.
+    #expect(Bool(false), "Test body disabled - see comment above")
   }
 
-  @Test("Configuration templates", .disabled("ConfigTemplate not yet implemented"))
+  @Test("Configuration templates")
   func configurationTemplates() async {
     // Test development template
     let devConfig = ConfigTemplate.development
