@@ -121,9 +121,8 @@ struct PropertyMacroIntegrationTests {
       Gen<Bool>.bool
     )
     // swiftlint:disable:next large_tuple
-    let property = Property(generator: generator) { (tuple: (Int, String, Bool)) in
-      let (_, s, _) = tuple
-      return s.isEmpty  // Always true
+    let property = Property(generator: generator) { (_: (Int, String, Bool)) in
+      true  // Property always succeeds - testing Gen.zip3 integration
     }
 
     let config = PropertyConfig(iterations: 50, maxShrinks: 50)

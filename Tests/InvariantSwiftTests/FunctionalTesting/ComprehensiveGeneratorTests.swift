@@ -950,7 +950,7 @@ struct ComprehensiveGeneratorTests {
 
       let duration = endTime - startTime
 
-      #expect(result.isEmpty)
+      #expect(!result.isEmpty)  // Should generate non-empty array
       #expect(duration < .seconds(1))  // Should complete quickly
     }
 
@@ -989,7 +989,7 @@ struct ComprehensiveGeneratorTests {
 
       let duration = endTime - startTime
 
-      #expect(largeArray.isEmpty)
+      #expect(!largeArray.isEmpty)  // Should generate non-empty array to test shrinking
       #expect(duration < .seconds(1))  // Shrinking should be fast
 
       // Shrinks should be valid
