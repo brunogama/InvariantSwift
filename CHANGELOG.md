@@ -20,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added umbrella re-exports for unified import experience
 
 ### Fixed
+- **Build: MacroAPI Dependency Fix** - Added missing InvariantSwiftMacros dependency
+  - InvariantSwiftMacroAPI declares external macros via #externalMacro
+  - Missing dependency caused "plugin not found" warnings during parallel builds
+  - Build now passes with -Xswiftc -warnings-as-errors
 - **Phase 04.7-26: ConfigBuilder SwiftLint Cleanup** - Gap closure (wave 2)
   - Fixed 5 SwiftLint violations in Sources/InvariantSwift/Testing/ConfigBuilder.swift
   - Removed unneeded synthesized initializer (Swift auto-generates memberwise init for structs)

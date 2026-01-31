@@ -112,6 +112,7 @@ let macroAPITargets: [Target] = [
       "InvariantSwiftCore",
       "InvariantSwift",
       "InvariantSwiftExperimental",
+      "InvariantSwiftMacros",
     ],
     path: "Sources/InvariantSwiftMacroAPI",
     swiftSettings: commonSwiftSettings
