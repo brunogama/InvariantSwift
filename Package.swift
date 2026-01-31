@@ -5,7 +5,6 @@ import PackageDescription
 import CompilerPluginSupport
 
 let commonSwiftSettings: [SwiftSetting] = [
-  // .unsafeFlags(["-warnings-as-errors"]),
   .unsafeFlags(["-Xfrontend", "-strict-concurrency=complete", "-Xfrontend", "-warn-concurrency"]),
   .enableUpcomingFeature("StrictConcurrency"),
 ]
@@ -19,40 +18,13 @@ let packagePlatforms: [SupportedPlatform] = [
 ]
 
 let packageProducts: [Product] = [
-  .library(
-    name: "InvariantSwiftCore",
-    targets: ["InvariantSwiftCore"]
-  ),
-  .library(
-    name: "InvariantSwift",
-    targets: ["InvariantSwift"]
-  ),
-  // Note: InvariantSwiftMacros is a .macro target, not a library
-  .library(
-    name: "InvariantSwiftTesting",
-    targets: ["InvariantSwiftTesting"]
-  ),
-  .library(
-    name: "InvariantSwiftExperimental",
-    targets: ["InvariantSwiftExperimental"]
-  ),
-  .library(
-    name: "InvariantSwiftDomainGenerators",
-    targets: ["InvariantSwiftDomainGenerators"]
-  ),
-  // NOTE: FuncTestCLI temporarily disabled - needs type inference fixes
-  // .executable(
-  //   name: "FuncTestCLI",
-  //   targets: ["FuncTestCLI"]
-  // ),
-  .plugin(
-    name: "InvariantSwiftPlugin",
-    targets: ["InvariantSwiftPlugin"]
-  ),
-  .plugin(
-    name: "GhostwriterPlugin",
-    targets: ["GhostwriterPlugin"]
-  ),
+  .library(name: "InvariantSwiftCore", targets: ["InvariantSwiftCore"]),
+  .library(name: "InvariantSwift", targets: ["InvariantSwift"]),
+  .library(name: "InvariantSwiftTesting", targets: ["InvariantSwiftTesting"]),
+  .library(name: "InvariantSwiftExperimental", targets: ["InvariantSwiftExperimental"]),
+  .library(name: "InvariantSwiftDomainGenerators", targets: ["InvariantSwiftDomainGenerators"]),
+  .plugin(name: "InvariantSwiftPlugin", targets: ["InvariantSwiftPlugin"]),
+  .plugin(name: "GhostwriterPlugin", targets: ["GhostwriterPlugin"]),
 ]
 
 let packageDependencies: [Package.Dependency] = [
@@ -60,74 +32,124 @@ let packageDependencies: [Package.Dependency] = [
   .package(url: "https://github.com/google/swift-benchmark", from: "0.1.2"),
 ]
 
+// MARK: - Layer 0: Foundation (zero dependencies)
+
 let coreTargets: [Target] = [
   .target(
     name: "InvariantSwiftCore",
     dependencies: [],
-    path: "Sources/InvariantSwift",
-    exclude: [
-      "Contract",
-      "Database",
-      "Differential",
-      "Generators",
-      "Ghostwriter",
-      "Persistence",
-      "Presentation",
-      "Testing",
-      "Advanced",
-      "Coverage",
-      "Fuzzing",
-      "Reliability",
-      "Observability",
-      "SwiftTesting",
-      "Macros",
-      "FunctionalTesting.swift",
-      "CLAUDE.md",
-      "AGENTS.md",
-    ],
-    sources: [
-      "Core"
-    ],
-    swiftSettings: commonSwiftSettings + [
-      .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
-    ]
+    path: "Sources/InvariantSwiftCore",
+    swiftSettings: commonSwiftSettings
   )
 ]
+
+// MARK: - Layer 1: Building Blocks (depend only on Core)
+
+let generatorTargets: [Target] = [
+  .target(
+    name: "InvariantSwiftGenerators",
+    dependencies: ["InvariantSwiftCore"],
+    path: "Sources/InvariantSwiftGenerators",
+    swiftSettings: commonSwiftSettings
+  )
+]
+
+let executionTargets: [Target] = [
+  .target(
+    name: "InvariantSwiftExecution",
+    dependencies: ["InvariantSwiftCore"],
+    path: "Sources/InvariantSwiftExecution",
+    swiftSettings: commonSwiftSettings
+  )
+]
+
+// MARK: - Layer 2: Main Library (combines internal modules)
 
 let libraryTargets: [Target] = [
   .target(
     name: "InvariantSwift",
     dependencies: [
-      "InvariantSwiftCore"
+      "InvariantSwiftCore",
+      "InvariantSwiftGenerators",
+      "InvariantSwiftExecution",
     ],
     path: "Sources/InvariantSwift",
     exclude: [
-      "Core",  // InvariantSwiftCore
-      "Advanced",  // InvariantSwiftExperimental
-      "Coverage",  // InvariantSwiftExperimental
-      "Fuzzing",  // InvariantSwiftExperimental
-      "Reliability",  // InvariantSwiftExperimental
-      "Observability",  // InvariantSwiftExperimental
-      "SwiftTesting",  // InvariantSwiftTesting
-      "Macros",  // InvariantSwiftTesting
+      // Directories that are now in dedicated modules:
+      "Core",
+      "Generators",
+      "Testing",
+      "Contract",
+      "Database",
+      "Advanced",
+      "Coverage",
+      "Extensions",
+      "Fuzzing",
+      "Reliability",
+      "Observability",
+      "SwiftTesting",
+      "Macros",
       "CLAUDE.md",
       "AGENTS.md",
     ],
     sources: [
-      "Contract",
-      "Database",
       "Differential",
-      "Generators",
       "Ghostwriter",
-      "Persistence",
       "Presentation",
-      "Testing",
       "FunctionalTesting.swift",
+      "InvariantSwift.swift",
     ],
-    swiftSettings: commonSwiftSettings + [
-      .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
-    ]
-  ),
+    swiftSettings: commonSwiftSettings
+  )
+]
+
+// MARK: - Layer 3: Extensions (depend on main library)
+
+let macroAPITargets: [Target] = [
+  .target(
+    name: "InvariantSwiftMacroAPI",
+    dependencies: [
+      "InvariantSwiftCore",
+      "InvariantSwift",
+      "InvariantSwiftExperimental",
+    ],
+    path: "Sources/InvariantSwiftMacroAPI",
+    swiftSettings: commonSwiftSettings
+  )
+]
+
+let experimentalTargets: [Target] = [
+  .target(
+    name: "InvariantSwiftExperimental",
+    dependencies: [
+      "InvariantSwiftCore",
+      "InvariantSwift",
+    ],
+    path: "Sources/InvariantSwiftExperimental",
+    swiftSettings: commonSwiftSettings
+  )
+]
+
+// MARK: - Layer 4: Testing Integration (depends on everything)
+
+let testingIntegrationTargets: [Target] = [
+  .target(
+    name: "InvariantSwiftTesting",
+    dependencies: [
+      "InvariantSwiftCore",
+      "InvariantSwift",
+      "InvariantSwiftExperimental",
+      "InvariantSwiftMacroAPI",
+      "InvariantSwiftMacros",
+    ],
+    path: "Sources/InvariantSwiftTestingIntegration",
+    swiftSettings: commonSwiftSettings
+  )
+]
+
+// MARK: - Compile-Time Only (swift-syntax isolated)
+
+let macroTargets: [Target] = [
   .macro(
     name: "InvariantSwiftMacros",
     dependencies: [
@@ -136,113 +158,12 @@ let libraryTargets: [Target] = [
       .product(name: "SwiftParser", package: "swift-syntax"),
     ],
     path: "Sources/InvariantSwiftMacros",
-    exclude: [
-      "CLAUDE.md",
-      "AGENTS.md",
-    ],
-    swiftSettings: commonSwiftSettings + [
-      .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
-    ]
-  ),
-  .target(
-    name: "InvariantSwiftTesting",
-    dependencies: [
-      "InvariantSwiftCore",
-      "InvariantSwift",
-      "InvariantSwiftExperimental",
-      "InvariantSwiftMacros",
-    ],
-    path: "Sources/InvariantSwift",
-    exclude: [
-      "Core",
-      "Contract",
-      "Database",
-      "Differential",
-      "Generators",
-      "Ghostwriter",
-      "Persistence",
-      "Presentation",
-      "Testing",
-      "Advanced",
-      "Coverage",
-      "Fuzzing",
-      "Reliability",
-      "Observability",
-      "FunctionalTesting.swift",
-      "Macros/LawGeneration.swift.disabled",
-      "CLAUDE.md",
-      "AGENTS.md",
-    ],
-    sources: [
-      "SwiftTesting",
-      "Macros",
-    ],
-    swiftSettings: commonSwiftSettings + [
-      .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
-    ]
-  ),
-  .target(
-    name: "InvariantSwiftExperimental",
-    dependencies: [
-      "InvariantSwiftCore",
-      "InvariantSwift",
-    ],
-    path: "Sources/InvariantSwift",
-    exclude: [
-      "Core",
-      "Contract",
-      "Database",
-      "Differential",
-      "Generators",
-      "Ghostwriter",
-      "Persistence",
-      "Presentation",
-      "Testing",
-      "SwiftTesting",
-      "Macros",
-      "FunctionalTesting.swift",
-      "CLAUDE.md",
-      "AGENTS.md",
-    ],
-    sources: [
-      "Advanced",
-      "Coverage",
-      "Extensions",
-      "Fuzzing",
-      "Reliability",
-      "Observability",
-    ],
-    swiftSettings: commonSwiftSettings + [
-      .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
-    ]
-  ),
-  .target(
-    name: "InvariantSwiftDomainGenerators",
-    dependencies: [
-      "InvariantSwiftCore",
-      "InvariantSwift",
-    ],
-    path: "Sources/InvariantSwiftDomainGenerators",
-    swiftSettings: commonSwiftSettings + [
-      .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
-    ]
-  ),
+    exclude: ["CLAUDE.md", "AGENTS.md"],
+    swiftSettings: commonSwiftSettings
+  )
 ]
 
-let executableTargets: [Target] = [
-  // NOTE: FuncTestCLI temporarily disabled - needs type inference fixes
-  // .executableTarget(
-  //   name: "FuncTestCLI",
-  //   dependencies: [
-  //     "InvariantSwift",
-  //     "InvariantSwiftTesting",
-  //     .product(name: "CustomDump", package: "swift-custom-dump"),
-  //   ],
-  //   path: "Sources/FuncTestCLI",
-  //   swiftSettings: commonSwiftSettings + [
-  //     .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
-  //   ]
-  // ),
+let ghostwriterTargets: [Target] = [
   .target(
     name: "GhostwriterLib",
     dependencies: [
@@ -262,6 +183,20 @@ let executableTargets: [Target] = [
     path: "Sources/GhostwriterCLI",
     swiftSettings: commonSwiftSettings
   ),
+]
+
+// MARK: - Domain & Utilities
+
+let domainTargets: [Target] = [
+  .target(
+    name: "InvariantSwiftDomainGenerators",
+    dependencies: ["InvariantSwiftCore", "InvariantSwift"],
+    path: "Sources/InvariantSwiftDomainGenerators",
+    swiftSettings: commonSwiftSettings
+  )
+]
+
+let utilityTargets: [Target] = [
   .executableTarget(
     name: "Benchmarks",
     dependencies: [
@@ -286,66 +221,46 @@ let executableTargets: [Target] = [
   ),
 ]
 
+// MARK: - Plugins
+
 let pluginTargets: [Target] = [
   .plugin(
     name: "InvariantSwiftPlugin",
     capability: .command(
-      intent: .custom(
-        verb: "invariant",
-        description: "Run property-based tests with advanced features"
-      ),
-      permissions: [
-        .writeToPackageDirectory(reason: "Generate test reports and local artifacts")
-      ]
+      intent: .custom(verb: "invariant", description: "Run property-based tests"),
+      permissions: [.writeToPackageDirectory(reason: "Generate test reports")]
     ),
-    dependencies: [
-      // "FuncTestCLI"  // Temporarily disabled
-    ],
+    dependencies: [],
     path: "Plugins/InvariantSwiftPlugin"
   ),
   .plugin(
     name: "GhostwriterPlugin",
     capability: .command(
-      intent: .custom(
-        verb: "ghostwrite",
-        description: "Generate property tests automatically from source code"
-      ),
-      permissions: [
-        .writeToPackageDirectory(reason: "Generate property test files")
-      ]
+      intent: .custom(verb: "ghostwrite", description: "Generate property tests"),
+      permissions: [.writeToPackageDirectory(reason: "Generate test files")]
     ),
-    dependencies: [
-      "GhostwriterCLI"
-    ],
+    dependencies: ["GhostwriterCLI"],
     path: "Plugins/GhostwriterPlugin"
   ),
   .plugin(
     name: "GeneratorCatalogPlugin",
     capability: .command(
-      intent: .custom(
-        verb: "browse-generators",
-        description: "Browse the generator catalog interactively"
-      ),
+      intent: .custom(verb: "browse-generators", description: "Browse generator catalog"),
       permissions: []
     ),
-    dependencies: [
-      "GeneratorCatalogCLI"
-    ],
+    dependencies: ["GeneratorCatalogCLI"],
     path: "Plugins/GeneratorCatalogPlugin"
   ),
 ]
 
+// MARK: - Tests
+
 let testTargets: [Target] = [
   .testTarget(
-    name: "InvariantSwiftDomainGeneratorsTests",
-    dependencies: [
-      "InvariantSwiftDomainGenerators",
-      "InvariantSwift",
-    ],
-    path: "Tests/InvariantSwiftDomainGeneratorsTests",
-    swiftSettings: commonSwiftSettings + [
-      .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
-    ]
+    name: "InvariantSwiftCoreTests",
+    dependencies: ["InvariantSwiftCore"],
+    path: "Tests/InvariantSwiftCoreTests",
+    swiftSettings: commonSwiftSettings
   ),
   .testTarget(
     name: "InvariantSwiftTests",
@@ -358,23 +273,7 @@ let testTargets: [Target] = [
       "GhostwriterLib",
     ],
     path: "Tests/InvariantSwiftTests",
-    exclude: [
-      "FunctionalTesting/CollectionShrinkingV2Tests.swift.disabled",
-      "FunctionalTesting/SMTSolverTests.swift.disabled",
-      "FunctionalTesting/NumericGeneratorTests.swift.disabled",
-      "FunctionalTesting/CollectionGeneratorTests.swift.disabled",
-      "FunctionalTesting/MetaPropertyTests.swift.disabled",
-      "FunctionalTesting/LibFuzzerTests.swift.disabled",
-      "FunctionalTesting/MetamorphicTests.swift.disabled",
-      "FunctionalTesting/CoverageCompletionTests.swift.disabled",
-      "FunctionalTesting/CoverageGuidedTests.swift.disabled",
-      "FunctionalTesting/FloatingPointModeTests.swift.disabled",
-      "FunctionalTesting/PrettyPrinterEnhancementTests.swift.disabled",
-      "FunctionalTesting/GeneratorRegistryTests.swift.disabled",
-    ],
-    swiftSettings: commonSwiftSettings + [
-      .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
-    ]
+    swiftSettings: commonSwiftSettings
   ),
   .testTarget(
     name: "InvariantSwiftMacroTests",
@@ -384,20 +283,20 @@ let testTargets: [Target] = [
       .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
     ],
     path: "Tests/InvariantSwiftMacroTests",
-    resources: [
-      .copy("Resources")
-    ],
-    swiftSettings: commonSwiftSettings + [
-      .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
-    ]
+    resources: [.copy("Resources")],
+    swiftSettings: commonSwiftSettings
+  ),
+  .testTarget(
+    name: "InvariantSwiftDomainGeneratorsTests",
+    dependencies: ["InvariantSwiftDomainGenerators", "InvariantSwift"],
+    path: "Tests/InvariantSwiftDomainGeneratorsTests",
+    swiftSettings: commonSwiftSettings
   ),
   .testTarget(
     name: "PerformanceTests",
     dependencies: ["InvariantSwift"],
     path: "Tests/PerformanceTests",
-    swiftSettings: commonSwiftSettings + [
-      .unsafeFlags(["-enable-testing", "-Onone"], .when(configuration: .debug))
-    ]
+    swiftSettings: commonSwiftSettings
   ),
   .testTarget(
     name: "CoverageIntegrationTests",
@@ -409,9 +308,7 @@ let testTargets: [Target] = [
       "InvariantSwiftExperimental",
     ],
     path: "Tests/CoverageIntegrationTests",
-    swiftSettings: commonSwiftSettings + [
-      .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
-    ]
+    swiftSettings: commonSwiftSettings
   ),
   .testTarget(
     name: "GeneratedPropertyTests",
@@ -422,9 +319,8 @@ let testTargets: [Target] = [
       "InvariantSwiftTesting",
       "InvariantSwiftExperimental",
     ],
-    swiftSettings: commonSwiftSettings + [
-      .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
-    ]
+    path: "Tests/GeneratedPropertyTests",
+    swiftSettings: commonSwiftSettings
   ),
   .testTarget(
     name: "SmokeTests",
@@ -436,13 +332,26 @@ let testTargets: [Target] = [
       "InvariantSwiftExperimental",
     ],
     path: "Tests/SmokeTests",
-    swiftSettings: commonSwiftSettings + [
-      .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
-    ]
+    swiftSettings: commonSwiftSettings
   ),
 ]
 
-let allTargets = coreTargets + libraryTargets + executableTargets + pluginTargets + testTargets
+// MARK: - Package
+
+let allTargets =
+  coreTargets
+  + generatorTargets
+  + executionTargets
+  + libraryTargets
+  + macroAPITargets
+  + experimentalTargets
+  + testingIntegrationTargets
+  + macroTargets
+  + ghostwriterTargets
+  + domainTargets
+  + utilityTargets
+  + pluginTargets
+  + testTargets
 
 let package = Package(
   name: "InvariantSwift",

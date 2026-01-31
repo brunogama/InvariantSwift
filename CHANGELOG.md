@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Architecture Refactor: Layered Module Structure** - Major reorganization
+  - Split monolithic InvariantSwift into layered modules with clean dependency graph
+  - Layer 0 (Foundation): InvariantSwiftCore - Gen, Property, Shrink, Seed, Size
+  - Layer 1 (Building Blocks): InvariantSwiftGenerators, InvariantSwiftExecution
+  - Layer 2 (Main Library): InvariantSwift - re-exports Core, Generators, Execution
+  - Layer 3 (Extensions): InvariantSwiftMacroAPI (no swift-syntax), InvariantSwiftExperimental
+  - Layer 4 (Testing): InvariantSwiftTesting - Swift Testing framework integration
+  - Isolated swift-syntax to compile-time-only macro target
+  - Fixed circular dependency in MacroAPI with duplicated support types
+  - Added umbrella re-exports for unified import experience
+
 ### Fixed
 - **Phase 04.7-26: ConfigBuilder SwiftLint Cleanup** - Gap closure (wave 2)
   - Fixed 5 SwiftLint violations in Sources/InvariantSwift/Testing/ConfigBuilder.swift
