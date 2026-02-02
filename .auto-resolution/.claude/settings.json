@@ -1,0 +1,62 @@
+{
+    "hooks": {
+        "PreToolUse": [
+            {
+                "matcher": "Bash",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "if [[ \"$CLAUDE_TOOL_INPUT\" =~ (rm[[:space:]]+-rf[[:space:]]+(/|\\.|Sources|Tests|.build)|git[[:space:]]+push[[:space:]]+-f|git[[:space:]]+reset[[:space:]]+--hard) ]]; then echo 'BLOCKED: Dangerous command requires explicit approval' && exit 2; fi"
+                    },
+                    {
+                        "type": "command",
+                        "command": "if [[ \"$CLAUDE_TOOL_INPUT\" =~ git[[:space:]]+commit[[:space:]]+.*--no-verify ]]; then echo -e '\n❌ BLOCKED: git commit --no-verify\n\n🛡️  Pre-commit hooks are QUALITY GATES that ensure code quality.\n\n✅ CORRECT APPROACH:\n   1. Fix the failing check (lint, format, tests)\n   2. If you MUST skip a specific check, ask user first, then use:\n      SKIP=hook-name git commit -m \"message\"\n\n📋 Available SKIP targets:\n   - SKIP=trailing-whitespace\n   - SKIP=end-of-file-fixer\n   - SKIP=mixed-line-ending\n   - SKIP=swiftlint\n   - SKIP=swift-format\n   - SKIP=swift-coverage-guard\n\n⚠️  NEVER bypass ALL hooks with --no-verify!\n    This violates project code quality standards.\n' && exit 2; fi"
+                    }
+                ]
+            }
+        ],
+        "PostToolUse": [
+            {
+                "matcher": "Write|Edit|MultiEdit",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "if [[ \"$CLAUDE_FILE_PATHS\" =~ \\.(swift)$ ]] && [[ ! \"$CLAUDE_FILE_PATHS\" =~ \\.build/ ]]; then swift-format -i --configuration .swift-format \"$CLAUDE_FILE_PATHS\" 2>/dev/null || true; fi"
+                    },
+                    {
+                        "type": "command",
+                        "command": ".claude/hooks/swiftlint-fix-and-check.sh"
+                    }
+                ]
+            }
+        ]
+    },
+    "permissions": {
+        "allow": [
+            "Bash(swift build*)",
+            "Bash(swift test*)",
+            "Bash(swiftlint*)",
+            "Bash(swift-format*)",
+            "Bash(make *)",
+            "Bash(rg *)",
+            "Bash(find *)",
+            "Bash(ls *)",
+            "Bash(cat *)",
+            "Bash(head *)",
+            "Bash(tail *)",
+            "Bash(wc *)",
+            "Bash(git status*)",
+            "Bash(git log*)",
+            "Bash(git diff*)",
+            "Bash(git branch*)",
+            "Bash(gh issue*)",
+            "Bash(gh pr*)"
+        ],
+        "deny": [
+            "Bash(rm -rf /)",
+            "Bash(rm -rf ~)",
+            "Bash(git push -f*)",
+            "Bash(git reset --hard*)"
+        ]
+    }
+}

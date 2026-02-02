@@ -1,0 +1,477 @@
+// swift-tools-version: 6.2
+// ═══════════════════════════════════════════════════════════════════════════════
+// InvariantSwift - Property-Based Testing Framework
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// Architecture: Layered design with swift-syntax isolation
+//
+// ┌─────────────────────────────────────────────────────────────────────────────┐
+// │                    COMPILE-TIME ONLY (swift-syntax isolated)               │
+// │  InvariantSwiftMacroImpl    GhostwriterSyntax    GhostwriterCLI            │
+// └─────────────────────────────────────────────────────────────────────────────┘
+//                                      │
+// ══════════════════════════════════════╪════════════════════════════════════════
+//                                      │ (macro boundary)
+// ══════════════════════════════════════╪════════════════════════════════════════
+//                                      │
+// ┌─────────────────────────────────────┴───────────────────────────────────────┐
+// │                         RUNTIME (zero swift-syntax)                         │
+// │                                                                             │
+// │   Core → Generators → Execution → Persistence → InvariantSwift             │
+// │                                                            ↓               │
+// │                    MacroAPI → Experimental → Testing                       │
+// └─────────────────────────────────────────────────────────────────────────────┘
+//
+// swiftlint:disable all
+
+import PackageDescription
+import CompilerPluginSupport
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - Common Configuration
+// ═══════════════════════════════════════════════════════════════════════════════
+
+let commonSwiftSettings: [SwiftSetting] = [
+  .unsafeFlags(["-Xfrontend", "-strict-concurrency=complete", "-Xfrontend", "-warn-concurrency"]),
+  .enableUpcomingFeature("StrictConcurrency"),
+]
+
+let debugSwiftSettings: [SwiftSetting] = commonSwiftSettings + [
+  .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
+]
+
+let packagePlatforms: [SupportedPlatform] = [
+  .iOS(.v17),
+  .macOS(.v14),
+  .tvOS(.v17),
+  .watchOS(.v10),
+  .macCatalyst(.v17),
+]
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - Products
+// ═══════════════════════════════════════════════════════════════════════════════
+
+let packageProducts: [Product] = [
+  // MAIN LIBRARY PRODUCTS (no swift-syntax in transitive dependencies)
+  .library(
+    name: "InvariantSwiftCore",
+    targets: ["InvariantSwiftCore"]
+  ),
+  .library(
+    name: "InvariantSwift",
+    targets: ["InvariantSwift"]
+  ),
+  .library(
+    name: "InvariantSwiftTesting",
+    targets: ["InvariantSwiftTesting"]
+  ),
+  .library(
+    name: "InvariantSwiftExperimental",
+    targets: ["InvariantSwiftExperimental"]
+  ),
+  .library(
+    name: "InvariantSwiftDomainGenerators",
+    targets: ["InvariantSwiftDomainGenerators"]
+  ),
+
+  // MACRO API (declarations only, no swift-syntax)
+  .library(
+    name: "InvariantSwiftMacroAPI",
+    targets: ["InvariantSwiftMacroAPI"]
+  ),
+
+  // PLUGINS
+  .plugin(
+    name: "GhostwriterPlugin",
+    targets: ["GhostwriterPlugin"]
+  ),
+]
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - Dependencies
+// ═══════════════════════════════════════════════════════════════════════════════
+
+let packageDependencies: [Package.Dependency] = [
+  // swift-syntax - ONLY used by compile-time targets
+  .package(url: "https://github.com/swiftlang/swift-syntax", from: "602.0.0"),
+
+  // Benchmarking
+  .package(url: "https://github.com/google/swift-benchmark", from: "0.1.2"),
+]
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - Layer 0: Core (Zero Dependencies)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+let coreTargets: [Target] = [
+  .target(
+    name: "InvariantSwiftCore",
+    dependencies: [],
+    path: "Sources/InvariantSwiftCore",
+    swiftSettings: debugSwiftSettings
+  ),
+]
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - Layer 1: Internal Modules (Depend only on Core)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+let internalModuleTargets: [Target] = [
+  .target(
+    name: "InvariantSwiftGenerators",
+    dependencies: ["InvariantSwiftCore"],
+    path: "Sources/InvariantSwiftGenerators",
+    swiftSettings: debugSwiftSettings
+  ),
+
+  .target(
+    name: "InvariantSwiftExecution",
+    dependencies: ["InvariantSwiftCore"],
+    path: "Sources/InvariantSwiftExecution",
+    swiftSettings: debugSwiftSettings
+  ),
+
+  .target(
+    name: "InvariantSwiftPersistence",
+    dependencies: ["InvariantSwiftCore"],
+    path: "Sources/InvariantSwiftPersistence",
+    swiftSettings: debugSwiftSettings
+  ),
+]
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - Layer 2: Main Library (Combines internal modules)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+let mainLibraryTargets: [Target] = [
+  .target(
+    name: "InvariantSwift",
+    dependencies: [
+      "InvariantSwiftCore",
+      "InvariantSwiftGenerators",
+      "InvariantSwiftExecution",
+      "InvariantSwiftPersistence",
+    ],
+    path: "Sources/InvariantSwift",
+    exclude: [
+      // Exclude directories now in separate targets
+      "Core",
+      "Generators",
+      "Testing",
+      "Database",
+      "SwiftTesting",
+      "Macros",
+      "Advanced",
+      "Coverage",
+      "Extensions",
+      "Fuzzing",
+      "Reliability",
+      "Observability",
+      "CLAUDE.md",
+      "AGENTS.md",
+    ],
+    swiftSettings: debugSwiftSettings
+  ),
+]
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - Layer 3: Macro API (Declarations only - NO swift-syntax!)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+let macroAPITargets: [Target] = [
+  .target(
+    name: "InvariantSwiftMacroAPI",
+    dependencies: [
+      "InvariantSwiftCore",
+      "InvariantSwift",
+    ],
+    path: "Sources/InvariantSwiftMacroAPI",
+    swiftSettings: debugSwiftSettings
+  ),
+]
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - Layer 3: Experimental (Advanced features)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+let experimentalTargets: [Target] = [
+  .target(
+    name: "InvariantSwiftExperimental",
+    dependencies: [
+      "InvariantSwiftCore",
+      "InvariantSwift",
+    ],
+    path: "Sources/InvariantSwiftExperimental",
+    swiftSettings: debugSwiftSettings
+  ),
+]
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - Layer 4: Testing Integration (Swift Testing bridge)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+let testingTargets: [Target] = [
+  .target(
+    name: "InvariantSwiftTesting",
+    dependencies: [
+      "InvariantSwiftCore",
+      "InvariantSwift",
+      "InvariantSwiftExperimental",
+      "InvariantSwiftMacroAPI",     // Declarations only - NO swift-syntax!
+      "InvariantSwiftMacroImpl",    // Macro implementation (swift-syntax)
+    ],
+    path: "Sources/InvariantSwiftTesting",
+    swiftSettings: debugSwiftSettings
+  ),
+]
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - Layer 4: Domain Generators (Optional add-on)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+let domainGeneratorTargets: [Target] = [
+  .target(
+    name: "InvariantSwiftDomainGenerators",
+    dependencies: [
+      "InvariantSwiftCore",
+      "InvariantSwift",
+    ],
+    path: "Sources/InvariantSwiftDomainGenerators",
+    swiftSettings: debugSwiftSettings
+  ),
+]
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - Compile-Time Targets (swift-syntax ISOLATED here)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+let compileTimeTargets: [Target] = [
+  // Macro Implementation (swift-syntax required)
+  .macro(
+    name: "InvariantSwiftMacroImpl",
+    dependencies: [
+      .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
+      .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
+      .product(name: "SwiftParser", package: "swift-syntax"),
+    ],
+    path: "Sources/InvariantSwiftMacroImpl",
+    swiftSettings: commonSwiftSettings
+  ),
+
+  // Ghostwriter Source Analysis (swift-syntax required)
+  .target(
+    name: "GhostwriterSyntax",
+    dependencies: [
+      .product(name: "SwiftParser", package: "swift-syntax"),
+      .product(name: "SwiftSyntax", package: "swift-syntax"),
+    ],
+    path: "Sources/GhostwriterSyntax",
+    swiftSettings: commonSwiftSettings
+  ),
+
+  // Ghostwriter CLI
+  .executableTarget(
+    name: "GhostwriterCLI",
+    dependencies: ["GhostwriterSyntax"],
+    path: "Sources/GhostwriterCLI",
+    swiftSettings: commonSwiftSettings
+  ),
+]
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - Executables and Tools
+// ═══════════════════════════════════════════════════════════════════════════════
+
+let executableTargets: [Target] = [
+  .executableTarget(
+    name: "Benchmarks",
+    dependencies: [
+      "InvariantSwiftCore",
+      "InvariantSwift",
+      .product(name: "Benchmark", package: "swift-benchmark"),
+    ],
+    path: "Benchmarks",
+    swiftSettings: commonSwiftSettings
+  ),
+
+  .executableTarget(
+    name: "GeneratorCatalogCLI",
+    dependencies: ["InvariantSwift"],
+    path: "Sources/GeneratorCatalogCLI",
+    swiftSettings: commonSwiftSettings
+  ),
+]
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - Plugins
+// ═══════════════════════════════════════════════════════════════════════════════
+
+let pluginTargets: [Target] = [
+  .plugin(
+    name: "GhostwriterPlugin",
+    capability: .command(
+      intent: .custom(
+        verb: "ghostwrite",
+        description: "Generate property tests automatically from source code"
+      ),
+      permissions: [
+        .writeToPackageDirectory(reason: "Generate property test files")
+      ]
+    ),
+    dependencies: ["GhostwriterCLI"],
+    path: "Plugins/GhostwriterPlugin"
+  ),
+
+  .plugin(
+    name: "GeneratorCatalogPlugin",
+    capability: .command(
+      intent: .custom(
+        verb: "browse-generators",
+        description: "Browse the generator catalog interactively"
+      ),
+      permissions: []
+    ),
+    dependencies: ["GeneratorCatalogCLI"],
+    path: "Plugins/GeneratorCatalogPlugin"
+  ),
+]
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - Test Targets
+// ═══════════════════════════════════════════════════════════════════════════════
+
+let testTargets: [Target] = [
+  // Core tests (no swift-syntax)
+  .testTarget(
+    name: "InvariantSwiftCoreTests",
+    dependencies: ["InvariantSwiftCore"],
+    path: "Tests/InvariantSwiftCoreTests",
+    swiftSettings: debugSwiftSettings
+  ),
+
+  // Main library tests (no swift-syntax)
+  .testTarget(
+    name: "InvariantSwiftTests",
+    dependencies: [
+      "InvariantSwiftCore",
+      "InvariantSwift",
+      "InvariantSwiftTesting",
+      "InvariantSwiftExperimental",
+      // Note: NO GhostwriterSyntax dependency!
+    ],
+    path: "Tests/InvariantSwiftTests",
+    exclude: [
+      "FunctionalTesting/CollectionShrinkingV2Tests.swift.disabled",
+      "FunctionalTesting/SMTSolverTests.swift.disabled",
+      "FunctionalTesting/NumericGeneratorTests.swift.disabled",
+      "FunctionalTesting/CollectionGeneratorTests.swift.disabled",
+      "FunctionalTesting/MetaPropertyTests.swift.disabled",
+      "FunctionalTesting/LibFuzzerTests.swift.disabled",
+      "FunctionalTesting/MetamorphicTests.swift.disabled",
+      "FunctionalTesting/CoverageCompletionTests.swift.disabled",
+      "FunctionalTesting/CoverageGuidedTests.swift.disabled",
+      "FunctionalTesting/FloatingPointModeTests.swift.disabled",
+      "FunctionalTesting/PrettyPrinterEnhancementTests.swift.disabled",
+      "FunctionalTesting/GeneratorRegistryTests.swift.disabled",
+    ],
+    swiftSettings: debugSwiftSettings
+  ),
+
+  // Macro tests (swift-syntax required - isolated here)
+  .testTarget(
+    name: "InvariantSwiftMacroTests",
+    dependencies: [
+      "InvariantSwiftCore",
+      "InvariantSwiftMacroImpl",
+      .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
+    ],
+    path: "Tests/InvariantSwiftMacroTests",
+    resources: [.copy("Resources")],
+    swiftSettings: debugSwiftSettings
+  ),
+
+  // Ghostwriter syntax tests (swift-syntax required - isolated here)
+  .testTarget(
+    name: "GhostwriterSyntaxTests",
+    dependencies: ["GhostwriterSyntax"],
+    path: "Tests/GhostwriterSyntaxTests",
+    swiftSettings: debugSwiftSettings
+  ),
+
+  // Domain generator tests
+  .testTarget(
+    name: "InvariantSwiftDomainGeneratorsTests",
+    dependencies: [
+      "InvariantSwiftDomainGenerators",
+      "InvariantSwift",
+    ],
+    path: "Tests/InvariantSwiftDomainGeneratorsTests",
+    swiftSettings: debugSwiftSettings
+  ),
+
+  // Performance tests
+  .testTarget(
+    name: "PerformanceTests",
+    dependencies: ["InvariantSwift"],
+    path: "Tests/PerformanceTests",
+    swiftSettings: commonSwiftSettings + [
+      .unsafeFlags(["-enable-testing", "-Onone"], .when(configuration: .debug))
+    ]
+  ),
+
+  // Coverage integration tests
+  .testTarget(
+    name: "CoverageIntegrationTests",
+    dependencies: [
+      "InvariantSwiftCore",
+      "InvariantSwift",
+      "InvariantSwiftMacroAPI",
+      "InvariantSwiftMacroImpl",
+      "InvariantSwiftTesting",
+      "InvariantSwiftExperimental",
+    ],
+    path: "Tests/CoverageIntegrationTests",
+    swiftSettings: debugSwiftSettings
+  ),
+
+  // Smoke tests
+  .testTarget(
+    name: "SmokeTests",
+    dependencies: [
+      "InvariantSwiftCore",
+      "InvariantSwift",
+      "InvariantSwiftMacroAPI",
+      "InvariantSwiftMacroImpl",
+      "InvariantSwiftTesting",
+      "InvariantSwiftExperimental",
+    ],
+    path: "Tests/SmokeTests",
+    swiftSettings: debugSwiftSettings
+  ),
+]
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - Package Definition
+// ═══════════════════════════════════════════════════════════════════════════════
+
+let allTargets =
+  coreTargets +
+  internalModuleTargets +
+  mainLibraryTargets +
+  macroAPITargets +
+  experimentalTargets +
+  testingTargets +
+  domainGeneratorTargets +
+  compileTimeTargets +
+  executableTargets +
+  pluginTargets +
+  testTargets
+
+let package = Package(
+  name: "InvariantSwift",
+  platforms: packagePlatforms,
+  products: packageProducts,
+  dependencies: packageDependencies,
+  targets: allTargets
+)
