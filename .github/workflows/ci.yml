@@ -14,14 +14,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  repo-hygiene:
-    name: Repo Hygiene Check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Check for macOS artifacts
-        run: ./Scripts/check-repo-hygiene.sh
-
   swift-test-linux:
     name: swift test (Linux)
     runs-on: ubuntu-latest

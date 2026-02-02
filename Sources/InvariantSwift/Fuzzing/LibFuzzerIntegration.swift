@@ -580,13 +580,6 @@ public struct FuzzStatistics: Sendable {
     self.failCount = failCount
     self.lastFailure = lastFailure
   }
-
-  public init(executionCount: Int, passCount: Int, failCount: Int, lastFailure: String?) {
-    self.executionCount = executionCount
-    self.passCount = passCount
-    self.failCount = failCount
-    self.lastFailure = lastFailure
-  }
 }
 
 /// Protocol for type-erasing fuzz targets
