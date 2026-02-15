@@ -27,7 +27,17 @@ let packageProducts: [Product] = [
   .plugin(name: "GhostwriterPlugin", targets: ["GhostwriterPlugin"]),
 ]
 
+// MARK: - Workspace Structure
+// This package serves as the root of a monorepo workspace.
+// Sub-packages:
+//   - Packages/InvariantSwiftCore: Core library without SwiftSyntax dependency
+//   - Packages/InvariantSwiftMacros: Macro implementations with SwiftSyntax
+
 let packageDependencies: [Package.Dependency] = [
+  // Local workspace packages (for future migration)
+  .package(path: "Packages/InvariantSwiftCore"),
+  .package(path: "Packages/InvariantSwiftMacros"),
+  // External dependencies
   .package(url: "https://github.com/swiftlang/swift-syntax", from: "602.0.0"),
   .package(url: "https://github.com/google/swift-benchmark", from: "0.1.2"),
 ]
