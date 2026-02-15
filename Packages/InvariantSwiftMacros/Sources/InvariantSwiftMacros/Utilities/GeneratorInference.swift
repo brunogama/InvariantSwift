@@ -240,7 +240,7 @@ public enum GeneratorInference {
       expression: DeclReferenceExprSyntax(baseName: .identifier("Gen")),
       genericArgumentClause: GenericArgumentClauseSyntax {
         GenericArgumentSyntax(
-          argument: .type(TypeSyntax(IdentifierTypeSyntax(name: .identifier(typeName))))
+          argument: TypeSyntax(IdentifierTypeSyntax(name: .identifier(typeName)))
         )
       }
     )

@@ -106,7 +106,7 @@ enum ArbitraryCodeGen {
         name: .identifier("Gen"),
         genericArgumentClause: GenericArgumentClauseSyntax {
           GenericArgumentSyntax(
-            argument: .type(TypeSyntax(IdentifierTypeSyntax(name: .identifier(typeName))))
+            argument: TypeSyntax(IdentifierTypeSyntax(name: .identifier(typeName)))
           )
         }
       )
@@ -119,7 +119,7 @@ enum ArbitraryCodeGen {
         name: .identifier("Shrink"),
         genericArgumentClause: GenericArgumentClauseSyntax {
           GenericArgumentSyntax(
-            argument: .type(TypeSyntax(IdentifierTypeSyntax(name: .identifier(typeName))))
+            argument: TypeSyntax(IdentifierTypeSyntax(name: .identifier(typeName)))
           )
         }
       )
@@ -811,7 +811,7 @@ enum ArbitraryCodeGen {
           expression: DeclReferenceExprSyntax(baseName: .identifier("Gen")),
           genericArgumentClause: GenericArgumentClauseSyntax {
             GenericArgumentSyntax(
-              argument: .type(TypeSyntax(IdentifierTypeSyntax(name: .identifier("Int"))))
+              argument: TypeSyntax(IdentifierTypeSyntax(name: .identifier("Int")))
             )
           }
         ),
@@ -857,7 +857,7 @@ enum ArbitraryCodeGen {
             expression: DeclReferenceExprSyntax(baseName: .identifier("Gen")),
             genericArgumentClause: GenericArgumentClauseSyntax {
               GenericArgumentSyntax(
-                argument: .type(TypeSyntax(IdentifierTypeSyntax(name: .identifier("Int"))))
+                argument: TypeSyntax(IdentifierTypeSyntax(name: .identifier("Int")))
               )
             }
           ),
@@ -883,7 +883,7 @@ enum ArbitraryCodeGen {
           expression: DeclReferenceExprSyntax(baseName: .identifier("Gen")),
           genericArgumentClause: GenericArgumentClauseSyntax {
             GenericArgumentSyntax(
-              argument: .type(TypeSyntax(IdentifierTypeSyntax(name: .identifier("String"))))
+              argument: TypeSyntax(IdentifierTypeSyntax(name: .identifier("String")))
             )
           }
         ),

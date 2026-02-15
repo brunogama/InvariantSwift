@@ -83,7 +83,7 @@ public enum GeneratorBuilder {
       GenericSpecializationExprSyntax(
         expression: SyntaxFactory.declRef("Gen"),
         genericArgumentClause: GenericArgumentClauseSyntax {
-          GenericArgumentSyntax(argument: .type(typeNode))
+          GenericArgumentSyntax(argument: typeNode)
         }
       )
     )

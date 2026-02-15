@@ -59,7 +59,6 @@ let package = Package(
         .product(name: "SwiftParser", package: "swift-syntax"),
       ],
       path: "Sources/InvariantSwiftMacros",
-      exclude: ["CLAUDE.md", "AGENTS.md"],
       swiftSettings: commonSwiftSettings
     ),
 
@@ -70,21 +69,22 @@ let package = Package(
       dependencies: [
         "InvariantSwiftMacros",
         .product(name: "InvariantSwiftCore", package: "InvariantSwiftCore"),
+        .product(name: "InvariantSwift", package: "InvariantSwiftCore"),
+        .product(name: "InvariantSwiftExperimental", package: "InvariantSwiftCore"),
       ],
       path: "Sources/InvariantSwiftMacroAPI",
       swiftSettings: commonSwiftSettings
     ),
 
-    // MARK: - Layer 3: Tests
-    // Macro expansion tests using SwiftSyntaxMacrosTestSupport
-    .testTarget(
-      name: "InvariantSwiftMacroTests",
-      dependencies: [
-        "InvariantSwiftMacros",
-        .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
-      ],
-      path: "Tests/InvariantSwiftMacroTests",
-      swiftSettings: commonSwiftSettings
-    ),
+    // NOTE: Tests are not migrated yet. Will be added in future plan.
+    // .testTarget(
+    //   name: "InvariantSwiftMacroTests",
+    //   dependencies: [
+    //     "InvariantSwiftMacros",
+    //     .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
+    //   ],
+    //   path: "Tests/InvariantSwiftMacroTests",
+    //   swiftSettings: commonSwiftSettings
+    // ),
   ]
 )

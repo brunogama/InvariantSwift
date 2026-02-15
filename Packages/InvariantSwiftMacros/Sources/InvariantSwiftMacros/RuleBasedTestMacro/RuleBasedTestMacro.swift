@@ -271,7 +271,7 @@ public struct RuleBasedTestMacro: MemberMacro, ExtensionMacro {
     let elementType = GenericArgumentClauseSyntax(
       arguments: GenericArgumentListSyntax([
         GenericArgumentSyntax(
-          argument: .type(TypeSyntax(IdentifierTypeSyntax(name: .identifier(typeName))))
+          argument: TypeSyntax(IdentifierTypeSyntax(name: .identifier(typeName)))
         )
       ])
     )
@@ -557,7 +557,7 @@ public struct RuleBasedTestMacro: MemberMacro, ExtensionMacro {
     let elementType = GenericArgumentClauseSyntax(
       arguments: GenericArgumentListSyntax([
         GenericArgumentSyntax(
-          argument: .type(TypeSyntax(IdentifierTypeSyntax(name: .identifier(typeName))))
+          argument: TypeSyntax(IdentifierTypeSyntax(name: .identifier(typeName)))
         )
       ])
     )

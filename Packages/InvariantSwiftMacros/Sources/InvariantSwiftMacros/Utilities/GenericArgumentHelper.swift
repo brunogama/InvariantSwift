@@ -1,12 +1,11 @@
 import SwiftSyntax
 
-/// Helper extension to bridge SwiftSyntax 602+ GenericArgumentSyntax.Argument enum
-extension GenericArgumentSyntax.Argument {
-  /// Extracts the TypeSyntax from the argument, returning nil if it's an expression
+/// Compatibility extension for SwiftSyntax 600.0.1
+/// In 600.0.1, GenericArgumentSyntax.argument is TypeSyntax directly
+/// In 602.0.0+, it's GenericArgumentSyntax.Argument enum with .type() case
+extension TypeSyntax {
+  /// Returns self for compatibility with code using .asType
   public var asType: TypeSyntax? {
-    if case .type(let type) = self {
-      return type
-    }
-    return nil
+    return self
   }
 }

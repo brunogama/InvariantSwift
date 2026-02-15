@@ -423,7 +423,7 @@ private func buildPropertyDecl(
               expression: DeclReferenceExprSyntax(baseName: .identifier("Property")),
               genericArgumentClause: GenericArgumentClauseSyntax {
                 GenericArgumentSyntax(
-                  argument: .type(TypeSyntax(IdentifierTypeSyntax(name: .identifier(propertyType))))
+                  argument: TypeSyntax(IdentifierTypeSyntax(name: .identifier(propertyType)))
                 )
               }
             ),
