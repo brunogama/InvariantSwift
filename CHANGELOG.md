@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Internal
+- **Phase 11: Technical Debt Research** - Researched and documented technical debt inventory and refactoring plan
 
 ### Added
 - **Phase 05: Error Messages & Progress** - Developer experience polish for better failure diagnostics
