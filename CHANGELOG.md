@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Added Seed.fromEnvironmentOrRandom() to read INVARIANT_SEED environment variable
     - Supports valid UInt64 seeds with fallback to random for invalid values
     - Added PropertyConfig.default() factory using environment-aware seed
+    - Enhanced ReplayToken with fullReproductionInstructions showing 3 options
   - Plan 05-03: Comprehensive integration tests for error messages, progress, and seed reproducibility
 - **Phase 09-07: Workspace Cleanup Verification** - Final verification before migration cleanup
   - Verified sub-package builds: InvariantSwiftCore (3.62s), InvariantSwiftMacros (12.97s)

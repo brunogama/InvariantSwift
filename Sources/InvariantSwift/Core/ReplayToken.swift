@@ -162,6 +162,32 @@ public struct ReplayToken: Sendable, Equatable, Codable {
     """
   }
 
+  /// Returns comprehensive reproduction instructions.
+  ///
+  /// Provides three options for reproducing the failure:
+  /// 1. Environment variable (recommended for CI)
+  /// 2. Inline configuration
+  /// 3. Parse replay token
+  public var fullReproductionInstructions: String {
+    """
+    ━━━ REPRODUCTION ━━━
+
+    Option 1: Environment variable (recommended for CI)
+    $ INVARIANT_SEED=\(seed) swift test --filter YourTestName
+
+    Option 2: Inline configuration
+    let config = PropertyConfig(
+      iterations: \(iterations),
+      maxDiscarded: \(maxDiscarded),
+      seed: Seed(value: \(seed))
+    )
+
+    Option 3: Parse replay token
+    let token = ReplayToken.parse(\"\(encode())\")!
+    let config = token.toConfig()
+    """
+  }
+
   // MARK: - Conversion
 
   /// Converts this replay token to a PropertyConfig for re-running.
