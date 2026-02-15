@@ -105,15 +105,27 @@ let package = Package(
       swiftSettings: commonSwiftSettings
     ),
 
-    // NOTE: Tests are not migrated yet. Will be added in future plan.
-    // .testTarget(
-    //   name: "InvariantSwiftMacroTests",
-    //   dependencies: [
-    //     "InvariantSwiftMacros",
-    //     .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
-    //   ],
-    //   path: "Tests/InvariantSwiftMacroTests",
-    //   swiftSettings: commonSwiftSettings
-    // ),
+    // MARK: - Layer 4: Macro Tests
+    .testTarget(
+      name: "InvariantSwiftMacroTests",
+      dependencies: [
+        "InvariantSwiftMacros",
+        .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
+      ],
+      path: "Tests/InvariantSwiftMacroTests",
+      resources: [.copy("Resources")],
+      swiftSettings: commonSwiftSettings
+    ),
+    .testTarget(
+      name: "MacroIntegrationTests",
+      dependencies: [
+        "InvariantSwiftMacroAPI",
+        "GhostwriterLib",
+        .product(name: "InvariantSwift", package: "InvariantSwiftCore"),
+        .product(name: "InvariantSwiftExperimental", package: "InvariantSwiftCore"),
+      ],
+      path: "Tests/MacroIntegrationTests",
+      swiftSettings: commonSwiftSettings
+    ),
   ]
 )
