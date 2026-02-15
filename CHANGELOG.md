@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Created Packages/InvariantSwiftCore/ with stub Package.swift
   - Created Packages/InvariantSwiftMacros/ with stub Package.swift
   - Added Sources/ and Tests/ subdirectories with .gitkeep placeholders
+  - Added local path dependencies in root Package.swift
+  - Added workspace structure documentation comment
   - Establishes monorepo directory structure for parallel builds
 
 ### Changed
