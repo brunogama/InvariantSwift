@@ -38,7 +38,12 @@ let package = Package(
     .library(
       name: "InvariantSwiftMacroAPI",
       targets: ["InvariantSwiftMacroAPI"]
-    )
+    ),
+    // Ghostwriter CLI for test generation
+    .executable(
+      name: "GhostwriterCLI",
+      targets: ["GhostwriterCLI"]
+    ),
   ],
   dependencies: [
     // SwiftSyntax 600.0.1 - Use this version for prebuilts compatibility
@@ -73,6 +78,30 @@ let package = Package(
         .product(name: "InvariantSwiftExperimental", package: "InvariantSwiftCore"),
       ],
       path: "Sources/InvariantSwiftMacroAPI",
+      swiftSettings: commonSwiftSettings
+    ),
+
+    // MARK: - Layer 3: Ghostwriter (SwiftSyntax-based test generation)
+    // Library for analyzing Swift source and generating property tests
+    .target(
+      name: "GhostwriterLib",
+      dependencies: [
+        .product(name: "SwiftParser", package: "swift-syntax"),
+        .product(name: "SwiftSyntax", package: "swift-syntax"),
+      ],
+      path: "Sources/GhostwriterLib",
+      swiftSettings: commonSwiftSettings
+    ),
+
+    // CLI executable for Ghostwriter
+    .executableTarget(
+      name: "GhostwriterCLI",
+      dependencies: [
+        "GhostwriterLib",
+        .product(name: "SwiftParser", package: "swift-syntax"),
+        .product(name: "SwiftSyntax", package: "swift-syntax"),
+      ],
+      path: "Sources/GhostwriterCLI",
       swiftSettings: commonSwiftSettings
     ),
 
