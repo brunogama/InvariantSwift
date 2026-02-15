@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Phase 09-04: Ghostwriter Migration** - Moved Ghostwriter to InvariantSwiftMacros package
+  - Copied GhostwriterLib (5 files) to Packages/InvariantSwiftMacros/Sources/GhostwriterLib/
+  - Copied GhostwriterCLI (refactored to 12 files) to Packages/InvariantSwiftMacros/Sources/GhostwriterCLI/
+  - Added CLIOutput protocol abstraction for CLI output
+  - Added GenerationContext and VerboseStatsContext parameter objects
+  - Consolidates all SwiftSyntax-dependent code in macro package
+
 - **Phase 09-01: SPM Workspace Monorepo Structure** - Foundation for SwiftSyntax isolation
   - Created Packages/InvariantSwiftCore/ with stub Package.swift
   - Created Packages/InvariantSwiftMacros/ with stub Package.swift

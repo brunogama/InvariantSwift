@@ -1,0 +1,66 @@
+# SwiftLint Configuration for InvariantSwiftMacros Package
+# Based on root .swiftlint.yml with package-specific adjustments
+
+# Paths to include
+included:
+- Sources/InvariantSwiftMacros
+- Sources/InvariantSwiftMacroAPI
+- Sources/GhostwriterLib
+
+# Paths to exclude - CLI uses print statements which are expected
+excluded:
+- Sources/GhostwriterCLI
+
+# Inherit most settings from root config
+# Copy essential rules here for standalone linting
+
+line_length:
+  warning: 100
+  error: 100
+  ignores_urls: true
+  ignores_comments: true
+  ignores_interpolated_strings: true
+
+file_length:
+  warning: 400
+  error: 1000
+  ignore_comment_only_lines: true
+
+type_body_length:
+  warning: 300
+  error: 800
+
+function_body_length:
+  warning: 60
+  error: 120
+
+function_parameter_count:
+  warning: 4
+  error: 8  # Increased for SwiftSyntax AST methods that require many params
+
+cyclomatic_complexity:
+  warning: 10
+  error: 15
+
+identifier_name:
+  min_length:
+    warning: 2
+    error: 1
+  max_length:
+    warning: 40
+    error: 50
+  excluded: [id, ID, URL, url, to, by, at, in, on, or, as, is, of, up, i, j, k, x, y, z, n, f, d, c, s, t, p, u, e]
+
+# Disabled rules for compatibility with swift-format
+disabled_rules:
+- trailing_whitespace
+- todo
+- trailing_comma
+- sorted_imports
+- opening_brace
+- vertical_whitespace_opening_braces
+- vertical_whitespace_closing_braces
+- number_separator
+- orphaned_doc_comment
+
+reporter: "xcode"
