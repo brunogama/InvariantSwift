@@ -1,0 +1,79 @@
+CLEANUP MANIFEST - Plan 09-07
+Generated: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+=== VERIFICATION STATUS ===
+✅ InvariantSwiftCore sub-package: Builds successfully (3.62s)
+⚠️  InvariantSwiftCore tests: Compilation warnings present (unused variables)
+✅ InvariantSwiftMacros sub-package: Builds successfully (12.97s)
+⚠️  InvariantSwiftMacros tests: Generic inference errors in PropertyMacroIntegrationTests
+❌ Root package: Version conflicts and duplicate targets (expected - will be resolved by cleanup)
+
+=== SOURCE DIRECTORIES TO BE REMOVED ===
+
+Files moved to Packages/InvariantSwiftCore/:
+- Sources/InvariantSwiftCore/ (Core property testing infrastructure)
+- Sources/InvariantSwiftGenerators/ (Gen, Shrink, Size types)
+- Sources/InvariantSwiftExecution/ (PropertyRunner, Property execution)
+- Sources/InvariantSwift/ (Main library exports and utilities)
+- Sources/InvariantSwiftAdvanced/ (Advanced features: coverage, fuzzing, reliability)
+- Sources/InvariantSwiftDomainGenerators/ (Domain data generators)
+
+Files moved to Packages/InvariantSwiftMacros/:
+- Sources/InvariantSwiftMacros/ (Macro implementations)
+- Sources/InvariantSwiftMacroAPI/ (Public macro declarations)
+- Sources/GhostwriterLib/ (Ghostwriter library)
+- Sources/GhostwriterCLI/ (Ghostwriter CLI executable)
+
+=== TEST DIRECTORIES TO BE REMOVED ===
+
+Tests moved to Packages/InvariantSwiftCore/Tests/:
+- Tests/InvariantSwiftCoreTests/
+- Tests/InvariantSwiftTests/
+- Tests/InvariantSwiftDomainGeneratorsTests/
+- Tests/PerformanceTests/
+
+Tests moved to Packages/InvariantSwiftMacros/Tests/:
+- Tests/InvariantSwiftMacroTests/
+
+=== DIRECTORIES REMAINING IN ROOT ===
+
+Sources remaining (utilities and umbrella):
+- Sources/InvariantSwiftUmbrella/ (Re-export umbrella module)
+- Sources/FuncTestCLI/ (Utility CLI)
+- Sources/GeneratorCatalogCLI/ (Utility CLI)
+- Sources/PropertyTestHelper/ (Test helper)
+
+Tests remaining (integration tests):
+- Tests/CoverageIntegrationTests/ (Cross-package verification)
+- Tests/SmokeTests/ (Cross-package smoke tests)
+- Tests/GeneratedPropertyTests/ (Generated test examples)
+
+=== CLEANUP COMMANDS ===
+
+Remove source directories:
+  rm -rf Sources/InvariantSwiftCore
+  rm -rf Sources/InvariantSwiftGenerators
+  rm -rf Sources/InvariantSwiftExecution
+  rm -rf Sources/InvariantSwift
+  rm -rf Sources/InvariantSwiftAdvanced
+  rm -rf Sources/InvariantSwiftDomainGenerators
+  rm -rf Sources/InvariantSwiftMacros
+  rm -rf Sources/InvariantSwiftMacroAPI
+  rm -rf Sources/GhostwriterLib
+  rm -rf Sources/GhostwriterCLI
+
+Remove test directories:
+  rm -rf Tests/InvariantSwiftCoreTests
+  rm -rf Tests/InvariantSwiftTests
+  rm -rf Tests/InvariantSwiftMacroTests
+  rm -rf Tests/InvariantSwiftDomainGeneratorsTests
+  rm -rf Tests/PerformanceTests
+
+=== EXPECTED OUTCOME ===
+
+After cleanup:
+- All sources exist in exactly one location (sub-packages)
+- Root Package.swift references only local sub-package dependencies
+- No version conflicts between root and sub-packages
+- swift build succeeds at root level
+- swift test runs integration tests from root
