@@ -15,7 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Provides box-drawn formatting for failure output
     - Extended FailureReport with shrinkMetrics property and computedShrinkMetrics accessor
     - Enhanced FailureReporter to display shrinking metrics in verbose format
-  - Plan 05-02: INVARIANT_SEED environment variable support for reproducible failures
+  - **Plan 05-02: INVARIANT_SEED Environment Variable** - Environment-based seed control
+    - Added Seed.fromEnvironmentOrRandom() to read INVARIANT_SEED environment variable
+    - Supports valid UInt64 seeds with fallback to random for invalid values
+    - Added PropertyConfig.default() factory using environment-aware seed
   - Plan 05-03: Comprehensive integration tests for error messages, progress, and seed reproducibility
 - **Phase 09-07: Workspace Cleanup Verification** - Final verification before migration cleanup
   - Verified sub-package builds: InvariantSwiftCore (3.62s), InvariantSwiftMacros (12.97s)
