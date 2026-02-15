@@ -246,20 +246,6 @@ let pluginTargets: [Target] = [
   .plugin(
     name: "GeneratorCatalogPlugin",
     capability: .command(
-      intent: .custom(
-        verb: "browse-generators",
-        description: "Browse the generator catalog interactively"
-      ),
-      permissions: []
-    ),
-    dependencies: [
-      "GeneratorCatalogCLI"
-    ],
-    path: "Plugins/GeneratorCatalogPlugin"
-  ),
-  .plugin(
-    name: "GeneratorCatalogPlugin",
-    capability: .command(
       intent: .custom(verb: "browse-generators", description: "Browse generator catalog"),
       permissions: []
     ),
