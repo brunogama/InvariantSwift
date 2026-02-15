@@ -268,7 +268,9 @@ let pluginTargets: [Target] = [
       intent: .custom(verb: "ghostwrite", description: "Generate property tests"),
       permissions: [.writeToPackageDirectory(reason: "Generate test files")]
     ),
-    dependencies: ["GhostwriterCLI"],
+    dependencies: [
+      .product(name: "GhostwriterCLI", package: "InvariantSwiftMacros")
+    ],
     path: "Plugins/GhostwriterPlugin"
   ),
   .plugin(
