@@ -12,6 +12,61 @@
 
 ---
 
+## Package Structure
+
+InvariantSwift is organized as a monorepo with two sub-packages for optimized build times:
+
+### InvariantSwiftCore (No SwiftSyntax)
+
+The core library with generators, properties, shrinking, and testing infrastructure.
+Users who don't need macros can depend on this package for faster builds.
+
+```swift
+// Package.swift - Depend on core only for faster builds
+.package(url: "https://github.com/your-org/InvariantSwift", from: "2.0.0"),
+// Then use:
+.product(name: "InvariantSwiftCore", package: "InvariantSwift"),
+```
+
+### InvariantSwiftMacros (SwiftSyntax)
+
+Macro implementations including @PropertyTest, @Arbitrary, @StateMachine, etc.
+SwiftSyntax prebuilts are supported for 40-75% faster builds.
+
+### Unified Import (Recommended)
+
+For most users, simply import from the root package:
+
+```swift
+import InvariantSwift  // Gets everything via re-exports
+```
+
+---
+
+## Build Performance
+
+Enable SwiftSyntax prebuilts for faster macro builds (Swift 6.1.1+):
+
+```bash
+# Command line
+swift build --enable-experimental-prebuilts
+swift test --enable-experimental-prebuilts
+
+# Or use Makefile targets (prebuilts enabled by default)
+make build
+make test-swift
+```
+
+In Xcode 16.4+:
+
+```bash
+defaults write com.apple.dt.Xcode IDEPackageEnablePrebuilts YES
+```
+
+**Expected improvement:** 40-75% faster macro compilation.
+
+---
+
 ## 1. Clone & Setup
 
 ```bash
@@ -31,14 +86,31 @@ swift package resolve
 ## 2. Build & Test
 
 ```bash
-# Build
-swift build
+# Build (with prebuilts for faster macro compilation)
+make build
 
-# Run tests
-swift test | xcbeautify
+# Run tests (with prebuilts)
+make test-swift
 
 # Verify linting
 make lint
+```
+
+### Building Sub-Packages Independently
+
+```bash
+# Build core only (fast, no SwiftSyntax)
+make build-core
+
+# Build macros only (with prebuilts)
+make build-macros
+
+# Test sub-packages
+make test-core
+make test-macros
+
+# Clean all packages
+make clean-all
 ```
 
 ---
