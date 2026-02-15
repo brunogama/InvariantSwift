@@ -60,7 +60,21 @@ extension GhostwriterCLI {
     var index = 1
 
     while index < arguments.count {
-      index = processArgument(arguments, at: index, into: &config)
+      let arg = arguments[index]
+      index += 1
+
+      let result = processBoolFlag(arg, into: &config)
+      if result { continue }
+
+      let (valueConsumed, advance) = processValueFlag(arg, arguments, index, into: &config)
+      if valueConsumed {
+        index += advance
+        continue
+      }
+
+      if !arg.hasPrefix("-") {
+        config.sources.append(arg)
+      }
     }
 
     if config.sources.isEmpty {
@@ -69,47 +83,50 @@ extension GhostwriterCLI {
     return config
   }
 
-  private static func processArgument(
-    _ arguments: [String],
-    at index: Int,
-    into config: inout Config
-  ) -> Int {
-    let arg = arguments[index]
-    var nextIndex = index + 1
+  private static func processBoolFlag(_ arg: String, into config: inout Config) -> Bool {
+    switch arg {
+    case "--dry-run":
+      config.dryRun = true
 
-    if let handler = boolFlagHandlers[arg] {
-      handler(&config)
-      return nextIndex
+    case "--verbose", "-v":
+      config.verbose = true
+
+    case "--help", "-h":
+      config.showHelp = true
+
+    case "--include-internal":
+      config.includeInternal = true
+
+    case "--skip-compile-test":
+      config.skipCompileTest = true
+
+    default:
+      return false
     }
-
-    if let handler = valueFlagHandlers[arg], nextIndex < arguments.count {
-      handler(&config, arguments[nextIndex])
-      return nextIndex + 1
-    }
-
-    if !arg.hasPrefix("-") {
-      config.sources.append(arg)
-    }
-
-    return nextIndex
+    return true
   }
 
-  private static let boolFlagHandlers: [String: (inout Config) -> Void] = [
-    "--dry-run": { $0.dryRun = true },
-    "--verbose": { $0.verbose = true },
-    "-v": { $0.verbose = true },
-    "--help": { $0.showHelp = true },
-    "-h": { $0.showHelp = true },
-    "--include-internal": { $0.includeInternal = true },
-    "--skip-compile-test": { $0.skipCompileTest = true },
-  ]
+  private static func processValueFlag(
+    _ arg: String,
+    _ args: [String],
+    _ index: Int,
+    into config: inout Config
+  ) -> (consumed: Bool, advance: Int) {
+    guard index < args.count else { return (false, 0) }
 
-  private static let valueFlagHandlers: [String: (inout Config, String) -> Void] = [
-    "--source": { $0.sources.append($1) },
-    "-s": { $0.sources.append($1) },
-    "--output": { $0.outputDirectory = $1 },
-    "-o": { $0.outputDirectory = $1 },
-  ]
+    switch arg {
+    case "--source", "-s":
+      config.sources.append(args[index])
+      return (true, 1)
+
+    case "--output", "-o":
+      config.outputDirectory = args[index]
+      return (true, 1)
+
+    default:
+      return (false, 0)
+    }
+  }
 }
 
 // MARK: - Output Helpers
