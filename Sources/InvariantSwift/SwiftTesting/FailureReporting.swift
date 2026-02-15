@@ -46,6 +46,9 @@ public struct FailureReport: Sendable {
   /// Optional classification report for classifying property tests.
   public let classificationReport: String?
 
+  /// Optional shrinking metrics for detailed shrinking analysis.
+  public let shrinkMetrics: ShrinkMetrics?
+
   /// Creates a new failure report.
   public init(
     testName: String,
@@ -57,7 +60,8 @@ public struct FailureReport: Sendable {
     successfulShrinks: Int,
     failureReason: FailureReason,
     totalTime: TimeInterval,
-    classificationReport: String? = nil
+    classificationReport: String? = nil,
+    shrinkMetrics: ShrinkMetrics? = nil
   ) {
     self.testName = testName
     self.seed = seed
@@ -69,6 +73,7 @@ public struct FailureReport: Sendable {
     self.failureReason = failureReason
     self.totalTime = totalTime
     self.classificationReport = classificationReport
+    self.shrinkMetrics = shrinkMetrics
   }
 
   /// Command to reproduce this failure.
@@ -79,6 +84,22 @@ public struct FailureReport: Sendable {
   /// Environment variable for reproduction.
   public var reproductionEnvVar: String {
     "INVARIANT_SWIFT_SEED=\(seed.rawValue)"
+  }
+
+  /// Shrinking metrics derived from individual fields.
+  ///
+  /// If `shrinkMetrics` was explicitly provided during initialization,
+  /// returns that value. Otherwise, constructs metrics from the
+  /// `shrinkAttempts`, `successfulShrinks`, and `totalTime` fields.
+  public var computedShrinkMetrics: ShrinkMetrics {
+    shrinkMetrics
+      ?? ShrinkMetrics(
+        attempts: shrinkAttempts,
+        successful: successfulShrinks,
+        duration: totalTime,
+        reductionPercentage: 0.0,  // Cannot compute without original/shrunk sizes
+        strategy: "BFS tree search"
+      )
   }
 }
 
@@ -223,12 +244,19 @@ public struct FailureReporter: Sendable {
       ║   Shrink attempts: \(report.shrinkAttempts)
       ║   Successful shrinks: \(report.successfulShrinks)
       ║   Total time: \(String(format: "%.3f", report.totalTime))s
-      ╠══════════════════════════════════════════════════════════════════════════════╣
-      ║ REPRODUCTION:
-      ║   Seed: \(report.seed.rawValue)
-      ║   Command: \(report.reproductionCommand)
-      ║   Environment: \(report.reproductionEnvVar)
       """
+
+    // Add shrinking metrics section if metrics are available
+    let metrics = report.computedShrinkMetrics
+    if metrics.reductionPercentage > 0 || metrics.duration > 0 {
+      message += "\n" + metrics.formatAsBoxSection()
+    }
+
+    message += "\n╠══════════════════════════════════════════════════════════════════════════════╣"
+    message += "\n║ REPRODUCTION:"
+    message += "\n║   Seed: \(report.seed.rawValue)"
+    message += "\n║   Command: \(report.reproductionCommand)"
+    message += "\n║   Environment: \(report.reproductionEnvVar)"
 
     if let classificationReport = report.classificationReport, !classificationReport.isEmpty {
       message +=
@@ -313,6 +341,14 @@ public final class FailureReportBuilder: @unchecked Sendable {
     return self
   }
 
+  private var shrinkMetricsValue: ShrinkMetrics?
+
+  @discardableResult
+  public func shrinkMetrics(_ metrics: ShrinkMetrics) -> Self {
+    self.shrinkMetricsValue = metrics
+    return self
+  }
+
   public func build() -> FailureReport {
     FailureReport(
       testName: testName,
@@ -323,7 +359,8 @@ public final class FailureReportBuilder: @unchecked Sendable {
       shrinkAttempts: shrinkAttempts,
       successfulShrinks: successfulShrinks,
       failureReason: failureReason,
-      totalTime: totalTime
+      totalTime: totalTime,
+      shrinkMetrics: shrinkMetricsValue
     )
   }
 }
@@ -356,11 +393,12 @@ extension FailureReport {
       originalValue: String(describing: counterexample),
       shrunkValue: String(describing: shrunk),
       iterationsBeforeFailure: iterations,
-      shrinkAttempts: 0,  // Not available in ClassifyingPropertyResult
-      successfulShrinks: 0,  // Not available in ClassifyingPropertyResult
+      shrinkAttempts: 0,
+      successfulShrinks: 0,
       failureReason: reason,
-      totalTime: 0,  // Not available in ClassifyingPropertyResult
-      classificationReport: result.classification.formatForFailure()
+      totalTime: 0,
+      classificationReport: result.classification.formatForFailure(),
+      shrinkMetrics: nil
     )
   }
 }

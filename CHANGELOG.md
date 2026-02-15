@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Tracks attempts, successful reductions, duration, and reduction percentage
     - Includes automatic reduction percentage calculation from original/shrunk sizes
     - Provides box-drawn formatting for failure output
+    - Extended FailureReport with shrinkMetrics property and computedShrinkMetrics accessor
+    - Enhanced FailureReporter to display shrinking metrics in verbose format
   - Plan 05-02: INVARIANT_SEED environment variable support for reproducible failures
   - Plan 05-03: Comprehensive integration tests for error messages, progress, and seed reproducibility
 - **Phase 09-07: Workspace Cleanup Verification** - Final verification before migration cleanup
