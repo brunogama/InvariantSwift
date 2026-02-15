@@ -39,9 +39,9 @@ test-MACOS:
 test-TVOS:
 	$(MAKE) test-tvos
 
-# Test with Swift Package Manager
+# Test with Swift Package Manager (with prebuilts for faster macro compilation)
 test-swift:
-	swift test | xcbeautify
+	swift test --enable-experimental-prebuilts | xcbeautify
 
 # Test with SIGTRAP crash handling (for macOS beta SDK)
 # Use this when running on pre-release macOS SDKs that have known ABI issues
@@ -70,14 +70,45 @@ format:
 	swift-format -i --configuration .swift-format --recursive \
 		./Package.swift ./Sources ./Tests
 
-# Build the package
+# Build the package (with prebuilts for faster macro compilation)
 build:
-	swift build
+	swift build --enable-experimental-prebuilts
+
+# Build individual sub-packages
+.PHONY: build-core
+build-core:
+	swift build --package-path Packages/InvariantSwiftCore
+
+.PHONY: build-macros
+build-macros:
+	swift build --package-path Packages/InvariantSwiftMacros --enable-experimental-prebuilts
+
+# Test individual sub-packages
+.PHONY: test-core
+test-core:
+	swift test --package-path Packages/InvariantSwiftCore
+
+.PHONY: test-macros
+test-macros:
+	swift test --package-path Packages/InvariantSwiftMacros --enable-experimental-prebuilts
+
+# Parallel CI build (builds sub-packages first, then full package)
+.PHONY: ci-build
+ci-build: build-core build-macros
+	swift build --enable-experimental-prebuilts
 
 # Clean build artifacts
 clean:
 	swift package clean
 	rm -rf .build
+
+# Clean all workspace packages
+.PHONY: clean-all
+clean-all:
+	swift package clean
+	swift package clean --package-path Packages/InvariantSwiftCore
+	swift package clean --package-path Packages/InvariantSwiftMacros
+	rm -rf .build Packages/*/.build
 
 # Generate documentation
 docs:
@@ -93,7 +124,7 @@ lint:
 # Run all tests (excluding platform-specific Docker tests)
 test-all: test-swift test-macos test-ios test-tvos
 
-# Full validation (lint, format check, tests)
+# Full validation (lint, format check, tests with prebuilts)
 validate: lint test-swift
 
 # Install dependencies
@@ -123,19 +154,27 @@ help:
 	@echo "  test-linux    - Test on Linux using Docker"
 	@echo "  test-macos    - Test on macOS"
 	@echo "  test-ios      - Test on iOS Simulator"
-	@echo "  test-swift    - Test with Swift Package Manager"
+	@echo "  test-swift    - Test with Swift Package Manager (with prebuilts)"
 	@echo "  test-safe     - Test with SIGTRAP crash handling (beta SDK)"
 	@echo "  test-tvos     - Test on tvOS Simulator"
 	@echo "  test-watchos  - Test on watchOS Simulator"
 	@echo "  test-all      - Run all platform tests"
 	@echo "  format        - Format code with swift-format"
-	@echo "  build         - Build the package"
+	@echo "  build         - Build the package (with prebuilts)"
 	@echo "  clean         - Clean build artifacts"
 	@echo "  docs          - Generate documentation"
 	@echo "  lint          - Run SwiftLint"
-	@echo "  validate      - Run lint and tests"
+	@echo "  validate      - Run lint and tests (with prebuilts)"
 	@echo "  setup         - Install development dependencies"
 	@echo "  coverage      - Generate coverage report"
+	@echo ""
+	@echo "Workspace targets:"
+	@echo "  build-core    - Build InvariantSwiftCore package (no SwiftSyntax)"
+	@echo "  build-macros  - Build InvariantSwiftMacros package (with prebuilts)"
+	@echo "  test-core     - Test InvariantSwiftCore package"
+	@echo "  test-macros   - Test InvariantSwiftMacros package"
+	@echo "  ci-build      - Build sub-packages then full package (for CI)"
+	@echo "  clean-all     - Clean all workspace packages"
 	@echo ""
 	@echo "Documentation tools:"
 	@echo "  doc-check     - Check documentation coverage"

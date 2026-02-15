@@ -120,5 +120,14 @@ let package = Package(
       path: "Tests/InvariantSwiftDomainGeneratorsTests",
       swiftSettings: commonSwiftSettings
     ),
+    .testTarget(
+      name: "PerformanceTests",
+      dependencies: [
+        "InvariantSwift",
+        "InvariantSwiftExperimental",
+      ],
+      path: "Tests/PerformanceTests",
+      swiftSettings: commonSwiftSettings
+    ),
   ]
 )

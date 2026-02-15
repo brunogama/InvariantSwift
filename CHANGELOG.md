@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Phase 09-05: Test Migration and Root Umbrella** - Complete workspace integration
+  - Migrated core tests to Packages/InvariantSwiftCore/Tests/
+  - Migrated macro tests to Packages/InvariantSwiftMacros/Tests/
+  - Created InvariantSwiftUmbrella re-export module for unified import
+  - Updated plugins to reference sub-package executables
+  - Tests properly distributed based on macro dependencies
+
 - **Phase 09-06: CI/CD and Build Tooling** - Workspace infrastructure
   - Updated CI workflow with parallel sub-package builds (build-core, build-macros)
   - Added integration job that depends on sub-package builds
