@@ -18,6 +18,9 @@ let packagePlatforms: [SupportedPlatform] = [
 ]
 
 let packageProducts: [Product] = [
+  // Main umbrella library - re-exports everything from sub-packages
+  .library(name: "InvariantSwiftUmbrella", targets: ["InvariantSwiftUmbrella"]),
+  // Individual libraries (from sub-packages or local targets)
   .library(name: "InvariantSwiftCore", targets: ["InvariantSwiftCore"]),
   .library(name: "InvariantSwift", targets: ["InvariantSwift"]),
   .library(name: "InvariantSwiftTesting", targets: ["InvariantSwiftTesting"]),
@@ -196,6 +199,21 @@ let ghostwriterTargets: [Target] = [
   ),
 ]
 
+// MARK: - Umbrella (re-exports from sub-packages)
+
+let umbrellaTargets: [Target] = [
+  .target(
+    name: "InvariantSwiftUmbrella",
+    dependencies: [
+      .product(name: "InvariantSwift", package: "InvariantSwiftCore"),
+      .product(name: "InvariantSwiftCore", package: "InvariantSwiftCore"),
+      .product(name: "InvariantSwiftMacroAPI", package: "InvariantSwiftMacros"),
+    ],
+    path: "Sources/InvariantSwiftUmbrella",
+    swiftSettings: commonSwiftSettings
+  )
+]
+
 // MARK: - Domain & Utilities
 
 let domainTargets: [Target] = [
@@ -359,6 +377,7 @@ let allTargets =
   + testingIntegrationTargets
   + macroTargets
   + ghostwriterTargets
+  + umbrellaTargets
   + domainTargets
   + utilityTargets
   + pluginTargets
