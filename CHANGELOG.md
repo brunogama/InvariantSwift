@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Phase 09-01: SPM Workspace Monorepo Structure** - Foundation for SwiftSyntax isolation
+  - Created Packages/InvariantSwiftCore/ with stub Package.swift
+  - Created Packages/InvariantSwiftMacros/ with stub Package.swift
+  - Added Sources/ and Tests/ subdirectories with .gitkeep placeholders
+  - Establishes monorepo directory structure for parallel builds
+
 ### Changed
 - **Phase 09 Plans Revised** - Addressed checker feedback with 5 blockers and 3 warnings fixed
   - Added explicit plugin migration task in Plan 05
