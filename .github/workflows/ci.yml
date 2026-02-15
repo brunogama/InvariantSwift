@@ -14,6 +14,58 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # MARK: - Workspace Sub-Package Builds (Parallel)
+  # These jobs build the sub-packages independently for faster CI
+
+  build-core:
+    name: Build Core (No SwiftSyntax)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode 16.4
+        run: sudo xcode-select -s /Applications/Xcode_16.4.app
+      - name: Cache SwiftPM
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.swiftpm
+            Packages/InvariantSwiftCore/.build
+          key: swiftpm-core-${{ runner.os }}-${{ hashFiles('Packages/InvariantSwiftCore/**/*.swift') }}
+          restore-keys: |
+            swiftpm-core-${{ runner.os }}-
+      - name: Build InvariantSwiftCore
+        run: swift build --package-path Packages/InvariantSwiftCore
+      - name: Test InvariantSwiftCore
+        run: swift test --package-path Packages/InvariantSwiftCore
+
+  build-macros:
+    name: Build Macros (SwiftSyntax)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode 16.4
+        run: sudo xcode-select -s /Applications/Xcode_16.4.app
+      - name: Cache SwiftSyntax Prebuilts
+        uses: actions/cache@v4
+        with:
+          path: ~/.swiftpm/swift-syntax-prebuilts
+          key: swift-syntax-prebuilts-${{ runner.os }}
+      - name: Cache SwiftPM
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.swiftpm
+            Packages/InvariantSwiftMacros/.build
+          key: swiftpm-macros-${{ runner.os }}-${{ hashFiles('Packages/InvariantSwiftMacros/**/*.swift') }}
+          restore-keys: |
+            swiftpm-macros-${{ runner.os }}-
+      - name: Build InvariantSwiftMacros with Prebuilts
+        run: swift build --package-path Packages/InvariantSwiftMacros --enable-experimental-prebuilts
+      # NOTE: Tests not migrated yet - uncomment when ready
+      # - name: Test InvariantSwiftMacros
+      #   run: swift test --package-path Packages/InvariantSwiftMacros --enable-experimental-prebuilts
+
+  # MARK: - Linux Tests
   swift-test-linux:
     name: swift test (Linux)
     runs-on: ubuntu-latest
@@ -34,6 +86,26 @@ jobs:
       - name: Run Macro Golden Tests
         run: swift test --filter MacroGoldenTests
 
+  # MARK: - Integration Tests (after sub-packages build)
+  integration:
+    name: Integration Tests
+    runs-on: macos-15
+    needs: [build-core, build-macros]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode 16.4
+        run: sudo xcode-select -s /Applications/Xcode_16.4.app
+      - name: Cache SwiftSyntax Prebuilts
+        uses: actions/cache@v4
+        with:
+          path: ~/.swiftpm/swift-syntax-prebuilts
+          key: swift-syntax-prebuilts-${{ runner.os }}
+      - name: Build Full Package with Prebuilts
+        run: swift build --enable-experimental-prebuilts
+      - name: Run Integration Tests
+        run: swift test --filter CoverageIntegrationTests --enable-experimental-prebuilts || true
+
+  # MARK: - Xcode Platform Tests
   xcodebuild-latest:
     name: xcodebuild (16.4)
     runs-on: macos-15

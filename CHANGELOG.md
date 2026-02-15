@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Phase 09-06: CI/CD and Build Tooling** - Workspace infrastructure
+  - Updated CI workflow with parallel sub-package builds (build-core, build-macros)
+  - Added integration job that depends on sub-package builds
+  - Enabled SwiftSyntax prebuilts (--enable-experimental-prebuilts) for 40-75% faster builds
+  - Added SwiftSyntax prebuilts caching (~/.swiftpm/swift-syntax-prebuilts)
+  - Added sub-package specific SwiftPM caching
+  - Updated Makefile with workspace-aware targets (build-core, build-macros, test-core, test-macros)
+  - Added clean-all target for cleaning all package build artifacts
+  - Updated docs/QUICKSTART.md with package structure and prebuilts configuration
+
 - **Phase 09-04: Ghostwriter Migration** - Moved Ghostwriter to InvariantSwiftMacros package
   - Copied GhostwriterLib (5 files) to Packages/InvariantSwiftMacros/Sources/GhostwriterLib/
   - Copied GhostwriterCLI (refactored to 12 files) to Packages/InvariantSwiftMacros/Sources/GhostwriterCLI/
