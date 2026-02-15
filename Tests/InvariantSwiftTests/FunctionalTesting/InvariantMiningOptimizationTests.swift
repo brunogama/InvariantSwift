@@ -18,7 +18,7 @@ import Foundation
 import Testing
 import InvariantSwiftCore
 @testable import InvariantSwift
-@testable import InvariantSwiftExperimental
+@testable import InvariantSwiftAdvanced
 
 @Suite("Invariant Mining Memory Optimizations")
 struct InvariantMiningOptimizationTests {

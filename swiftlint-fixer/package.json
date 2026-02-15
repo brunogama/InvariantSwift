@@ -1,0 +1,99 @@
+{
+  "name": "swiftlint-fixer",
+  "displayName": "SwiftLint Fixer",
+  "description": "SwiftLint integration with 3 fix suggestions per violation",
+  "version": "0.1.0",
+  "publisher": "bruno",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Linters",
+    "Programming Languages"
+  ],
+  "keywords": [
+    "swift",
+    "swiftlint",
+    "linter",
+    "code quality",
+    "quick fix"
+  ],
+  "activationEvents": [
+    "onLanguage:swift"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "swiftlintFixer.lintDocument",
+        "title": "SwiftLint Fixer: Lint Document"
+      },
+      {
+        "command": "swiftlintFixer.fixDocument",
+        "title": "SwiftLint Fixer: Fix All Issues"
+      },
+      {
+        "command": "swiftlintFixer.lintWorkspace",
+        "title": "SwiftLint Fixer: Lint Workspace"
+      }
+    ],
+    "configuration": {
+      "title": "SwiftLint Fixer",
+      "properties": {
+        "swiftlintFixer.enable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable SwiftLint Fixer"
+        },
+        "swiftlintFixer.path": {
+          "type": "string",
+          "default": "swiftlint",
+          "description": "Path to SwiftLint executable"
+        },
+        "swiftlintFixer.configSearchPaths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            ".swiftlint.yml",
+            ".swiftlint.yaml"
+          ],
+          "description": "Paths to search for SwiftLint configuration"
+        },
+        "swiftlintFixer.lintOnSave": {
+          "type": "boolean",
+          "default": true,
+          "description": "Lint document on save"
+        },
+        "swiftlintFixer.lintOnOpen": {
+          "type": "boolean",
+          "default": true,
+          "description": "Lint document on open"
+        },
+        "swiftlintFixer.lintOnType": {
+          "type": "boolean",
+          "default": false,
+          "description": "Lint document while typing (may impact performance)"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts",
+    "pretest": "npm run compile && npm run lint",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "@vscode/vsce": "^2.22.0",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.0"
+  }
+}

@@ -4,7 +4,7 @@
 
 @_exported import InvariantSwiftCore
 @_exported import InvariantSwift
-@_exported import InvariantSwiftExperimental
+@_exported import InvariantSwiftAdvanced
 
 // This module provides macro declarations (not implementations):
 // - @Property: Mark functions as property tests

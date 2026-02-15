@@ -75,7 +75,7 @@ let package = Package(
         "InvariantSwiftMacros",
         .product(name: "InvariantSwiftCore", package: "InvariantSwiftCore"),
         .product(name: "InvariantSwift", package: "InvariantSwiftCore"),
-        .product(name: "InvariantSwiftExperimental", package: "InvariantSwiftCore"),
+        .product(name: "InvariantSwiftAdvanced", package: "InvariantSwiftCore"),
       ],
       path: "Sources/InvariantSwiftMacroAPI",
       swiftSettings: commonSwiftSettings
@@ -122,7 +122,7 @@ let package = Package(
         "InvariantSwiftMacroAPI",
         "GhostwriterLib",
         .product(name: "InvariantSwift", package: "InvariantSwiftCore"),
-        .product(name: "InvariantSwiftExperimental", package: "InvariantSwiftCore"),
+        .product(name: "InvariantSwiftAdvanced", package: "InvariantSwiftCore"),
       ],
       path: "Tests/MacroIntegrationTests",
       swiftSettings: commonSwiftSettings

@@ -1,7 +1,7 @@
 import Testing
 import Foundation
 @testable import InvariantSwift
-@testable import InvariantSwiftExperimental
+@testable import InvariantSwiftAdvanced
 
 /// Targeted tests to achieve the final 0.01% coverage needed to reach 99%+ threshold
 ///

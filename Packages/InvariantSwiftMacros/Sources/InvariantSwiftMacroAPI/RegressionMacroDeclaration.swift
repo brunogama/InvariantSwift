@@ -1,6 +1,6 @@
 import InvariantSwiftCore
 import InvariantSwift
-import InvariantSwiftExperimental
+import InvariantSwiftAdvanced
 // MARK: - @Regression Macro Declaration
 
 /// Automatically save and replay failing property test examples.

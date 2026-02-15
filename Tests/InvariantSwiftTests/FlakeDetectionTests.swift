@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import InvariantSwift
 @testable import InvariantSwiftCore
-@testable import InvariantSwiftExperimental
+@testable import InvariantSwiftAdvanced
 
 @Suite("Flake Detection Tests")
 struct FlakeDetectionTests {

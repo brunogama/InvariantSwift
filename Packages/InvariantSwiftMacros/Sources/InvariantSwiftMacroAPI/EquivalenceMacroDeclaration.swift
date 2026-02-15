@@ -1,6 +1,6 @@
 import InvariantSwiftCore
 import InvariantSwift
-import InvariantSwiftExperimental
+import InvariantSwiftAdvanced
 import Foundation
 
 /// Verifies two function implementations produce equivalent outputs.

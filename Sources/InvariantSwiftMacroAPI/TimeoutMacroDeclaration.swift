@@ -1,6 +1,6 @@
 import InvariantSwiftCore
 import InvariantSwift
-import InvariantSwiftExperimental
+import InvariantSwiftAdvanced
 
 /// Enforces a timeout on a property test.
 ///

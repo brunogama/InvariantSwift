@@ -1,6 +1,6 @@
 import InvariantSwiftCore
 import InvariantSwift
-import InvariantSwiftExperimental
+import InvariantSwiftAdvanced
 
 /// Verifies a function is idempotent: f(f(x)) == f(x).
 ///

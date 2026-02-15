@@ -1,6 +1,6 @@
 import InvariantSwiftCore
 import InvariantSwift
-import InvariantSwiftExperimental
+import InvariantSwiftAdvanced
 import Foundation
 @attached(member, names: named(arbitrary), named(shrink))
 @attached(extension, conformances: Generatable)

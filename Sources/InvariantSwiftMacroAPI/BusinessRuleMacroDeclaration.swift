@@ -1,6 +1,6 @@
 import InvariantSwiftCore
 import InvariantSwift
-import InvariantSwiftExperimental
+import InvariantSwiftAdvanced
 import Foundation
 @attached(peer, names: suffixed(_PropertyTest))
 public macro BusinessRule(

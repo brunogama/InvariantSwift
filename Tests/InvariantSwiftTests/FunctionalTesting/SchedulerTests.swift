@@ -7,7 +7,7 @@ import Testing
 import Foundation
 @testable import InvariantSwiftCore
 @testable import InvariantSwift
-@testable import InvariantSwiftExperimental
+@testable import InvariantSwiftAdvanced
 
 @Suite("Scheduler Core Types")
 struct SchedulerTests {

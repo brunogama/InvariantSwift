@@ -1,6 +1,6 @@
 import InvariantSwiftCore
 import InvariantSwift
-import InvariantSwiftExperimental
+import InvariantSwiftAdvanced
 
 // Smoke test: Verify InvariantSwiftExperimental can be imported and experimental features are available
 let smokeExperimentalGen = Gen<Int>.int

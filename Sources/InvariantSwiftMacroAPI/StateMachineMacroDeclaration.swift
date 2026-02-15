@@ -1,6 +1,6 @@
 import InvariantSwiftCore
 import InvariantSwift
-import InvariantSwiftExperimental
+import InvariantSwiftAdvanced
 import Foundation
 @attached(member, names: arbitrary, named(initialState), named(generateCommand), named(invariant))
 @attached(extension, conformances: RuleBasedStateMachine)

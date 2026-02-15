@@ -5,7 +5,7 @@
 import Foundation
 import Testing
 @testable import InvariantSwift
-@testable import InvariantSwiftExperimental
+@testable import InvariantSwiftAdvanced
 
 @Suite("Parallel Shrinking Tests")
 struct ParallelShrinkingTests {

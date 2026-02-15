@@ -1,6 +1,6 @@
 import InvariantSwiftCore
 import InvariantSwift
-import InvariantSwiftExperimental
+import InvariantSwiftAdvanced
 
 /// Verifies a function is deterministic: f(x) == f(x) across multiple calls.
 ///

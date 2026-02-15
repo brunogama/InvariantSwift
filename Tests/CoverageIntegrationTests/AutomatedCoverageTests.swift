@@ -2,7 +2,7 @@ import Testing
 import Foundation
 import InvariantSwiftCore
 @testable import InvariantSwift
-@testable import InvariantSwiftExperimental
+@testable import InvariantSwiftAdvanced
 
 /// Comprehensive automated coverage validation tests
 ///

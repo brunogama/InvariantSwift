@@ -6,7 +6,7 @@
 import Testing
 import Foundation
 @testable import InvariantSwift
-@testable import InvariantSwiftExperimental
+@testable import InvariantSwiftAdvanced
 
 // MARK: - Test Types
 

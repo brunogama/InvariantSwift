@@ -1,6 +1,6 @@
 import Testing
 @testable import InvariantSwift
-@testable import InvariantSwiftExperimental
+@testable import InvariantSwiftAdvanced
 
 /// Comprehensive tests for coverage-guided generation functionality
 struct CoverageGuidedTests {

@@ -30,7 +30,7 @@ let package = Package(
     // Layer 2: Main Library
     .library(name: "InvariantSwift", targets: ["InvariantSwift"]),
     // Layer 3: Extensions
-    .library(name: "InvariantSwiftExperimental", targets: ["InvariantSwiftExperimental"]),
+    .library(name: "InvariantSwiftAdvanced", targets: ["InvariantSwiftAdvanced"]),
     // Domain Generators
     .library(name: "InvariantSwiftDomainGenerators", targets: ["InvariantSwiftDomainGenerators"]),
   ],
@@ -74,12 +74,12 @@ let package = Package(
 
     // MARK: - Layer 3: Extensions (depend on main library)
     .target(
-      name: "InvariantSwiftExperimental",
+      name: "InvariantSwiftAdvanced",
       dependencies: [
         "InvariantSwiftCore",
         "InvariantSwift",
       ],
-      path: "Sources/InvariantSwiftExperimental",
+      path: "Sources/InvariantSwiftAdvanced",
       swiftSettings: commonSwiftSettings
     ),
 
@@ -106,7 +106,7 @@ let package = Package(
       dependencies: [
         "InvariantSwiftCore",
         "InvariantSwift",
-        "InvariantSwiftExperimental",
+        "InvariantSwiftAdvanced",
       ],
       path: "Tests/InvariantSwiftTests",
       swiftSettings: commonSwiftSettings
@@ -124,7 +124,7 @@ let package = Package(
       name: "PerformanceTests",
       dependencies: [
         "InvariantSwift",
-        "InvariantSwiftExperimental",
+        "InvariantSwiftAdvanced",
       ],
       path: "Tests/PerformanceTests",
       swiftSettings: commonSwiftSettings

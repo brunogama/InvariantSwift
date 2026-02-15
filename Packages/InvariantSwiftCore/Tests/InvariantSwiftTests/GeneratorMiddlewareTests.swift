@@ -1,7 +1,7 @@
 import Foundation
 import InvariantSwift
 import InvariantSwiftCore
-import InvariantSwiftExperimental
+import InvariantSwiftAdvanced
 import Testing
 
 // MARK: - Test Helpers

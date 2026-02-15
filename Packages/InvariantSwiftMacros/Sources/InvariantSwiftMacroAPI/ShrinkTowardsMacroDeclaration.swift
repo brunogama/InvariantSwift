@@ -1,6 +1,6 @@
 import InvariantSwiftCore
 import InvariantSwift
-import InvariantSwiftExperimental
+import InvariantSwiftAdvanced
 /// Configures shrink behavior for a property test parameter.
 ///
 /// Use this attribute on function parameters to guide shrinking toward

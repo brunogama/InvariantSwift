@@ -1,6 +1,6 @@
 import InvariantSwiftCore
 import InvariantSwift
-import InvariantSwiftExperimental
+import InvariantSwiftAdvanced
 import Foundation
 /// Property-based testing macro with flaky test detection support.
 ///

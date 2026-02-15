@@ -3,7 +3,7 @@
 
 @_exported import InvariantSwiftCore
 @_exported import InvariantSwift
-@_exported import InvariantSwiftExperimental
+@_exported import InvariantSwiftAdvanced
 @_exported import InvariantSwiftMacroAPI
 
 // This module provides:

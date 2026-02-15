@@ -24,7 +24,7 @@ let packageProducts: [Product] = [
   .library(name: "InvariantSwiftCore", targets: ["InvariantSwiftCore"]),
   .library(name: "InvariantSwift", targets: ["InvariantSwift"]),
   .library(name: "InvariantSwiftTesting", targets: ["InvariantSwiftTesting"]),
-  .library(name: "InvariantSwiftExperimental", targets: ["InvariantSwiftExperimental"]),
+  .library(name: "InvariantSwiftAdvanced", targets: ["InvariantSwiftAdvanced"]),
   .library(name: "InvariantSwiftDomainGenerators", targets: ["InvariantSwiftDomainGenerators"]),
   .plugin(name: "InvariantSwiftPlugin", targets: ["InvariantSwiftPlugin"]),
   .plugin(name: "GhostwriterPlugin", targets: ["GhostwriterPlugin"]),
@@ -124,7 +124,7 @@ let macroAPITargets: [Target] = [
     dependencies: [
       "InvariantSwiftCore",
       "InvariantSwift",
-      "InvariantSwiftExperimental",
+      "InvariantSwiftAdvanced",
       "InvariantSwiftMacros",
     ],
     path: "Sources/InvariantSwiftMacroAPI",
@@ -134,12 +134,12 @@ let macroAPITargets: [Target] = [
 
 let experimentalTargets: [Target] = [
   .target(
-    name: "InvariantSwiftExperimental",
+    name: "InvariantSwiftAdvanced",
     dependencies: [
       "InvariantSwiftCore",
       "InvariantSwift",
     ],
-    path: "Sources/InvariantSwiftExperimental",
+    path: "Sources/InvariantSwiftAdvanced",
     swiftSettings: commonSwiftSettings
   )
 ]
@@ -152,7 +152,7 @@ let testingIntegrationTargets: [Target] = [
     dependencies: [
       "InvariantSwiftCore",
       "InvariantSwift",
-      "InvariantSwiftExperimental",
+      "InvariantSwiftAdvanced",
       "InvariantSwiftMacroAPI",
       "InvariantSwiftMacros",
     ],
@@ -300,7 +300,7 @@ let testTargets: [Target] = [
       "InvariantSwift",
       "InvariantSwiftMacros",
       "InvariantSwiftTesting",
-      "InvariantSwiftExperimental",
+      "InvariantSwiftAdvanced",
       "GhostwriterLib",
     ],
     path: "Tests/InvariantSwiftTests",
@@ -336,7 +336,7 @@ let testTargets: [Target] = [
       "InvariantSwift",
       "InvariantSwiftMacros",
       "InvariantSwiftTesting",
-      "InvariantSwiftExperimental",
+      "InvariantSwiftAdvanced",
     ],
     path: "Tests/CoverageIntegrationTests",
     swiftSettings: commonSwiftSettings
@@ -348,7 +348,7 @@ let testTargets: [Target] = [
       "InvariantSwift",
       "InvariantSwiftMacros",
       "InvariantSwiftTesting",
-      "InvariantSwiftExperimental",
+      "InvariantSwiftAdvanced",
     ],
     path: "Tests/GeneratedPropertyTests",
     swiftSettings: commonSwiftSettings
@@ -360,7 +360,7 @@ let testTargets: [Target] = [
       "InvariantSwift",
       "InvariantSwiftMacros",
       "InvariantSwiftTesting",
-      "InvariantSwiftExperimental",
+      "InvariantSwiftAdvanced",
     ],
     path: "Tests/SmokeTests",
     swiftSettings: commonSwiftSettings
