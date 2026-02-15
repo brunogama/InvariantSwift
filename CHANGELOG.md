@@ -15,6 +15,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Verified stability of advanced features (AsyncProperties, Fuzzing, Metamorphic)
   - Planned non-breaking reorganization strategy
 
+### Breaking Changes
+
+- **Renamed:** `InvariantSwiftExperimental` module has been renamed to `InvariantSwiftAdvanced` (Phase 10)
+  - The old module name gave the impression of unstable, work-in-progress code
+  - These features (coverage-guided generation, fuzzing, metamorphic testing, etc.) are production-ready
+  - **Migration:** Replace all instances of `import InvariantSwiftExperimental` with `import InvariantSwiftAdvanced`
+  - **Migration:** Replace all instances of `@testable import InvariantSwiftExperimental` with `@testable import InvariantSwiftAdvanced`
+  - No API changes - all types and functions remain the same
+  - 71 files updated across Sources/, Tests/, and Packages/
+  - 56 source files preserved (28 in root + 28 in Packages/Core)
+
 - **Phase 09-05: Test Migration and Root Umbrella** - Complete workspace integration
   - Migrated core tests to Packages/InvariantSwiftCore/Tests/
   - Migrated macro tests to Packages/InvariantSwiftMacros/Tests/
