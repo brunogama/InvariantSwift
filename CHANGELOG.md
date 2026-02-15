@@ -74,6 +74,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Resolves all ~30 coverage-related compilation errors
 
 ### Added
+- **Phase 5 Research: Error Messages & Progress Indicators** - Planning documentation
+  - Researched enhanced failure message patterns with shrinking metrics
+  - Analyzed progress indicator best practices for CI/CD compatibility
+  - Investigated seed-based reproducibility via INVARIANT_SEED environment variable
+  - Key findings: 70% integration of existing infrastructure (FailureReport, ReplayToken, ProgressReporter already implemented)
+  - Identified enhancements needed: shrinking metrics tracking (reduction %, time, attempts), INVARIANT_SEED env var support
+  - Documented reproduction command patterns with environment variable option
+  - Created .planning/phases/05-error-messages-progress/05-RESEARCH.md
 - **Phase 04.7-14: Size/Seed Lens Extensions + PropertyConfig Helpers** - Infrastructure 1/4 complete
   - Created `Sources/InvariantSwift/Extensions/Size+Lenses.swift`
     - Size.valueLens for functional value access and updates
@@ -163,6 +171,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added inline disable for file_length in Generator.swift (pending refactoring in future ISP)
 
 ### Added
+- **Phase 5 Research: Error Messages & Progress Indicators** - Planning documentation
+  - Researched enhanced failure message patterns with shrinking metrics
+  - Analyzed progress indicator best practices for CI/CD compatibility
+  - Investigated seed-based reproducibility via INVARIANT_SEED environment variable
+  - Key findings: 70% integration of existing infrastructure (FailureReport, ReplayToken, ProgressReporter already implemented)
+  - Identified enhancements needed: shrinking metrics tracking (reduction %, time, attempts), INVARIANT_SEED env var support
+  - Documented reproduction command patterns with environment variable option
+  - Created .planning/phases/05-error-messages-progress/05-RESEARCH.md
 - **Phase 04.6: Advanced Property Testing Features** - ✅ COMPLETE & VERIFIED (9/9 plans, all must-haves verified)
   - Plan 09: Documentation Updates ✅ COMPLETE
     - Updated MACROS.md with @Timeout and @ShrinkTowards documentation ✅
@@ -280,6 +296,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Plan 03 (Wave 2): Verify and update docs/MACROS.md accuracy after declarations exposed
 
 ### Added
+- **Phase 5 Research: Error Messages & Progress Indicators** - Planning documentation
+  - Researched enhanced failure message patterns with shrinking metrics
+  - Analyzed progress indicator best practices for CI/CD compatibility
+  - Investigated seed-based reproducibility via INVARIANT_SEED environment variable
+  - Key findings: 70% integration of existing infrastructure (FailureReport, ReplayToken, ProgressReporter already implemented)
+  - Identified enhancements needed: shrinking metrics tracking (reduction %, time, attempts), INVARIANT_SEED env var support
+  - Documented reproduction command patterns with environment variable option
+  - Created .planning/phases/05-error-messages-progress/05-RESEARCH.md
 - **Phase 04.4: Property Assertion Macros**: Documentation for @Idempotent, @Deterministic, and @Pure macros
   - Added Property Assertion Macros section to docs/MACROS.md
   - Documented @Idempotent macro with mathematical definition (f(f(x)) == f(x))
@@ -356,6 +380,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Grand total tests increased to ~152 tests
 
 ### Added
+- **Phase 5 Research: Error Messages & Progress Indicators** - Planning documentation
+  - Researched enhanced failure message patterns with shrinking metrics
+  - Analyzed progress indicator best practices for CI/CD compatibility
+  - Investigated seed-based reproducibility via INVARIANT_SEED environment variable
+  - Key findings: 70% integration of existing infrastructure (FailureReport, ReplayToken, ProgressReporter already implemented)
+  - Identified enhancements needed: shrinking metrics tracking (reduction %, time, attempts), INVARIANT_SEED env var support
+  - Documented reproduction command patterns with environment variable option
+  - Created .planning/phases/05-error-messages-progress/05-RESEARCH.md
 - **Compile Verification Infrastructure (Phase 04-03)**: Verifies generated code compiles before writing to disk
   - `CompileVerifier` struct with swiftc -typecheck integration
   - `CompileVerificationResult` with structured error details (line, column, message)
@@ -607,6 +639,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2024-XX-XX
 
 ### Added
+- **Phase 5 Research: Error Messages & Progress Indicators** - Planning documentation
+  - Researched enhanced failure message patterns with shrinking metrics
+  - Analyzed progress indicator best practices for CI/CD compatibility
+  - Investigated seed-based reproducibility via INVARIANT_SEED environment variable
+  - Key findings: 70% integration of existing infrastructure (FailureReport, ReplayToken, ProgressReporter already implemented)
+  - Identified enhancements needed: shrinking metrics tracking (reduction %, time, attempts), INVARIANT_SEED env var support
+  - Documented reproduction command patterns with environment variable option
+  - Created .planning/phases/05-error-messages-progress/05-RESEARCH.md
 - Initial release with core property-based testing features
 - Generator combinators for all Swift standard library types
 - Property test runner with configurable iterations
