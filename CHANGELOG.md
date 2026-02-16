@@ -6,12 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-- **Phase 11: Technical Debt Reduction (Plan 11-01 In Progress)** - Configuration ergonomics and public API improvements
+- **Phase 11: Technical Debt Reduction (Plan 11-01 Complete)** - Configuration ergonomics and public API improvements
   - Added PropertyConfigBuilder with fluent API (.withIterations, .withSeed, etc.)
   - Added SeedStrategy enum (.random, .fixed(Seed)) for better seed handling
   - PropertyConfig remains backwards compatible with existing initializer
   - Exposed PropertyResult.toTestResult() as public API (moved from fileprivate in FlakeHunter)
   - Created PropertyResult+TestResult.swift for reliability testing integration
+  - Enhanced DifferentialTesting error comparison: .mustMatch now compares error types using type(of:)
+  - DifferentialTestError description now includes error type information and mismatch warnings
 ### Planned
 - **Phase 11: Technical Debt Reduction Plans** - Decomposed technical debt reduction into 4 execution plans
   - **Plan 11-02: God File Decomposition (Core)** - Planned decomposition of Property.swift and ModelTesting.swift

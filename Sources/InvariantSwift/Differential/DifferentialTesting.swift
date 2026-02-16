@@ -66,11 +66,11 @@ public struct DifferentialResult<Input: Sendable, Output: Sendable>: Sendable {
       // Fall back to Equatable if Output conforms
       return !areEqual(ref, cand)
 
-    case (.failure, .failure):
+    case (.failure(let refError), .failure(let candError)):
       switch errorBehavior {
       case .mustMatch:
-        // TODO: Compare error types
-        return false
+        // Compare error types using type(of:)
+        return !areErrorTypesEqual(refError, candError)
 
       case .bothThrowOrBothSucceed, .candidateMaySucceedMore, .ignoreErrors:
         return false
@@ -109,6 +109,11 @@ public struct DifferentialResult<Input: Sendable, Output: Sendable>: Sendable {
     guard let rhsT = rhs as? T else { return false }
     return lhs == rhsT
   }
+
+  /// Compare error types using type metadata
+  private func areErrorTypesEqual(_ lhs: any Error, _ rhs: any Error) -> Bool {
+    type(of: lhs) == type(of: rhs)
+  }
 }
 
 // MARK: - Differential Test Error
@@ -144,6 +149,7 @@ public struct DifferentialTestError<Input: Sendable, Output: Sendable>: Error,
 
     case .failure(let err):
       lines.append("\(referenceName) threw: \(err)")
+      lines.append("  Type: \(type(of: err))")
     }
 
     switch result.candidateOutput {
@@ -152,6 +158,19 @@ public struct DifferentialTestError<Input: Sendable, Output: Sendable>: Error,
 
     case .failure(let err):
       lines.append("\(candidateName) threw: \(err)")
+      lines.append("  Type: \(type(of: err))")
+    }
+
+    // Add type mismatch information if both threw but types differ
+    if case .failure(let refErr) = result.referenceOutput,
+      case .failure(let candErr) = result.candidateOutput
+    {
+      let refType = type(of: refErr)
+      let candType = type(of: candErr)
+      if refType != candType {
+        lines.append("")
+        lines.append("⚠️ Error types mismatch: \(refType) vs \(candType)")
+      }
     }
 
     return lines.joined(separator: "\n")
