@@ -6,14 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-- **Phase 11: Technical Debt Reduction (Plan 11-01 Complete)** - Configuration ergonomics and public API improvements
-  - Added PropertyConfigBuilder with fluent API (.withIterations, .withSeed, etc.)
-  - Added SeedStrategy enum (.random, .fixed(Seed)) for better seed handling
-  - PropertyConfig remains backwards compatible with existing initializer
-  - Exposed PropertyResult.toTestResult() as public API (moved from fileprivate in FlakeHunter)
-  - Created PropertyResult+TestResult.swift for reliability testing integration
-  - Enhanced DifferentialTesting error comparison: .mustMatch now compares error types using type(of:)
-  - DifferentialTestError description now includes error type information and mismatch warnings
+- **Phase 11: Technical Debt Reduction (Plan 11-01, 11-04 Partial Complete)** - Configuration ergonomics and macro/infrastructure improvements
+  - **Plan 11-01 Complete**: Configuration ergonomics and public API improvements
+    - Added PropertyConfigBuilder with fluent API (.withIterations, .withSeed, etc.)
+    - Added SeedStrategy enum (.random, .fixed(Seed)) for better seed handling
+    - PropertyConfig remains backwards compatible with existing initializer
+    - Exposed PropertyResult.toTestResult() as public API (moved from fileprivate in FlakeHunter)
+    - Created PropertyResult+TestResult.swift for reliability testing integration
+    - Enhanced DifferentialTesting error comparison: .mustMatch now compares error types using type(of:)
+    - DifferentialTestError description now includes error type information and mismatch warnings
+  - **Plan 11-04 In Progress**: PropertyMacro AST refactoring and Ghostwriter Dictionary support
+    - Refactored PropertyMacro to use pure SwiftSyntax AST builders (no string interpolation)
+    - Implemented Dictionary<K, V> and [K: V] support in Ghostwriter TestCodeGenerator
+    - Dictionary generators inferred recursively for key/value types using Gen.zip pattern
 ### Planned
 - **Phase 11: Technical Debt Reduction Plans** - Decomposed technical debt reduction into 4 execution plans
   - **Plan 11-02: God File Decomposition (Core)** - Planned decomposition of Property.swift and ModelTesting.swift

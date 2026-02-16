@@ -288,14 +288,14 @@ public struct TestCodeGenerator {
       let inner = String(cleanedType.dropFirst(4).dropLast())
       return checkSetResult(inner: inner)
     }
-    // Handle Dictionary (not supported yet - requires TODO)
-    if cleanedType.hasPrefix("Dictionary<")
-      || (cleanedType.hasPrefix("[") && cleanedType.contains(":"))
-    {
-      return .todoRequired(
-        typeName: cleanedType,
-        reason: "Dictionary generation not yet supported"
-      )
+    // Handle Dictionary<K, V> or [K: V]
+    if cleanedType.hasPrefix("Dictionary<") && cleanedType.hasSuffix(">") {
+      let inner = String(cleanedType.dropFirst(11).dropLast())
+      return checkDictionaryResult(inner: inner, wrapper: "Dictionary<\(inner)>")
+    }
+    if cleanedType.hasPrefix("[") && cleanedType.contains(":") && cleanedType.hasSuffix("]") {
+      let inner = String(cleanedType.dropFirst().dropLast())
+      return checkDictionaryResult(inner: inner, wrapper: cleanedType)
     }
     // Standard types
     if Self.knownGeneratableTypes.contains(cleanedType) {
@@ -335,6 +335,56 @@ public struct TestCodeGenerator {
         reason: "Set element type cannot be generated: \(reason)"
       )
     }
+  }
+
+  /// Check dictionary type generation
+  /// Handles Dictionary<K, V> and [K: V] by splitting on comma and recursively checking key/value types
+  private func checkDictionaryResult(inner: String, wrapper: String) -> GeneratorResult {
+    // Split "K, V" into key and value types
+    // Simple comma split works for most cases (Int, String), but not for nested generics
+    // For now, handle simple cases; complex nested dictionaries will still return todoRequired
+    let components = inner.split(separator: ",", maxSplits: 1).map {
+      $0.trimmingCharacters(in: .whitespaces)
+    }
+
+    guard components.count == 2 else {
+      return .todoRequired(
+        typeName: wrapper,
+        reason: "Cannot parse dictionary key/value types from '\(inner)'"
+      )
+    }
+
+    let keyType = components[0]
+    let valueType = components[1]
+
+    // Check if key type is generatable
+    let keyCheck = generatorResult(for: keyType)
+    guard case .success = keyCheck else {
+      if case .todoRequired(_, let reason) = keyCheck {
+        return .todoRequired(
+          typeName: wrapper,
+          reason: "Dictionary key type cannot be generated: \(reason)"
+        )
+      }
+      return keyCheck
+    }
+
+    // Check if value type is generatable
+    let valueCheck = generatorResult(for: valueType)
+    guard case .success = valueCheck else {
+      if case .todoRequired(_, let reason) = valueCheck {
+        return .todoRequired(
+          typeName: wrapper,
+          reason: "Dictionary value type cannot be generated: \(reason)"
+        )
+      }
+      return valueCheck
+    }
+
+    // Both key and value are generatable - construct dictionary generator
+    return .success(
+      "Dictionary(uniqueKeysWithValues: composer.generate(using: Gen.array(of: Gen.zip(\(keyType).arbitrary, \(valueType).arbitrary))))"
+    )
   }
 
   /// Generate the Gen expression for a type.
