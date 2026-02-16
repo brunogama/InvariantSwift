@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added PropertyConfigBuilder with fluent API (.withIterations, .withSeed, etc.)
   - Added SeedStrategy enum (.random, .fixed(Seed)) for better seed handling
   - PropertyConfig remains backwards compatible with existing initializer
+  - Exposed PropertyResult.toTestResult() as public API (moved from fileprivate in FlakeHunter)
+  - Created PropertyResult+TestResult.swift for reliability testing integration
 ### Planned
 - **Phase 11: Technical Debt Reduction Plans** - Decomposed technical debt reduction into 4 execution plans
   - **Plan 11-02: God File Decomposition (Core)** - Planned decomposition of Property.swift and ModelTesting.swift

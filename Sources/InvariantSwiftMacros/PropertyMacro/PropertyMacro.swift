@@ -256,16 +256,36 @@ public struct PropertyMacro: PeerMacro {
     // Build explicit type annotation: Gen<(T1, T2, ...)> or Gen<T>
     let typeAnnotation: TypeAnnotationSyntax
     if parameters.count == 1 {
-      let genType = "Gen<\(parameters[0].type.description)>"
-      typeAnnotation = TypeAnnotationSyntax(
-        type: TypeSyntax(stringLiteral: genType)
+      // Gen<T> for single parameter
+      let genType = IdentifierTypeSyntax(
+        name: .identifier("Gen"),
+        genericArgumentClause: GenericArgumentClauseSyntax(
+          arguments: GenericArgumentListSyntax {
+            GenericArgumentSyntax(argument: parameters[0].type)
+          }
+        )
       )
+      typeAnnotation = TypeAnnotationSyntax(type: TypeSyntax(genType))
     } else {
-      let tupleTypes = parameters.map { $0.type.description }.joined(separator: ", ")
-      let genType = "Gen<(\(tupleTypes))>"
-      typeAnnotation = TypeAnnotationSyntax(
-        type: TypeSyntax(stringLiteral: genType)
+      // Gen<(T1, T2, ...)> for multiple parameters
+      let tupleElements = TupleTypeElementListSyntax {
+        for (index, param) in parameters.enumerated() {
+          TupleTypeElementSyntax(
+            type: param.type,
+            trailingComma: index < parameters.count - 1 ? .commaToken() : nil
+          )
+        }
+      }
+      let tupleType = TupleTypeSyntax(elements: tupleElements)
+      let genType = IdentifierTypeSyntax(
+        name: .identifier("Gen"),
+        genericArgumentClause: GenericArgumentClauseSyntax(
+          arguments: GenericArgumentListSyntax {
+            GenericArgumentSyntax(argument: TypeSyntax(tupleType))
+          }
+        )
       )
+      typeAnnotation = TypeAnnotationSyntax(type: TypeSyntax(genType))
     }
 
     return VariableDeclSyntax(
@@ -283,28 +303,103 @@ public struct PropertyMacro: PeerMacro {
   /// Builds a flatMap chain for multiple generators.
   /// For 2 generators: gen1.flatMap { a in gen2.map { b in (a, b) } }
   /// For 3 generators: gen1.flatMap { a in gen2.flatMap { b in gen3.map { c in (a, b, c) } } }
+  // swiftlint:disable:next function_body_length
   private static func buildFlatMapChain(
     _ generators: [ExprSyntax],
     parameterNames: [String]
   ) -> ExprSyntax {
     guard generators.count >= 2 else {
-      return generators.first ?? ExprSyntax(stringLiteral: "Gen.pure(())")
+      // Gen.pure(())
+      return generators.first
+        ?? ExprSyntax(
+          FunctionCallExprSyntax(
+            calledExpression: MemberAccessExprSyntax(
+              base: DeclReferenceExprSyntax(baseName: .identifier("Gen")),
+              declName: DeclReferenceExprSyntax(baseName: .identifier("pure"))
+            ),
+            leftParen: .leftParenToken(),
+            arguments: LabeledExprListSyntax {
+              LabeledExprSyntax(expression: TupleExprSyntax(elements: LabeledExprListSyntax {}))
+            },
+            rightParen: .rightParenToken()
+          )
+        )
     }
 
     // Build from right to left
-    // Start with innermost map
+    // Start with innermost map: lastGen.map { lastName in (param1, param2, ...) }
     let lastGen = generators.last!
     let lastName = parameterNames.last!
-    let tupleExpr = "(\(parameterNames.joined(separator: ", ")))"
 
-    // Build innermost: lastGen.map { lastName in tupleExpr }
-    var result = ExprSyntax(stringLiteral: "\(lastGen).map { \(lastName) in \(tupleExpr) }")
+    // Build tuple expression: (param1, param2, ...)
+    let tupleElements = LabeledExprListSyntax {
+      for (index, name) in parameterNames.enumerated() {
+        LabeledExprSyntax(
+          expression: DeclReferenceExprSyntax(baseName: .identifier(name)),
+          trailingComma: index < parameterNames.count - 1 ? .commaToken() : nil
+        )
+      }
+    }
+    let tupleExpr = TupleExprSyntax(elements: tupleElements)
 
-    // Build outward with flatMaps
+    // Build closure: { lastName in tupleExpr }
+    let mapClosure = ClosureExprSyntax(
+      signature: ClosureSignatureSyntax(
+        parameterClause: .simpleInput(
+          ClosureShorthandParameterListSyntax {
+            ClosureShorthandParameterSyntax(name: .identifier(lastName))
+          }
+        )
+      ),
+      statements: CodeBlockItemListSyntax {
+        CodeBlockItemSyntax(item: .expr(ExprSyntax(tupleExpr)))
+      }
+    )
+
+    // lastGen.map { closure }
+    var result = ExprSyntax(
+      FunctionCallExprSyntax(
+        calledExpression: MemberAccessExprSyntax(
+          base: lastGen,
+          declName: DeclReferenceExprSyntax(baseName: .identifier("map"))
+        ),
+        leftParen: .leftParenToken(),
+        arguments: LabeledExprListSyntax {},
+        rightParen: .rightParenToken(),
+        trailingClosure: mapClosure
+      )
+    )
+
+    // Build outward with flatMaps: gen.flatMap { name in result }
     for i in stride(from: generators.count - 2, through: 0, by: -1) {
       let gen = generators[i]
       let name = parameterNames[i]
-      result = ExprSyntax(stringLiteral: "\(gen).flatMap { \(name) in \(result) }")
+
+      let flatMapClosure = ClosureExprSyntax(
+        signature: ClosureSignatureSyntax(
+          parameterClause: .simpleInput(
+            ClosureShorthandParameterListSyntax {
+              ClosureShorthandParameterSyntax(name: .identifier(name))
+            }
+          )
+        ),
+        statements: CodeBlockItemListSyntax {
+          CodeBlockItemSyntax(item: .expr(result))
+        }
+      )
+
+      result = ExprSyntax(
+        FunctionCallExprSyntax(
+          calledExpression: MemberAccessExprSyntax(
+            base: gen,
+            declName: DeclReferenceExprSyntax(baseName: .identifier("flatMap"))
+          ),
+          leftParen: .leftParenToken(),
+          arguments: LabeledExprListSyntax {},
+          rightParen: .rightParenToken(),
+          trailingClosure: flatMapClosure
+        )
+      )
     }
 
     return result

@@ -1164,20 +1164,8 @@ public struct QuarantineReasonBuilder: Sendable {
 
 // MARK: - Extensions
 
-extension PropertyResult {
-  fileprivate func toTestResult() -> TestResult {
-    switch self {
-    case .success:
-      return .passed
-
-    case .failure:
-      return .failed
-
-    case .gaveUp:
-      return .skipped
-    }
-  }
-}
+// NOTE: PropertyResult.toTestResult() moved to InvariantSwiftCore/Property.swift
+// for public API access (Plan 11-01, Task 2)
 
 extension ProcessInfo {
   fileprivate var machineString: String {
