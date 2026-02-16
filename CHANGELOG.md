@@ -16,10 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Enhanced DifferentialTesting error comparison: .mustMatch now compares error types using type(of:)
     - DifferentialTestError description now includes error type information and mismatch warnings
     - Completed 11-01-SUMMARY.md with execution details (3 commits, 265s duration)
-  - **Plan 11-04 In Progress**: PropertyMacro AST refactoring and Ghostwriter Dictionary support
+  - **Plan 11-04 Complete**: PropertyMacro AST refactoring, Ghostwriter Dictionary support, and coverage infrastructure
     - Refactored PropertyMacro to use pure SwiftSyntax AST builders (no string interpolation)
     - Implemented Dictionary<K, V> and [K: V] support in Ghostwriter TestCodeGenerator
     - Dictionary generators inferred recursively for key/value types using Gen.zip pattern
+    - Resolved PropertyRunner+Coverage circular dependency by removing duplicate file
+    - PropertyRunner coverage extensions now properly located in InvariantSwiftAdvanced module
 ### Planned
 - **Phase 11: Technical Debt Reduction Plans** - Decomposed technical debt reduction into 4 execution plans
   - **Plan 11-02: God File Decomposition (Core)** - Planned decomposition of Property.swift and ModelTesting.swift
