@@ -6,8 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- **Phase 11: Technical Debt Reduction (Plan 11-01 In Progress)** - Configuration ergonomics and public API improvements
+  - Added PropertyConfigBuilder with fluent API (.withIterations, .withSeed, etc.)
+  - Added SeedStrategy enum (.random, .fixed(Seed)) for better seed handling
+  - PropertyConfig remains backwards compatible with existing initializer
+### Planned
 - **Phase 11: Technical Debt Reduction Plans** - Decomposed technical debt reduction into 4 execution plans
-  - **Plan 11-01: Configuration & Public API Redesign** - Planned PropertyConfig redesign and error comparison enhancements
   - **Plan 11-02: God File Decomposition (Core)** - Planned decomposition of Property.swift and ModelTesting.swift
   - **Plan 11-03: God File Decomposition (Advanced)** - Planned decomposition of FlakeHunter, Linearizability, InvariantMining, and PrettyPrint
   - **Plan 11-04: Infrastructure & Macros** - Planned PropertyMacro AST refactoring and Ghostwriter Dictionary support
