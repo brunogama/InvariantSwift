@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- **Phase 13: Cross-Platform Crash Isolation (Plan 13-03 summary)** - Planning docs updated: SUMMARY, STATE, ROADMAP
 - **Phase 13: Cross-Platform Crash Isolation (Plan 13-03 factory wiring)** - IsolationStrategyFactory routes .threadBased to ThreadIsolation
   - `IsolationStrategyFactory.strategy(for: .threadBased)` returns `ThreadIsolation()` on Darwin
   - Non-Darwin fallback remains `PassthroughIsolation()` for cross-platform compilation
