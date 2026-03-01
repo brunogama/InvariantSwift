@@ -41,9 +41,8 @@ public enum TypeAnalyzer {
       let args = identifier.genericArgumentClause,
       let first = args.arguments.first
     {
-      // SwiftSyntax 602: arg.argument is now GenericArgumentSyntax.Argument enum
-      // Use .asType helper to extract the underlying TypeSyntax
-      return first.argument.asType
+      // SwiftSyntax 602: arg.argument is Argument enum; extract TypeSyntax via .as
+      return first.argument.as(TypeSyntax.self)
     }
 
     return nil
@@ -64,7 +63,8 @@ public enum TypeAnalyzer {
       let args = identifier.genericArgumentClause,
       let first = args.arguments.first
     {
-      return first.argument.asType
+      // SwiftSyntax 602: arg.argument is Argument enum; extract TypeSyntax via .as
+      return first.argument.as(TypeSyntax.self)
     }
     return nil
   }
@@ -87,8 +87,9 @@ public enum TypeAnalyzer {
     else {
       return []
     }
+    // SwiftSyntax 602: arg.argument is Argument enum; extract TypeSyntax via .as
     return args.arguments.compactMap { arg in
-      arg.argument.asType
+      arg.argument.as(TypeSyntax.self)
     }
   }
 }

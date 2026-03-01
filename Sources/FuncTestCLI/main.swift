@@ -1,7 +1,6 @@
 import Foundation
 import InvariantSwift
 import InvariantSwiftCore
-import CustomDump
 // MARK: - FuncTest CLI Tool
 
 /// **FuncTest Command-Line Interface**

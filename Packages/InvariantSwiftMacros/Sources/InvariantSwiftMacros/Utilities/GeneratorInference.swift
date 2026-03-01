@@ -124,7 +124,7 @@ public enum GeneratorInference {
       identifier.name.text == "Optional",
       let genericArgs = identifier.genericArgumentClause,
       let firstArg = genericArgs.arguments.first,
-      let argType = firstArg.argument.asType
+      let argType = firstArg.argument.as(TypeSyntax.self)
     {
       return argType
     }
@@ -144,7 +144,7 @@ public enum GeneratorInference {
       identifier.name.text == "Array",
       let genericArgs = identifier.genericArgumentClause,
       let firstArg = genericArgs.arguments.first,
-      let argType = firstArg.argument.asType
+      let argType = firstArg.argument.as(TypeSyntax.self)
     {
       return argType
     }
@@ -158,7 +158,7 @@ public enum GeneratorInference {
       identifier.name.text == "Set",
       let genericArgs = identifier.genericArgumentClause,
       let firstArg = genericArgs.arguments.first,
-      let argType = firstArg.argument.asType
+      let argType = firstArg.argument.as(TypeSyntax.self)
     {
       return argType
     }
@@ -181,8 +181,8 @@ public enum GeneratorInference {
     {
       let args = Array(genericArgs.arguments)
       if args.count == 2,
-        let keyType = args[0].argument.asType,
-        let valueType = args[1].argument.asType
+        let keyType = args[0].argument.as(TypeSyntax.self),
+        let valueType = args[1].argument.as(TypeSyntax.self)
       {
         return (keyType, valueType)
       }
@@ -201,8 +201,8 @@ public enum GeneratorInference {
     {
       let args = Array(genericArgs.arguments)
       if args.count == 2,
-        let successType = args[0].argument.asType,
-        let failureType = args[1].argument.asType
+        let successType = args[0].argument.as(TypeSyntax.self),
+        let failureType = args[1].argument.as(TypeSyntax.self)
       {
         return (successType, failureType)
       }
@@ -240,7 +240,9 @@ public enum GeneratorInference {
       expression: DeclReferenceExprSyntax(baseName: .identifier("Gen")),
       genericArgumentClause: GenericArgumentClauseSyntax {
         GenericArgumentSyntax(
-          argument: TypeSyntax(IdentifierTypeSyntax(name: .identifier(typeName)))
+          argument: GenericArgumentSyntax.Argument(
+            TypeSyntax(IdentifierTypeSyntax(name: .identifier(typeName)))
+          )
         )
       }
     )

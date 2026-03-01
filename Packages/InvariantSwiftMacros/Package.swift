@@ -46,10 +46,8 @@ let package = Package(
     ),
   ],
   dependencies: [
-    // SwiftSyntax 600.0.1 - Use this version for prebuilts compatibility
-    // Prebuilts are only available for 600.0.1 and 601.0.1, NOT 602.0.0
-    // This gives 40-75% build time improvement
-    .package(url: "https://github.com/swiftlang/swift-syntax", from: "600.0.1"),
+    // SwiftSyntax 602.0.0 - aligned with root workspace package version
+    .package(url: "https://github.com/swiftlang/swift-syntax", from: "602.0.0"),
     // Local dependency on InvariantSwiftCore for shared types
     .package(path: "../InvariantSwiftCore"),
   ],

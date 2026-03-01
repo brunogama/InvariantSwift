@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- **Feat (09-07)**: Complete migration to SPM workspace monorepo - remove duplicated sources from root
+  - Removed Sources/{InvariantSwiftCore,InvariantSwiftGenerators,InvariantSwiftExecution,InvariantSwift,InvariantSwiftAdvanced,InvariantSwiftDomainGenerators} (now in Packages/InvariantSwiftCore)
+  - Removed Sources/{InvariantSwiftMacros,InvariantSwiftMacroAPI,GhostwriterLib,GhostwriterCLI} (now in Packages/InvariantSwiftMacros)
+  - Removed Tests/{InvariantSwiftTests,InvariantSwiftMacroTests,InvariantSwiftCoreTests,InvariantSwiftDomainGeneratorsTests,PerformanceTests}
+  - Rewrote root Package.swift as pure umbrella referencing sub-packages as local dependencies
+  - Upgraded swift-syntax to 602.0.0 in Packages/InvariantSwiftMacros and fixed GenericArgumentSyntax API for 602
 - **Fix (09-07)**: Fix compilation errors and test bugs in sub-package tests
   - Fixed Scheduler.replay strategy to return path only once (not indefinitely)
   - Fixed generic type inference errors in Gen.array() calls without explicit type annotations
