@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- **Phase 13: Cross-Platform Crash Isolation (Planning)**
+  - Created 4-plan breakdown for replacing Foundation.Process with posix_spawn
+  - Plan 13-01: IsolationCapability, CrashReport, IsolationStrategy foundation types
+  - Plan 13-02: PosixSpawnIsolation for macOS + iOS Simulator
+  - Plan 13-03: ThreadIsolation fallback for iOS device
+  - Plan 13-04: IsolatedPropertyRunner rewrite and comprehensive tests
 - **Fix**: Remove duplicate FlatMapShrinkingTests.swift files that caused SPM "multiple producers" build error
   - Deleted stale XCTest-based Core/FlatMapShrinkingTests.swift (104 lines)
   - Deleted orphan Tests/FunctionalTesting/ directory (7 unreferenced files)
