@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 - **Phase 13: Cross-Platform Crash Isolation (Plan 13-01 complete)** - Foundation types for crash isolation
   - Added `IsolationCapability` enum with `.fullSubprocess`, `.threadBased`, `.none` cases
+  - Added `CrashReport<T>` struct with signal, counterexample, shrunkCounterexample, stderr,
+    backtrace, isSymbolicated, and `IsolationMechanism` provenance fields
   - Runtime probing via `posix_spawn` on Darwin (iOS Simulator vs device detection)
   - Cached capability via `static let` (single probe at startup)
   - Pure Darwin import, no Foundation dependency
