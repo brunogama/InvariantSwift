@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- **Refactor**: Extract FlakeHunterReport.swift and QuarantineSystem.swift from FlakeHunter.swift (SRP)
+- **Chore**: Remove outdated docs, SPECS, ADR, openspec changes, and root-level scripts
+- **Chore**: Move batch_test_runner.py, pyproject.toml, sigtrap_capture.py to Scripts/
+- **Docs**: Add root-level AGENTS.md for AI agent conventions
 - **CI**: Add GitHub Actions workflows (changelog, commit-lint, docs, llms-txt, pr-validation) and git-cliff config
 - **Docs (11-02)**: Add 11-02-SUMMARY.md and update STATE.md for Property.swift and ModelTesting.swift decomposition
 - **Feat (11-02)**: Decompose ModelTesting.swift (1323 lines) into single-responsibility files
