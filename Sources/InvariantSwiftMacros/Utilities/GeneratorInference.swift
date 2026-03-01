@@ -123,10 +123,9 @@ public enum GeneratorInference {
     if let identifier = type.as(IdentifierTypeSyntax.self),
       identifier.name.text == "Optional",
       let genericArgs = identifier.genericArgumentClause,
-      let firstArg = genericArgs.arguments.first,
-      let argType = firstArg.argument.asType
+      let firstArg = genericArgs.arguments.first
     {
-      return argType
+      return firstArg.argument
     }
 
     return nil
@@ -143,10 +142,9 @@ public enum GeneratorInference {
     if let identifier = type.as(IdentifierTypeSyntax.self),
       identifier.name.text == "Array",
       let genericArgs = identifier.genericArgumentClause,
-      let firstArg = genericArgs.arguments.first,
-      let argType = firstArg.argument.asType
+      let firstArg = genericArgs.arguments.first
     {
-      return argType
+      return firstArg.argument
     }
 
     return nil
@@ -157,10 +155,9 @@ public enum GeneratorInference {
     if let identifier = type.as(IdentifierTypeSyntax.self),
       identifier.name.text == "Set",
       let genericArgs = identifier.genericArgumentClause,
-      let firstArg = genericArgs.arguments.first,
-      let argType = firstArg.argument.asType
+      let firstArg = genericArgs.arguments.first
     {
-      return argType
+      return firstArg.argument
     }
     return nil
   }
@@ -180,11 +177,8 @@ public enum GeneratorInference {
       let genericArgs = identifier.genericArgumentClause
     {
       let args = Array(genericArgs.arguments)
-      if args.count == 2,
-        let keyType = args[0].argument.asType,
-        let valueType = args[1].argument.asType
-      {
-        return (keyType, valueType)
+      if args.count == 2 {
+        return (args[0].argument, args[1].argument)
       }
     }
 
@@ -200,11 +194,8 @@ public enum GeneratorInference {
       let genericArgs = identifier.genericArgumentClause
     {
       let args = Array(genericArgs.arguments)
-      if args.count == 2,
-        let successType = args[0].argument.asType,
-        let failureType = args[1].argument.asType
-      {
-        return (successType, failureType)
+      if args.count == 2 {
+        return (args[0].argument, args[1].argument)
       }
     }
     return nil
@@ -240,7 +231,7 @@ public enum GeneratorInference {
       expression: DeclReferenceExprSyntax(baseName: .identifier("Gen")),
       genericArgumentClause: GenericArgumentClauseSyntax {
         GenericArgumentSyntax(
-          argument: .type(TypeSyntax(IdentifierTypeSyntax(name: .identifier(typeName))))
+          argument: TypeSyntax(IdentifierTypeSyntax(name: .identifier(typeName)))
         )
       }
     )

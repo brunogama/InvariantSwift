@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- **Phase 13: Cross-Platform Crash Isolation (Plan 13-01 complete)** - Foundation types for crash isolation
+  - Added `IsolationCapability` enum with `.fullSubprocess`, `.threadBased`, `.none` cases
+  - Runtime probing via `posix_spawn` on Darwin (iOS Simulator vs device detection)
+  - Cached capability via `static let` (single probe at startup)
+  - Pure Darwin import, no Foundation dependency
+  - Fixed InvariantSwiftMacros for SwiftSyntax 600.0.1: `GenericArgumentSyntax.argument` is
+    `TypeSyntax` directly (not a tagged union), updated all 8 affected files
 - **Phase 13: Cross-Platform Crash Isolation (Planning)**
   - Created 4-plan breakdown for replacing Foundation.Process with posix_spawn
   - Plan 13-01: IsolationCapability, CrashReport, IsolationStrategy foundation types
