@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added `IsolationStrategy` protocol with `execute(body:)` returning `IsolationResult`
   - Added `IsolationResult` enum: `.success`, `.failure`, `.crashed`, `.timeout`
   - Added `IsolationStrategyFactory` namespace and `PassthroughIsolation` placeholder
+  - All three types compile with zero warnings, zero swiftlint violations
   - Runtime probing via `posix_spawn` on Darwin (iOS Simulator vs device detection)
   - Cached capability via `static let` (single probe at startup)
   - Pure Darwin import, no Foundation dependency
