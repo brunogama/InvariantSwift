@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added `IsolationCapability` enum with `.fullSubprocess`, `.threadBased`, `.none` cases
   - Added `CrashReport<T>` struct with signal, counterexample, shrunkCounterexample, stderr,
     backtrace, isSymbolicated, and `IsolationMechanism` provenance fields
+  - Added `IsolationStrategy` protocol with `execute(body:)` returning `IsolationResult`
+  - Added `IsolationResult` enum: `.success`, `.failure`, `.crashed`, `.timeout`
+  - Added `IsolationStrategyFactory` namespace and `PassthroughIsolation` placeholder
   - Runtime probing via `posix_spawn` on Darwin (iOS Simulator vs device detection)
   - Cached capability via `static let` (single probe at startup)
   - Pure Darwin import, no Foundation dependency
