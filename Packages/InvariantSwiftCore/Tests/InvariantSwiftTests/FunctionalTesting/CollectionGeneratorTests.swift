@@ -557,7 +557,8 @@ struct CollectionGeneratorTests {
 
   @Test("Nested Collection Generators")
   func nestedCollectionGenerators() async {
-    let property = Property<[[Int]]>(generator: Gen.array(Gen<[Int]>.array(Gen<Int>.int))) { _ in
+    let property = Property<[[Int]]>(generator: Gen<[[Int]]>.array(Gen<[Int]>.array(Gen<Int>.int)))
+    { _ in
       true
     }
     let result = await PropertyRunner().runProperty(

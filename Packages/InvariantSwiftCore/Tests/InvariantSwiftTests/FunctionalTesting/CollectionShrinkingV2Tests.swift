@@ -14,7 +14,7 @@ struct CollectionShrinkingV2Tests {
 
   @Test("Array shrinking produces chunk deletions before element shrinks")
   func arrayChunkDeletions() {
-    let gen = Gen.array(Gen<Int>.int(in: 0...100))
+    let gen = Gen<[Int]>.array(Gen<Int>.int(in: 0...100))
     let array = [1, 2, 3, 4, 5, 6, 7, 8]
 
     let shrinks = gen.shrink.shrink(array)
@@ -35,7 +35,7 @@ struct CollectionShrinkingV2Tests {
 
   @Test("Array shrinking is deterministic")
   func arrayShrinkingDeterminism() {
-    let gen = Gen.array(Gen<Int>.int(in: 0...10))
+    let gen = Gen<[Int]>.array(Gen<Int>.int(in: 0...10))
     let array = [5, 3, 8, 1, 9]
 
     let shrinks1 = gen.shrink.shrink(array)
@@ -170,7 +170,7 @@ struct CollectionShrinkingV2Tests {
 
   @Test("Single-element collections shrink correctly")
   func singleElementShrinking() {
-    let arrayGen = Gen.array(Gen<Int>.int(in: 0...100))
+    let arrayGen = Gen<[Int]>.array(Gen<Int>.int(in: 0...100))
     let arrayShrinks = arrayGen.shrink.shrink([42])
 
     #expect(arrayShrinks.contains([]), "Single element array should shrink to empty")

@@ -42,8 +42,8 @@ struct PropertyMacroIntegrationTests {
   @Test("Property test with String parameter succeeds for valid property")
   func propertyTestStringSucceeds() throws {
     let generator = Gen<String>.string
-    let property = Property(generator: generator) { (s: String) in
-      s.isEmpty  // String count is always non-negative
+    let property = Property(generator: generator) { (_: String) in
+      true  // String identity: always passes
     }
 
     let config = PropertyConfig(iterations: 100, maxShrinks: 100)
@@ -63,9 +63,9 @@ struct PropertyMacroIntegrationTests {
   @Test("Property test with Bool parameter succeeds for valid property")
   func propertyTestBoolSucceeds() throws {
     let generator = Gen<Bool>.bool
-    let property = Property(generator: generator) { (b: Bool) in
+    let property = Property(generator: generator) { (value: Bool) in
       // swiftlint:disable:next identical_operands
-      b == b  // Identity (testing reflexivity)
+      value == value  // Identity (testing reflexivity)
     }
 
     let config = PropertyConfig(iterations: 100, maxShrinks: 100)
@@ -92,9 +92,9 @@ struct PropertyMacroIntegrationTests {
 
     let generator = Gen<Int>.int.zip(Gen<Int>.int)
     let property = Property(generator: generator) { (tuple: (Int, Int)) in
-      let (a, b) = tuple
+      let (lhs, rhs) = tuple
       // Addition commutativity (works for all Int, avoiding overflow)
-      return a &+ b == b &+ a
+      return lhs &+ rhs == rhs &+ lhs
     }
 
     let config = PropertyConfig(iterations: 100, maxShrinks: 100)
@@ -147,7 +147,7 @@ struct PropertyMacroIntegrationTests {
     // Simulates: @PropertyTest func test(arr: [Int]) { ... }
     let generator = Gen<[Int]>.array(Gen<Int>.int)
     let property = Property<[Int]>(generator: generator) { arr in
-      arr.isEmpty  // Arrays always have non-negative count
+      !arr.isEmpty || arr.isEmpty  // Array identity: always passes
     }
 
     let config = PropertyConfig(iterations: 50, maxShrinks: 50)
@@ -169,7 +169,7 @@ struct PropertyMacroIntegrationTests {
   func propertyTestSetInt() throws {
     let generator = Gen<Set<Int>>.set(Gen<Int>.int)
     let property = Property<Set<Int>>(generator: generator) { set in
-      set.isEmpty
+      !set.isEmpty || set.isEmpty  // Set identity: always passes
     }
 
     let config = PropertyConfig(iterations: 50, maxShrinks: 50)
@@ -191,7 +191,7 @@ struct PropertyMacroIntegrationTests {
   func propertyTestDictionary() throws {
     let generator = Gen<[String: Int]>.dictionary(Gen<String>.string, Gen<Int>.int)
     let property = Property<[String: Int]>(generator: generator) { dict in
-      dict.isEmpty
+      !dict.isEmpty || dict.isEmpty  // Dictionary identity: always passes
     }
 
     let config = PropertyConfig(iterations: 50, maxShrinks: 50)
@@ -424,9 +424,9 @@ struct GeneratorInferenceIntegrationTests {
   @Test("Inferred nested Array of Optional Int generator works")
   func inferredNestedGeneratorWorks() throws {
     // Gen.array(OptionalGen.optional(valueGen: Gen<Int>.int))
-    let generator = Gen.array(OptionalGen.optional(valueGen: Gen<Int>.int))
+    let generator = Gen<[Int?]>.array(OptionalGen.optional(valueGen: Gen<Int>.int))
     let property = Property<[Int?]>(generator: generator) { arr in
-      arr.isEmpty
+      !arr.isEmpty || arr.isEmpty  // Array identity: always passes
     }
 
     let result = runPropertySynchronously(

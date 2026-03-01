@@ -45,7 +45,7 @@ struct PerformanceAndEdgeCaseTests {
 
   @Test("Performance - Shrinking performance with complex structures")
   func performanceShrinkingComplexStructures() {
-    let complexGenerator = Gen.array(Gen<[String]>.array(Gen<String>.string))
+    let complexGenerator = Gen<[[String]]>.array(Gen<[String]>.array(Gen<String>.string))
     let property = Property<[[String]]>(generator: complexGenerator) { nestedArrays in
       // Property that will likely fail to test shrinking performance
       nestedArrays.allSatisfy { innerArray in

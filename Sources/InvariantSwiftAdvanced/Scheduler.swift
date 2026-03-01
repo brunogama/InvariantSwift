@@ -1,40 +1,17 @@
-/// Scheduler - Deterministic Concurrency Testing
-///
-/// Provides controlled interleaving of async operations for race condition detection.
-/// This is the public API for ISP-0001: Scheduler-Based Race Condition Testing.
+/// Deterministic concurrency testing via controlled interleaving.
+/// ISP-0001: Scheduler-Based Race Condition Testing.
 
 import Foundation
 import InvariantSwiftCore
 
 // MARK: - Core Types
 
-/// Controls the execution order of concurrent operations for deterministic testing.
-///
-/// Use `Scheduler` to systematically explore interleavings of concurrent code:
-///
-/// ```swift
-/// let scheduler = Scheduler(strategy: .exhaustive(depth: 5))
-/// try await scheduler.run {
-///     await withTaskGroup(of: Void.self) { group in
-///         group.addTask { await cache.get("key") }
-///         group.addTask { await cache.get("key") }
-///     }
-/// }
-/// ```
 public struct Scheduler: Sendable {
 
-  /// Exploration strategy for interleavings
   public enum Strategy: Sendable, Equatable {
-    /// Random interleaving (default, fast)
     case random(seed: UInt64?)
-
-    /// Systematic exploration up to depth
     case exhaustive(depth: Int)
-
-    /// Prioritize interleavings likely to expose bugs
     case targeted(heuristic: InterleavingHeuristic)
-
-    /// Replay a specific interleaving path
     case replay(path: InterleavingPath)
 
     public static func == (lhs: Self, rhs: Self) -> Bool {
@@ -57,22 +34,11 @@ public struct Scheduler: Sendable {
     }
   }
 
-  /// The strategy used for this scheduler
   public let strategy: Strategy
-
-  /// Maximum interleavings to explore
   public let maxInterleavings: Int
-
-  /// Timeout for each interleaving exploration
   public let timeout: Duration
-
-  /// Current interleaving path (for reproduction)
   public private(set) var currentPath: InterleavingPath
-
-  /// History of explored paths
   private var exploredPaths: [InterleavingPath] = []
-
-  /// Internal RNG for deterministic execution
   private var rng: SchedulerRNG
 
   public init(
@@ -94,12 +60,10 @@ public struct Scheduler: Sendable {
     }
   }
 
-  /// Schedule an async operation for controlled execution
   @available(macOS 15.0, iOS 18.0, tvOS 18.0, watchOS 11.0, *)
   public mutating func schedule<T: Sendable>(
     _ operation: @Sendable () async throws -> T
   ) async rethrows -> T {
-    // Record scheduling point
     let stepIndex = currentPath.steps.count
     currentPath = currentPath.appending(step: stepIndex)
 
@@ -109,7 +73,6 @@ public struct Scheduler: Sendable {
     return try await operation()
   }
 
-  /// Run the scheduler with a test body, exploring interleavings
   @available(macOS 15.0, iOS 18.0, tvOS 18.0, watchOS 11.0, *)
   public mutating func run<T: Sendable>(
     _ body: @Sendable () async throws -> T
@@ -133,7 +96,6 @@ public struct Scheduler: Sendable {
       } catch {
         results.append(.failure(error, path: currentPath))
 
-        // On failure, return immediately with counterexample
         return SchedulerResult(
           interleavingsExplored: interleavingsExplored + 1,
           failingPath: currentPath,
@@ -145,7 +107,6 @@ public struct Scheduler: Sendable {
       exploredPaths.append(currentPath)
       interleavingsExplored += 1
 
-      // Break if exhaustive search is complete
       if case .replay = strategy {
         break
       }
@@ -159,19 +120,16 @@ public struct Scheduler: Sendable {
     )
   }
 
-  /// Wait for all scheduled operations to complete
+  /// Placeholder: actual implementation coordinates with TaskExecutor
   public func waitAll() async {
-    // Placeholder - actual implementation coordinates with TaskExecutor
     await Task.yield()
   }
 
-  /// Wait until no operations are pending
+  /// Placeholder: actual implementation tracks pending operations
   public func waitIdle() async {
-    // Placeholder - actual implementation tracks pending operations
     await Task.yield()
   }
 
-  /// Get next interleaving path for exploration
   public mutating func nextInterleaving() -> InterleavingPath? {
     switch strategy {
     case .random:
@@ -191,12 +149,15 @@ public struct Scheduler: Sendable {
       return heuristic.nextPath(explored: exploredPaths)
 
     case .replay(let path):
-      // Single path replay
-      return exploredPaths.isEmpty ? path : nil
+      // Single path replay - return path only once
+      if exploredPaths.isEmpty {
+        exploredPaths.append(path)
+        return path
+      }
+      return nil
     }
   }
 
-  /// Apply jitter based on strategy
   private func applyJitter() async {
     switch strategy {
     case .random:
@@ -207,7 +168,6 @@ public struct Scheduler: Sendable {
       await Task.yield()
 
     case .replay:
-      // No jitter for replay
       break
     }
   }
@@ -215,17 +175,9 @@ public struct Scheduler: Sendable {
 
 // MARK: - Interleaving Path
 
-/// Records the exact sequence of operation orderings for reproduction.
-///
-/// An `InterleavingPath` captures which pending operation was chosen at each
-/// scheduling decision point. Use this to replay exact interleavings:
-///
-/// ```swift
-/// let path = InterleavingPath(steps: [0, 1, 0, 2])
-/// let scheduler = Scheduler(strategy: .replay(path: path))
-/// ```
+/// Records which pending operation was chosen at each scheduling decision point,
+/// enabling exact replay of a failing interleaving.
 public struct InterleavingPath: Sendable, Codable, Hashable, CustomStringConvertible {
-  /// Which pending operation was chosen at each step
   public let steps: [Int]
 
   public init(steps: [Int]) {
@@ -236,23 +188,19 @@ public struct InterleavingPath: Sendable, Codable, Hashable, CustomStringConvert
     steps.map(String.init).joined(separator: ":")
   }
 
-  /// Create a new path with an additional step
   public func appending(step: Int) -> Self {
     Self(steps: steps + [step])
   }
 
-  /// Shrink the path to find minimal counterexample
   public func shrink() -> [Self] {
     var candidates: [Self] = []
 
-    // Try removing each step
     for i in 0..<steps.count {
       var newSteps = steps
       newSteps.remove(at: i)
       candidates.append(Self(steps: newSteps))
     }
 
-    // Try reducing step values
     for i in 0..<steps.count where steps[i] > 0 {
       var newSteps = steps
       newSteps[i] -= 1
@@ -265,47 +213,31 @@ public struct InterleavingPath: Sendable, Codable, Hashable, CustomStringConvert
 
 // MARK: - Interleaving Heuristic
 
-/// Heuristics for targeted interleaving exploration.
-///
-/// Use heuristics to guide the scheduler toward interleavings that are
-/// more likely to expose bugs.
 public enum InterleavingHeuristic: Sendable, Equatable, Hashable {
-  /// Favor interleavings that maximize context switches
   case maxContextSwitches
-
-  /// Favor interleavings where operations complete in reverse start order
   case reverseCompletion
-
-  /// Favor interleavings that delay specific operations
   case delay(pattern: String)
-
-  /// Bias toward interleavings at actor boundaries
   case actorBoundary
 
-  /// Generate next path based on heuristic
   func nextPath(explored: [InterleavingPath]) -> InterleavingPath? {
     switch self {
     case .maxContextSwitches:
-      // Alternate between operations to maximize switching
       let length = min(explored.count + 5, 20)
       let steps = (0..<length).map { $0 % 3 }
       return InterleavingPath(steps: steps)
 
     case .reverseCompletion:
-      // Reverse ordering
       let length = min(explored.count + 5, 20)
       let steps = (0..<length).reversed().map { $0 % 3 }
       return InterleavingPath(steps: Array(steps))
 
     case .delay(let pattern):
-      // Delay operations matching pattern
       let patternHash = pattern.hashValue
       let length = min(explored.count + 5, 20)
       let steps = (0..<length).map { ($0 + abs(patternHash)) % 3 }
       return InterleavingPath(steps: steps)
 
     case .actorBoundary:
-      // Focus on actor isolation points
       let length = min(explored.count + 5, 20)
       let steps = (0..<length).map { $0 % 2 }
       return InterleavingPath(steps: steps)
@@ -315,26 +247,16 @@ public enum InterleavingHeuristic: Sendable, Equatable, Hashable {
 
 // MARK: - Scheduler Result
 
-/// Result of scheduler exploration
 public struct SchedulerResult<T: Sendable>: Sendable {
-  /// Number of interleavings explored
   public let interleavingsExplored: Int
-
-  /// Path that caused failure (if any)
   public let failingPath: InterleavingPath?
-
-  /// Error from failing interleaving (if any)
   public let error: Error?
-
-  /// Total execution time
   public let executionTime: Duration
 
-  /// Whether all interleavings passed
   public var isSuccess: Bool {
     error == nil
   }
 
-  /// Summary for diagnostics
   public func summary() -> String {
     var result = "Scheduler Results\n"
     result += "=================\n"
@@ -355,7 +277,6 @@ public struct SchedulerResult<T: Sendable>: Sendable {
   }
 }
 
-/// Individual interleaving result
 public enum InterleavingResult<T: Sendable>: Sendable {
   case success(T, path: InterleavingPath)
   case failure(Error, path: InterleavingPath)
@@ -363,7 +284,6 @@ public enum InterleavingResult<T: Sendable>: Sendable {
 
 // MARK: - Scheduler RNG
 
-/// Seeded RNG for deterministic scheduling
 struct SchedulerRNG: Sendable {
   private var state: UInt64
 
@@ -372,7 +292,6 @@ struct SchedulerRNG: Sendable {
   }
 
   mutating func next() -> UInt64 {
-    // Linear congruential generator
     state =
       state.multipliedReportingOverflow(by: 1_103_515_245)
       .partialValue.addingReportingOverflow(12345).partialValue
@@ -382,7 +301,6 @@ struct SchedulerRNG: Sendable {
 
 // MARK: - Pending Operation
 
-/// Represents an operation waiting to be scheduled
 public struct PendingOperation: Sendable, Identifiable {
   public let id: UUID
   public let name: String
@@ -406,14 +324,12 @@ public struct PendingOperation: Sendable, Identifiable {
 
 extension Scheduler {
 
-  /// Create a TaskGroup where child task execution is controlled
   @available(macOS 15.0, iOS 18.0, tvOS 18.0, watchOS 11.0, *)
   public mutating func withTaskGroup<ChildTaskResult: Sendable, GroupResult>(
     of childTaskResultType: ChildTaskResult.Type,
     returning returnType: GroupResult.Type = GroupResult.self,
     body: (inout TaskGroup<ChildTaskResult>) async -> GroupResult
   ) async -> GroupResult {
-    // Apply jitter before group execution
     await applyJitter()
 
     return await _Concurrency.withTaskGroup(of: childTaskResultType, returning: returnType) {
@@ -423,14 +339,12 @@ extension Scheduler {
     }
   }
 
-  /// Create a ThrowingTaskGroup with controlled execution
   @available(macOS 15.0, iOS 18.0, tvOS 18.0, watchOS 11.0, *)
   public mutating func withThrowingTaskGroup<ChildTaskResult: Sendable, GroupResult>(
     of childTaskResultType: ChildTaskResult.Type,
     returning returnType: GroupResult.Type = GroupResult.self,
     body: (inout ThrowingTaskGroup<ChildTaskResult, Error>) async throws -> GroupResult
   ) async rethrows -> GroupResult {
-    // Apply jitter before group execution
     await applyJitter()
 
     return try await _Concurrency.withThrowingTaskGroup(
@@ -446,13 +360,10 @@ extension Scheduler {
 
 // MARK: - Global Scheduler Context
 
-/// Container for thread-local scheduler context
 public enum SchedulerContext {
-  /// Thread-local scheduler for use within `@AsyncPropertyTest`
   @TaskLocal public static var current: Scheduler?
 }
 
-/// Execute code with a scheduler context
 @available(macOS 15.0, iOS 18.0, tvOS 18.0, watchOS 11.0, *)
 public func withScheduler<T: Sendable>(
   _ scheduler: Scheduler,

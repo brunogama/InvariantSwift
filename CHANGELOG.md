@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- **Fix (09-07)**: Fix compilation errors and test bugs in sub-package tests
+  - Fixed Scheduler.replay strategy to return path only once (not indefinitely)
+  - Fixed generic type inference errors in Gen.array() calls without explicit type annotations
+  - Fixed incorrect test predicates using isEmpty as always-true property
+  - Increased InvariantMiningOptimizationTests memory bound to reduce flakiness in parallel execution
 - **Fix**: Remove duplicate FlatMapShrinkingTests.swift files that caused SPM "multiple producers" build error
   - Deleted stale XCTest-based Core/FlatMapShrinkingTests.swift (104 lines)
   - Deleted orphan Tests/FunctionalTesting/ directory (7 unreferenced files)

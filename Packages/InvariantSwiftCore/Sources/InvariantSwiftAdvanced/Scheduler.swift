@@ -191,8 +191,12 @@ public struct Scheduler: Sendable {
       return heuristic.nextPath(explored: exploredPaths)
 
     case .replay(let path):
-      // Single path replay
-      return exploredPaths.isEmpty ? path : nil
+      // Single path replay - return path only once
+      if exploredPaths.isEmpty {
+        exploredPaths.append(path)
+        return path
+      }
+      return nil
     }
   }
 
