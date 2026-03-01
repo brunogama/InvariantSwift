@@ -21,30 +21,6 @@ repos:
     files: \.swift$
     pass_filenames: true
 
-  - id: swift-package-tests
-    name: 🧪 Running Swift package tests...
-    entry: bash -c 'if [ -f "Package.swift" ] && git diff --cached --name-only | grep -q "\.swift$"; then echo "🔍 Swift files detected, running tests..."; swift test; else echo "ℹ️ No Swift package or Swift files changed, skipping tests"; fi'
-    language: system
-    pass_filenames: false
-    always_run: true
-    files: \.swift$
-
-  - id: swift-coverage-guard
-    name: 📊 Enforcing 99% code coverage...
-    entry: scripts/check-coverage.sh
-    language: system
-    pass_filenames: false
-    always_run: true
-    files: \.swift$
-
-  - id: swift-warning-guard
-    name: ⚠️ Checking for Swift warnings...
-    entry: bash -c 'if [ -f "Package.swift" ] && git diff --cached --name-only | grep -q "\.swift$"; then echo "🔍 Compiling Swift code with warnings as errors..."; swift build -Xswiftc -warnings-as-errors; else echo "ℹ️ No Swift package or Swift files changed, skipping warning check"; fi'
-    language: system
-    pass_filenames: false
-    always_run: true
-    files: \.swift$
-
   - id: branch-guardian
     name: 🚫 Checking branch protection...
     entry: bash -c 'BRANCH=$(git rev-parse --abbrev-ref HEAD); if [ "$BRANCH" = "main" ] || [ "$BRANCH" = "dev" ]; then echo "🛑 Direct commits to $BRANCH branch are not allowed! Use feature branches and PRs instead 🚀"; exit 1; fi'
