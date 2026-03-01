@@ -3,9 +3,9 @@ import Foundation
 @testable import InvariantSwiftCore
 @testable import InvariantSwift
 
-/// Phase 7: Process Isolation Tests
+/// Phase 7 (updated for Plan 13-04): Isolated Property Runner Tests
 ///
-/// Tests for crash-resilient property testing using subprocess isolation
+/// Tests for crash-resilient property testing via the IsolationStrategy pattern.
 @Suite("Isolated Property Runner Tests")
 struct IsolatedPropertyRunnerTests {
 
@@ -45,20 +45,24 @@ struct IsolatedPropertyRunnerTests {
     }
   }
 
-  @Test("IsolatedPropertyResult crashed case")
+  @Test("IsolatedPropertyResult crashed case carries CrashReport")
   func isolatedPropertyResultCrashed() {
-    let result = IsolatedPropertyResult<Int>.crashed(
-      signal: 11,  // SIGSEGV
+    let report = CrashReport<Int>(
+      signal: 11,
       counterexample: 99,
-      shrunk: 10,
-      iterations: 25
+      shrunkCounterexample: 10,
+      stderr: "",
+      backtrace: [],
+      isSymbolicated: false,
+      isolationMechanism: .threadSignalHandler
     )
+    let result = IsolatedPropertyResult<Int>.crashed(report: report, iterations: 25)
 
     switch result {
-    case .crashed(let signal, let counterexample, let shrunk, let iterations):
-      #expect(signal == 11)
-      #expect(counterexample == 99)
-      #expect(shrunk == 10)
+    case .crashed(let r, let iterations):
+      #expect(r.signal == 11)
+      #expect(r.counterexample == 99)
+      #expect(r.shrunkCounterexample == 10)
       #expect(iterations == 25)
 
     default:
@@ -118,10 +122,9 @@ struct IsolatedPropertyRunnerTests {
     }
   }
 
-  @Test("IsolatedPropertyRunner handles filter discards")
-  func isolatedPropertyRunnerDiscards() async {
+  @Test("IsolatedPropertyRunner handles simple passing property")
+  func isolatedPropertyRunnerPassing() async {
     let runner = IsolatedPropertyRunner()
-    // Use a simple generator that always passes - tests basic execution
     let property = Property<Int>(generator: Gen<Int>.int(in: 1...10)) { value in
       value >= 1 && value <= 10  // Always passes for range
     }
@@ -131,7 +134,6 @@ struct IsolatedPropertyRunnerTests {
       config: PropertyConfig(iterations: 5, maxDiscarded: 100)
     )
 
-    // Should succeed since property always passes
     switch result {
     case .success(let iterations):
       #expect(iterations == 5)
@@ -139,6 +141,24 @@ struct IsolatedPropertyRunnerTests {
     default:
       Issue.record("Expected success for simple property")
     }
+  }
+
+  // MARK: - isolationCapability Tests
+
+  @Test("IsolatedPropertyRunner exposes isolationCapability")
+  func isolationCapabilityAccess() async {
+    let runner = IsolatedPropertyRunner()
+    let cap = await runner.isolationCapability
+    // The capability must be a valid IsolationCapability value.
+    // Verify CustomStringConvertible produces a non-empty string.
+    #expect(!cap.description.isEmpty)
+  }
+
+  @Test("IsolatedPropertyRunner with PassthroughIsolation has .none capability")
+  func isolationCapabilityPassthrough() async {
+    let runner = IsolatedPropertyRunner(strategy: PassthroughIsolation())
+    let cap = await runner.isolationCapability
+    #expect(cap == .none)
   }
 
   // MARK: - PropertyConfig.isolated Tests
@@ -176,7 +196,6 @@ struct IsolatedPropertyRunnerTests {
 
     let (r1, r2, r3) = await (result1, result2, result3)
 
-    // All should succeed
     switch (r1, r2, r3) {
     case (.success, .success, .success):
       #expect(Bool(true))
@@ -202,9 +221,9 @@ struct IsolatedPropertyRunnerTests {
 
     switch result {
     case .failure(let counterexample, _, let shrunk, _, _):
-      // Shrunk value should be smaller or equal (closer to boundary)
       #expect(shrunk <= counterexample)
-      #expect(shrunk >= 100)  // Still in original range
+      #expect(shrunk >= 100)
+
     default:
       Issue.record("Expected failure with shrinking")
     }
@@ -234,42 +253,6 @@ struct IsolatedPropertyRunnerTests {
 
     default:
       Issue.record("Unexpected result")
-    }
-  }
-}
-
-// MARK: - Subprocess Runner Tests
-
-@Suite("Subprocess Runner Tests")
-struct SubprocessRunnerTests {
-
-  @Test("SubprocessRunner result enum has all expected cases")
-  func subprocessResultCases() {
-    // Test that all cases can be constructed
-    let success = SubprocessRunner.SubprocessResult.success
-    let failure = SubprocessRunner.SubprocessResult.failure(reason: "test")
-    let crashed = SubprocessRunner.SubprocessResult.crashed(signal: 9)
-    let timeout = SubprocessRunner.SubprocessResult.timeout
-
-    // Verify pattern matching works
-    switch success {
-    case .success: #expect(Bool(true))
-    default: Issue.record("Expected success")
-    }
-
-    switch failure {
-    case .failure(let reason): #expect(reason == "test")
-    default: Issue.record("Expected failure")
-    }
-
-    switch crashed {
-    case .crashed(let signal): #expect(signal == 9)
-    default: Issue.record("Expected crashed")
-    }
-
-    switch timeout {
-    case .timeout: #expect(Bool(true))
-    default: Issue.record("Expected timeout")
     }
   }
 }

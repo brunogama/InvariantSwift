@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- **Phase 13: Cross-Platform Crash Isolation (Plan 13-04 complete)** - IsolatedPropertyRunner rewrite using IsolationStrategy
+  - Rewrote `IsolatedPropertyRunner` to delegate execution to `IsolationStrategy` protocol
+  - Removed all `Foundation.Process` usage — clean break, no deprecation
+  - Removed all `#if os(macOS)` guards from `IsolatedPropertyRunner` and `SubprocessIsolation`
+  - `IsolatedPropertyResult.crashed` now carries `CrashReport<T>` with full diagnostics
+  - Added `IsolatedPropertyRunner.init(strategy:)` for testability with `PassthroughIsolation`
+  - Exposed `isolationCapability` property for runtime diagnostic querying
+  - Cleaned `SubprocessIsolation.swift`: retained `PropertyEvaluationRequest/Response`, removed `SubprocessPropertyExecutor`
+  - Updated `Sources/InvariantSwift/Core/` mirrors to match (verified identical via diff)
+  - Updated `IsolatedPropertyRunnerTests.swift` to use new `CrashReport`-based crashed case
 - **Phase 13: Cross-Platform Crash Isolation (Plan 13-03 summary)** - Planning docs updated: SUMMARY, STATE, ROADMAP
 - **Phase 13: Cross-Platform Crash Isolation (Plan 13-03 factory wiring)** - IsolationStrategyFactory routes .threadBased to ThreadIsolation
   - `IsolationStrategyFactory.strategy(for: .threadBased)` returns `ThreadIsolation()` on Darwin
