@@ -77,7 +77,7 @@ public enum IsolationStrategyFactory {
   ///
   /// - `.fullSubprocess`: Returns `PosixSpawnIsolation` when the helper binary is
   ///   discoverable, or `PassthroughIsolation` with a logged diagnostic when it is not.
-  /// - `.threadBased`: Returns `PassthroughIsolation` until `ThreadIsolation` lands in plan 03.
+  /// - `.threadBased`: Returns `ThreadIsolation` on Darwin platforms.
   /// - `.none`: Returns `PassthroughIsolation`.
   ///
   /// - Parameter capability: The capability tier to match.
@@ -94,8 +94,11 @@ public enum IsolationStrategyFactory {
       return PassthroughIsolation()
 
     case .threadBased:
-      // ThreadIsolation will be returned here in plan 03.
+      #if canImport(Darwin)
+      return ThreadIsolation()
+      #else
       return PassthroughIsolation()
+      #endif
 
     case .none:
       return PassthroughIsolation()
