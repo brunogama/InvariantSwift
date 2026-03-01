@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- **Refactor (11-03)**: Decompose PrettyPrint.swift (1047 lines) - extract Diffing.swift, Formatters.swift, PrettyPrintExtensions.swift
 - **Refactor (11-03)**: Decompose Linearizability.swift (1179->743 lines) - extract LinearizabilityModel.swift
 - **Refactor (11-03)**: Decompose InvariantMining.swift (1147->487 lines) - extract InvariantDiscovery.swift, InvariantStreaming.swift
 - **Refactor**: Extract FlakeHunterReport.swift and QuarantineSystem.swift from FlakeHunter.swift (SRP)
