@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Deleted orphan Tests/FunctionalTesting/ directory (7 unreferenced files)
   - Deleted stale Packages/InvariantSwiftCore copy
   - Canonical Swift Testing version preserved at Tests/InvariantSwiftTests/FunctionalTesting/
+- **Fix**: Add Xcode scheme with test action for xcodebuild integration
+  - Created .swiftpm/xcode/xcshareddata/xcschemes/InvariantSwift.xcscheme
+  - All 8 test targets included in scheme test action
+  - Updated .gitignore to allow shared xcschemes to be committed
 - **Packaging**: Add binary artifact bundle for InvariantSwiftMacros
   - Dual-manifest pattern (Package.swift / Package.binary.swift) eliminates swift-syntax for consumers
   - Build script and CI workflow for tagged releases (macOS arm64/x86_64, Linux x86_64)
