@@ -105,7 +105,9 @@ struct IsolatedPropertyRunnerTests {
 
   @Test("IsolatedPropertyRunner detects property failure")
   func isolatedPropertyRunnerFailure() async {
-    let runner = IsolatedPropertyRunner()
+    // Use PassthroughIsolation so the predicate runs in-process; this allows
+    // failure detection to work without the subprocess IPC path.
+    let runner = IsolatedPropertyRunner(strategy: PassthroughIsolation())
     let property = Property<Int>(generator: Gen<Int>.int(in: 50...100)) { value in
       value < 25  // Always fails for range 50...100
     }
@@ -209,7 +211,8 @@ struct IsolatedPropertyRunnerTests {
 
   @Test("Isolated runner shrinks failing values")
   func isolatedRunnerShrinks() async {
-    let runner = IsolatedPropertyRunner()
+    // Use PassthroughIsolation so the predicate runs in-process for failure detection.
+    let runner = IsolatedPropertyRunner(strategy: PassthroughIsolation())
     let property = Property<Int>(generator: Gen<Int>.int(in: 100...1000)) { value in
       value < 50  // Always fails for range
     }

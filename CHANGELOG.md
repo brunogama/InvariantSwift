@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- **Phase 13: Cross-Platform Crash Isolation (Plan 13-04 test fix)** - Use PassthroughIsolation in failure-detection tests
+  - `IsolatedPropertyRunnerTests`: tests that verify predicate failure detection now use `PassthroughIsolation` explicitly so the predicate runs in-process (PosixSpawnIsolation helper stub always returns passed=true)
 - **Phase 13: Cross-Platform Crash Isolation (Plan 13-04 tests)** - Comprehensive tests for crash isolation types
   - Added `IsolationCapabilityTests.swift`: 11 tests covering enum cases, descriptions, detect(), current, macOS shortcut
   - Added `CrashReportTests.swift`: 21 tests covering all fields, signalName computed property (SIGABRT/SIGSEGV/SIGILL/SIGBUS/unknown), formatted() output, Equatable conformance, Sendable across actor boundaries
