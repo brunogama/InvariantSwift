@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- **Docs (11-02)**: Add 11-02-SUMMARY.md and update STATE.md for Property.swift and ModelTesting.swift decomposition
 - **Feat (11-02)**: Decompose ModelTesting.swift (1323 lines) into single-responsibility files
   - Extract Command.swift: Command protocol, StateMachine protocol, built-in command types
   - Extract ModelTestingError.swift: ModelTestError enum with all error cases
