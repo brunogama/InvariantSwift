@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- **Phase 13: Cross-Platform Crash Isolation (Verification)** - Phase verified: 12/12 must-haves, all 6 requirements (CI-01 through CI-06) satisfied
 - **Phase 13: Cross-Platform Crash Isolation (Plan 13-04 test fix)** - Use PassthroughIsolation in failure-detection tests
   - `IsolatedPropertyRunnerTests`: tests that verify predicate failure detection now use `PassthroughIsolation` explicitly so the predicate runs in-process (PosixSpawnIsolation helper stub always returns passed=true)
 - **Phase 13: Cross-Platform Crash Isolation (Plan 13-04 tests)** - Comprehensive tests for crash isolation types
