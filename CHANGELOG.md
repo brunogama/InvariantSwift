@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- **Refactor (11-03)**: Decompose Linearizability.swift (1179->743 lines) - extract LinearizabilityModel.swift
+- **Refactor (11-03)**: Decompose InvariantMining.swift (1147->487 lines) - extract InvariantDiscovery.swift, InvariantStreaming.swift
 - **Refactor**: Extract FlakeHunterReport.swift and QuarantineSystem.swift from FlakeHunter.swift (SRP)
 - **Chore**: Remove outdated docs, SPECS, ADR, openspec changes, and root-level scripts
 - **Chore**: Move batch_test_runner.py, pyproject.toml, sigtrap_capture.py to Scripts/
