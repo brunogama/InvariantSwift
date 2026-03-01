@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- **Packaging**: Add binary artifact bundle for InvariantSwiftMacros
+  - Dual-manifest pattern (Package.swift / Package.binary.swift) eliminates swift-syntax for consumers
+  - Build script and CI workflow for tagged releases (macOS arm64/x86_64, Linux x86_64)
 - **Phase 11: Technical Debt Reduction (Plan 11-01, 11-04 Partial Complete)** - Configuration ergonomics and macro/infrastructure improvements
   - **Plan 11-01 Complete**: Configuration ergonomics and public API improvements
     - Added PropertyConfigBuilder with fluent API (.withIterations, .withSeed, etc.)

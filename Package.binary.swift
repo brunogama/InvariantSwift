@@ -1,10 +1,8 @@
 // swift-tools-version: 6.2
-// Development manifest -- builds InvariantSwiftMacros from source (requires swift-syntax).
-// For release tags, CI swaps Package.binary.swift into Package.swift so consumers
-// resolve a pre-built binary plugin without the swift-syntax dependency.
-// swiftlint:disable all
+// Package.binary.swift -- Release manifest for binary macro distribution.
+// On tagged releases, CI swaps this file to Package.swift so consumers
+// resolve the pre-built InvariantSwiftMacros plugin without swift-syntax.
 import PackageDescription
-import CompilerPluginSupport
 
 let commonSwiftSettings: [SwiftSetting] = [
   .unsafeFlags(["-Xfrontend", "-strict-concurrency=complete", "-Xfrontend", "-warn-concurrency"]),
@@ -20,29 +18,18 @@ let packagePlatforms: [SupportedPlatform] = [
 ]
 
 let packageProducts: [Product] = [
-  // Main umbrella library - re-exports everything from sub-packages
   .library(name: "InvariantSwiftUmbrella", targets: ["InvariantSwiftUmbrella"]),
-  // Individual libraries
   .library(name: "InvariantSwiftCore", targets: ["InvariantSwiftCore"]),
   .library(name: "InvariantSwift", targets: ["InvariantSwift"]),
   .library(name: "InvariantSwiftTesting", targets: ["InvariantSwiftTesting"]),
   .library(name: "InvariantSwiftAdvanced", targets: ["InvariantSwiftAdvanced"]),
   .library(name: "InvariantSwiftDomainGenerators", targets: ["InvariantSwiftDomainGenerators"]),
   .plugin(name: "InvariantSwiftPlugin", targets: ["InvariantSwiftPlugin"]),
-  .plugin(name: "GhostwriterPlugin", targets: ["GhostwriterPlugin"]),
+  // Note: GhostwriterPlugin excluded -- depends on GhostwriterCLI which requires swift-syntax.
 ]
 
-// MARK: - Workspace Structure
-// This package serves as the root of a monorepo workspace.
-// Sub-packages:
-//   - Packages/InvariantSwiftCore: Core library without SwiftSyntax dependency
-//   - Packages/InvariantSwiftMacros: Macro implementations with SwiftSyntax
-
-let packageDependencies: [Package.Dependency] = [
-  // External dependencies only - using local targets instead of packages
-  .package(url: "https://github.com/swiftlang/swift-syntax", from: "600.0.1"),
-  .package(url: "https://github.com/google/swift-benchmark", from: "0.1.2"),
-]
+// No swift-syntax, no swift-benchmark in the binary manifest.
+let packageDependencies: [Package.Dependency] = []
 
 // MARK: - Layer 0: Foundation (zero dependencies)
 
@@ -87,7 +74,6 @@ let libraryTargets: [Target] = [
     ],
     path: "Sources/InvariantSwift",
     exclude: [
-      // Directories that are now in dedicated modules:
       "Core",
       "Generators",
       "Testing",
@@ -160,43 +146,22 @@ let testingIntegrationTargets: [Target] = [
   )
 ]
 
-// MARK: - Compile-Time Only (swift-syntax isolated)
+// MARK: - Compile-Time Only (pre-built binary)
 
 let macroTargets: [Target] = [
-  .macro(
+  // Pre-built macro plugin binary.
+  // The executable name matches #externalMacro(module: "InvariantSwiftMacros", ...)
+  // in InvariantSwiftMacroAPI declaration files.
+  .binaryTarget(
     name: "InvariantSwiftMacros",
-    dependencies: [
-      .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
-      .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
-      .product(name: "SwiftParser", package: "swift-syntax"),
-    ],
-    path: "Sources/InvariantSwiftMacros",
-    exclude: ["CLAUDE.md", "AGENTS.md"],
-    swiftSettings: commonSwiftSettings
+    url:
+      "https://github.com/brunogama/InvariantSwift/releases/download/__VERSION__/InvariantSwiftMacros.artifactbundle.zip",
+    checksum: "__CHECKSUM__"
   )
 ]
 
-let ghostwriterTargets: [Target] = [
-  .target(
-    name: "GhostwriterLib",
-    dependencies: [
-      .product(name: "SwiftParser", package: "swift-syntax"),
-      .product(name: "SwiftSyntax", package: "swift-syntax"),
-    ],
-    path: "Sources/GhostwriterLib",
-    swiftSettings: commonSwiftSettings
-  ),
-  .executableTarget(
-    name: "GhostwriterCLI",
-    dependencies: [
-      "GhostwriterLib",
-      .product(name: "SwiftParser", package: "swift-syntax"),
-      .product(name: "SwiftSyntax", package: "swift-syntax"),
-    ],
-    path: "Sources/GhostwriterCLI",
-    swiftSettings: commonSwiftSettings
-  ),
-]
+// Note: GhostwriterLib, GhostwriterCLI, and GhostwriterPlugin are excluded
+// from the binary manifest because they depend directly on swift-syntax.
 
 // MARK: - Umbrella (re-exports from sub-packages)
 
@@ -224,30 +189,8 @@ let domainTargets: [Target] = [
   )
 ]
 
-let utilityTargets: [Target] = [
-  .executableTarget(
-    name: "Benchmarks",
-    dependencies: [
-      "InvariantSwiftCore",
-      "InvariantSwift",
-      .product(name: "Benchmark", package: "swift-benchmark"),
-    ],
-    path: "Benchmarks",
-    swiftSettings: commonSwiftSettings
-  ),
-  .executableTarget(
-    name: "PropertyTestHelper",
-    dependencies: [],
-    path: "Sources/PropertyTestHelper",
-    swiftSettings: commonSwiftSettings
-  ),
-  .executableTarget(
-    name: "GeneratorCatalogCLI",
-    dependencies: ["InvariantSwift"],
-    path: "Sources/GeneratorCatalogCLI",
-    swiftSettings: commonSwiftSettings
-  ),
-]
+// Note: Benchmarks, PropertyTestHelper, GeneratorCatalogCLI excluded from
+// binary manifest (Benchmarks depends on swift-benchmark; others are dev tools).
 
 // MARK: - Plugins
 
@@ -260,25 +203,9 @@ let pluginTargets: [Target] = [
     ),
     dependencies: [],
     path: "Plugins/InvariantSwiftPlugin"
-  ),
-  .plugin(
-    name: "GhostwriterPlugin",
-    capability: .command(
-      intent: .custom(verb: "ghostwrite", description: "Generate property tests"),
-      permissions: [.writeToPackageDirectory(reason: "Generate test files")]
-    ),
-    dependencies: ["GhostwriterCLI"],
-    path: "Plugins/GhostwriterPlugin"
-  ),
-  .plugin(
-    name: "GeneratorCatalogPlugin",
-    capability: .command(
-      intent: .custom(verb: "browse-generators", description: "Browse generator catalog"),
-      permissions: []
-    ),
-    dependencies: ["GeneratorCatalogCLI"],
-    path: "Plugins/GeneratorCatalogPlugin"
-  ),
+  )
+  // GhostwriterPlugin excluded -- depends on GhostwriterCLI (swift-syntax).
+  // GeneratorCatalogPlugin excluded -- depends on GeneratorCatalogCLI (dev tool).
 ]
 
 // MARK: - Tests
@@ -298,22 +225,11 @@ let testTargets: [Target] = [
       "InvariantSwiftMacros",
       "InvariantSwiftTesting",
       "InvariantSwiftAdvanced",
-      "GhostwriterLib",
     ],
     path: "Tests/InvariantSwiftTests",
     swiftSettings: commonSwiftSettings
   ),
-  .testTarget(
-    name: "InvariantSwiftMacroTests",
-    dependencies: [
-      "InvariantSwiftCore",
-      "InvariantSwiftMacros",
-      .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
-    ],
-    path: "Tests/InvariantSwiftMacroTests",
-    resources: [.copy("Resources")],
-    swiftSettings: commonSwiftSettings
-  ),
+  // InvariantSwiftMacroTests excluded -- depends on SwiftSyntaxMacrosTestSupport.
   .testTarget(
     name: "InvariantSwiftDomainGeneratorsTests",
     dependencies: ["InvariantSwiftDomainGenerators", "InvariantSwift"],
@@ -375,10 +291,8 @@ let allTargets =
   + experimentalTargets
   + testingIntegrationTargets
   + macroTargets
-  + ghostwriterTargets
   + umbrellaTargets
   + domainTargets
-  + utilityTargets
   + pluginTargets
   + testTargets
 
