@@ -54,7 +54,7 @@ public enum SyntaxFactory {
       name: .identifier(name),
       genericArgumentClause: GenericArgumentClauseSyntax {
         for arg in arguments {
-          GenericArgumentSyntax(argument: GenericArgumentSyntax.Argument(arg))
+          GenericArgumentSyntax(argument: .init(arg))
         }
       }
     )

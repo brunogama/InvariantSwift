@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- **Fix (09-07)**: Migrate GenericArgumentSyntax to swift-syntax 602 Argument enum API
+  - Use `.type(TypeSyntax)` pattern matching instead of deprecated `.as(TypeSyntax.self)`
+  - Use `.init(TypeSyntax)` instead of deprecated `argument: TypeSyntax(...)` initializer
+  - Fixed across GeneratorInference, GeneratorBuilder, SyntaxFactory, TypeAnalyzer,
+    ArbitraryCodeGen, BusinessRuleMacro, RuleBasedTestMacro, StateMachineCodeGen
+  - Split RuleBasedTestMacro.swift (807 lines) into 4 SRP-compliant files
 - **Docs (09-07)**: Add 09-07-SUMMARY.md and update STATE.md for completed SPM workspace monorepo migration
 - **Feat (09-07)**: Complete migration to SPM workspace monorepo - remove duplicated sources from root
   - Removed Sources/{InvariantSwiftCore,InvariantSwiftGenerators,InvariantSwiftExecution,InvariantSwift,InvariantSwiftAdvanced,InvariantSwiftDomainGenerators} (now in Packages/InvariantSwiftCore)

@@ -39,10 +39,9 @@ public enum TypeAnalyzer {
     if let identifier = type.as(IdentifierTypeSyntax.self),
       identifier.name.text == "Optional",
       let args = identifier.genericArgumentClause,
-      let first = args.arguments.first
+      let first = args.arguments.first, case .type(let argType) = first.argument
     {
-      // SwiftSyntax 602: arg.argument is Argument enum; extract TypeSyntax via .as
-      return first.argument.as(TypeSyntax.self)
+      return argType
     }
 
     return nil
@@ -61,10 +60,10 @@ public enum TypeAnalyzer {
     if let identifier = type.as(IdentifierTypeSyntax.self),
       identifier.name.text == "Array",
       let args = identifier.genericArgumentClause,
-      let first = args.arguments.first
+      let first = args.arguments.first,
+      case .type(let argType) = first.argument
     {
-      // SwiftSyntax 602: arg.argument is Argument enum; extract TypeSyntax via .as
-      return first.argument.as(TypeSyntax.self)
+      return argType
     }
     return nil
   }
@@ -87,9 +86,11 @@ public enum TypeAnalyzer {
     else {
       return []
     }
-    // SwiftSyntax 602: arg.argument is Argument enum; extract TypeSyntax via .as
     return args.arguments.compactMap { arg in
-      arg.argument.as(TypeSyntax.self)
+      if case .type(let typeSyntax) = arg.argument {
+        return typeSyntax
+      }
+      return nil
     }
   }
 }

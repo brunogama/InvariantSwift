@@ -280,7 +280,7 @@ enum StateMachineCodeGen {
             genericArgumentClause: GenericArgumentClauseSyntax(
               arguments: GenericArgumentListSyntax {
                 GenericArgumentSyntax(
-                  argument: TypeSyntax(IdentifierTypeSyntax(name: .identifier(commandEnumName)))
+                  argument: .init(IdentifierTypeSyntax(name: .identifier(commandEnumName)))
                 )
               }
             )
