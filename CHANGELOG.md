@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- **Phase 13: Cross-Platform Crash Isolation (Plan 13-03 complete)** - ThreadIsolation for iOS device
+  - Added `ThreadIsolation` struct conforming to `IsolationStrategy` using Foundation.Thread
+  - Async-signal-safe IPC via pipe: `crashSignalHandler()` calls only `write(2)` + `pthread_exit(3)`
+  - Unified outcome pipe protocol: signal handler writes signal number (>0), normal exit writes sentinel (0)
+  - Parent blocks on `read(2)` for outcome — no concurrent closure mutation, no Swift 6 concurrency issues
+  - Uses Foundation.Thread instead of `pthread_create` to avoid Swift 6.2 compiler SIGABRT in SendNonSendable pass
+  - Signal handlers saved/restored via `sigaction` for all crash signals (SIGABRT/SIGSEGV/SIGILL/SIGBUS)
+  - `IsolationStrategyFactory` wired to return `ThreadIsolation()` for `.threadBased` capability on Darwin
+  - Best-effort backtrace captured on parent thread after crash detection via Darwin's `backtrace` + `backtrace_symbols`
+  - All file descriptors and `UnsafeMutablePointer` allocations cleaned up in all code paths
 - **Phase 13: Cross-Platform Crash Isolation (Plan 13-02 complete)** - PosixSpawnIsolation subprocess backend
   - Added `PosixSpawnIsolation` struct conforming to `IsolationStrategy` via `posix_spawn`
   - Pipe-based IPC: stdin for request, stdout for response, stderr for crash diagnostics
