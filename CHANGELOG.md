@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- **Docs (phase-09)**: Phase 09 verified (6/6 must-haves) and marked complete in roadmap
 - **Fix (09-07)**: Migrate GenericArgumentSyntax to swift-syntax 602 Argument enum API
   - Use `.type(TypeSyntax)` pattern matching instead of deprecated `.as(TypeSyntax.self)`
   - Use `.init(TypeSyntax)` instead of deprecated `argument: TypeSyntax(...)` initializer
