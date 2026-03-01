@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- **Phase 13: Cross-Platform Crash Isolation (Plan 13-02 complete)** - PosixSpawnIsolation subprocess backend
+  - Added `PosixSpawnIsolation` struct conforming to `IsolationStrategy` via `posix_spawn`
+  - Pipe-based IPC: stdin for request, stdout for response, stderr for crash diagnostics
+  - Crash detection via inline wait-status bit operations (WIFSIGNALED/WTERMSIG pattern)
+  - Timeout via detached Task that sends SIGKILL after configured deadline
+  - All file descriptors closed in all code paths via defer blocks
+  - `PropertyEvaluationRequest`/`PropertyEvaluationResponse` promoted to `public` with `protocolVersion`
+  - `IsolationStrategy.execute(body:)` updated to `@escaping` for `ThreadIsolation` compatibility
+  - `ThreadIsolation` (Plan 03 skeleton): rewrote to compile on Swift 6.2 — workaround for compiler
+    SIGABRT in `SendNonSendable` pass with raw `pthread_t`; uses `Foundation.Thread` + `DispatchSemaphore`
 - **Phase 13: Cross-Platform Crash Isolation (Plan 13-01 complete)** - Foundation types for crash isolation
   - Added `IsolationCapability` enum with `.fullSubprocess`, `.threadBased`, `.none` cases
   - Added `CrashReport<T>` struct with signal, counterexample, shrunkCounterexample, stderr,

@@ -71,7 +71,7 @@ public enum IsolationCapability: Sendable, CustomStringConvertible {
   // MARK: Private
 
   /// Cached capability — computed once at program startup via `detect()`.
-  private static let _cachedCapability: Self = detect()
+  private static let _cachedCapability = detect()
 
   /// Attempts to spawn `/usr/bin/true` via `posix_spawn` to determine whether
   /// subprocess creation is permitted by the sandbox.

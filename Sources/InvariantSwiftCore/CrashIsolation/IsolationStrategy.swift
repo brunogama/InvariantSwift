@@ -53,7 +53,7 @@ public protocol IsolationStrategy: Sendable {
   /// - Parameter body: A `@Sendable` closure that runs the property predicate and
   ///   returns `true` on pass, `false` on failure.
   /// - Returns: An `IsolationResult` describing the outcome.
-  func execute(body: @Sendable () -> Bool) async -> IsolationResult
+  func execute(body: @escaping @Sendable () -> Bool) async -> IsolationResult
 }
 
 // MARK: - IsolationStrategyFactory
@@ -89,7 +89,7 @@ struct PassthroughIsolation: IsolationStrategy {
 
   var capability: IsolationCapability { .none }
 
-  func execute(body: @Sendable () -> Bool) async -> IsolationResult {
+  func execute(body: @escaping @Sendable () -> Bool) async -> IsolationResult {
     let passed = body()
     return passed ? .success : .failure(reason: "Property predicate returned false")
   }
