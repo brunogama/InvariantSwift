@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- **Feat (11-02)**: Decompose ModelTesting.swift (1323 lines) into single-responsibility files
+  - Extract Command.swift: Command protocol, StateMachine protocol, built-in command types
+  - Extract ModelTestingError.swift: ModelTestError enum with all error cases
+  - ModelTesting.swift reduced to core runner logic (ModelTestConfig, ModelTestResult, ModelTestRunner)
 - **Feat (11-02)**: Decompose Property.swift (2431 lines) into single-responsibility files
   - Extract PropertyEvaluation.swift: FailureReason, PropertyEvaluation, assume(), require()
   - Extract PropertyConfig.swift: PropertyConfig with Verbosity, CoverageConfig, DiscardConfig
