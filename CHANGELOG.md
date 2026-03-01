@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- **Docs (09-07)**: Add 09-07-SUMMARY.md and update STATE.md for completed SPM workspace monorepo migration
 - **Feat (09-07)**: Complete migration to SPM workspace monorepo - remove duplicated sources from root
   - Removed Sources/{InvariantSwiftCore,InvariantSwiftGenerators,InvariantSwiftExecution,InvariantSwift,InvariantSwiftAdvanced,InvariantSwiftDomainGenerators} (now in Packages/InvariantSwiftCore)
   - Removed Sources/{InvariantSwiftMacros,InvariantSwiftMacroAPI,GhostwriterLib,GhostwriterCLI} (now in Packages/InvariantSwiftMacros)
