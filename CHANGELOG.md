@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- **Fix**: Remove duplicate FlatMapShrinkingTests.swift files that caused SPM "multiple producers" build error
+  - Deleted stale XCTest-based Core/FlatMapShrinkingTests.swift (104 lines)
+  - Deleted orphan Tests/FunctionalTesting/ directory (7 unreferenced files)
+  - Deleted stale Packages/InvariantSwiftCore copy
+  - Canonical Swift Testing version preserved at Tests/InvariantSwiftTests/FunctionalTesting/
 - **Packaging**: Add binary artifact bundle for InvariantSwiftMacros
   - Dual-manifest pattern (Package.swift / Package.binary.swift) eliminates swift-syntax for consumers
   - Build script and CI workflow for tagged releases (macOS arm64/x86_64, Linux x86_64)
