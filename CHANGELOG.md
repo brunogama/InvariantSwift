@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- **Feat (11-02)**: Decompose Property.swift (2431 lines) into single-responsibility files
+  - Extract PropertyEvaluation.swift: FailureReason, PropertyEvaluation, assume(), require()
+  - Extract PropertyConfig.swift: PropertyConfig with Verbosity, CoverageConfig, DiscardConfig
+  - Extract PropertyResult.swift: PropertyResult enum, extensions, ReproString
+  - Extract PropertyRunner.swift: PropertyRunner actor with sync/shrink core
+  - Extract PropertyRunner+Async.swift: async property execution and token replay methods
+  - Property.swift reduced from 2431 lines to ~597 lines (SRP compliant)
 - **Docs (phase-09)**: Phase 09 verified (6/6 must-haves) and marked complete in roadmap
 - **Fix (09-07)**: Migrate GenericArgumentSyntax to swift-syntax 602 Argument enum API
   - Use `.type(TypeSyntax)` pattern matching instead of deprecated `.as(TypeSyntax.self)`
