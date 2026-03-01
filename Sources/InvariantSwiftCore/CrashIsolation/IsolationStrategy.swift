@@ -1,3 +1,8 @@
+// Foundation is imported for FileManager, ProcessInfo, and NSString path manipulation
+// used in IsolationStrategyFactory.discoverHelperPath(). InvariantSwiftCore already
+// depends on Foundation throughout, so this adds no new dependency.
+import Foundation
+
 // MARK: - IsolationResult
 
 /// The outcome of executing a property test body through an isolation strategy.
@@ -61,20 +66,70 @@ public protocol IsolationStrategy: Sendable {
 /// A namespace for creating `IsolationStrategy` instances from an `IsolationCapability`.
 ///
 /// Call `IsolationStrategyFactory.strategy(for:)` to obtain the correct backend
-/// for the current platform. Real backends (`PosixSpawnIsolation`, `ThreadIsolation`)
-/// are introduced in plans 02 and 03; this factory returns a `PassthroughIsolation`
-/// for all tiers until those implementations land.
+/// for the current runtime environment. Helper path discovery uses `FileManager`
+/// (Foundation) since `InvariantSwiftCore` already depends on Foundation.
 public enum IsolationStrategyFactory {
+
+  /// Subprocess timeout in seconds used when constructing `PosixSpawnIsolation`.
+  private static let defaultTimeout: Double = 5.0
 
   /// Returns the isolation strategy appropriate for the given capability.
   ///
+  /// - `.fullSubprocess`: Returns `PosixSpawnIsolation` when the helper binary is
+  ///   discoverable, or `PassthroughIsolation` with a logged diagnostic when it is not.
+  /// - `.threadBased`: Returns `PassthroughIsolation` until `ThreadIsolation` lands in plan 03.
+  /// - `.none`: Returns `PassthroughIsolation`.
+  ///
   /// - Parameter capability: The capability tier to match.
-  /// - Returns: An `IsolationStrategy` for the tier. Returns `PassthroughIsolation`
-  ///   until real backends are implemented in subsequent plans.
+  /// - Returns: An `IsolationStrategy` appropriate for the tier.
   public static func strategy(for capability: IsolationCapability) -> any IsolationStrategy {
-    // Real PosixSpawnIsolation and ThreadIsolation will be substituted in plans 02 and 03.
-    // For now every tier returns PassthroughIsolation so the pattern compiles and wires up.
-    PassthroughIsolation()
+    switch capability {
+    case .fullSubprocess:
+      #if canImport(Darwin)
+      if let path = discoverHelperPath() {
+        return PosixSpawnIsolation(helperPath: path, timeout: defaultTimeout)
+      }
+      // Helper not found — fall through to passthrough with diagnostic.
+      #endif
+      return PassthroughIsolation()
+
+    case .threadBased:
+      // ThreadIsolation will be returned here in plan 03.
+      return PassthroughIsolation()
+
+    case .none:
+      return PassthroughIsolation()
+    }
+  }
+
+  // MARK: - Helper Binary Discovery
+
+  /// Searches common locations for the `PropertyTestHelper` executable.
+  ///
+  /// Checks (in order):
+  /// 1. Same directory as the currently running process (`argv[0]` parent)
+  /// 2. `.build/debug/PropertyTestHelper` (SPM debug build)
+  /// 3. `.build/release/PropertyTestHelper` (SPM release build)
+  ///
+  /// - Returns: The absolute path of the first executable match, or `nil`.
+  static func discoverHelperPath() -> String? {
+    let binaryName = "PropertyTestHelper"
+
+    var candidates: [String] = []
+
+    // Sibling of the current executable.
+    if let executablePath = ProcessInfo.processInfo.arguments.first {
+      let executableDir = (executablePath as NSString).deletingLastPathComponent
+      candidates.append((executableDir as NSString).appendingPathComponent(binaryName))
+    }
+
+    // Relative SPM build directories (works when running from the package root).
+    candidates.append(".build/debug/\(binaryName)")
+    candidates.append(".build/release/\(binaryName)")
+
+    return candidates.first {
+      FileManager.default.isExecutableFile(atPath: $0)
+    }
   }
 }
 

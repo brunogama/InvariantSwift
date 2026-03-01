@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `IsolationStrategy.execute(body:)` updated to `@escaping` for `ThreadIsolation` compatibility
   - `ThreadIsolation` (Plan 03 skeleton): rewrote to compile on Swift 6.2 — workaround for compiler
     SIGABRT in `SendNonSendable` pass with raw `pthread_t`; uses `Foundation.Thread` + `DispatchSemaphore`
+  - `IsolationStrategyFactory` wired to return `PosixSpawnIsolation` for `.fullSubprocess` capability
+  - Helper path discovery: argv[0] sibling, `.build/debug/`, `.build/release/`
+  - `PropertyTestHelper` binary updated with protocol version handshake (exit code 3 on mismatch)
 - **Phase 13: Cross-Platform Crash Isolation (Plan 13-01 complete)** - Foundation types for crash isolation
   - Added `IsolationCapability` enum with `.fullSubprocess`, `.threadBased`, `.none` cases
   - Added `CrashReport<T>` struct with signal, counterexample, shrunkCounterexample, stderr,
