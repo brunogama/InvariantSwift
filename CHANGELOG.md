@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- **Feat (13)**: Add cross-platform crash isolation (IsolationStrategy, PosixSpawnIsolation, ThreadIsolation)
+- **Feat (13)**: Add CrashReport struct with isolation provenance and IsolationCapability enum
 - **Docs (11)**: Capture phase context for gap closure planning
 - **Docs (11)**: Revise plans 11-05 and 11-06 based on checker feedback (fix file paths, verify commands)
 - **Docs (11-03)**: Add 11-03-SUMMARY.md and update STATE.md for advanced God file decomposition completion
