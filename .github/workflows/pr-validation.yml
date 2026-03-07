@@ -45,7 +45,7 @@ jobs:
       - name: Check for Forbidden Disable Tags
         run: |
           echo "Checking for blanket swiftlint:disable all tags..."
-          if grep -rnE "swiftlint:(disable|enable)[[:space:]]+all([[:space:]]|$)" Sources/ Tests/ --include="*.swift"; then
+          if grep -rnE "swiftlint:disable[[:space:]]+all([[:space:]]|$)" Sources/ Tests/ --include="*.swift"; then
             echo "::error::Blanket swiftlint:disable all tags are forbidden."
             exit 1
           fi
@@ -68,7 +68,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Select Xcode
+      - name: Setup Swift
         uses: swift-actions/setup-swift@v3
         with:
           swift-version: '6.2'
@@ -89,7 +89,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Select Xcode
+      - name: Setup Swift
         uses: swift-actions/setup-swift@v3
         with:
           swift-version: '6.2'
