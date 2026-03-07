@@ -128,3 +128,10 @@ Temporary Items
 !.build/checkouts/
 !.build/repositories/
 !.build/workspace-state.json
+
+# AI tool directories
+.claude/
+.gemini/
+.opencode/
+.planning/
+.context/
