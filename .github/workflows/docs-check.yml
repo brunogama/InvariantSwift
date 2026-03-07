@@ -88,7 +88,7 @@ jobs:
 
       - name: Generate Architecture Diagrams
         run: |
-          python3 Scripts/generate_architecture_diagrams.py
+          python3 Tools/generate_architecture_diagrams.py
 
           echo "## 📊 Architecture Diagrams" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -100,7 +100,7 @@ jobs:
             echo "✅ Diagrams are up-to-date"
           else
             echo "⚠️ Architecture diagrams need updating. Run:"
-            echo "   python3 Scripts/generate_architecture_diagrams.py"
+            echo "   python3 Tools/generate_architecture_diagrams.py"
             echo "   git add docs/architecture/generated-diagrams.md"
             # Note: This is a warning, not a failure
           fi
@@ -120,7 +120,7 @@ jobs:
 
       - name: Generate API Reference
         run: |
-          python3 Scripts/generate_api_reference.py
+          python3 Tools/generate_api_reference.py
 
           SYMBOLS=$(grep -c "^\|" docs/API_REFERENCE_GENERATED.md | head -1 || echo "0")
 

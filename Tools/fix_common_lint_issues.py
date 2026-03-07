@@ -61,7 +61,7 @@ def fix_redundant_string_enum_value(content: str, line_num: int) -> tuple[str, b
     lines = content.split('\n')
     if line_num <= 0 or line_num > len(lines):
         return content, False
-    
+
     line = lines[line_num - 1]
     # Pattern: case identifier = "identifier"
     pattern = r'(\s*case\s+)(\w+)\s*=\s*"(\2)"'
@@ -81,14 +81,14 @@ def fix_identifier_name_underscore(content: str, line_num: int, identifier: str)
     lines = content.split('\n')
     if line_num <= 0 or line_num > len(lines):
         return content, False
-    
+
     line = lines[line_num - 1]
-    
+
     # Convert snake_case to camelCase
     def to_camel_case(snake_str: str) -> str:
         components = snake_str.split('_')
         return components[0] + ''.join(x.title() for x in components[1:])
-    
+
     if '_' in identifier:
         camel_case = to_camel_case(identifier)
         # Only fix in case declarations, keep raw value for enums
@@ -100,7 +100,7 @@ def fix_identifier_name_underscore(content: str, line_num: int, identifier: str)
                 new_line = line.replace(f'case {identifier}', f'case {camel_case}')
             lines[line_num - 1] = new_line
             return '\n'.join(lines), True
-    
+
     return content, False
 
 
@@ -109,23 +109,23 @@ def add_swiftlint_disable_next(content: str, line_num: int, rule: str) -> tuple[
     lines = content.split('\n')
     if line_num <= 0 or line_num > len(lines):
         return content, False
-    
+
     # Insert disable:next comment before the violating line
     insert_index = line_num - 1
-    
+
     # Get indentation from the violating line
     violating_line = lines[insert_index]
     indent = len(violating_line) - len(violating_line.lstrip())
     indent_str = ' ' * indent
-    
+
     disable_comment = f"{indent_str}// swiftlint:disable:next {rule}"
-    
+
     # Check if already disabled
     if insert_index > 0:
         prev_line = lines[insert_index - 1].strip()
         if f"swiftlint:disable:next {rule}" in prev_line or "swiftlint:disable:next" in prev_line:
             return content, False
-    
+
     lines.insert(insert_index, disable_comment)
     return '\n'.join(lines), True
 
@@ -138,7 +138,7 @@ def fix_contains_over_filter_is_empty(content: str, line_num: int) -> tuple[str,
     lines = content.split('\n')
     if line_num <= 0 or line_num > len(lines):
         return content, False
-    
+
     line = lines[line_num - 1]
     # Pattern: .filter { ... }.isEmpty
     pattern = r'(\w+)\.filter\s*\{([^}]+)\}\.isEmpty'
@@ -157,17 +157,17 @@ def process_violations(violations: list[LintViolation], dry_run: bool = True) ->
     """Process violations and optionally apply fixes."""
     fixes_by_file: dict[str, list[tuple[int, str, callable]]] = defaultdict(list)
     stats = defaultdict(int)
-    
+
     # Rules we can auto-fix
     fixable_rules = {
         'redundant_string_enum_value',
         'contains_over_filter_is_empty',
     }
-    
+
     # Rules we disable at file level (structural issues)
     disable_rules = {
         'file_length',
-        'type_body_length', 
+        'type_body_length',
         'function_body_length',
         'cyclomatic_complexity',
         'no_print',
@@ -187,51 +187,51 @@ def process_violations(violations: list[LintViolation], dry_run: bool = True) ->
         'force_cast',
         'attributes',
     }
-    
+
     # Group violations by file
     violations_by_file: dict[str, list[LintViolation]] = defaultdict(list)
     for v in violations:
         violations_by_file[v.file].append(v)
-    
+
     changes = []
-    
+
     for file_path, file_violations in violations_by_file.items():
         if not Path(file_path).exists():
             continue
-            
+
         content = Path(file_path).read_text()
         original_content = content
         modified = False
-        
+
         # Track line offset as we insert comments
         line_offset = 0
-        
+
         for v in sorted(file_violations, key=lambda x: x.line):  # Process from top to bottom
             stats[v.rule] += 1
             adjusted_line = v.line + line_offset
-            
+
             if v.rule in disable_rules:
                 content, disabled = add_swiftlint_disable_next(content, adjusted_line, v.rule)
                 if disabled:
                     modified = True
                     line_offset += 1  # We added a line
                     changes.append(f"  [DISABLE:NEXT] {v.file}:{v.line} - {v.rule}")
-                
+
             elif v.rule == 'redundant_string_enum_value':
                 content, fixed = fix_redundant_string_enum_value(content, adjusted_line)
                 if fixed:
                     modified = True
                     changes.append(f"  [FIX] {v.file}:{v.line} - {v.rule}")
-                    
+
             elif v.rule == 'contains_over_filter_is_empty':
                 content, fixed = fix_contains_over_filter_is_empty(content, adjusted_line)
                 if fixed:
                     modified = True
                     changes.append(f"  [FIX] {v.file}:{v.line} - {v.rule}")
-        
+
         if modified and not dry_run:
             Path(file_path).write_text(content)
-    
+
     return {
         'stats': dict(stats),
         'changes': changes,
@@ -250,30 +250,30 @@ def main():
     parser.add_argument('--path', default='.',
                         help='Path to Swift project')
     args = parser.parse_args()
-    
+
     dry_run = not args.apply
-    
+
     print(f"{'[DRY RUN] ' if dry_run else ''}Analyzing SwiftLint violations...")
     print(f"Path: {args.path}\n")
-    
+
     violations = run_swiftlint_json(args.path)
-    
+
     if not violations:
         print("No violations found or SwiftLint not available.")
         return
-    
+
     result = process_violations(violations, dry_run=dry_run)
-    
+
     print("=" * 60)
     print("VIOLATION SUMMARY BY RULE:")
     print("=" * 60)
     for rule, count in sorted(result['stats'].items(), key=lambda x: -x[1]):
         print(f"  {rule}: {count}")
-    
+
     print(f"\nTotal violations: {result['total_violations']}")
     print(f"Auto-fixable: {result['fixable_count']}")
     print(f"Will add disable comments: {result['disable_count']}")
-    
+
     if result['changes']:
         print("\n" + "=" * 60)
         print("CHANGES " + ("(TO BE APPLIED):" if dry_run else "(APPLIED):"))
@@ -282,7 +282,7 @@ def main():
             print(change)
         if len(result['changes']) > 50:
             print(f"  ... and {len(result['changes']) - 50} more changes")
-    
+
     if dry_run:
         print("\n[DRY RUN] No changes made. Run with --apply to apply changes.")
 

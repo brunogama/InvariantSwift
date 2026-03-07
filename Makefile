@@ -230,17 +230,17 @@ doc-check-json:
 # Generate architecture diagrams
 doc-diagrams:
 	@echo "📊 Generating architecture diagrams..."
-	@python3 Scripts/generate_architecture_diagrams.py
+	@python3 Tools/generate_architecture_diagrams.py
 
 # Generate API reference
 doc-api:
 	@echo "📖 Generating API reference..."
-	@python3 Scripts/generate_api_reference.py
+	@python3 Tools/generate_api_reference.py
 
 # Validate documentation examples (informational)
 doc-examples:
 	@echo "🧪 Validating documentation examples..."
-	@python3 Scripts/validate_doc_examples.py --verbose || true
+	@python3 Tools/validate_doc_examples.py --verbose || true
 
 # Generate all documentation (diagrams + API reference)
 docs-gen: doc-diagrams doc-api

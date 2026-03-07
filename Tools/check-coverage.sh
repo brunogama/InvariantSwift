@@ -3,7 +3,7 @@ set -e
 
 if [ -f "Package.swift" ] && git diff --cached --name-only | grep -q "\.swift$"; then
   echo "🔍 Checking code coverage..."
-  
+
   # Run tests with coverage, disable macro validation if needed
   if ! swift test --enable-code-coverage -Xswiftc -disable-macro-validation 2>/dev/null; then
     echo "⚠️ Macro validation disabled for coverage check"
@@ -11,7 +11,7 @@ if [ -f "Package.swift" ] && git diff --cached --name-only | grep -q "\.swift$";
   else
     swift test --enable-code-coverage
   fi
-  
+
   # Generate coverage report and extract percentage
   if [ -f ".build/debug/codecov/default.profdata" ]; then
     # Find the test binary (adjust pattern if needed)
@@ -19,9 +19,9 @@ if [ -f "Package.swift" ] && git diff --cached --name-only | grep -q "\.swift$";
     if [ -n "$TEST_BINARY" ]; then
       COVERAGE_OUTPUT=$(xcrun llvm-cov report "$TEST_BINARY" -instr-profile .build/debug/codecov/default.profdata)
       COVERAGE_PERCENT=$(echo "$COVERAGE_OUTPUT" | tail -1 | awk '{print $NF}' | sed 's/%//')
-      
+
       echo "📊 Current coverage: ${COVERAGE_PERCENT}%"
-      
+
       # Check if coverage meets 99% requirement
       if [ "$(echo "$COVERAGE_PERCENT >= 99" | bc -l)" -eq 1 ]; then
         echo "✅ Coverage requirement met: ${COVERAGE_PERCENT}% >= 99%"

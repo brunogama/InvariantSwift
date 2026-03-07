@@ -76,22 +76,26 @@ for i in "${!tests[@]}"; do
     echo -e "${YELLOW}[$current/$total_tests] Running: $test_name${NC}"
 
     # Create safe filename for this test
-    safe_test_name=$(echo "$test_name" | sed 's/[^a-zA-Z0-9._-]/_/g')
+    safe_test_name="${test_name//[^a-zA-Z0-9._-]/_}"
     test_output_file="$output_dir/${safe_test_name}.log"
 
     # Run the test and capture ALL output (stdout and stderr)
-    echo "=== Test: $test_name ===" > "$test_output_file"
-    echo "Command: swift test --filter \"$test_name\" --sanitize=address -c debug --verbose" >> "$test_output_file"
-    echo "Started at: $(date)" >> "$test_output_file"
-    echo "" >> "$test_output_file"
+    {
+        echo "=== Test: $test_name ==="
+        echo "Command: swift test --filter \"$test_name\" --sanitize=address -c debug --verbose"
+        echo "Started at: $(date)"
+        echo ""
+    } > "$test_output_file"
 
     # Run the actual test
     swift test --filter "$test_name" --sanitize=address -c debug --verbose >> "$test_output_file" 2>&1
     exit_code=$?
 
-    echo "" >> "$test_output_file"
-    echo "Exit code: $exit_code" >> "$test_output_file"
-    echo "Finished at: $(date)" >> "$test_output_file"
+    {
+        echo ""
+        echo "Exit code: $exit_code"
+        echo "Finished at: $(date)"
+    } >> "$test_output_file"
 
     # Determine failure type
     if [ $exit_code -eq 0 ]; then
@@ -182,6 +186,7 @@ create_failure_file() {
 }
 
 # Handle signal failures
+# shellcheck disable=SC2034  # array populated but individual sub-arrays used for reporting
 all_signal_failures=("${failing_tests_signal5[@]}" "${failing_tests_signal6[@]}" "${failing_tests_other_signals[@]}")
 
 if [ ${#failing_tests_signal5[@]} -gt 0 ] || [ ${#failing_tests_signal6[@]} -gt 0 ] || [ ${#failing_tests_other_signals[@]} -gt 0 ]; then
