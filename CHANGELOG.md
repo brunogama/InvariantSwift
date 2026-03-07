@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 - **Chore**: Ignore AI tool directories (.claude, .gemini, .opencode, .planning, .context) and remove from git history
+- **Refactor**: Consolidate Scripts/ and tools/ into Tools/, remove orphaned swiftlint-fixer VS Code extension
 - **Feat (13)**: Add cross-platform crash isolation (IsolationStrategy, PosixSpawnIsolation, ThreadIsolation)
 - **Feat (13)**: Add CrashReport struct with isolation provenance and IsolationCapability enum
 - **Docs (11)**: Capture phase context for gap closure planning

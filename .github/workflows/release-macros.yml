@@ -86,7 +86,7 @@ jobs:
       - name: Build artifact bundle
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          tools/packaging/build-macro-artifactbundle.sh "$VERSION" --ci \
+          Tools/packaging/build-macro-artifactbundle.sh "$VERSION" --ci \
             --macos-arm64 "${{ steps.bins.outputs.macos_arm64 }}" \
             --macos-x86_64 "${{ steps.bins.outputs.macos_x86_64 }}" \
             --linux-x86_64 "${{ steps.bins.outputs.linux_x86_64 }}"

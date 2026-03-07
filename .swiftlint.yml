@@ -13,6 +13,7 @@ excluded:
 - .build
 - .swiftpm
 - Package.swift
+- Tools
 - ${PWD}/.build
 - Sources/InvariantSwiftMacros/RuleBasedTestMacro  # AST builders are inherently verbose
 - Sources/FuncTestCLI  # CLI tools use print statements
