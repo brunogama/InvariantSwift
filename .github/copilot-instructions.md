@@ -1,8 +1,8 @@
 # Copilot instructions for InvariantSwift
 
 ## Start here
-- Read `/home/runner/work/InvariantSwift/InvariantSwift/AGENTS.md` first, then `/home/runner/work/InvariantSwift/InvariantSwift/RULES.md`, then `/home/runner/work/InvariantSwift/InvariantSwift/WORKFLOW.md`.
-- For repository shape and public API context, read `/home/runner/work/InvariantSwift/InvariantSwift/README.md`, `/home/runner/work/InvariantSwift/InvariantSwift/Package.swift`, `/home/runner/work/InvariantSwift/InvariantSwift/Packages/InvariantSwiftCore/Package.swift`, and `/home/runner/work/InvariantSwift/InvariantSwift/Packages/InvariantSwiftMacros/Package.swift`.
+- Read `AGENTS.md` first, then `RULES.md`, then `WORKFLOW.md`.
+- For repository shape and public API context, read `README.md`, `Package.swift`, `Packages/InvariantSwiftCore/Package.swift`, and `Packages/InvariantSwiftMacros/Package.swift`.
 - Keep diffs tight. This repo has explicit rules against unrelated refactors, destructive Git cleanup, and bypassing validation.
 
 ## Repository shape
@@ -59,7 +59,7 @@ If you change code under `Packages/`, validate the affected package directly:
   - commit lint
 - `Format` workflow runs `make format` and may auto-commit formatting changes on PR branches.
 - Commit lint uses Conventional Commits and intentionally ignores bootstrap commit messages that start with `Initial plan`.
-- The PR validation workflow blocks blanket `swiftlint:disable ... all` directives inside `Sources/` and `Tests/`.
+- The PR validation workflow blocks blanket disable directives that affect all rules inside `Sources/` and `Tests/`, such as `swiftlint:disable all`, `swiftlint:disable:this all`, and `swiftlint:disable:next all`.
 - If the user asks about CI failures, inspect GitHub Actions runs first. Do not guess.
 
 ## Conventions worth following
@@ -80,5 +80,5 @@ These were observed while onboarding the repo in the current sandbox and are use
   - Work-around: run SwiftPM commands sequentially.
 - GitHub Actions runs for the onboarding branch returned `action_required` with zero jobs/logs via the API.
   - Work-around: rely on local validation until the workflow actually starts, because there are no job logs to inspect before jobs are created.
-- A strict Linux build in this sandbox currently fails in `Packages/InvariantSwiftCore/Sources/InvariantSwiftCore/PropertyRunner+Progress.swift` and `PropertyRunner+Async.swift` because `CFAbsoluteTime` / `CFAbsoluteTimeGetCurrent` are not in scope.
+- A strict Linux build in the onboarding environment currently fails in `Packages/InvariantSwiftCore/Sources/InvariantSwiftCore/PropertyRunner+Progress.swift` and `PropertyRunner+Async.swift` because `CFAbsoluteTime` / `CFAbsoluteTimeGetCurrent` are not in scope.
   - Work-around used during onboarding: treat this as a pre-existing build issue unrelated to the onboarding document, avoid changing runtime code as part of this task, and note the failure explicitly instead of masking it.
