@@ -33,7 +33,7 @@ jobs:
           module.exports = {
             extends: ['@commitlint/config-conventional'],
             defaultIgnores: true,
-            ignores: [(message) => message === 'Initial plan'],
+            ignores: [(message) => message.trim().startsWith('Initial plan')],
           };
           EOF
 
