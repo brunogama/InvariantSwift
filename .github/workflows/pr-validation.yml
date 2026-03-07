@@ -44,12 +44,12 @@ jobs:
 
       - name: Check for Forbidden Disable Tags
         run: |
-          echo "Checking for blanket swiftlint:disable all tags..."
-          if grep -rnE "swiftlint:disable[[:space:]]+all([[:space:]]|$)" Sources/ Tests/ --include="*.swift"; then
-            echo "::error::Blanket swiftlint:disable all tags are forbidden."
+          echo "Checking for blanket swiftlint disable directives affecting all rules..."
+          if grep -rnE "swiftlint:disable(:next|:this)?[[:space:]]+([^[:space:]]+[[:space:]]+)*all([[:space:]]|$)" Sources/ Tests/ --include="*.swift"; then
+            echo "::error::Blanket swiftlint disable directives affecting all rules are forbidden."
             exit 1
           fi
-          echo "No blanket disable tags found."
+          echo "No blanket disable directives found."
 
       - name: Run SwiftLint Strict
         run: |
