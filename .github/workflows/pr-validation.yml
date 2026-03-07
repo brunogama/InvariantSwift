@@ -45,7 +45,7 @@ jobs:
       - name: Check for Forbidden Disable Tags
         run: |
           echo "Checking for blanket swiftlint:disable all tags..."
-          if grep -rnE "swiftlint:(disable|enable)[[:space:]]+all" Sources/ Tests/ --include="*.swift"; then
+          if grep -rnE "swiftlint:(disable|enable)[[:space:]]*all" Sources/ Tests/ --include="*.swift"; then
             echo "::error::Blanket swiftlint:disable all tags are forbidden."
             exit 1
           fi
@@ -124,6 +124,7 @@ jobs:
 
       - name: Create commitlint config
         run: |
+          # Ignore the coding-agent bootstrap commit created by report_progress.
           cat > commitlint.config.js << 'EOF'
           module.exports = {
             extends: ['@commitlint/config-conventional'],

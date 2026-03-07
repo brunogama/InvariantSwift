@@ -28,6 +28,7 @@ jobs:
 
       - name: Create commitlint config
         run: |
+          # Ignore the coding-agent bootstrap commit created by report_progress.
           cat > commitlint.config.js << 'EOF'
           module.exports = {
             extends: ['@commitlint/config-conventional'],
