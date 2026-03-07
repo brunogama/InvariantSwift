@@ -70,7 +70,7 @@ jobs:
     name: swift test (Linux)
     runs-on: ubuntu-latest
     container:
-      image: swift:6.0-jammy
+      image: swift:6.2-jammy
     steps:
       - uses: actions/checkout@v4
       - name: Test on Linux
@@ -80,7 +80,7 @@ jobs:
     name: Macro Golden Tests
     runs-on: ubuntu-latest
     container:
-      image: swift:6.0-jammy
+      image: swift:6.2-jammy
     steps:
       - uses: actions/checkout@v4
       - name: Run Macro Golden Tests
@@ -183,14 +183,18 @@ jobs:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
-      - name: Select Xcode 16.4
-        run: sudo xcode-select -s /Applications/Xcode_16.4.app
+      - name: Setup Swift
+        uses: swift-actions/setup-swift@v3
+        with:
+          swift-version: '6.2'
+      - name: Swift Version
+        run: swift --version
       - name: Run tests with coverage
         run: swift test --enable-code-coverage
       - name: Generate coverage report
         run: |
           xcrun llvm-cov export -format="lcov" \
-            .build/debug/FunctionalTestingPackageTests.xctest/Contents/MacOS/FunctionalTestingPackageTests \
+            .build/debug/InvariantSwiftTests.xctest/Contents/MacOS/InvariantSwiftTests \
             -instr-profile .build/debug/codecov/default.profdata > coverage.lcov
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4

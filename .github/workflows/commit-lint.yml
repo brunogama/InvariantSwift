@@ -26,6 +26,16 @@ jobs:
         run: |
           npm install --save-dev @commitlint/cli @commitlint/config-conventional
 
+      - name: Create commitlint config
+        run: |
+          cat > commitlint.config.js << 'EOF'
+          module.exports = {
+            extends: ['@commitlint/config-conventional'],
+            defaultIgnores: true,
+            ignores: [(message) => message === 'Initial plan'],
+          };
+          EOF
+
       - name: Validate PR commits
         if: github.event_name == 'pull_request'
         run: |
