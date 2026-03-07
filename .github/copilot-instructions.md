@@ -1,6 +1,6 @@
 # InvariantSwift agent onboarding
 
-Read `/home/runner/work/InvariantSwift/InvariantSwift/AGENTS.md`, `RULES.md`, and `WORKFLOW.md` before editing. They define the repo's operating rules, validation requirements, and git safety constraints.
+Read `AGENTS.md`, `RULES.md`, and `WORKFLOW.md` before editing. They define the repo's operating rules, validation requirements, and git safety constraints.
 
 ## Repository shape
 
