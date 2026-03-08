@@ -14,8 +14,13 @@ import Darwin
 /// A `@convention(c)` signal handler for SIGABRT/SIGSEGV/SIGILL/SIGBUS is installed
 /// on the child thread. If the test body causes a crash the handler writes the signal
 /// number to a pre-allocated pipe (async-signal-safe per POSIX) and calls `pthread_exit`
-/// to terminate only the child thread. On normal exit the thread writes a zero sentinel
-/// to the same pipe. The parent blocks on `read(2)` to learn the outcome.
+/// to terminate only the child thread. On normal exit the thread writes a negative
+/// sentinel to the same pipe that encodes pass or fail. The parent blocks on `read(2)`
+/// to learn the outcome.
+///
+/// Signal handlers are process-wide, not thread-local. This implementation therefore
+/// serializes every threaded isolation run behind a single lock so only one handler
+/// installation is active at a time.
 ///
 /// This strategy is selected automatically on iOS physical devices where
 /// `posix_spawn` is blocked by the sandbox.
@@ -58,11 +63,12 @@ private enum ThreadIsolationCoordinator {
   static let executionLock = DispatchSemaphore(value: 1)
 }
 
-/// Sentinel value written to the pipe on a normal (non-crash) exit.
+/// Sentinels written to the pipe on a normal (non-crash) exit.
 ///
-/// Signal numbers are always positive; zero is never a real signal, so it
-/// unambiguously identifies a normal exit path.
-private let kNormalExitSentinel: Int32 = 0
+/// Fatal signals are always positive. Negative values therefore remain reserved for
+/// normal pass/fail completion and avoid any shared mutable state across threads.
+private let kPassedExitSentinel: Int32 = -1
+private let kFailedExitSentinel: Int32 = -2
 
 /// Async-signal-safe crash handler.
 ///
@@ -86,8 +92,9 @@ private enum ThreadedRunner {
   /// Runs `body` on a new Foundation.Thread with async-signal-safe crash detection.
   ///
   /// IPC protocol: the outcome pipe carries exactly 4 bytes.
-  /// - `0` (kNormalExitSentinel) → normal exit; `body()` result is in `resultBox`.
-  /// - Non-zero → crash; value is the received signal number.
+  /// - `-1` (`kPassedExitSentinel`) → normal success.
+  /// - `-2` (`kFailedExitSentinel`) → normal predicate failure.
+  /// - Positive value → crash; value is the received signal number.
   static func run(body: @escaping @Sendable () -> Bool) -> IsolationResult {
     ThreadIsolationCoordinator.executionLock.wait()
     defer { ThreadIsolationCoordinator.executionLock.signal() }
@@ -103,8 +110,6 @@ private enum ThreadedRunner {
     // Non-blocking write end so the signal handler never stalls.
     _ = fcntl(writeFD, F_SETFL, O_NONBLOCK)
 
-    let resultBox = ResultBox()
-
     // Publish write FD before launching the thread.
     gOutcomePipeWriteFD = writeFD
 
@@ -113,11 +118,11 @@ private enum ThreadedRunner {
       defer { prevHandlers.deallocate() }
       installCrashHandlers(saving: prevHandlers)
 
-      resultBox.passed = body()
+      let passed = body()
 
-      // Normal exit: restore handlers, then write the sentinel.
+      // Normal exit: restore handlers, then write the final pass/fail sentinel.
       restoreCrashHandlers(from: prevHandlers)
-      var sentinel = kNormalExitSentinel
+      var sentinel = passed ? kPassedExitSentinel : kFailedExitSentinel
       _ = Darwin.write(writeFD, &sentinel, MemoryLayout<Int32>.size)
     }
     thread.start()
@@ -130,15 +135,21 @@ private enum ThreadedRunner {
     Darwin.close(writeFD)
     gOutcomePipeWriteFD = -1
 
-    guard outcome != kNormalExitSentinel else {
-      return resultBox.passed ? .success : .failure(reason: "Property predicate returned false")
+    switch outcome {
+    case kPassedExitSentinel:
+      return .success
+
+    case kFailedExitSentinel:
+      return .failure(reason: "Property predicate returned false")
+
+    default:
+      return .crashed(
+        signal: outcome,
+        stderr: "",
+        backtrace: captureBacktrace(),
+        isSymbolicated: false
+      )
     }
-    return .crashed(
-      signal: outcome,
-      stderr: "",
-      backtrace: captureBacktrace(),
-      isSymbolicated: false
-    )
   }
 
   // MARK: - Signal Handler Lifecycle
@@ -163,18 +174,6 @@ private enum ThreadedRunner {
       sigaction(sig, &old, nil)
     }
   }
-}
-
-// MARK: - ResultBox
-
-/// Reference-type wrapper for the bool result that crosses the Thread boundary.
-///
-/// Safety: the worker thread writes `passed` before writing the normal-exit
-/// sentinel to the outcome pipe. The parent reads `passed` only after the
-/// blocking `read(2)` receives that sentinel, giving a concrete happens-before
-/// edge with no concurrent mutation after publication.
-private final class ResultBox: @unchecked Sendable {
-  var passed: Bool = false
 }
 
 // MARK: - Best-Effort Backtrace
