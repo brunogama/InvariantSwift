@@ -76,7 +76,7 @@ public enum IsolationStrategyFactory {
   /// Returns the isolation strategy appropriate for the given capability.
   ///
   /// - `.fullSubprocess`: Returns `PosixSpawnIsolation` when the helper binary is
-  ///   discoverable, or `PassthroughIsolation` with a logged diagnostic when it is not.
+  ///   discoverable, or `PassthroughIsolation` when it is not.
   /// - `.threadBased`: Returns `ThreadIsolation` on Darwin platforms.
   /// - `.none`: Returns `PassthroughIsolation`.
   ///
@@ -89,7 +89,7 @@ public enum IsolationStrategyFactory {
       if let path = discoverHelperPath() {
         return PosixSpawnIsolation(helperPath: path, timeout: defaultTimeout)
       }
-      // Helper not found — fall through to passthrough with diagnostic.
+      // Helper not found — fall through to passthrough.
       #endif
       return PassthroughIsolation()
 

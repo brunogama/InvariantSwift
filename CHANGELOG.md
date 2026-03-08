@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- **Fix**: Resolve remaining crash-isolation review comments by removing cross-thread shared state in `ThreadIsolation` and aligning isolation strategy docs with runtime behavior
 - **Fix**: Address review findings in crash isolation concurrency, subprocess timeouts, and coverage fallback handling
 - **Fix**: Restore crash-isolation sources to the package and stabilize coverage integration tests so `swift test` passes cleanly again
 - **Chore**: Ignore AI tool directories (.claude, .gemini, .opencode, .planning, .context) and remove from git history
