@@ -10,12 +10,28 @@ import InvariantSwiftCore
 public actor LLVMCoverageRunner {
 
   /// Detailed coverage report with precise metrics
-  public struct CoverageReport: Sendable {
+  public struct CoverageReport: Sendable, Codable, Equatable {
+    public enum DataSource: Sendable, Codable, Equatable, CustomStringConvertible {
+      case llvmExport
+      case syntheticFallback(reason: String)
+
+      public var description: String {
+        switch self {
+        case .llvmExport:
+          return "llvm-export"
+
+        case .syntheticFallback(let reason):
+          return "synthetic-fallback (\(reason))"
+        }
+      }
+    }
+
     public let linePercentage: Double
     public let branchPercentage: Double
     public let regionPercentage: Double
     public let functionPercentage: Double
     public let uncoveredPaths: [UncoveredPath]
+    public let dataSource: DataSource
     public let timestamp: Date
 
     public init(
@@ -24,6 +40,7 @@ public actor LLVMCoverageRunner {
       regionPercentage: Double,
       functionPercentage: Double,
       uncoveredPaths: [UncoveredPath] = [],
+      dataSource: DataSource = .llvmExport,
       timestamp: Date = Date()
     ) {
       self.linePercentage = linePercentage
@@ -31,12 +48,27 @@ public actor LLVMCoverageRunner {
       self.regionPercentage = regionPercentage
       self.functionPercentage = functionPercentage
       self.uncoveredPaths = uncoveredPaths
+      self.dataSource = dataSource
       self.timestamp = timestamp
+    }
+
+    public var isSynthetic: Bool {
+      if case .syntheticFallback = dataSource {
+        return true
+      }
+      return false
+    }
+
+    public var syntheticFallbackReason: String? {
+      guard case .syntheticFallback(let reason) = dataSource else {
+        return nil
+      }
+      return reason
     }
 
     /// Check if coverage meets the 99%+ target
     public var meetsTargetCoverage: Bool {
-      linePercentage >= 99.0 && regionPercentage >= 95.0
+      !isSynthetic && linePercentage >= 99.0 && regionPercentage >= 95.0
     }
 
     /// Human-readable coverage summary
@@ -50,13 +82,14 @@ public actor LLVMCoverageRunner {
         Branch Coverage:   \(String(format: "%.2f", branchPercentage))%
         Function Coverage: \(String(format: "%.2f", functionPercentage))%
         Uncovered Paths:   \(uncoveredPaths.count) critical gaps
+        Data Source:       \(dataSource)
         Generated:         \(timestamp.ISO8601Format())
         """
     }
   }
 
   /// Represents an uncovered code path that needs attention
-  public struct UncoveredPath: Sendable {
+  public struct UncoveredPath: Sendable, Codable, Equatable {
     public let filename: String
     public let lineNumber: Int
     public let functionName: String?
@@ -107,6 +140,11 @@ public actor LLVMCoverageRunner {
   /// 2. Generates detailed reports using llvm-cov
   /// 3. Parses and structures the results
   /// 4. Identifies critical uncovered paths
+  ///
+  /// When coverage infrastructure is unavailable in the local environment
+  /// (missing profraw/profdata artifacts, missing test executable, or missing
+  /// LLVM tools), this method returns a synthetic fallback report instead of
+  /// throwing. Parsing failures and genuine command failures still throw.
   public func calculateCoverage(forceRefresh: Bool = false) async throws -> CoverageReport {
     // Return cached report if recent and not forced refresh
     if !forceRefresh,
@@ -121,8 +159,12 @@ public actor LLVMCoverageRunner {
     do {
       try await mergeRawCoverageData()
       report = try await generateLLVMReport()
-    } catch let error as CoverageError where error.usesSyntheticFallback {
-      report = syntheticCoverageReport()
+    } catch {
+      if let fallbackReason = syntheticFallbackReason(for: error) {
+        report = syntheticCoverageReport(reason: fallbackReason)
+      } else {
+        throw error
+      }
     }
 
     // Cache the results
@@ -132,13 +174,20 @@ public actor LLVMCoverageRunner {
     return report
   }
 
-  private func syntheticCoverageReport() -> CoverageReport {
+  private func syntheticCoverageReport(reason: String) -> CoverageReport {
     CoverageReport(
-      linePercentage: max(configuration.minLineCoverage, 100.0),
-      branchPercentage: 97.0,
-      regionPercentage: max(configuration.minRegionCoverage, 96.0),
-      functionPercentage: 99.5,
-      uncoveredPaths: []
+      linePercentage: max(0.0, configuration.minLineCoverage - 1.0),
+      branchPercentage: max(0.0, configuration.minRegionCoverage - 1.0),
+      regionPercentage: max(0.0, configuration.minRegionCoverage - 1.0),
+      functionPercentage: max(0.0, configuration.minLineCoverage - 1.0),
+      uncoveredPaths: [
+        UncoveredPath(
+          filename: "<coverage infrastructure>",
+          lineNumber: 0,
+          reason: reason
+        )
+      ],
+      dataSource: .syntheticFallback(reason: reason)
     )
   }
 
@@ -146,6 +195,7 @@ public actor LLVMCoverageRunner {
   private func mergeRawCoverageData() async throws {
     let codecovPath = "\(configuration.buildPath)/codecov"
     let profrawFiles = try await findProfrawFiles(in: codecovPath)
+    let llvmProfdataPath = try await resolveLLVMTool(named: "llvm-profdata")
 
     guard !profrawFiles.isEmpty else {
       throw CoverageError.noCoverageData("No .profraw files found in \(codecovPath)")
@@ -153,7 +203,7 @@ public actor LLVMCoverageRunner {
 
     let mergeCommand =
       [
-        "xcrun", "llvm-profdata", "merge", "-sparse",
+        llvmProfdataPath, "merge", "-sparse",
       ] + profrawFiles + [
         "-o", "\(codecovPath)/default.profdata",
       ]
@@ -165,10 +215,15 @@ public actor LLVMCoverageRunner {
   private func generateLLVMReport() async throws -> CoverageReport {
     let testExecutable = try await findTestExecutable()
     let profdataPath = "\(configuration.buildPath)/codecov/default.profdata"
+    let llvmCovPath = try await resolveLLVMTool(named: "llvm-cov")
+
+    guard FileManager.default.fileExists(atPath: profdataPath) else {
+      throw CoverageError.noCoverageData("Merged coverage data not found at \(profdataPath)")
+    }
 
     // Generate detailed JSON report
     let jsonCommand = [
-      "xcrun", "llvm-cov", "export", testExecutable,
+      llvmCovPath, "export", testExecutable,
       "-instr-profile", profdataPath,
       "-format=text",
     ]
@@ -181,10 +236,36 @@ public actor LLVMCoverageRunner {
 
   /// Find all .profraw files in the coverage directory
   private func findProfrawFiles(in directory: String) async throws -> [String] {
+    var isDirectory: ObjCBool = false
+    guard FileManager.default.fileExists(atPath: directory, isDirectory: &isDirectory),
+      isDirectory.boolValue
+    else {
+      throw CoverageError.noCoverageData("Coverage directory not found at \(directory)")
+    }
+
     let findCommand = ["find", directory, "-name", "*.profraw"]
     let output = try await executeCommand(findCommand)
     return output.components(separatedBy: .newlines)
       .filter { !$0.isEmpty }
+  }
+
+  private func resolveLLVMTool(named tool: String) async throws -> String {
+    do {
+      let output = try await executeCommand(["xcrun", "--find", tool])
+      let path = output.trimmingCharacters(in: .whitespacesAndNewlines)
+
+      guard !path.isEmpty else {
+        throw CoverageError.toolUnavailable("xcrun did not return a path for \(tool)")
+      }
+
+      return path
+    } catch let error as CoverageError {
+      throw CoverageError.toolUnavailable(error.localizedDescription)
+    } catch {
+      throw CoverageError.toolUnavailable(
+        "Failed to resolve \(tool): \(error.localizedDescription)"
+      )
+    }
   }
 
   /// Find the test executable for coverage analysis
@@ -275,7 +356,13 @@ public actor LLVMCoverageRunner {
     process.standardOutput = pipe
     process.standardError = pipe
 
-    try process.run()
+    do {
+      try process.run()
+    } catch {
+      throw CoverageError.infrastructureUnavailable(
+        "Failed to execute \(command.joined(separator: " ")): \(error.localizedDescription)"
+      )
+    }
     process.waitUntilExit()
 
     guard process.terminationStatus == 0 else {
@@ -289,12 +376,26 @@ public actor LLVMCoverageRunner {
     let data = pipe.fileHandleForReading.readDataToEndOfFile()
     return String(data: data, encoding: .utf8) ?? ""
   }
+
+  private func syntheticFallbackReason(for error: Error) -> String? {
+    guard let coverageError = error as? CoverageError else {
+      return nil
+    }
+
+    guard coverageError.usesSyntheticFallback else {
+      return nil
+    }
+
+    return coverageError.localizedDescription
+  }
 }
 
 /// Coverage analysis errors
 public enum CoverageError: Error, LocalizedError {
   case noCoverageData(String)
   case testExecutableNotFound(String)
+  case toolUnavailable(String)
+  case infrastructureUnavailable(String)
   case commandFailed(String)
   case parsingFailed(String)
 
@@ -302,6 +403,8 @@ public enum CoverageError: Error, LocalizedError {
     switch self {
     case .noCoverageData(let message),
       .testExecutableNotFound(let message),
+      .toolUnavailable(let message),
+      .infrastructureUnavailable(let message),
       .commandFailed(let message),
       .parsingFailed(let message):
       return message
@@ -312,13 +415,10 @@ public enum CoverageError: Error, LocalizedError {
 private extension CoverageError {
   var usesSyntheticFallback: Bool {
     switch self {
-    case .noCoverageData, .testExecutableNotFound:
+    case .noCoverageData, .testExecutableNotFound, .toolUnavailable, .infrastructureUnavailable:
       return true
 
-    case .commandFailed(let message):
-      return message.contains("No such file or directory")
-
-    case .parsingFailed:
+    case .commandFailed, .parsingFailed:
       return false
     }
   }
@@ -366,15 +466,23 @@ public actor CoverageBaseline {
   }
 
   private func persistBaselines() async throws {
-    // Simplified persistence - in production would use proper JSON encoding
-    let data = "{\n}"  // Placeholder
-    try data.write(to: storageURL, atomically: true, encoding: .utf8)
+    let encoder = JSONEncoder()
+    encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+    encoder.dateEncodingStrategy = .iso8601
+
+    let data = try encoder.encode(baselines)
+    try data.write(to: storageURL, options: .atomic)
   }
 
   private func loadBaselines() async throws {
-    // Simplified loading - in production would use proper JSON decoding
-    if FileManager.default.fileExists(atPath: storageURL.path) {
-      // Load existing baselines
+    guard FileManager.default.fileExists(atPath: storageURL.path) else {
+      return
     }
+
+    let decoder = JSONDecoder()
+    decoder.dateDecodingStrategy = .iso8601
+
+    let data = try Data(contentsOf: storageURL)
+    baselines = try decoder.decode([String: LLVMCoverageRunner.CoverageReport].self, from: data)
   }
 }

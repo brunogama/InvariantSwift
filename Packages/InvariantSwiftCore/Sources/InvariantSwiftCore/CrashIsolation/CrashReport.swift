@@ -1,5 +1,3 @@
-import Darwin
-
 // MARK: - CrashReport
 
 /// A structured crash diagnostic produced by an isolation strategy.
