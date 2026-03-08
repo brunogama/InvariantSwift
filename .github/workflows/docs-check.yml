@@ -42,10 +42,16 @@ jobs:
           echo "## 📚 Documentation Coverage Report" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          # Run coverage check and capture output
-          python3 check_docs.py --json --output docs_report.json > /dev/null 2>&1 || true
+          # Run coverage check and fail on the real script error.
+          python3 Tools/check_docs.py --json --output docs_report.json > docs_report.log 2>&1
 
-          # Extract metrics from JSON
+          if [ ! -f docs_report.json ]; then
+            echo "::error::Documentation coverage report was not generated."
+            cat docs_report.log
+            exit 1
+          fi
+
+          # Extract metrics from JSON.
           COVERAGE=$(python3 -c "import json; d=json.load(open('docs_report.json')); print(d['summary']['coverage_percent'])")
           TOTAL=$(python3 -c "import json; d=json.load(open('docs_report.json')); print(d['summary']['total_symbols'])")
           DOCUMENTED=$(python3 -c "import json; d=json.load(open('docs_report.json')); print(d['summary']['documented_symbols'])")
@@ -71,7 +77,7 @@ jobs:
       # Uncomment and adjust threshold as needed
       # - name: Enforce Minimum Coverage
       #   run: |
-      #     python3 check_docs.py --threshold 50
+      #     python3 Tools/check_docs.py --threshold 50
 
   generate-diagrams:
     name: Verify Architecture Diagrams
