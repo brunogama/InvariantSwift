@@ -266,7 +266,7 @@ public actor GeneratorRegistry {
   ///       return runTest()
   ///   }
   ///   ```
-  public func withScope<R>(
+  public func withScope<R: Sendable>(
     _ scope: RegistryScope,
     operation: () async throws -> R
   ) async rethrows -> R {
