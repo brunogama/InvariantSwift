@@ -95,38 +95,20 @@ public struct PropertyMacro: PeerMacro {
       isAsync: isAsync
     )
 
-    let testFunc = FunctionDeclSyntax(
-      attributes: AttributeListSyntax {
-        AttributeSyntax(
-          attributeName: IdentifierTypeSyntax(name: .identifier("Test")),
-          leftParen: .leftParenToken(),
-          arguments: .argumentList(
-            LabeledExprListSyntax {
-              LabeledExprSyntax(expression: StringLiteralExprSyntax(content: testName))
-            }
-          ),
-          rightParen: .rightParenToken()
-        )
-      },
-      modifiers: DeclModifierListSyntax {
-        DeclModifierSyntax(name: .keyword(.static))
-      },
-      funcKeyword: .keyword(.func),
-      name: .identifier("run"),
-      signature: isAsync ? buildAsyncThrowsSignature() : buildThrowsSignature(),
+    let testFunc = MacroTemplateAdapter.makeFunction(
+      accessLevel: .internal,
+      attributes: [.arguments("Test", [.unlabeled("\"\(testName)\"")])],
+      isStatic: true,
+      name: "run",
+      isAsync: isAsync,
+      canThrow: true,
       body: testBody
     )
 
-    return EnumDeclSyntax(
-      modifiers: DeclModifierListSyntax {
-        DeclModifierSyntax(name: .keyword(.private))
-      },
-      name: .identifier(enumName),
-      memberBlock: MemberBlockSyntax(
-        members: MemberBlockItemListSyntax {
-          MemberBlockItemSyntax(decl: testFunc)
-        }
-      )
+    return MacroTemplateAdapter.makeEnum(
+      accessLevel: .private,
+      name: enumName,
+      members: [DeclSyntax(testFunc)]
     )
   }
 
@@ -154,12 +136,13 @@ public struct PropertyMacro: PeerMacro {
     // Preserve original modifiers (do not auto-add static to support file-scope tests)
     let modifiers = funcDecl.modifiers
 
-    return FunctionDeclSyntax(
-      attributes: buildTestAttribute(),
-      modifiers: modifiers,
-      funcKeyword: .keyword(.func),
-      name: .identifier(newName),
-      signature: isAsync ? buildAsyncThrowsSignature() : buildThrowsSignature(),
+    return MacroTemplateAdapter.makeFunction(
+      accessLevel: accessLevel(from: modifiers),
+      attributes: [],
+      isStatic: modifiers.contains(where: { $0.name.tokenKind == .keyword(.static) }),
+      name: newName,
+      isAsync: isAsync,
+      canThrow: true,
       body: newBody
     )
   }
@@ -173,27 +156,19 @@ public struct PropertyMacro: PeerMacro {
     AttributeListSyntax {}
   }
 
-  private static func buildThrowsSignature() -> FunctionSignatureSyntax {
-    FunctionSignatureSyntax(
-      parameterClause: FunctionParameterClauseSyntax(
-        parameters: FunctionParameterListSyntax {}
-      ),
-      effectSpecifiers: FunctionEffectSpecifiersSyntax(
-        throwsClause: ThrowsClauseSyntax(throwsSpecifier: .keyword(.throws))
-      )
-    )
-  }
-
-  private static func buildAsyncThrowsSignature() -> FunctionSignatureSyntax {
-    FunctionSignatureSyntax(
-      parameterClause: FunctionParameterClauseSyntax(
-        parameters: FunctionParameterListSyntax {}
-      ),
-      effectSpecifiers: FunctionEffectSpecifiersSyntax(
-        asyncSpecifier: .keyword(.async),
-        throwsClause: ThrowsClauseSyntax(throwsSpecifier: .keyword(.throws))
-      )
-    )
+  private static func accessLevel(
+    from modifiers: DeclModifierListSyntax
+  ) -> MacroTemplateAdapter.MTKAccessLevel {
+    if modifiers.contains(where: { $0.name.tokenKind == .keyword(.public) }) {
+      return .public
+    }
+    if modifiers.contains(where: { $0.name.tokenKind == .keyword(.fileprivate) }) {
+      return .fileprivate
+    }
+    if modifiers.contains(where: { $0.name.tokenKind == .keyword(.private) }) {
+      return .private
+    }
+    return .internal
   }
 
   // swiftlint:disable:next function_parameter_count
@@ -330,14 +305,12 @@ public struct PropertyMacro: PeerMacro {
       trailingClosure: testClosure
     )
 
-    return VariableDeclSyntax(
-      bindingSpecifier: .keyword(.let),
-      bindings: PatternBindingListSyntax {
-        PatternBindingSyntax(
-          pattern: IdentifierPatternSyntax(identifier: .identifier("property")),
-          initializer: InitializerClauseSyntax(value: ExprSyntax(propertyInit))
-        )
-      }
+    return MacroTemplateAdapter.makeStoredProperty(
+      name: "property",
+      type: nil,
+      isStatic: false,
+      isLet: true,
+      initializer: ExprSyntax(propertyInit)
     )
   }
 
@@ -546,14 +519,12 @@ public struct PropertyMacro: PeerMacro {
       rightParen: .rightParenToken()
     )
 
-    return VariableDeclSyntax(
-      bindingSpecifier: .keyword(.let),
-      bindings: PatternBindingListSyntax {
-        PatternBindingSyntax(
-          pattern: IdentifierPatternSyntax(identifier: .identifier("config")),
-          initializer: InitializerClauseSyntax(value: ExprSyntax(configCall))
-        )
-      }
+    return MacroTemplateAdapter.makeStoredProperty(
+      name: "config",
+      type: nil,
+      isStatic: false,
+      isLet: true,
+      initializer: ExprSyntax(configCall)
     )
   }
 
@@ -577,14 +548,12 @@ public struct PropertyMacro: PeerMacro {
 
     // Synchronous properties don't support timeout (would block thread)
     // Timeout is only meaningful for async properties
-    return VariableDeclSyntax(
-      bindingSpecifier: .keyword(.let),
-      bindings: PatternBindingListSyntax {
-        PatternBindingSyntax(
-          pattern: IdentifierPatternSyntax(identifier: .identifier("result")),
-          initializer: InitializerClauseSyntax(value: ExprSyntax(checkCall))
-        )
-      }
+    return MacroTemplateAdapter.makeStoredProperty(
+      name: "result",
+      type: nil,
+      isStatic: false,
+      isLet: true,
+      initializer: ExprSyntax(checkCall)
     )
   }
 
@@ -646,14 +615,12 @@ public struct PropertyMacro: PeerMacro {
       finalExpr = ExprSyntax(AwaitExprSyntax(expression: runPropertyCall))
     }
 
-    return VariableDeclSyntax(
-      bindingSpecifier: .keyword(.let),
-      bindings: PatternBindingListSyntax {
-        PatternBindingSyntax(
-          pattern: IdentifierPatternSyntax(identifier: .identifier("result")),
-          initializer: InitializerClauseSyntax(value: finalExpr)
-        )
-      }
+    return MacroTemplateAdapter.makeStoredProperty(
+      name: "result",
+      type: nil,
+      isStatic: false,
+      isLet: true,
+      initializer: finalExpr
     )
   }
 

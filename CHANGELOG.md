@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- **Refactor**: Rewrite macro and Ghostwriter code generation to use MacroTemplateKit rendering
+- **Chore**: Exclude macro golden fixtures from commit-time formatting and lint hooks
 - **Chore**: Ignore AI tool directories (.claude, .gemini, .opencode, .planning, .context) and remove from git history
 - **Refactor**: Consolidate Scripts/ and tools/ into Tools/, remove orphaned swiftlint-fixer VS Code extension
 - **Feat (13)**: Add cross-platform crash isolation (IsolationStrategy, PosixSpawnIsolation, ThreadIsolation)

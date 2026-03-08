@@ -48,6 +48,8 @@ let package = Package(
   dependencies: [
     // SwiftSyntax 602.0.0 - aligned with root workspace package version
     .package(url: "https://github.com/swiftlang/swift-syntax", from: "602.0.0"),
+    // Template-driven declaration rendering for macro expansions
+    .package(url: "https://github.com/brunogama/MacroTemplateKit.git", exact: "0.0.6"),
     // Local dependency on InvariantSwiftCore for shared types
     .package(path: "../InvariantSwiftCore"),
   ],
@@ -57,6 +59,7 @@ let package = Package(
     .macro(
       name: "InvariantSwiftMacros",
       dependencies: [
+        .product(name: "MacroTemplateKit", package: "MacroTemplateKit"),
         .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
         .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
         .product(name: "SwiftParser", package: "swift-syntax"),
@@ -84,6 +87,7 @@ let package = Package(
     .target(
       name: "GhostwriterLib",
       dependencies: [
+        .product(name: "MacroTemplateKit", package: "MacroTemplateKit"),
         .product(name: "SwiftParser", package: "swift-syntax"),
         .product(name: "SwiftSyntax", package: "swift-syntax"),
       ],
@@ -96,6 +100,7 @@ let package = Package(
       name: "GhostwriterCLI",
       dependencies: [
         "GhostwriterLib",
+        .product(name: "MacroTemplateKit", package: "MacroTemplateKit"),
         .product(name: "SwiftParser", package: "swift-syntax"),
         .product(name: "SwiftSyntax", package: "swift-syntax"),
       ],

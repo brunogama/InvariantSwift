@@ -9,29 +9,14 @@ enum ArbitraryCodeGen {
     fields: [AnalyzedField],
     config: ArbitraryConfig
   ) -> VariableDeclSyntax {
-
     let generatorExpr = buildStructGenerator(typeName: typeName, fields: fields, config: config)
-
-    return VariableDeclSyntax(
-      modifiers: DeclModifierListSyntax {
-        DeclModifierSyntax(name: .keyword(.public))
-        DeclModifierSyntax(name: .keyword(.static))
-      },
-      bindingSpecifier: .keyword(.var),
-      bindings: PatternBindingListSyntax {
-        PatternBindingSyntax(
-          pattern: IdentifierPatternSyntax(identifier: .identifier("arbitrary")),
-          typeAnnotation: TypeAnnotationSyntax(
-            type: buildGenType(for: typeName)
-          ),
-          accessorBlock: AccessorBlockSyntax(
-            accessors: .getter(
-              CodeBlockItemListSyntax {
-                CodeBlockItemSyntax(item: .expr(generatorExpr))
-              }
-            )
-          )
-        )
+    return MacroTemplateAdapter.makeComputedProperty(
+      accessLevel: .public,
+      name: "arbitrary",
+      type: "Gen<\(typeName)>",
+      isStatic: true,
+      getterBody: CodeBlockSyntax {
+        CodeBlockItemSyntax(item: .expr(generatorExpr))
       }
     )
   }
@@ -41,29 +26,14 @@ enum ArbitraryCodeGen {
     fields: [AnalyzedField],
     config: ArbitraryConfig
   ) -> VariableDeclSyntax {
-
     let shrinkExpr = buildStructShrinker(typeName: typeName, fields: fields, config: config)
-
-    return VariableDeclSyntax(
-      modifiers: DeclModifierListSyntax {
-        DeclModifierSyntax(name: .keyword(.public))
-        DeclModifierSyntax(name: .keyword(.static))
-      },
-      bindingSpecifier: .keyword(.var),
-      bindings: PatternBindingListSyntax {
-        PatternBindingSyntax(
-          pattern: IdentifierPatternSyntax(identifier: .identifier("shrink")),
-          typeAnnotation: TypeAnnotationSyntax(
-            type: buildShrinkType(for: typeName)
-          ),
-          accessorBlock: AccessorBlockSyntax(
-            accessors: .getter(
-              CodeBlockItemListSyntax {
-                CodeBlockItemSyntax(item: .expr(shrinkExpr))
-              }
-            )
-          )
-        )
+    return MacroTemplateAdapter.makeComputedProperty(
+      accessLevel: .public,
+      name: "shrink",
+      type: "Shrink<\(typeName)>",
+      isStatic: true,
+      getterBody: CodeBlockSyntax {
+        CodeBlockItemSyntax(item: .expr(shrinkExpr))
       }
     )
   }
@@ -73,56 +43,15 @@ enum ArbitraryCodeGen {
     cases: [AnalyzedEnumCase],
     config: ArbitraryConfig
   ) -> VariableDeclSyntax {
-
     let generatorExpr = buildEnumGenerator(typeName: typeName, cases: cases, config: config)
-
-    return VariableDeclSyntax(
-      modifiers: DeclModifierListSyntax {
-        DeclModifierSyntax(name: .keyword(.public))
-        DeclModifierSyntax(name: .keyword(.static))
-      },
-      bindingSpecifier: .keyword(.var),
-      bindings: PatternBindingListSyntax {
-        PatternBindingSyntax(
-          pattern: IdentifierPatternSyntax(identifier: .identifier("arbitrary")),
-          typeAnnotation: TypeAnnotationSyntax(
-            type: buildGenType(for: typeName)
-          ),
-          accessorBlock: AccessorBlockSyntax(
-            accessors: .getter(
-              CodeBlockItemListSyntax {
-                CodeBlockItemSyntax(item: .expr(generatorExpr))
-              }
-            )
-          )
-        )
+    return MacroTemplateAdapter.makeComputedProperty(
+      accessLevel: .public,
+      name: "arbitrary",
+      type: "Gen<\(typeName)>",
+      isStatic: true,
+      getterBody: CodeBlockSyntax {
+        CodeBlockItemSyntax(item: .expr(generatorExpr))
       }
-    )
-  }
-
-  private static func buildGenType(for typeName: String) -> TypeSyntax {
-    TypeSyntax(
-      IdentifierTypeSyntax(
-        name: .identifier("Gen"),
-        genericArgumentClause: GenericArgumentClauseSyntax {
-          GenericArgumentSyntax(
-            argument: .init(IdentifierTypeSyntax(name: .identifier(typeName)))
-          )
-        }
-      )
-    )
-  }
-
-  private static func buildShrinkType(for typeName: String) -> TypeSyntax {
-    TypeSyntax(
-      IdentifierTypeSyntax(
-        name: .identifier("Shrink"),
-        genericArgumentClause: GenericArgumentClauseSyntax {
-          GenericArgumentSyntax(
-            argument: .init(IdentifierTypeSyntax(name: .identifier(typeName)))
-          )
-        }
-      )
     )
   }
 
