@@ -7,8 +7,8 @@ import Darwin
 /// Call `IsolationCapability.current` to obtain the cached capability for the
 /// running platform, or `IsolationCapability.detect()` to force a fresh probe.
 ///
-/// - Note: Probing spawns `/usr/bin/true` via `posix_spawn`; the result is
-///   cached after the first call to avoid repeated syscalls.
+/// - Note: Probing spawns `/usr/bin/true` via `posix_spawn`; `current` caches
+///   the result on first access to avoid repeated syscalls.
 public enum IsolationCapability: Sendable, CustomStringConvertible {
 
   /// Full crash isolation via a `posix_spawn` child process.
@@ -47,8 +47,8 @@ public enum IsolationCapability: Sendable, CustomStringConvertible {
 
   /// Returns the cached isolation capability for the current runtime environment.
   ///
-  /// The capability is determined once and reused for subsequent calls.
-  public static var current: Self { _cachedCapability }
+  /// The capability is determined on first access and reused for subsequent calls.
+  public static var current: Self { CachedCapability.value }
 
   /// Probes the runtime environment and returns the best available isolation capability.
   ///
@@ -70,8 +70,10 @@ public enum IsolationCapability: Sendable, CustomStringConvertible {
 
   // MARK: Private
 
-  /// Cached capability — computed once at program startup via `detect()`.
-  private static let _cachedCapability = detect()
+  /// Lazily cached capability — computed the first time `current` is accessed.
+  private enum CachedCapability {
+    static let value = detect()
+  }
 
   /// Attempts to spawn `/usr/bin/true` via `posix_spawn` to determine whether
   /// subprocess creation is permitted by the sandbox.
@@ -98,6 +100,16 @@ public enum IsolationCapability: Sendable, CustomStringConvertible {
       waitResult = waitpid(pid, &status, 0)
     } while waitResult == -1 && errno == EINTR
 
-    return true
+    guard waitResult == pid else {
+      return false
+    }
+
+    let wstatus = status & 0x7f
+    guard wstatus == 0 else {
+      return false
+    }
+
+    let exitCode = (status >> 8) & 0xff
+    return exitCode == 0
   }
 }
