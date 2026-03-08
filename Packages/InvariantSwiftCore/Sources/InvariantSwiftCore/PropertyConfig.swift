@@ -31,6 +31,8 @@ import Foundation
 ///
 /// - See Also: ``Property``, ``PropertyRunner``
 public struct PropertyConfig: Sendable {
+  private static let maxSupportedIterations = 50_000
+
   /// Number of test cases to generate and check.
   ///
   /// Typical ranges:
@@ -318,7 +320,7 @@ public struct PropertyConfig: Sendable {
   /// Initializes a property testing configuration.
   ///
   /// - Parameters:
-  ///   - iterations: Number of test cases (default: 100). Clamped to at least 1.
+  ///   - iterations: Number of test cases (default: 100). Clamped to 1...50_000.
   ///   - maxShrinks: Maximum shrink attempts (default: 1000). Clamped to at least 0.
   ///   - maxDiscarded: Maximum discarded cases (default: 1000). Clamped to at least 0.
   ///   - seed: Optional seed for reproducibility. Default: nil (system randomness).
@@ -374,7 +376,7 @@ public struct PropertyConfig: Sendable {
     showProgress: Bool = false,
     progressInterval: ProgressInterval = .adaptive
   ) {
-    self.iterations = max(1, iterations)
+    self.iterations = min(max(1, iterations), Self.maxSupportedIterations)
     self.maxShrinks = max(0, maxShrinks)
     self.maxDiscarded = max(0, maxDiscarded)
     self.seed = seed
