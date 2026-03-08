@@ -1,3 +1,4 @@
+import InvariantSwiftExpansionSupport
 import SwiftSyntax
 import SwiftSyntaxBuilder
 

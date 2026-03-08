@@ -1,5 +1,6 @@
 import SwiftCompilerPlugin
 import SwiftSyntax
+import InvariantSwiftExpansionSupport
 import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
 
@@ -241,19 +242,23 @@ public struct DeterministicMacro: PeerMacro {
     parameterNames: [String]
   ) -> ExprSyntax {
     guard generators.count >= 2 else {
-      return generators.first ?? ExprSyntax(stringLiteral: "Gen.pure(())")
+      return generators.first ?? MacroExpansionEscapeHatches.expression("Gen.pure(())")
     }
 
     let lastGen = generators.last!
     let lastName = parameterNames.last!
     let tupleExpr = "(\(parameterNames.joined(separator: ", ")))"
 
-    var result = ExprSyntax(stringLiteral: "\(lastGen).map { \(lastName) in \(tupleExpr) }")
+    var result = MacroExpansionEscapeHatches.expression(
+      "\(lastGen).map { \(lastName) in \(tupleExpr) }"
+    )
 
     for i in stride(from: generators.count - 2, through: 0, by: -1) {
       let gen = generators[i]
       let name = parameterNames[i]
-      result = ExprSyntax(stringLiteral: "\(gen).flatMap { \(name) in \(result) }")
+      result = MacroExpansionEscapeHatches.expression(
+        "\(gen).flatMap { \(name) in \(result) }"
+      )
     }
 
     return result
@@ -343,7 +348,7 @@ public struct DeterministicMacro: PeerMacro {
       ),
       statements: CodeBlockItemListSyntax {
         CodeBlockItemSyntax(
-          item: .expr(ExprSyntax(stringLiteral: bodyCode))
+          item: .expr(MacroExpansionEscapeHatches.expression(bodyCode))
         )
       }
     )

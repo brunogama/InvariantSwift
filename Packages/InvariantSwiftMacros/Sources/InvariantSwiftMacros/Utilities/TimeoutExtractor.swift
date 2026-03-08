@@ -82,26 +82,28 @@ public enum TimeoutExtractor {
   /// Extract timeout from member access like `@Timeout(.seconds(10.0))` or `@Timeout(.none)`.
   private static func extractMemberAccessTimeout(from list: LabeledExprListSyntax) -> TimeoutConfig?
   {
-    guard let firstArg = list.first,
-      firstArg.label == nil,
-      let memberAccess = firstArg.expression.as(MemberAccessExprSyntax.self)
+    guard let firstArg = list.first, firstArg.label == nil else {
+      return nil
+    }
+
+    if let memberAccess = firstArg.expression.as(MemberAccessExprSyntax.self),
+      memberAccess.declName.baseName.text == "none"
+    {
+      return TimeoutConfig.none
+    }
+
+    guard let funcCall = firstArg.expression.as(FunctionCallExprSyntax.self),
+      let memberAccess = funcCall.calledExpression.as(MemberAccessExprSyntax.self),
+      let firstCallArg = funcCall.arguments.first
     else {
       return nil
     }
 
     let memberName = memberAccess.declName.baseName.text
 
-    if memberName == "none" {
-      return TimeoutConfig.none
-    } else if memberName == "seconds",
-      let funcCall = firstArg.expression.as(FunctionCallExprSyntax.self),
-      let firstCallArg = funcCall.arguments.first
-    {
+    if memberName == "seconds" {
       return extractSecondsFromCall(firstCallArg)
-    } else if memberName == "milliseconds",
-      let funcCall = firstArg.expression.as(FunctionCallExprSyntax.self),
-      let firstCallArg = funcCall.arguments.first
-    {
+    } else if memberName == "milliseconds" {
       return extractMillisecondsFromCall(firstCallArg)
     }
 

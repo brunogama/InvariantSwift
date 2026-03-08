@@ -2,10 +2,10 @@ import MacroTemplateKit
 import SwiftSyntax
 import SwiftSyntaxBuilder
 
-enum MacroTemplateAdapter {
-  typealias MTKAccessLevel = MacroTemplateKit.AccessLevel
+public enum MacroTemplateAdapter {
+  public typealias MTKAccessLevel = MacroTemplateKit.AccessLevel
 
-  static func makeFunction(
+  public static func makeFunction(
     accessLevel: MTKAccessLevel = .internal,
     attributes: [AttributeSignature] = [],
     isStatic: Bool = false,
@@ -31,7 +31,7 @@ enum MacroTemplateAdapter {
       .with(\.body, body)
   }
 
-  static func makeEnum(
+  public static func makeEnum(
     accessLevel: MTKAccessLevel = .internal,
     name: String,
     members: [DeclSyntax]
@@ -53,7 +53,7 @@ enum MacroTemplateAdapter {
       .with(\.memberBlock, memberBlock)
   }
 
-  static func makeExtension(
+  public static func makeExtension(
     typeName: String,
     conformances: [String]
   ) -> ExtensionDeclSyntax {
@@ -62,7 +62,7 @@ enum MacroTemplateAdapter {
     )
   }
 
-  static func makeStoredProperty(
+  public static func makeStoredProperty(
     accessLevel: MTKAccessLevel = .internal,
     attributes: [AttributeSignature] = [],
     name: String,
@@ -84,13 +84,12 @@ enum MacroTemplateAdapter {
 
     var variableDecl = MacroTemplateKit.Renderer.render(declaration).as(VariableDeclSyntax.self)!
     var binding = variableDecl.bindings.first!
-
     binding = binding.with(\.initializer, InitializerClauseSyntax(value: initializer))
     variableDecl = variableDecl.with(\.bindings, PatternBindingListSyntax([binding]))
     return variableDecl
   }
 
-  static func makeComputedProperty(
+  public static func makeComputedProperty(
     accessLevel: MTKAccessLevel = .internal,
     attributes: [AttributeSignature] = [],
     name: String,

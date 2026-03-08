@@ -1,5 +1,6 @@
 import SwiftCompilerPlugin
 import SwiftSyntax
+import InvariantSwiftExpansionSupport
 import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
 import Foundation
@@ -631,7 +632,7 @@ private func generateFunctorIdentityLaw(
     }
     """
 
-  return DeclSyntax(stringLiteral: testBody)
+  return MacroExpansionEscapeHatches.declaration(testBody)
 }
 
 private func generateFunctorCompositionLaw(
@@ -663,7 +664,7 @@ private func generateFunctorCompositionLaw(
     }
     """
 
-  return DeclSyntax(stringLiteral: testBody)
+  return MacroExpansionEscapeHatches.declaration(testBody)
 }
 
 private func generateApplicativeLaws(
@@ -713,7 +714,7 @@ private func generateApplicativeIdentityLaw(
     }
     """
 
-  return DeclSyntax(stringLiteral: testBody)
+  return MacroExpansionEscapeHatches.declaration(testBody)
 }
 
 private func generateApplicativeCompositionLaw(
@@ -746,7 +747,7 @@ private func generateApplicativeCompositionLaw(
     }
     """
 
-  return DeclSyntax(stringLiteral: testBody)
+  return MacroExpansionEscapeHatches.declaration(testBody)
 }
 
 private func generateApplicativeHomomorphismLaw(
@@ -778,7 +779,7 @@ private func generateApplicativeHomomorphismLaw(
     }
     """
 
-  return DeclSyntax(stringLiteral: testBody)
+  return MacroExpansionEscapeHatches.declaration(testBody)
 }
 
 private func generateApplicativeInterchangeLaw(
@@ -810,7 +811,7 @@ private func generateApplicativeInterchangeLaw(
     }
     """
 
-  return DeclSyntax(stringLiteral: testBody)
+  return MacroExpansionEscapeHatches.declaration(testBody)
 }
 
 private func generateMonadLaws(
@@ -858,7 +859,7 @@ private func generateMonadLeftIdentityLaw(
     }
     """
 
-  return DeclSyntax(stringLiteral: testBody)
+  return MacroExpansionEscapeHatches.declaration(testBody)
 }
 
 private func generateMonadRightIdentityLaw(
@@ -889,7 +890,7 @@ private func generateMonadRightIdentityLaw(
     }
     """
 
-  return DeclSyntax(stringLiteral: testBody)
+  return MacroExpansionEscapeHatches.declaration(testBody)
 }
 
 private func generateMonadAssociativityLaw(
@@ -921,7 +922,7 @@ private func generateMonadAssociativityLaw(
     }
     """
 
-  return DeclSyntax(stringLiteral: testBody)
+  return MacroExpansionEscapeHatches.declaration(testBody)
 }
 
 private func generateSemigroupLaws(
@@ -967,7 +968,7 @@ private func generateSemigroupAssociativityLaw(
     }
     """
 
-  return DeclSyntax(stringLiteral: testBody)
+  return MacroExpansionEscapeHatches.declaration(testBody)
 }
 
 private func generateMonoidLaws(
@@ -1013,7 +1014,7 @@ private func generateMonoidLeftIdentityLaw(
     }
     """
 
-  return DeclSyntax(stringLiteral: testBody)
+  return MacroExpansionEscapeHatches.declaration(testBody)
 }
 
 private func generateMonoidRightIdentityLaw(
@@ -1044,7 +1045,7 @@ private func generateMonoidRightIdentityLaw(
     }
     """
 
-  return DeclSyntax(stringLiteral: testBody)
+  return MacroExpansionEscapeHatches.declaration(testBody)
 }
 
 private func generateCustomLawTest(
@@ -1079,7 +1080,7 @@ private func generateCustomLawTest(
     }
     """
 
-  return DeclSyntax(stringLiteral: testBody)
+  return MacroExpansionEscapeHatches.declaration(testBody)
 }
 
 // MARK: - Public Macro Declaration

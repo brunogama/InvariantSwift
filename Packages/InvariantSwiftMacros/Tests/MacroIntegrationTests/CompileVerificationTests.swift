@@ -117,26 +117,32 @@ struct CompileVerifierTests {
 
   @Test("Temp files are cleaned up")
   func tempFilesCleanedUp() {
-    let verifier = CompileVerifier(verbose: false)
+    let fileManager = FileManager.default
+    let sandboxDir = fileManager.temporaryDirectory
+      .appendingPathComponent("ghostwriter-verify-tests-\(UUID().uuidString)")
+    defer {
+      try? fileManager.removeItem(at: sandboxDir)
+    }
+
+    let verifier = CompileVerifier(verbose: false, baseDirectory: sandboxDir)
     let code = "struct Clean { let x: Int }"
 
-    let tempDir = FileManager.default.temporaryDirectory
-    let beforeCount =
-      (try? FileManager.default.contentsOfDirectory(
-        at: tempDir,
+    let beforeEntries =
+      (try? fileManager.contentsOfDirectory(
+        at: sandboxDir,
         includingPropertiesForKeys: nil
-      ))?.count ?? 0
+      )) ?? []
+    #expect(beforeEntries.isEmpty)
 
     _ = verifier.verify(code: code, fileName: "Clean.swift")
 
-    let afterCount =
-      (try? FileManager.default.contentsOfDirectory(
-        at: tempDir,
+    let afterEntries =
+      (try? fileManager.contentsOfDirectory(
+        at: sandboxDir,
         includingPropertiesForKeys: nil
-      ))?.count ?? 0
+      )) ?? []
 
-    // Should not leak temp directories
-    #expect(afterCount <= beforeCount + 1)  // Allow some OS temp file creation
+    #expect(afterEntries.isEmpty)
   }
 
   @Test("Valid code with imports passes")
