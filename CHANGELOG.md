@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- **Fix**: Restore `Tools/generate_llms_txt.sh` and add a tracked `LLMS.txt` artifact so the LLMS workflow can validate and regenerate the file again
 - **Fix**: Update `Tools/signal.sh` to use `swift test list --skip-build` instead of deprecated `--list-tests`, reducing unnecessary SwiftPM lock contention during test enumeration
 - **Fix**: Resolve remaining crash-isolation review comments by removing cross-thread shared state in `ThreadIsolation` and aligning isolation strategy docs with runtime behavior
 - **Fix**: Address review findings in crash isolation concurrency, subprocess timeouts, and coverage fallback handling
