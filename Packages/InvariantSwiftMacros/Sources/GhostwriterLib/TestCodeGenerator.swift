@@ -218,7 +218,7 @@ extension TestCodeGenerator {
     case .success(let generator):
       return GhostwriterPropertyGenerator(
         name: property.name,
-        expression: composerGenerate(using: generator),
+        expression: generator,
         todoComment: nil
       )
 
@@ -226,7 +226,7 @@ extension TestCodeGenerator {
       todoProperties.append(property.name)
       return GhostwriterPropertyGenerator(
         name: property.name,
-        expression: composerGenerate(using: .property("arbitrary", on: typeName)),
+        expression: .property("arbitrary", on: typeName),
         todoComment: "/* TODO: supply generator for \(typeName) */"
       )
     }

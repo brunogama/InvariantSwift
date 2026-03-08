@@ -114,65 +114,6 @@ public struct PropertyMacro: PeerMacro {
   }
 
   // swiftlint:disable:next function_parameter_count
-  private static func buildTransformedFunction(
-    original funcDecl: FunctionDeclSyntax,
-    parameters: [ExtractedParameter],
-    originalBody: CodeBlockSyntax,
-    config: PropertyMacroConfig,
-    regressionConfig: RegressionConfig?,
-    isAsync: Bool
-  ) -> FunctionDeclSyntax {
-
-    let newName = "\(funcDecl.name.text)_PropertyTest"
-
-    let newBody = buildPropertyTestBody(
-      parameters: parameters,
-      originalBody: originalBody,
-      config: config,
-      regressionConfig: regressionConfig,
-      timeoutConfig: nil,  // Not used in this path
-      isAsync: isAsync
-    )
-
-    // Preserve original modifiers (do not auto-add static to support file-scope tests)
-    let modifiers = funcDecl.modifiers
-
-    return MacroTemplateAdapter.makeFunction(
-      accessLevel: accessLevel(from: modifiers),
-      attributes: [],
-      isStatic: modifiers.contains(where: { $0.name.tokenKind == .keyword(.static) }),
-      name: newName,
-      isAsync: isAsync,
-      canThrow: true,
-      body: newBody
-    )
-  }
-
-  private static func buildTestAttribute() -> AttributeListSyntax {
-    // NOTE: We do NOT generate @Test here because combining peer macros
-    // (PropertyMacro generates peer + @Test generates peer) causes
-    // Swift symbol resolution failures.
-    // Users should wrap calls to the generated function with @Test manually:
-    //   @Test func myTest() throws { try myProperty_PropertyTest() }
-    AttributeListSyntax {}
-  }
-
-  private static func accessLevel(
-    from modifiers: DeclModifierListSyntax
-  ) -> MacroTemplateAdapter.MTKAccessLevel {
-    if modifiers.contains(where: { $0.name.tokenKind == .keyword(.public) }) {
-      return .public
-    }
-    if modifiers.contains(where: { $0.name.tokenKind == .keyword(.fileprivate) }) {
-      return .fileprivate
-    }
-    if modifiers.contains(where: { $0.name.tokenKind == .keyword(.private) }) {
-      return .private
-    }
-    return .internal
-  }
-
-  // swiftlint:disable:next function_parameter_count
   private static func buildPropertyTestBody(
     parameters: [ExtractedParameter],
     originalBody: CodeBlockSyntax,

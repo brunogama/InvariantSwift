@@ -58,6 +58,7 @@ let package = Package(
       name: "InvariantSwiftExpansionSupport",
       dependencies: [
         .product(name: "MacroTemplateKit", package: "MacroTemplateKit"),
+        .product(name: "SwiftBasicFormat", package: "swift-syntax"),
         .product(name: "SwiftSyntax", package: "swift-syntax"),
         .product(name: "SwiftSyntaxBuilder", package: "swift-syntax"),
       ],

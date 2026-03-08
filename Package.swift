@@ -1,4 +1,4 @@
-// swift-tools-version: 6.2
+// swift-tools-version: 6.0
 // Umbrella manifest -- sources live in sub-packages.
 //   Packages/InvariantSwiftCore  (core + generators + execution + advanced + domain)
 //   Packages/InvariantSwiftMacros (macros + ghostwriter)

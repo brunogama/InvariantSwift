@@ -60,42 +60,4 @@ final class PropertyTestMacroClassificationTests: XCTestCase {
     )
   }
   // swiftlint:enable vertical_whitespace_between_cases
-
-  // MARK: - Integration Tests
-
-  /// Verify classification can be used with @PropertyTest-generated tests
-  func testPropertyTestWithClassificationWorks() throws {
-    let compatibilityNotes = [
-      "Developer uses @PropertyTest macro",
-      "Developer wants to add classification",
-      "They can manually create a ClassifyingProperty and use checkProperty",
-    ]
-
-    XCTAssertEqual(compatibilityNotes.count, 3)
-    XCTAssertTrue(compatibilityNotes[2].contains("ClassifyingProperty"))
-  }
-
-  /// Document workaround for using classification with @PropertyTest
-  func testClassificationWorkaround() throws {
-    let workaroundOptions = [
-      "Manual test without macro",
-      "Extend the macro (future work)",
-    ]
-
-    XCTAssertEqual(workaroundOptions.count, 2)
-    XCTAssertTrue(workaroundOptions[0].contains("Manual test"))
-  }
-
-  // MARK: - Type Compatibility Tests
-
-  /// Verify checkProperty works with both Property and ClassifyingProperty
-  func testCheckPropertyOverloads() throws {
-    let overloads = [
-      "checkProperty(_: Property<T>)",
-      "checkProperty(_: ClassifyingProperty<T>)",
-    ]
-
-    XCTAssertEqual(overloads.count, 2)
-    XCTAssertTrue(overloads[1].contains("ClassifyingProperty"))
-  }
 }

@@ -10,6 +10,7 @@ public enum MacroTemplateAdapter {
     attributes: [AttributeSignature] = [],
     isStatic: Bool = false,
     name: String,
+    parameters: [FunctionParameterSyntax] = [],
     isAsync: Bool = false,
     canThrow: Bool = false,
     body: CodeBlockSyntax
@@ -26,9 +27,20 @@ public enum MacroTemplateAdapter {
       )
     )
 
-    return MacroTemplateKit.Renderer.render(declaration)
+    var functionDecl = MacroTemplateKit.Renderer.render(declaration)
       .as(FunctionDeclSyntax.self)!
-      .with(\.body, body)
+
+    if !parameters.isEmpty {
+      let signature = functionDecl.signature.with(
+        \.parameterClause,
+        FunctionParameterClauseSyntax(
+          parameters: FunctionParameterListSyntax(parameters)
+        )
+      )
+      functionDecl = functionDecl.with(\.signature, signature)
+    }
+
+    return functionDecl.with(\.body, body)
   }
 
   public static func makeEnum(
