@@ -62,16 +62,14 @@ jobs:
   # Build with warnings as errors - MUST pass
   build-check:
     name: Build (Warnings = Errors)
-    runs-on: macos-14
+    runs-on: macos-15
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Swift
-        uses: swift-actions/setup-swift@v3
-        with:
-          swift-version: '6.2'
+      - name: Select Xcode 16.4
+        run: sudo xcode-select -s /Applications/Xcode_16.4.app
 
       - name: Swift Version
         run: swift --version
@@ -82,17 +80,15 @@ jobs:
   # All tests MUST pass
   test-check:
     name: Tests
-    runs-on: macos-14
+    runs-on: macos-15
     needs: build-check
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Swift
-        uses: swift-actions/setup-swift@v3
-        with:
-          swift-version: '6.2'
+      - name: Select Xcode 16.4
+        run: sudo xcode-select -s /Applications/Xcode_16.4.app
 
       - name: Swift Version
         run: swift --version
