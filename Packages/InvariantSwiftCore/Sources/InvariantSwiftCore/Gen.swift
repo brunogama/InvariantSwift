@@ -694,16 +694,22 @@ extension Gen {
   )
   public func suchThat(_ predicate: @escaping @Sendable (T) -> Bool) -> Gen<T> {
     Gen { rng, size in
-      // Deprecated: Keep retrying until a value matches
-      // For production code, use tryGenerate(where:) or Property(assumption:)
-      while true {
-        let value = self.generate(&rng, size)
+      let maxAttempts = 100
+      var value = self.generate(&rng, size)
+
+      for _ in 1..<maxAttempts {
         if predicate(value) {
           return value
         }
-        // Continue indefinitely - better than crashing
-        // If predicate is too strict, this will timeout rather than crash
+        value = self.generate(&rng, size)
       }
+
+      if predicate(value) {
+        return value
+      }
+
+      GeneratorExhaustionTracker.shared.recordExhaustionAsync(attempts: maxAttempts)
+      return value
     }
   }
 
