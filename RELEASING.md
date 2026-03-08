@@ -26,6 +26,18 @@ Examples:
 - `1.1.1` — bug fix only
 - `2.0.0` — breaking API or behavior change
 
+## Release Automation
+This repository supports automatic release tagging from `main`.
+
+- The release workflow computes the next version from conventional commits since the latest `v*.*.*` tag.
+- `feat:` commits bump `MINOR`.
+- `fix:`, `docs:`, `ci:`, `chore:`, and similar non-breaking commits bump `PATCH`.
+- Commits with `!` in the type scope or a `BREAKING CHANGE:` footer bump `MAJOR`.
+- If no prior release tag exists, the first automated release starts at `v0.1.0`.
+- Pushing `[skip release]` in the head commit message suppresses the automated tag for that push.
+
+Documentation is rebuilt automatically on `main` and when a GitHub Release is published.
+
 ## When to Bump
 ### Patch
 Use for:
@@ -113,7 +125,7 @@ Examples:
 - `v1.0.0`
 - `v2.3.1`
 
-Do not create tags unless the user explicitly asked.
+Tags created by the release workflow must also use this format.
 
 ## Release Notes
 Release notes should summarize:
@@ -157,6 +169,8 @@ If the repository uses release scripts:
 - do not bypass validation inside release scripts
 - keep release scripts idempotent where possible
 - keep version bump logic centralized
+
+Current centralized version bump logic lives in `Tools/release/next_version.sh`.
 
 ## Post-Release Checks
 After a release, verify:
