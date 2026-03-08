@@ -173,10 +173,10 @@ public struct TestCodeGenerator {
     let propGenerators = type.properties.map { prop in
       let result = generatorTemplateResult(for: prop.typeName)
       switch result {
-      case .success(let expression):
+      case .success(let generator):
         return GhostwriterTemplateRenderer.PropertyGenerator(
           name: prop.name,
-          expression: expression,
+          expression: composerGenerate(using: generator),
           todoComment: nil
         )
 
@@ -184,7 +184,7 @@ public struct TestCodeGenerator {
         todoProperties.append(prop.name)
         return GhostwriterTemplateRenderer.PropertyGenerator(
           name: prop.name,
-          expression: composerGenerateCall(for: typeName),
+          expression: composerGenerate(using: .property("arbitrary", on: typeName)),
           todoComment: "/* TODO: supply generator for \(typeName) */"
         )
       }
@@ -253,8 +253,10 @@ public struct TestCodeGenerator {
   /// or `.todoRequired` with reason if not.
   public func generatorResult(for typeName: String) -> GeneratorResult {
     switch generatorTemplateResult(for: typeName) {
-    case .success(let expression):
-      return .success(MacroTemplateKit.Renderer.render(expression).description)
+    case .success(let generator):
+      return .success(
+        MacroTemplateKit.Renderer.render(composerGenerate(using: generator)).description
+      )
 
     case .todoRequired(let typeName, let reason):
       return .todoRequired(typeName: typeName, reason: reason)
@@ -280,11 +282,13 @@ public struct TestCodeGenerator {
 
     // Wrap in optional if needed
     switch innerResult {
-    case .success(let expr):
+    case .success(let generator):
       return .success(
         isOptional
-          ? composerGenerateOptionalCall(for: expr)
-          : expr
+          ? .variable("Gen").method("optional") {
+            TemplateArgument<Void>.unlabeled(generator)
+          }
+          : generator
       )
 
     case .todoRequired:
@@ -319,7 +323,7 @@ public struct TestCodeGenerator {
     }
     // Standard types
     if Self.knownGeneratableTypes.contains(cleanedType) {
-      return .success(composerGenerateCall(for: cleanedType))
+      return .success(.property("arbitrary", on: cleanedType))
     }
     return .todoRequired(
       typeName: cleanedType,
@@ -333,18 +337,12 @@ public struct TestCodeGenerator {
     switch innerCheck {
     case .success:
       return .success(
-        Template<Void>.variable("composer")
-          .method("generate") {
-            TemplateArgument<Void>.labeled(
-              "using",
-              .variable("Gen").method("array") {
-                TemplateArgument<Void>.labeled(
-                  "of",
-                  .property("arbitrary", on: inner)
-                )
-              }
-            )
-          }
+        .variable("Gen").method("array") {
+          TemplateArgument<Void>.labeled(
+            "of",
+            .property("arbitrary", on: inner)
+          )
+        }
       )
 
     case .todoRequired(_, let reason):
@@ -365,18 +363,14 @@ public struct TestCodeGenerator {
           "Set",
           arguments: [
             .unlabeled(
-              Template<Void>.variable("composer")
-                .method("generate") {
+              composerGenerate(
+                using: .variable("Gen").method("array") {
                   TemplateArgument<Void>.labeled(
-                    "using",
-                    .variable("Gen").method("array") {
-                      TemplateArgument<Void>.labeled(
-                        "of",
-                        .property("arbitrary", on: inner)
-                      )
-                    }
+                    "of",
+                    .property("arbitrary", on: inner)
                   )
                 }
+              )
             )
           ]
         )
@@ -409,22 +403,10 @@ public struct TestCodeGenerator {
 }
 
 private extension TestCodeGenerator {
-  func composerGenerateCall(for typeName: String) -> Template<Void> {
+  func composerGenerate(using generator: Template<Void>) -> Template<Void> {
     Template<Void>.variable("composer")
       .method("generate") {
-        TemplateArgument<Void>.labeled("using", .property("arbitrary", on: typeName))
-      }
-  }
-
-  func composerGenerateOptionalCall(for expression: Template<Void>) -> Template<Void> {
-    Template<Void>.variable("composer")
-      .method("generate") {
-        TemplateArgument<Void>.labeled(
-          "using",
-          .variable("Gen").method("optional") {
-            TemplateArgument<Void>.unlabeled(expression)
-          }
-        )
+        TemplateArgument<Void>.labeled("using", generator)
       }
   }
 }

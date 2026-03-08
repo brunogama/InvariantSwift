@@ -2,14 +2,20 @@ import MacroTemplateKit
 import SwiftSyntax
 import SwiftSyntaxBuilder
 
-enum GhostwriterTemplateRenderer {
-  struct PropertyGenerator {
-    let name: String
-    let expression: Template<Void>
-    let todoComment: String?
+public enum GhostwriterTemplateRenderer {
+  public struct PropertyGenerator {
+    public let name: String
+    public let expression: Template<Void>
+    public let todoComment: String?
+
+    public init(name: String, expression: Template<Void>, todoComment: String?) {
+      self.name = name
+      self.expression = expression
+      self.todoComment = todoComment
+    }
   }
 
-  static func arbitraryExtension(
+  public static func arbitraryExtension(
     typeName: String,
     propertyGenerators: [PropertyGenerator]
   ) -> String {

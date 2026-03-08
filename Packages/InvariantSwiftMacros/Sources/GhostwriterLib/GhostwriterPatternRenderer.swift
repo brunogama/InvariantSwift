@@ -2,8 +2,8 @@ import MacroTemplateKit
 import SwiftSyntax
 import SwiftSyntaxBuilder
 
-enum GhostwriterPatternRenderer {
-  static func testFunction(
+public enum GhostwriterPatternRenderer {
+  public static func testFunction(
     docComment: String,
     functionName: String,
     parameters: [(name: String, type: String)],
@@ -30,11 +30,11 @@ enum GhostwriterPatternRenderer {
     return function.description
   }
 
-  static func rawStatement(_ source: String) -> CodeBlockItemSyntax {
+  public static func rawStatement(_ source: String) -> CodeBlockItemSyntax {
     CodeBlockItemSyntax(item: .expr(ExprSyntax(stringLiteral: source)))
   }
 
-  static func ifStatement(
+  public static func ifStatement(
     condition: Template<Void>,
     then bodyStatements: [CodeBlockItemSyntax]
   ) -> CodeBlockItemSyntax {
@@ -54,13 +54,16 @@ enum GhostwriterPatternRenderer {
     )
   }
 
-  static func letBinding(name: String, initializer: Template<Void>) -> CodeBlockItemSyntax {
+  public static func letBinding(name: String, initializer: Template<Void>) -> CodeBlockItemSyntax {
     MacroTemplateKit.Renderer.render(
       Statement<Void>.letBinding(name: name, type: nil, initializer: initializer)
     )
   }
 
-  static func rawLetBinding(name: String, initializer source: String) -> CodeBlockItemSyntax {
+  public static func rawLetBinding(
+    name: String,
+    initializer source: String
+  ) -> CodeBlockItemSyntax {
     CodeBlockItemSyntax(
       item: .decl(DeclSyntax(stringLiteral: "let \(name) = \(source)"))
     )
