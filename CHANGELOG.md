@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Fix**: Resolve remaining crash-isolation review comments by removing cross-thread shared state in `ThreadIsolation` and aligning isolation strategy docs with runtime behavior
 - **Fix**: Address review findings in crash isolation concurrency, subprocess timeouts, and coverage fallback handling
 - **Fix**: Restore crash-isolation sources to the package and stabilize coverage integration tests so `swift test` passes cleanly again
+- **Refactor**: Rewrite macro and Ghostwriter code generation to use MacroTemplateKit rendering
+- **Chore**: Exclude macro golden fixtures from commit-time formatting and lint hooks
 - **Chore**: Ignore AI tool directories (.claude, .gemini, .opencode, .planning, .context) and remove from git history
 - **Refactor**: Consolidate Scripts/ and tools/ into Tools/, remove orphaned swiftlint-fixer VS Code extension
 - **Feat (13)**: Add cross-platform crash isolation (IsolationStrategy, PosixSpawnIsolation, ThreadIsolation)
