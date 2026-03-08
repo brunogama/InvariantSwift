@@ -46,10 +46,17 @@ public struct ThreadIsolation: IsolationStrategy, Sendable {
 
 /// Write end of the unified outcome pipe, published for the signal handler.
 ///
-/// Protected by the sequential call structure of `ThreadedRunner.run(body:)`:
-/// each call sets this before starting the thread and resets it to -1 after
-/// the pipe is read. `nonisolated(unsafe)` satisfies Swift 6 strict concurrency.
+/// Access is serialized by `ThreadIsolationCoordinator.executionLock`: each run
+/// sets this before starting the worker thread and resets it to `-1` only after
+/// the worker outcome pipe has been consumed. `nonisolated(unsafe)` satisfies
+/// Swift 6 strict concurrency for this async-signal-safe bridge.
 nonisolated(unsafe) private var gOutcomePipeWriteFD: Int32 = -1
+
+/// Serializes thread-isolation runs so the process-wide signal handlers and
+/// global outcome pipe fd are never active for multiple runs at once.
+private enum ThreadIsolationCoordinator {
+  static let executionLock = DispatchSemaphore(value: 1)
+}
 
 /// Sentinel value written to the pipe on a normal (non-crash) exit.
 ///
@@ -82,6 +89,9 @@ private enum ThreadedRunner {
   /// - `0` (kNormalExitSentinel) → normal exit; `body()` result is in `resultBox`.
   /// - Non-zero → crash; value is the received signal number.
   static func run(body: @escaping @Sendable () -> Bool) -> IsolationResult {
+    ThreadIsolationCoordinator.executionLock.wait()
+    defer { ThreadIsolationCoordinator.executionLock.signal() }
+
     // Create outcome pipe: [0] = read end (parent), [1] = write end (child or handler).
     var pipeFDs: [Int32] = [-1, -1]
     guard Darwin.pipe(&pipeFDs) == 0 else {
@@ -158,6 +168,11 @@ private enum ThreadedRunner {
 // MARK: - ResultBox
 
 /// Reference-type wrapper for the bool result that crosses the Thread boundary.
+///
+/// Safety: the worker thread writes `passed` before writing the normal-exit
+/// sentinel to the outcome pipe. The parent reads `passed` only after the
+/// blocking `read(2)` receives that sentinel, giving a concrete happens-before
+/// edge with no concurrent mutation after publication.
 private final class ResultBox: @unchecked Sendable {
   var passed: Bool = false
 }

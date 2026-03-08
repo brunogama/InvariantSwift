@@ -14,9 +14,12 @@ import Foundation
 ///
 /// Adjust configuration based on your needs:
 /// - **Quick sanity check**: Use fewer iterations (10-20)
-/// - **Thorough testing**: Use more iterations (1000+)
+/// - **Thorough testing**: Use more iterations (1000...50_000)
 /// - **Flaky tests**: Fix or skip them, don't increase iterations
 /// - **Hard-to-minimize failures**: Increase maxShrinks
+///
+/// Iteration counts are clamped to `1...50_000` to keep accidental runaway
+/// configurations from exhausting local machines or CI workers.
 ///
 /// **Precondition handling**: When a generator's assumption filters out values,
 /// discarded counts increase. If discarded > maxDiscarded, the property "gives up"
@@ -41,6 +44,7 @@ public struct PropertyConfig: Sendable {
   /// - 1000+: Thorough testing or difficult properties
   ///
   /// More iterations increase confidence but take longer.
+  /// Values are clamped to the supported range `1...50_000`.
   public let iterations: Int
 
   /// Maximum shrinking attempts when a property fails.

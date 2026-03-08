@@ -2,6 +2,7 @@
 // which are unavoidable because the IPC protocol uses Codable.
 // No Foundation.Process or Foundation.Pipe is used anywhere in this file.
 import Foundation
+import Dispatch
 
 #if canImport(Darwin)
 import Darwin
@@ -50,6 +51,9 @@ public struct PosixSpawnIsolation: IsolationStrategy, Sendable {
   /// The child runs `PropertyTestHelper`, receives the request on stdin,
   /// and writes a `PropertyEvaluationResponse` to stdout.
   ///
+  /// This remains intentionally internal because `PropertyEvaluationRequest`
+  /// is the module-private IPC surface shared with the helper executable.
+  ///
   /// - Parameter request: The serialised test parameters for this iteration.
   /// - Returns: An `IsolationResult` based on the child's exit status or signal.
   func executeViaSubprocess(request: PropertyEvaluationRequest) async -> IsolationResult {
@@ -69,44 +73,52 @@ public struct PosixSpawnIsolation: IsolationStrategy, Sendable {
       return .failure(reason: "posix_spawn error: \(error)")
     }
 
+    let lifecycle = ChildLifecycle()
+
     // Write length-prefixed JSON to child stdin, then close writer.
     var lengthBE = UInt32(requestData.count).bigEndian
-    let writeResult = withUnsafeBytes(of: &lengthBE) { buf -> Int32 in
-      Darwin.write(child.stdinFD, buf.baseAddress!, 4)
-      return Darwin.write(child.stdinFD, Array(requestData), requestData.count) < 0 ? -1 : 0
-    }
+    let wroteRequest =
+      withUnsafeBytes(of: &lengthBE) { buffer in
+        writeAll(buffer, to: child.stdinFD)
+      }
+      && writeAll(requestData, to: child.stdinFD)
     Darwin.close(child.stdinFD)
 
-    if writeResult < 0 {
+    if !wroteRequest {
+      lifecycle.markCompleted()
       kill(child.pid, SIGKILL)
-      _ = waitForChild(child.pid)
+      _ = await waitForChild(child.pid, lifecycle: lifecycle)
       Darwin.close(child.stdoutFD)
       Darwin.close(child.stderrFD)
       return .failure(reason: "Failed to write request to child stdin")
     }
 
     // Arm timeout: kill child after `timeout` seconds if still running.
-    let pid = child.pid
-    let timeoutNS = UInt64(timeout * 1_000_000_000)
-    let timeoutTask = Task.detached {
-      try? await Task.sleep(nanoseconds: timeoutNS)
+    let timeoutWorkItem = DispatchWorkItem { [lifecycle, pid = child.pid] in
+      guard lifecycle.beginTimeoutIfNeeded() else {
+        return
+      }
       kill(pid, SIGKILL)
     }
+    DispatchQueue.global(qos: .userInitiated).asyncAfter(
+      deadline: .now() + max(timeout, 0),
+      execute: timeoutWorkItem
+    )
 
-    // Wait for child off the cooperative thread pool.
-    let termination = await Task.detached(priority: .userInitiated) {
-      self.waitForChild(pid)
-    }.value
-
-    timeoutTask.cancel()
+    let waitOutcome = await waitForChild(child.pid, lifecycle: lifecycle)
+    timeoutWorkItem.cancel()
 
     // Read stdout / stderr.
     let stdoutData = readAll(from: child.stdoutFD)
     let stderrData = readAll(from: child.stderrFD)
 
+    if waitOutcome.timedOut {
+      return .timeout
+    }
+
     // Interpret exit status.
     return buildResult(
-      termination: termination,
+      termination: waitOutcome.termination,
       stdoutData: stdoutData,
       stderrData: stderrData
     )
@@ -119,6 +131,54 @@ public struct PosixSpawnIsolation: IsolationStrategy, Sendable {
     case exited(code: Int32)
     case signaled(signal: Int32)
     case unknown
+  }
+
+  /// Tracks child lifecycle transitions shared between the timeout queue and
+  /// the blocking wait queue so timeout cancellation cannot race a reaped PID.
+  private final class ChildLifecycle: @unchecked Sendable {
+    private enum State {
+      case running
+      case timedOut
+      case completed
+    }
+
+    private let lock = NSLock()
+    private var state: State = .running
+
+    func beginTimeoutIfNeeded() -> Bool {
+      lock.lock()
+      defer { lock.unlock() }
+
+      guard state == .running else {
+        return false
+      }
+
+      state = .timedOut
+      return true
+    }
+
+    func completeAfterWait() -> Bool {
+      lock.lock()
+      defer { lock.unlock() }
+
+      switch state {
+      case .running:
+        state = .completed
+        return false
+
+      case .timedOut:
+        return true
+
+      case .completed:
+        return false
+      }
+    }
+
+    func markCompleted() {
+      lock.lock()
+      state = .completed
+      lock.unlock()
+    }
   }
 
   /// Parent-side file descriptors returned after a successful spawn.
@@ -135,9 +195,9 @@ public struct PosixSpawnIsolation: IsolationStrategy, Sendable {
   /// On failure, closes all fds and throws.
   private func spawnChild() throws -> ChildProcessFDs {
     // pipe[0] = read end, pipe[1] = write end.
-    var stdinPipe: [Int32] = [0, 0]
-    var stdoutPipe: [Int32] = [0, 0]
-    var stderrPipe: [Int32] = [0, 0]
+    var stdinPipe: [Int32] = [-1, -1]
+    var stdoutPipe: [Int32] = [-1, -1]
+    var stderrPipe: [Int32] = [-1, -1]
 
     guard pipe(&stdinPipe) == 0, pipe(&stdoutPipe) == 0, pipe(&stderrPipe) == 0 else {
       closeAll(stdinPipe + stdoutPipe + stderrPipe)
@@ -190,12 +250,16 @@ public struct PosixSpawnIsolation: IsolationStrategy, Sendable {
 
   // MARK: - Private: Wait
 
-  private func waitForChild(_ pid: pid_t) -> ChildTermination {
+  private func waitForChildSynchronously(_ pid: pid_t) -> ChildTermination {
     var status: Int32 = 0
     var result: pid_t
     repeat {
       result = waitpid(pid, &status, 0)
     } while result == -1 && errno == EINTR
+
+    guard result == pid else {
+      return .unknown
+    }
 
     // WIFEXITED / WEXITSTATUS / WIFSIGNALED / WTERMSIG are C macros unavailable in Swift.
     // Inline the Darwin definitions: _WSTATUS(x) = x & 0x7f
@@ -212,6 +276,19 @@ public struct PosixSpawnIsolation: IsolationStrategy, Sendable {
     return .unknown
   }
 
+  private func waitForChild(
+    _ pid: pid_t,
+    lifecycle: ChildLifecycle
+  ) async -> (termination: ChildTermination, timedOut: Bool) {
+    await withCheckedContinuation { continuation in
+      DispatchQueue.global(qos: .userInitiated).async {
+        let termination = self.waitForChildSynchronously(pid)
+        let timedOut = lifecycle.completeAfterWait()
+        continuation.resume(returning: (termination, timedOut))
+      }
+    }
+  }
+
   // MARK: - Private: I/O
 
   private func readAll(from fd: Int32) -> Data {
@@ -219,6 +296,9 @@ public struct PosixSpawnIsolation: IsolationStrategy, Sendable {
     var data = Data()
     while true {
       let n = Darwin.read(fd, &buffer, buffer.count)
+      if n == -1 && errno == EINTR {
+        continue
+      }
       if n <= 0 { break }
       data.append(contentsOf: buffer[..<n])
     }
@@ -226,8 +306,40 @@ public struct PosixSpawnIsolation: IsolationStrategy, Sendable {
     return data
   }
 
+  private func writeAll(_ data: Data, to fd: Int32) -> Bool {
+    data.withUnsafeBytes { buffer in
+      writeAll(buffer, to: fd)
+    }
+  }
+
+  private func writeAll(_ buffer: UnsafeRawBufferPointer, to fd: Int32) -> Bool {
+    guard let baseAddress = buffer.baseAddress else {
+      return buffer.isEmpty
+    }
+
+    var totalWritten = 0
+    while totalWritten < buffer.count {
+      let bytesRemaining = buffer.count - totalWritten
+      let nextPointer = baseAddress.advanced(by: totalWritten)
+      let bytesWritten = Darwin.write(fd, nextPointer, bytesRemaining)
+
+      if bytesWritten > 0 {
+        totalWritten += bytesWritten
+        continue
+      }
+
+      if bytesWritten == -1 && errno == EINTR {
+        continue
+      }
+
+      return false
+    }
+
+    return true
+  }
+
   private func closeAll(_ fds: [Int32]) {
-    for fd in fds where fd > 0 {
+    for fd in fds where fd >= 0 {
       Darwin.close(fd)
     }
   }

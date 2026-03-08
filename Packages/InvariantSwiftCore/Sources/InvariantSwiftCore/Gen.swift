@@ -863,14 +863,45 @@ extension Gen {
 ///
 /// - SeeAlso: ``Gen``, ``Property``
 public actor GeneratorExhaustionTracker {
+  private final class ExhaustionState: @unchecked Sendable {
+    private let lock = NSLock()
+    private var exhaustionCount = 0
+    private var exhaustionEvents = 0
+
+    func record(attempts: Int) {
+      lock.lock()
+      exhaustionCount += attempts
+      exhaustionEvents += 1
+      lock.unlock()
+    }
+
+    func count() -> Int {
+      lock.lock()
+      defer { lock.unlock() }
+      return exhaustionCount
+    }
+
+    func events() -> Int {
+      lock.lock()
+      defer { lock.unlock() }
+      return exhaustionEvents
+    }
+
+    func getAndReset() -> (attempts: Int, events: Int) {
+      lock.lock()
+      defer { lock.unlock() }
+
+      let result = (attempts: exhaustionCount, events: exhaustionEvents)
+      exhaustionCount = 0
+      exhaustionEvents = 0
+      return result
+    }
+  }
+
   /// Shared singleton instance for global exhaustion tracking
   public static let shared = GeneratorExhaustionTracker()
 
-  /// Total exhaustion attempts recorded
-  private var exhaustionCount: Int = 0
-
-  /// Number of exhaustion events recorded
-  private var exhaustionEvents: Int = 0
+  nonisolated private let state = ExhaustionState()
 
   /// Initialize a new exhaustion tracker
   public init() {}
@@ -879,22 +910,21 @@ public actor GeneratorExhaustionTracker {
   ///
   /// - Parameter attempts: Number of attempts before exhaustion occurred
   public func recordExhaustion(attempts: Int) {
-    exhaustionCount += attempts
-    exhaustionEvents += 1
+    state.record(attempts: attempts)
   }
 
   /// Get current exhaustion count without resetting
   ///
   /// - Returns: Current exhaustion attempt count
   public func getExhaustionCount() -> Int {
-    exhaustionCount
+    state.count()
   }
 
   /// Get current exhaustion event count
   ///
   /// - Returns: Number of exhaustion events recorded
   public func getExhaustionEvents() -> Int {
-    exhaustionEvents
+    state.events()
   }
 
   /// Get and reset exhaustion statistics
@@ -904,19 +934,18 @@ public actor GeneratorExhaustionTracker {
   ///
   /// - Returns: Tuple containing (attempts, events) before reset
   public func getAndResetExhaustionCount() -> (attempts: Int, events: Int) {
-    let result = (attempts: exhaustionCount, events: exhaustionEvents)
-    exhaustionCount = 0
-    exhaustionEvents = 0
-    return result
+    state.getAndReset()
   }
 
   /// Fire-and-forget exhaustion recording from synchronous contexts
   ///
-  /// Records exhaustion without blocking the caller. Useful for integration
-  /// with synchronous code that cannot await actor methods.
+  /// Despite the legacy name, this records synchronously using an internal
+  /// lock-backed state object. That keeps generator hot paths from spawning
+  /// unbounded detached tasks while preserving a nonisolated call surface for
+  /// synchronous generation code.
   ///
   /// - Parameter attempts: Number of attempts before exhaustion occurred
   nonisolated public func recordExhaustionAsync(attempts: Int) {
-    Task { await self.recordExhaustion(attempts: attempts) }
+    state.record(attempts: attempts)
   }
 }
