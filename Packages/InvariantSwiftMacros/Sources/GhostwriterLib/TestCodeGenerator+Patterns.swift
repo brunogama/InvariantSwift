@@ -1,114 +1,107 @@
-// MARK: - Test Pattern Planning
-// Extension for planning individual Ghostwriter test patterns.
+// MARK: - Test Pattern Generation
+// Extension for generating individual test patterns.
 
-import InvariantSwiftExpansionSupport
+import Foundation
+import MacroTemplateKit
+import SwiftSyntax
+import SwiftSyntaxBuilder
 
 extension TestCodeGenerator {
+
+  // MARK: - Individual Test Generation
+
+  /// Generate a single test for a type and pattern.
   public func generateTest(
     for type: ExtractedTypeInfo,
     pattern: GhostwriterTestPattern
   ) -> String {
-    GhostwriterExpansionRenderer.render(test: plannedTest(for: type, pattern: pattern))
-  }
-
-  func plannedTest(
-    for type: ExtractedTypeInfo,
-    pattern: GhostwriterTestPattern
-  ) -> GhostwriterGeneratedTest {
     let typeName = type.name
 
     switch pattern {
     case .codableRoundtrip:
-      return codableRoundtripTest(typeName: typeName)
+      return generateCodableRoundtripTest(typeName: typeName)
 
     case .equatableReflexive:
-      return equatableReflexiveTest(typeName: typeName)
+      return generateEquatableReflexiveTest(typeName: typeName)
 
     case .equatableSymmetric:
-      return equatableSymmetricTest(typeName: typeName)
+      return generateEquatableSymmetricTest(typeName: typeName)
 
     case .equatableTransitive:
-      return equatableTransitiveTest(typeName: typeName)
+      return generateEquatableTransitiveTest(typeName: typeName)
 
     case .hashableConsistency:
-      return hashableConsistencyTest(typeName: typeName)
+      return generateHashableConsistencyTest(typeName: typeName)
 
     case .comparableIrreflexive:
-      return comparableIrreflexiveTest(typeName: typeName)
+      return generateComparableIrreflexiveTest(typeName: typeName)
 
     case .comparableAsymmetric:
-      return comparableAsymmetricTest(typeName: typeName)
+      return generateComparableAsymmetricTest(typeName: typeName)
 
     case .comparableTransitive:
-      return comparableTransitiveTest(typeName: typeName)
+      return generateComparableTransitiveTest(typeName: typeName)
 
     case .comparableTrichotomy:
-      return comparableTrichotomyTest(typeName: typeName)
+      return generateComparableTrichotomyTest(typeName: typeName)
     }
   }
 
-  private func codableRoundtripTest(typeName: String) -> GhostwriterGeneratedTest {
-    GhostwriterGeneratedTest(
+  // MARK: - Pattern Generators
+
+  private func generateCodableRoundtripTest(typeName: String) -> String {
+    GhostwriterPatternRenderer.testFunction(
       docComment: "Codable roundtrip: encoding and decoding preserves value.",
       functionName: "test\(typeName)_codableRoundtrip",
-      parameters: [ExpansionParameter(name: "value", type: typeName)],
+      parameters: [("value", typeName)],
       isThrowing: true,
       bodyStatements: [
-        .letBinding(
+        GhostwriterPatternRenderer.letBinding(
           name: "encoded",
-          initializer: ExpansionExpr.call("JSONEncoder")
-            .method("encode", arguments: [.unlabeled(.variable("value"))])
+          initializer: .call("JSONEncoder")
+            .method("encode") { .unlabeled(.variable("value")) }
             .trying()
         ),
-        .letBinding(
+        GhostwriterPatternRenderer.letBinding(
           name: "decoded",
-          initializer: ExpansionExpr.call("JSONDecoder")
-            .method(
-              "decode",
-              arguments: [
-                .unlabeled(.property("self", on: typeName)),
-                .labeled("from", .variable("encoded")),
-              ]
-            )
+          initializer: .call("JSONDecoder")
+            .method("decode") {
+              TemplateArgument<Void>.unlabeled(.property("self", on: typeName))
+              TemplateArgument<Void>.labeled("from", .variable("encoded"))
+            }
             .trying()
         ),
-        .expect(
-          condition: .operation(.variable("decoded"), "==", .variable("value")),
-          message: "Codable roundtrip should preserve value"
+        GhostwriterPatternRenderer.rawStatement(
+          "#expect(decoded == value, \"Codable roundtrip should preserve value\")"
         ),
       ]
     )
   }
 
-  private func equatableReflexiveTest(typeName: String) -> GhostwriterGeneratedTest {
-    GhostwriterGeneratedTest(
+  private func generateEquatableReflexiveTest(typeName: String) -> String {
+    GhostwriterPatternRenderer.testFunction(
       docComment: "Equatable reflexivity: x == x for all x.",
       functionName: "test\(typeName)_equatableReflexive",
-      parameters: [ExpansionParameter(name: "value", type: typeName)],
+      parameters: [("value", typeName)],
       bodyStatements: [
-        .expect(
-          condition: .operation(.variable("value"), "==", .variable("value")),
-          message: "Reflexivity: x == x"
+        GhostwriterPatternRenderer.rawStatement(
+          "#expect(value == value, \"Reflexivity: x == x\")"
         )
       ]
     )
   }
 
-  private func equatableSymmetricTest(typeName: String) -> GhostwriterGeneratedTest {
-    GhostwriterGeneratedTest(
+  private func generateEquatableSymmetricTest(typeName: String) -> String {
+    GhostwriterPatternRenderer.testFunction(
       docComment: "Equatable symmetry: x == y implies y == x.",
       functionName: "test\(typeName)_equatableSymmetric",
-      parameters: [
-        ExpansionParameter(name: "a", type: typeName),
-        ExpansionParameter(name: "b", type: typeName),
-      ],
+      parameters: [("a", typeName), ("b", typeName)],
       bodyStatements: [
-        .ifStatement(
+        GhostwriterPatternRenderer.ifStatement(
           condition: .operation(.variable("a"), "==", .variable("b")),
-          body: [
-            .expect(
-              condition: .operation(.variable("b"), "==", .variable("a")),
-              message: "Symmetry: a == b implies b == a"
+          then: [
+            GhostwriterPatternRenderer.rawStatement(
+              "#expect(b == a, \"Symmetry: a == b implies b == a\")"
             )
           ]
         )
@@ -116,26 +109,21 @@ extension TestCodeGenerator {
     )
   }
 
-  private func equatableTransitiveTest(typeName: String) -> GhostwriterGeneratedTest {
-    GhostwriterGeneratedTest(
+  private func generateEquatableTransitiveTest(typeName: String) -> String {
+    GhostwriterPatternRenderer.testFunction(
       docComment: "Equatable transitivity: x == y && y == z implies x == z.",
       functionName: "test\(typeName)_equatableTransitive",
-      parameters: [
-        ExpansionParameter(name: "a", type: typeName),
-        ExpansionParameter(name: "b", type: typeName),
-        ExpansionParameter(name: "c", type: typeName),
-      ],
+      parameters: [("a", typeName), ("b", typeName), ("c", typeName)],
       bodyStatements: [
-        .ifStatement(
+        GhostwriterPatternRenderer.ifStatement(
           condition: .operation(
             .operation(.variable("a"), "==", .variable("b")),
             "&&",
             .operation(.variable("b"), "==", .variable("c"))
           ),
-          body: [
-            .expect(
-              condition: .operation(.variable("a"), "==", .variable("c")),
-              message: "Transitivity: a == b && b == c implies a == c"
+          then: [
+            GhostwriterPatternRenderer.rawStatement(
+              "#expect(a == c, \"Transitivity: a == b && b == c implies a == c\")"
             )
           ]
         )
@@ -143,25 +131,17 @@ extension TestCodeGenerator {
     )
   }
 
-  private func hashableConsistencyTest(typeName: String) -> GhostwriterGeneratedTest {
-    GhostwriterGeneratedTest(
+  private func generateHashableConsistencyTest(typeName: String) -> String {
+    GhostwriterPatternRenderer.testFunction(
       docComment: "Hashable consistency: equal values must have equal hash values.",
       functionName: "test\(typeName)_hashableConsistency",
-      parameters: [
-        ExpansionParameter(name: "a", type: typeName),
-        ExpansionParameter(name: "b", type: typeName),
-      ],
+      parameters: [("a", typeName), ("b", typeName)],
       bodyStatements: [
-        .ifStatement(
+        GhostwriterPatternRenderer.ifStatement(
           condition: .operation(.variable("a"), "==", .variable("b")),
-          body: [
-            .expect(
-              condition: .operation(
-                .property("hashValue", on: .variable("a")),
-                "==",
-                .property("hashValue", on: .variable("b"))
-              ),
-              message: "Equal values must have equal hash values"
+          then: [
+            GhostwriterPatternRenderer.rawStatement(
+              "#expect(a.hashValue == b.hashValue, \"Equal values must have equal hash values\")"
             )
           ]
         )
@@ -169,41 +149,30 @@ extension TestCodeGenerator {
     )
   }
 
-  private func comparableIrreflexiveTest(typeName: String) -> GhostwriterGeneratedTest {
-    GhostwriterGeneratedTest(
+  private func generateComparableIrreflexiveTest(typeName: String) -> String {
+    GhostwriterPatternRenderer.testFunction(
       docComment: "Comparable irreflexivity: !(x < x) for all x.",
       functionName: "test\(typeName)_comparableIrreflexive",
-      parameters: [ExpansionParameter(name: "value", type: typeName)],
+      parameters: [("value", typeName)],
       bodyStatements: [
-        .expect(
-          condition: .prefix(
-            op: "!",
-            expression: .operation(.variable("value"), "<", .variable("value"))
-          ),
-          message: "Irreflexivity: !(x < x)"
+        GhostwriterPatternRenderer.rawStatement(
+          "#expect(!(value < value), \"Irreflexivity: !(x < x)\")"
         )
       ]
     )
   }
 
-  private func comparableAsymmetricTest(typeName: String) -> GhostwriterGeneratedTest {
-    GhostwriterGeneratedTest(
+  private func generateComparableAsymmetricTest(typeName: String) -> String {
+    GhostwriterPatternRenderer.testFunction(
       docComment: "Comparable asymmetry: x < y implies !(y < x).",
       functionName: "test\(typeName)_comparableAsymmetric",
-      parameters: [
-        ExpansionParameter(name: "a", type: typeName),
-        ExpansionParameter(name: "b", type: typeName),
-      ],
+      parameters: [("a", typeName), ("b", typeName)],
       bodyStatements: [
-        .ifStatement(
+        GhostwriterPatternRenderer.ifStatement(
           condition: .operation(.variable("a"), "<", .variable("b")),
-          body: [
-            .expect(
-              condition: .prefix(
-                op: "!",
-                expression: .operation(.variable("b"), "<", .variable("a"))
-              ),
-              message: "Asymmetry: a < b implies !(b < a)"
+          then: [
+            GhostwriterPatternRenderer.rawStatement(
+              "#expect(!(b < a), \"Asymmetry: a < b implies !(b < a)\")"
             )
           ]
         )
@@ -211,26 +180,21 @@ extension TestCodeGenerator {
     )
   }
 
-  private func comparableTransitiveTest(typeName: String) -> GhostwriterGeneratedTest {
-    GhostwriterGeneratedTest(
+  private func generateComparableTransitiveTest(typeName: String) -> String {
+    GhostwriterPatternRenderer.testFunction(
       docComment: "Comparable transitivity: x < y && y < z implies x < z.",
       functionName: "test\(typeName)_comparableTransitive",
-      parameters: [
-        ExpansionParameter(name: "a", type: typeName),
-        ExpansionParameter(name: "b", type: typeName),
-        ExpansionParameter(name: "c", type: typeName),
-      ],
+      parameters: [("a", typeName), ("b", typeName), ("c", typeName)],
       bodyStatements: [
-        .ifStatement(
+        GhostwriterPatternRenderer.ifStatement(
           condition: .operation(
             .operation(.variable("a"), "<", .variable("b")),
             "&&",
             .operation(.variable("b"), "<", .variable("c"))
           ),
-          body: [
-            .expect(
-              condition: .operation(.variable("a"), "<", .variable("c")),
-              message: "Transitivity: a < b && b < c implies a < c"
+          then: [
+            GhostwriterPatternRenderer.rawStatement(
+              "#expect(a < c, \"Transitivity: a < b && b < c implies a < c\")"
             )
           ]
         )
@@ -238,38 +202,30 @@ extension TestCodeGenerator {
     )
   }
 
-  private func comparableTrichotomyTest(typeName: String) -> GhostwriterGeneratedTest {
-    GhostwriterGeneratedTest(
+  private func generateComparableTrichotomyTest(typeName: String) -> String {
+    GhostwriterPatternRenderer.testFunction(
       docComment: "Comparable trichotomy: exactly one of <, ==, > holds.",
       functionName: "test\(typeName)_comparableTrichotomy",
-      parameters: [
-        ExpansionParameter(name: "a", type: typeName),
-        ExpansionParameter(name: "b", type: typeName),
-      ],
+      parameters: [("a", typeName), ("b", typeName)],
       bodyStatements: [
-        .letBinding(
+        GhostwriterPatternRenderer.letBinding(
           name: "isLess",
           initializer: .operation(.variable("a"), "<", .variable("b"))
         ),
-        .letBinding(
+        GhostwriterPatternRenderer.letBinding(
           name: "isEqual",
           initializer: .operation(.variable("a"), "==", .variable("b"))
         ),
-        .letBinding(
+        GhostwriterPatternRenderer.letBinding(
           name: "isGreater",
           initializer: .operation(.variable("b"), "<", .variable("a"))
         ),
-        .letBinding(
+        GhostwriterPatternRenderer.rawLetBinding(
           name: "exactlyOne",
-          initializer: .exactlyOneTrue([
-            .variable("isLess"),
-            .variable("isEqual"),
-            .variable("isGreater"),
-          ])
+          initializer: "[isLess, isEqual, isGreater].filter { $0 }.count == 1"
         ),
-        .expect(
-          condition: .variable("exactlyOne"),
-          message: "Trichotomy: exactly one of <, ==, > holds"
+        GhostwriterPatternRenderer.rawStatement(
+          "#expect(exactlyOne, \"Trichotomy: exactly one of <, ==, > holds\")"
         ),
       ]
     )
