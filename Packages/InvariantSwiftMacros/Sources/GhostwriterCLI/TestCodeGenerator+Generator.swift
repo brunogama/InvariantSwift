@@ -8,8 +8,10 @@ extension TestCodeGenerator {
   /// Determine generator result for a property type.
   public func generatorResult(for typeName: String) -> GeneratorResult {
     switch generatorTemplateResult(for: typeName) {
-    case .success(let expression):
-      return .success(MacroTemplateKit.Renderer.render(expression).description)
+    case .success(let generator):
+      return .success(
+        MacroTemplateKit.Renderer.render(composerGenerate(using: generator)).description
+      )
 
     case .todoRequired(let typeName, let reason):
       return .todoRequired(typeName: typeName, reason: reason)
@@ -22,8 +24,12 @@ extension TestCodeGenerator {
 
     let result = analyzeType(cleanedType)
 
-    if isOptional, case .success(let expression) = result {
-      return .success(composerGenerateOptionalCall(for: expression))
+    if isOptional, case .success(let generator) = result {
+      return .success(
+        .variable("Gen").method("optional") {
+          TemplateArgument<Void>.unlabeled(generator)
+        }
+      )
     }
 
     return result
@@ -60,7 +66,7 @@ extension TestCodeGenerator {
     }
 
     if Self.knownGeneratableTypes.contains(cleanedType) {
-      return .success(composerGenerateCall(for: cleanedType))
+      return .success(.property("arbitrary", on: cleanedType))
     }
 
     return .todoRequired(
@@ -89,15 +95,9 @@ extension TestCodeGenerator {
     switch innerCheck {
     case .success:
       return .success(
-        Template<Void>.variable("composer")
-          .method("generate") {
-            TemplateArgument<Void>.labeled(
-              "using",
-              .variable("Gen").method("array") {
-                TemplateArgument<Void>.labeled("of", .property("arbitrary", on: inner))
-              }
-            )
-          }
+        .variable("Gen").method("array") {
+          TemplateArgument<Void>.labeled("of", .property("arbitrary", on: inner))
+        }
       )
 
     case .todoRequired(let typeName, let reason):
@@ -123,15 +123,11 @@ extension TestCodeGenerator {
           "Set",
           arguments: [
             .unlabeled(
-              Template<Void>.variable("composer")
-                .method("generate") {
-                  TemplateArgument<Void>.labeled(
-                    "using",
-                    .variable("Gen").method("array") {
-                      TemplateArgument<Void>.labeled("of", .property("arbitrary", on: inner))
-                    }
-                  )
+              composerGenerate(
+                using: .variable("Gen").method("array") {
+                  TemplateArgument<Void>.labeled("of", .property("arbitrary", on: inner))
                 }
+              )
             )
           ]
         )
@@ -151,22 +147,10 @@ extension TestCodeGenerator {
 }
 
 extension TestCodeGenerator {
-  func composerGenerateCall(for typeName: String) -> Template<Void> {
+  func composerGenerate(using generator: Template<Void>) -> Template<Void> {
     Template<Void>.variable("composer")
       .method("generate") {
-        TemplateArgument<Void>.labeled("using", .property("arbitrary", on: typeName))
-      }
-  }
-
-  func composerGenerateOptionalCall(for expression: Template<Void>) -> Template<Void> {
-    Template<Void>.variable("composer")
-      .method("generate") {
-        TemplateArgument<Void>.labeled(
-          "using",
-          .variable("Gen").method("optional") {
-            TemplateArgument<Void>.unlabeled(expression)
-          }
-        )
+        TemplateArgument<Void>.labeled("using", generator)
       }
   }
 }

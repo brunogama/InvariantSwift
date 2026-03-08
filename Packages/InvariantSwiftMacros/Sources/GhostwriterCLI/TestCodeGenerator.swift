@@ -2,6 +2,7 @@
 // Generates property test code from extracted type information.
 
 import Foundation
+import GhostwriterLib
 import MacroTemplateKit
 
 // MARK: - Test Pattern
@@ -159,10 +160,10 @@ extension TestCodeGenerator {
     let result = generatorTemplateResult(for: prop.typeName)
 
     switch result {
-    case .success(let expression):
+    case .success(let generator):
       return GhostwriterTemplateRenderer.PropertyGenerator(
         name: prop.name,
-        expression: expression,
+        expression: composerGenerate(using: generator),
         todoComment: nil
       )
 
@@ -170,7 +171,7 @@ extension TestCodeGenerator {
       todoProperties.append(prop.name)
       return GhostwriterTemplateRenderer.PropertyGenerator(
         name: prop.name,
-        expression: composerGenerateCall(for: typeName),
+        expression: composerGenerate(using: .property("arbitrary", on: typeName)),
         todoComment: "/* TODO: supply generator for \(typeName) */"
       )
     }

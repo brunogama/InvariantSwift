@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Fix**: Restore crash-isolation sources to the package and stabilize coverage integration tests so `swift test` passes cleanly again
 - **Refactor**: Rewrite macro and Ghostwriter code generation to use MacroTemplateKit rendering
 - **Refactor**: Migrate Ghostwriter arbitrary/test generation and macro golden fixtures to template-backed rendering
+- **Fix**: Correct Ghostwriter optional generator rendering and centralize shared template renderers in GhostwriterLib
 - **Chore**: Exclude macro golden fixtures from commit-time formatting and lint hooks
 - **Chore**: Ignore AI tool directories (.claude, .gemini, .opencode, .planning, .context) and remove from git history
 - **Refactor**: Consolidate Scripts/ and tools/ into Tools/, remove orphaned swiftlint-fixer VS Code extension

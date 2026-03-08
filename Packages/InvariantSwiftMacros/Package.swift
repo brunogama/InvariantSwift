@@ -100,7 +100,6 @@ let package = Package(
       name: "GhostwriterCLI",
       dependencies: [
         "GhostwriterLib",
-        .product(name: "MacroTemplateKit", package: "MacroTemplateKit"),
         .product(name: "SwiftParser", package: "swift-syntax"),
         .product(name: "SwiftSyntax", package: "swift-syntax"),
       ],

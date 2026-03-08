@@ -2,6 +2,7 @@
 // Individual test code generation for each pattern.
 
 import Foundation
+import GhostwriterLib
 import MacroTemplateKit
 import SwiftSyntax
 import SwiftSyntaxBuilder
