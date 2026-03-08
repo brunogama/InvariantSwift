@@ -1,4 +1,5 @@
 import SwiftCompilerPlugin
+import InvariantSwiftExpansionSupport
 import SwiftSyntax
 import SwiftSyntaxBuilder
 import SwiftSyntaxMacros

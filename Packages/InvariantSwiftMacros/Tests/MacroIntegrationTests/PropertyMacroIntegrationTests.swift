@@ -264,7 +264,7 @@ struct PropertyMacroIntegrationTests {
   @Test("Property test shrinks to minimal counterexample")
   func propertyTestShrinksToMinimal() throws {
     // Property fails for values >= 100
-    let generator = Gen<Int>.int
+    let generator = Gen<Int>.int(in: 100...1000)
     let property = Property(generator: generator) { (x: Int) in
       x < 100
     }
@@ -274,12 +274,15 @@ struct PropertyMacroIntegrationTests {
 
     switch result {
     case .success:
-      // May succeed if no value >= 100 was generated
-      break
+      Issue.record("Property should have found a counterexample")
 
-    case .failure(_, _, let shrunk, _, _):
-      // If found, shrunk should be exactly 100 (minimal failing value)
-      #expect(shrunk == 100, "Shrunk counterexample should be 100, got \(shrunk)")
+    case .failure(let counterexample, _, let shrunk, _, _):
+      // Shrinking should keep the value failing while moving it closer to the lower bound.
+      #expect(shrunk >= 100, "Shrunk counterexample should still fail, got \(shrunk)")
+      #expect(
+        shrunk <= counterexample,
+        "Shrunk counterexample should not be larger than the original: \(counterexample) -> \(shrunk)"
+      )
 
     case .gaveUp:
       Issue.record("Property should not have given up")

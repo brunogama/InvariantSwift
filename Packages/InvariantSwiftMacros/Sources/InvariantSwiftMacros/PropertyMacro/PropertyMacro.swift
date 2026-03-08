@@ -1,4 +1,5 @@
 import SwiftCompilerPlugin
+import InvariantSwiftExpansionSupport
 import SwiftSyntax
 import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
@@ -263,7 +264,7 @@ public struct PropertyMacro: PeerMacro {
     parameterNames: [String]
   ) -> ExprSyntax {
     guard generators.count >= 2 else {
-      return generators.first ?? ExprSyntax(stringLiteral: "Gen.pure(())")
+      return generators.first ?? MacroExpansionEscapeHatches.expression("Gen.pure(())")
     }
 
     // Build from right to left
@@ -273,13 +274,17 @@ public struct PropertyMacro: PeerMacro {
     let tupleExpr = "(\(parameterNames.joined(separator: ", ")))"
 
     // Build innermost: lastGen.map { lastName in tupleExpr }
-    var result = ExprSyntax(stringLiteral: "\(lastGen).map { \(lastName) in \(tupleExpr) }")
+    var result = MacroExpansionEscapeHatches.expression(
+      "\(lastGen).map { \(lastName) in \(tupleExpr) }"
+    )
 
     // Build outward with flatMaps
     for i in stride(from: generators.count - 2, through: 0, by: -1) {
       let gen = generators[i]
       let name = parameterNames[i]
-      result = ExprSyntax(stringLiteral: "\(gen).flatMap { \(name) in \(result) }")
+      result = MacroExpansionEscapeHatches.expression(
+        "\(gen).flatMap { \(name) in \(result) }"
+      )
     }
 
     return result

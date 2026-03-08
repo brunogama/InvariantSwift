@@ -180,10 +180,10 @@ final class DeriveGenMacroTests: XCTestCase {
             public static var gen: Gen<Result> {
                 Gen.oneOf([
                     Gen.zip(Gen.int).map { value0 in
-                        Result.success(value0)
+                        Result.success(value: value0)
                     },
                     Gen.zip(Gen.string).map { value0 in
-                        Result.failure(value0)
+                        Result.failure(message: value0)
                     }
                 ])
             }

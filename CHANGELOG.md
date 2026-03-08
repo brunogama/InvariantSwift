@@ -6,9 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- **Docs**: Bump the README installation example to `1.0.1`
 - **Refactor**: Rewrite macro and Ghostwriter code generation to use MacroTemplateKit rendering
 - **Refactor**: Migrate Ghostwriter arbitrary/test generation and macro golden fixtures to template-backed rendering
 - **Fix**: Correct Ghostwriter optional generator rendering and centralize shared template renderers in GhostwriterLib
+- **Fix**: Restore DeriveGen optional/associated-value expansion correctness and harden macro integration tests
 - **Chore**: Exclude macro golden fixtures from commit-time formatting and lint hooks
 - **Chore**: Ignore AI tool directories (.claude, .gemini, .opencode, .planning, .context) and remove from git history
 - **Refactor**: Consolidate Scripts/ and tools/ into Tools/, remove orphaned swiftlint-fixer VS Code extension
