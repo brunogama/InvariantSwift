@@ -20,9 +20,14 @@ public struct CompileVerificationResult: Sendable {
 /// Verifies generated Swift code compiles using swiftc -typecheck
 public struct CompileVerifier: Sendable {
   private let verbose: Bool
+  private let baseDirectory: URL
 
-  public init(verbose: Bool = false) {
+  public init(
+    verbose: Bool = false,
+    baseDirectory: URL = FileManager.default.temporaryDirectory
+  ) {
     self.verbose = verbose
+    self.baseDirectory = baseDirectory
   }
 
   /// Verify that generated code compiles
@@ -37,7 +42,8 @@ public struct CompileVerifier: Sendable {
     imports: [String] = ["InvariantSwift", "Testing"]
   ) -> CompileVerificationResult {
     // Create temporary directory
-    let tempDir = FileManager.default.temporaryDirectory
+    let tempDir =
+      baseDirectory
       .appendingPathComponent("ghostwriter-verify-\(UUID().uuidString)")
 
     do {

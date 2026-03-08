@@ -2,6 +2,7 @@
 // Test file generation and verification logic.
 
 import Foundation
+import GhostwriterLib
 
 /// Context for test generation containing all necessary dependencies.
 struct GenerationContext {

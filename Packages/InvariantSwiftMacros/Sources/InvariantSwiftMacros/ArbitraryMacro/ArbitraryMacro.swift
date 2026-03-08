@@ -1,4 +1,5 @@
 import SwiftCompilerPlugin
+import InvariantSwiftExpansionSupport
 import SwiftSyntax
 import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
@@ -45,21 +46,9 @@ public struct ArbitraryMacro: MemberMacro, ExtensionMacro {
     in context: some MacroExpansionContext
   ) throws -> [ExtensionDeclSyntax] {
 
-    let extensionDecl = ExtensionDeclSyntax(
-      extensionKeyword: .keyword(.extension),
-      extendedType: TypeSyntax(type),
-      inheritanceClause: InheritanceClauseSyntax(
-        inheritedTypes: InheritedTypeListSyntax {
-          InheritedTypeSyntax(
-            type: IdentifierTypeSyntax(name: .identifier("Generatable"))
-          )
-        }
-      ),
-      memberBlock: MemberBlockSyntax(
-        leftBrace: .leftBraceToken(),
-        members: MemberBlockItemListSyntax {},
-        rightBrace: .rightBraceToken()
-      )
+    let extensionDecl = MacroTemplateAdapter.makeExtension(
+      typeName: type.trimmedDescription,
+      conformances: ["Generatable"]
     )
 
     return [extensionDecl]

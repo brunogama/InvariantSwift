@@ -79,29 +79,14 @@ jobs:
           cat > commitlint.config.js << 'EOF'
           module.exports = {
             extends: ['@commitlint/config-conventional'],
-            rules: {
-              'type-enum': [2, 'always', [
-                'feat',     // New feature
-                'fix',      // Bug fix
-                'docs',     // Documentation
-                'style',    // Formatting, missing semicolons, etc.
-                'refactor', // Code change that neither fixes a bug nor adds a feature
-                'perf',     // Performance improvement
-                'test',     // Adding tests
-                'build',    // Build system or external dependencies
-                'ci',       // CI configuration
-                'chore',    // Other changes that don't modify src or test
-                'revert',   // Revert a previous commit
-              ]],
-              'subject-case': [2, 'always', 'lower-case'],
-              'header-max-length': [2, 'always', 100],
-            },
+            defaultIgnores: true,
+            ignores: [(message) => message.trim().startsWith('Initial plan')],
           };
           EOF
       - name: Validate commits
         run: |
-          echo "Validating commits from origin/${{ github.base_ref }} to HEAD..."
-          npx commitlint --from origin/${{ github.base_ref }} --to HEAD --verbose
+          echo "Validating commits from ${{ github.event.pull_request.base.sha }} to ${{ github.event.pull_request.head.sha }}"
+          npx commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose
           if [ $? -ne 0 ]; then
             echo ""
             echo "❌ Commit messages must follow Conventional Commits format:"

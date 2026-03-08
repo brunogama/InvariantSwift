@@ -12,6 +12,7 @@ repos:
     entry: swift-format -i --configuration .swift-format
     language: system
     files: \.swift$
+    exclude: ^Packages/InvariantSwiftMacros/Tests/InvariantSwiftMacroTests/Resources/
     pass_filenames: true
 
   - id: swift-sheriff
@@ -19,6 +20,7 @@ repos:
     entry: bash -c 'swiftlint lint --fix "$@" && swiftlint lint --strict "$@"' --
     language: system
     files: \.swift$
+    exclude: ^Packages/InvariantSwiftMacros/Tests/InvariantSwiftMacroTests/Resources/
     pass_filenames: true
 
   - id: branch-guardian

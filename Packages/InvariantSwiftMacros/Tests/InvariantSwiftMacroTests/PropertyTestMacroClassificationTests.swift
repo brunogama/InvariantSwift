@@ -5,12 +5,20 @@ import SwiftSyntaxMacrosTestSupport
 import XCTest
 @testable import InvariantSwiftMacros
 
+private let propertyFailurePattern =
+  "case .failure(counterexample: let counterexample, iterations: let iterations, "
+  + "shrunk: let shrunk, reason: _, seed: let seed):"
+private let propertyFailureComment =
+  #"Comment(rawValue: "Property failed after \(iterations) iterations. Original: "#
+  + #"n=\(counterexample) | Shrunk: n=\(shrunk) | "# + #"Seed: \(seed.rawValue)")"#
+
 /// Integration tests verifying @PropertyTest macro works with classification API
 final class PropertyTestMacroClassificationTests: XCTestCase {
 
   // MARK: - Compilation Tests
 
   /// Verify @PropertyTest generates code compatible with ClassifyingProperty
+  // swiftlint:disable vertical_whitespace_between_cases
   func testMacroGeneratesCompatibleCode() throws {
     // The @PropertyTest macro should generate code that works with both
     // Property<T> and ClassifyingProperty<T> since they share the same
@@ -28,58 +36,28 @@ final class PropertyTestMacroClassificationTests: XCTestCase {
           #expect(n >= 0)
         }
 
-        @Test("Integer range property")
-        func testInRange_PropertyTest() async throws {
-          let property = Property(generator: Gen<Int>.int) { n in
-            #expect(n >= 0)
-          }
-          try await checkProperty(property)
+        private enum testInRange_PropertyTest {
+            @Test("testInRange") static func run() throws {
+                let generator: Gen<Int> = Gen<Int>.int
+                let property = Property(generator: generator) { (n: Int) in
+                  #expect(n >= 0)
+                  return true
+                }
+                let config = PropertyConfig(iterations: 100, maxShrinks: 1000)
+                let result = runPropertySynchronously(property, config: config)
+                switch result {
+                case .success:
+                    break
+                \(propertyFailurePattern)
+                    Issue.record(\(propertyFailureComment))
+                case .gaveUp(discarded: _, iterations: _):
+                    Issue.record(Comment(stringLiteral: "Property test gaveUp"))
+                }
+            }
         }
         """,
       macros: ["PropertyTest": PropertyTestMacro.self]
     )
   }
-
-  // MARK: - Integration Tests
-
-  /// Verify classification can be used with @PropertyTest-generated tests
-  func testPropertyTestWithClassificationWorks() throws {
-    // This test verifies the pattern:
-    // 1. Developer uses @PropertyTest macro
-    // 2. Developer wants to add classification
-    // 3. They can manually create a ClassifyingProperty and use checkProperty
-
-    // Since the macro generates `checkProperty(property)` calls,
-    // and we have an overload for ClassifyingProperty, this should work
-  }
-
-  /// Document workaround for using classification with @PropertyTest
-  func testClassificationWorkaround() throws {
-    // Workaround documentation:
-    // The @PropertyTest macro generates standard Property<T> tests.
-    // To use classification (.cover, .classify, .label), you have two options:
-    //
-    // Option 1: Manual test without macro
-    //   @Test
-    //   func myTest() async throws {
-    //     let property = Property(generator: Gen.int) { n in n >= 0 }
-    //       .cover(50, when: { $0 > 0 }, label: "positive")
-    //     try await checkProperty(property)
-    //   }
-    //
-    // Option 2: Extend the macro (future work)
-    //   @PropertyTest(cover: [("positive", 50, { $0 > 0 })])
-    //   func test(n: Int) { n >= 0 }
-  }
-
-  // MARK: - Type Compatibility Tests
-
-  /// Verify checkProperty works with both Property and ClassifyingProperty
-  func testCheckPropertyOverloads() throws {
-    // The key insight: we have two overloads of checkProperty:
-    // - checkProperty(_: Property<T>)
-    // - checkProperty(_: ClassifyingProperty<T>)
-    //
-    // Both use the same function name, so generated macro code works with both
-  }
+  // swiftlint:enable vertical_whitespace_between_cases
 }

@@ -2,6 +2,7 @@
 // Main execution logic for test generation.
 
 import Foundation
+import GhostwriterLib
 import SwiftParser
 import SwiftSyntax
 
@@ -102,8 +103,8 @@ extension GhostwriterCLI {
       let accessOK = config.includeInternal || type.accessLevel.isPubliclyAccessible
       guard accessOK else { return false }
       return type.hasArbitraryAttribute
-        || isKnownGeneratableType(type.name)
-        || canAutoGenerateArbitrary(for: type)
+        || generator.isKnownGeneratableType(type.name)
+        || generator.canAutoGenerateArbitrary(for: type)
     }
   }
 
@@ -162,7 +163,7 @@ extension GhostwriterCLI {
     var partiallyGenerated = 0
 
     for type in testableTypes
-    where !type.hasArbitraryAttribute && !isKnownGeneratableType(type.name) {
+    where !type.hasArbitraryAttribute && !generator.isKnownGeneratableType(type.name) {
       if generator.canFullyGenerateArbitrary(for: type) {
         fullyGenerated += 1
       } else if generator.canAutoGenerateArbitrary(for: type) {

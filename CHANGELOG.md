@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- **Fix**: Correct the documentation coverage workflow to run `Tools/check_docs.py` and align mutation-testing commit lint with the primary PR validation policy
+- **Fix**: Resolve Ghostwriter renderer review findings, avoid the `ShrinkTree.findMinimalParallel` Swift 6.2.4 release-build optimizer crash, and restore root-package CI compatibility with Xcode `xcodebuild` by lowering the umbrella manifest tools version to `6.0`
 - **Feat**: Add automated release tagging from `main` using conventional-commit semver bumping and rebuild documentation automatically on `main` and published releases
 - **Fix**: Align PR validation and xcode CI jobs with Swift 6.2.4, export the installed toolchain to `xcodebuild`, and make the PR format gate check actual formatting diffs instead of unrelated strict doc-style linting
 - **Fix**: Add `Sendable` return constraints to actor-crossing async helpers in `AsyncProperties` and `GeneratorRegistry` for Swift 6.2 strict concurrency builds
@@ -15,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Fix**: Resolve remaining crash-isolation review comments by removing cross-thread shared state in `ThreadIsolation` and aligning isolation strategy docs with runtime behavior
 - **Fix**: Address review findings in crash isolation concurrency, subprocess timeouts, and coverage fallback handling
 - **Fix**: Restore crash-isolation sources to the package and stabilize coverage integration tests so `swift test` passes cleanly again
+- **Docs**: Bump the README installation example to `1.0.1`
+- **Refactor**: Rewrite macro and Ghostwriter code generation to use MacroTemplateKit rendering
+- **Refactor**: Migrate Ghostwriter arbitrary/test generation and macro golden fixtures to template-backed rendering
+- **Fix**: Correct Ghostwriter optional generator rendering and centralize shared template renderers in GhostwriterLib
+- **Fix**: Restore DeriveGen optional/associated-value expansion correctness and harden macro integration tests
+- **Chore**: Exclude macro golden fixtures from commit-time formatting and lint hooks
 - **Chore**: Ignore AI tool directories (.claude, .gemini, .opencode, .planning, .context) and remove from git history
 - **Refactor**: Consolidate Scripts/ and tools/ into Tools/, remove orphaned swiftlint-fixer VS Code extension
 - **Feat (13)**: Add cross-platform crash isolation (IsolationStrategy, PosixSpawnIsolation, ThreadIsolation)

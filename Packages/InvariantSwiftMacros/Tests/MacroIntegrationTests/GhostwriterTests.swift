@@ -192,8 +192,10 @@ struct TestGeneratorTests {
 
   @Test("TestGenerator generates tests for type with patterns")
   func generateTestsForType() {
-    // When config.supportedArbitraryTypes is empty, it should allow all types
-    let config = GhostwriterConfig(sources: [])
+    let config = GhostwriterConfig(
+      sources: [],
+      supportedArbitraryTypes: []
+    )
     let generator = TestGenerator(config: config)
 
     let typeInfo = TypeInfo(

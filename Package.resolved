@@ -1,6 +1,15 @@
 {
-  "originHash" : "4867e015f8f8199fb4f216cefcd582bca5171d0d6df6f0d5a1aa2f8054e5f1be",
+  "originHash" : "c483492227b2f50c6a5b5618ac33c6324d4a66de3c4501e4dfd4e57ae96c8cb4",
   "pins" : [
+    {
+      "identity" : "macrotemplatekit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/brunogama/MacroTemplateKit.git",
+      "state" : {
+        "revision" : "c1a20d6ba80557017947832528bbf531318106c9",
+        "version" : "0.0.6"
+      }
+    },
     {
       "identity" : "swift-argument-parser",
       "kind" : "remoteSourceControl",

@@ -59,17 +59,16 @@ extension ShrinkTree {
         group.addTask {
           var localBest: T?
           for child in batch {
+            if localBest != nil {
+              break
+            }
             if let found = await child.findMinimalAsync(
               budget: budgetPerWorker,
               satisfying: predicate
             ) {
-              if localBest == nil {
-                localBest = found
-              } else {
-                // Keep the first found (stable, deterministic selection)
-                // For Comparable types, use findMinimalParallelComparable instead
-                localBest = localBest
-              }
+              // Keep the first found (stable, deterministic selection).
+              // For Comparable types, use findMinimalParallelComparable instead.
+              localBest = found
             }
           }
           return localBest
@@ -226,11 +225,14 @@ extension ShrinkTree {
           group.addTask {
             var localBest: T?
             for child in batch {
+              if localBest != nil {
+                break
+              }
               if let found = await child.findMinimalAsync(
                 budget: budgetPerWorker,
                 satisfying: predicate
               ) {
-                localBest = localBest == nil ? found : localBest
+                localBest = found
               }
             }
             return localBest

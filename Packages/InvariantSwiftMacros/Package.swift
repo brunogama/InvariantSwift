@@ -48,15 +48,30 @@ let package = Package(
   dependencies: [
     // SwiftSyntax 602.0.0 - aligned with root workspace package version
     .package(url: "https://github.com/swiftlang/swift-syntax", from: "602.0.0"),
+    // Template-driven declaration rendering for macro expansions
+    .package(url: "https://github.com/brunogama/MacroTemplateKit.git", exact: "0.0.6"),
     // Local dependency on InvariantSwiftCore for shared types
     .package(path: "../InvariantSwiftCore"),
   ],
   targets: [
+    .target(
+      name: "InvariantSwiftExpansionSupport",
+      dependencies: [
+        .product(name: "MacroTemplateKit", package: "MacroTemplateKit"),
+        .product(name: "SwiftBasicFormat", package: "swift-syntax"),
+        .product(name: "SwiftSyntax", package: "swift-syntax"),
+        .product(name: "SwiftSyntaxBuilder", package: "swift-syntax"),
+      ],
+      path: "Sources/InvariantSwiftExpansionSupport",
+      swiftSettings: commonSwiftSettings
+    ),
+
     // MARK: - Layer 1: Macro Implementation (SwiftSyntax)
     // Compiler plugin that processes macro attributes at compile time
     .macro(
       name: "InvariantSwiftMacros",
       dependencies: [
+        "InvariantSwiftExpansionSupport",
         .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
         .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
         .product(name: "SwiftParser", package: "swift-syntax"),
@@ -84,6 +99,7 @@ let package = Package(
     .target(
       name: "GhostwriterLib",
       dependencies: [
+        "InvariantSwiftExpansionSupport",
         .product(name: "SwiftParser", package: "swift-syntax"),
         .product(name: "SwiftSyntax", package: "swift-syntax"),
       ],

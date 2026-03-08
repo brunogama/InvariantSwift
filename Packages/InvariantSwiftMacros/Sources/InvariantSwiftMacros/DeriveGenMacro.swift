@@ -1,5 +1,6 @@
 import SwiftCompilerPlugin
 import SwiftSyntax
+import InvariantSwiftExpansionSupport
 import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
 import Foundation
@@ -485,10 +486,10 @@ private func generateStructGenerator(
   config: DeriveGenConfig
 ) throws -> DeclSyntax {
 
-  let fieldGenerators = fields.map { field in
-    generateFieldGenerator(field, config: config)
-    // swiftlint:disable:next multiline_function_chains
-  }.joined(separator: ",\n            ")
+  let fieldGenerators = renderIndentedList(
+    fields.map { generateFieldGenerator($0, config: config) },
+    spaces: 8
+  )
 
   let fieldInitializers = fields.map { field in
     "\(field.name): \(field.name)"
@@ -498,14 +499,14 @@ private func generateStructGenerator(
   let generatorBody = """
     public static var gen: Gen<\(name)> {
         Gen.zip(
-            \(fieldGenerators)
+    \(fieldGenerators)
         ).map { \(fields.map { $0.name }.joined(separator: ", ")) in
             \(name)(\(fieldInitializers))
         }
     }
     """
 
-  return DeclSyntax(stringLiteral: generatorBody)
+  return MacroExpansionEscapeHatches.declaration(generatorBody)
 }
 
 private func generateEnumGenerator(
@@ -514,22 +515,33 @@ private func generateEnumGenerator(
   config: DeriveGenConfig
 ) throws -> DeclSyntax {
 
-  // swiftlint:disable:next unused_enumerated
-  let caseGenerators = cases.enumerated().map { _, enumCase in
+  let caseGenerators = cases.map { enumCase in
     if let associatedValues = enumCase.associatedValues, !associatedValues.isEmpty {
-      let valueGenerators = associatedValues.map { value in
-        generateTypeGenerator(value.type, config: config)
-        // swiftlint:disable:next multiline_function_chains
-      }.joined(separator: ", ")
+      let valueGenerators =
+        associatedValues
+        .map { value in
+          generateTypeGenerator(value.type, config: config)
+        }
+        .joined(separator: ", ")
 
-      // swiftlint:disable:next unused_enumerated
-      let valueNames = associatedValues.enumerated().map { i, _ in "value\(i)" }.joined(
-        separator: ", "
-      )
+      let valueNames = associatedValues.indices
+        .map { "value\($0)" }
+        .joined(separator: ", ")
+      let constructorArgs =
+        associatedValues
+        .enumerated()
+        .map { i, value in
+          let valueName = "value\(i)"
+          if let label = value.label {
+            return "\(label): \(valueName)"
+          }
+          return valueName
+        }
+        .joined(separator: ", ")
 
       return """
         Gen.zip(\(valueGenerators)).map { \(valueNames) in
-            \(name).\(enumCase.name)(\(valueNames))
+            \(name).\(enumCase.name)(\(constructorArgs))
         }
         """
     } else {
@@ -537,17 +549,17 @@ private func generateEnumGenerator(
     }
   }
 
-  let allCaseGenerators = caseGenerators.joined(separator: ",\n            ")
+  let allCaseGenerators = renderIndentedList(caseGenerators, spaces: 8)
 
   let generatorBody = """
     public static var gen: Gen<\(name)> {
         Gen.oneOf([
-            \(allCaseGenerators)
+    \(allCaseGenerators)
         ])
     }
     """
 
-  return DeclSyntax(stringLiteral: generatorBody)
+  return MacroExpansionEscapeHatches.declaration(generatorBody)
 }
 
 private func generateClassGenerator(
@@ -557,38 +569,43 @@ private func generateClassGenerator(
 ) throws -> DeclSyntax {
 
   // For classes, we need a different approach since we can't use memberwise initializers
-  let propertyGenerators = properties.map { property in
-    generateFieldGenerator(
-      StructField(
-        name: property.name,
-        type: property.type,
-        isOptional: false,  // Analyze based on type
-        isCollection: false,  // Analyze based on type
-        collectionElementType: nil
-      ),
-      config: config
-    )
-    // swiftlint:disable:next multiline_function_chains
-  }.joined(separator: ",\n            ")
+  let propertyGenerators = renderIndentedList(
+    properties.map { property in
+      generateFieldGenerator(
+        StructField(
+          name: property.name,
+          type: property.type,
+          isOptional: false,  // Analyze based on type
+          isCollection: false,  // Analyze based on type
+          collectionElementType: nil
+        ),
+        config: config
+      )
+    },
+    spaces: 8
+  )
 
-  let propertyAssignments = properties.map { property in
-    "instance.\(property.name) = \(property.name)"
-    // swiftlint:disable:next multiline_function_chains
-  }.joined(separator: "\n                ")
+  let propertyAssignments = indent(
+    properties.map { property in
+      "instance.\(property.name) = \(property.name)"
+      // swiftlint:disable:next multiline_function_chains
+    }.joined(separator: "\n"),
+    by: 8
+  )
 
   let generatorBody = """
     public static var gen: Gen<\(name)> {
         Gen.zip(
-            \(propertyGenerators)
+    \(propertyGenerators)
         ).map { \(properties.map { $0.name }.joined(separator: ", ")) in
             let instance = \(name)()
-            \(propertyAssignments)
+    \(propertyAssignments)
             return instance
         }
     }
     """
 
-  return DeclSyntax(stringLiteral: generatorBody)
+  return MacroExpansionEscapeHatches.declaration(generatorBody)
 }
 
 // MARK: - Field Generator Generation
@@ -599,17 +616,21 @@ private func generateFieldGenerator(_ field: StructField, config: DeriveGenConfi
     return customGen
   }
 
-  // Generate based on type
-  let baseGenerator = generateTypeGenerator(field.type, config: config)
+  let (_, unwrappedType) = unwrapOptional(field.type)
+
+  let baseGenerator: String
+  if field.isCollection, let elementType = field.collectionElementType {
+    let elementGenerator = generateTypeGenerator(elementType, config: config)
+    baseGenerator = "Gen.array(\(elementGenerator))"
+  } else {
+    baseGenerator = generateTypeGenerator(unwrappedType, config: config)
+  }
 
   if field.isOptional {
     return "Gen.optional(\(baseGenerator))"
-  } else if field.isCollection, let elementType = field.collectionElementType {
-    let elementGenerator = generateTypeGenerator(elementType, config: config)
-    return "Gen.array(\(elementGenerator))"
-  } else {
-    return baseGenerator
   }
+
+  return baseGenerator
 }
 
 private func generateTypeGenerator(_ type: TypeSyntax, config: DeriveGenConfig) -> String {
@@ -639,6 +660,22 @@ private func generateTypeGenerator(_ type: TypeSyntax, config: DeriveGenConfig) 
     // Assume the type has its own generator
     return "\(typeName).gen"
   }
+}
+
+private func renderIndentedList(_ values: [String], spaces: Int) -> String {
+  indent(values.joined(separator: ",\n"), by: spaces)
+}
+
+private func indent(_ value: String, by spaces: Int) -> String {
+  let padding = String(repeating: " ", count: spaces)
+  return
+    value
+    .split(separator: "\n", omittingEmptySubsequences: false)
+    .map { line in
+      let content = String(line)
+      return content.isEmpty ? content : padding + content
+    }
+    .joined(separator: "\n")
 }
 
 // MARK: - Plugin Registration

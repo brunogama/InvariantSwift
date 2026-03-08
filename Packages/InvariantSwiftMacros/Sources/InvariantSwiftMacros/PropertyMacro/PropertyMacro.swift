@@ -1,4 +1,5 @@
 import SwiftCompilerPlugin
+import InvariantSwiftExpansionSupport
 import SwiftSyntax
 import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
@@ -95,104 +96,20 @@ public struct PropertyMacro: PeerMacro {
       isAsync: isAsync
     )
 
-    let testFunc = FunctionDeclSyntax(
-      attributes: AttributeListSyntax {
-        AttributeSyntax(
-          attributeName: IdentifierTypeSyntax(name: .identifier("Test")),
-          leftParen: .leftParenToken(),
-          arguments: .argumentList(
-            LabeledExprListSyntax {
-              LabeledExprSyntax(expression: StringLiteralExprSyntax(content: testName))
-            }
-          ),
-          rightParen: .rightParenToken()
-        )
-      },
-      modifiers: DeclModifierListSyntax {
-        DeclModifierSyntax(name: .keyword(.static))
-      },
-      funcKeyword: .keyword(.func),
-      name: .identifier("run"),
-      signature: isAsync ? buildAsyncThrowsSignature() : buildThrowsSignature(),
+    let testFunc = MacroTemplateAdapter.makeFunction(
+      accessLevel: .internal,
+      attributes: [.arguments("Test", [.unlabeled("\"\(testName)\"")])],
+      isStatic: true,
+      name: "run",
+      isAsync: isAsync,
+      canThrow: true,
       body: testBody
     )
 
-    return EnumDeclSyntax(
-      modifiers: DeclModifierListSyntax {
-        DeclModifierSyntax(name: .keyword(.private))
-      },
-      name: .identifier(enumName),
-      memberBlock: MemberBlockSyntax(
-        members: MemberBlockItemListSyntax {
-          MemberBlockItemSyntax(decl: testFunc)
-        }
-      )
-    )
-  }
-
-  // swiftlint:disable:next function_parameter_count
-  private static func buildTransformedFunction(
-    original funcDecl: FunctionDeclSyntax,
-    parameters: [ExtractedParameter],
-    originalBody: CodeBlockSyntax,
-    config: PropertyMacroConfig,
-    regressionConfig: RegressionConfig?,
-    isAsync: Bool
-  ) -> FunctionDeclSyntax {
-
-    let newName = "\(funcDecl.name.text)_PropertyTest"
-
-    let newBody = buildPropertyTestBody(
-      parameters: parameters,
-      originalBody: originalBody,
-      config: config,
-      regressionConfig: regressionConfig,
-      timeoutConfig: nil,  // Not used in this path
-      isAsync: isAsync
-    )
-
-    // Preserve original modifiers (do not auto-add static to support file-scope tests)
-    let modifiers = funcDecl.modifiers
-
-    return FunctionDeclSyntax(
-      attributes: buildTestAttribute(),
-      modifiers: modifiers,
-      funcKeyword: .keyword(.func),
-      name: .identifier(newName),
-      signature: isAsync ? buildAsyncThrowsSignature() : buildThrowsSignature(),
-      body: newBody
-    )
-  }
-
-  private static func buildTestAttribute() -> AttributeListSyntax {
-    // NOTE: We do NOT generate @Test here because combining peer macros
-    // (PropertyMacro generates peer + @Test generates peer) causes
-    // Swift symbol resolution failures.
-    // Users should wrap calls to the generated function with @Test manually:
-    //   @Test func myTest() throws { try myProperty_PropertyTest() }
-    AttributeListSyntax {}
-  }
-
-  private static func buildThrowsSignature() -> FunctionSignatureSyntax {
-    FunctionSignatureSyntax(
-      parameterClause: FunctionParameterClauseSyntax(
-        parameters: FunctionParameterListSyntax {}
-      ),
-      effectSpecifiers: FunctionEffectSpecifiersSyntax(
-        throwsClause: ThrowsClauseSyntax(throwsSpecifier: .keyword(.throws))
-      )
-    )
-  }
-
-  private static func buildAsyncThrowsSignature() -> FunctionSignatureSyntax {
-    FunctionSignatureSyntax(
-      parameterClause: FunctionParameterClauseSyntax(
-        parameters: FunctionParameterListSyntax {}
-      ),
-      effectSpecifiers: FunctionEffectSpecifiersSyntax(
-        asyncSpecifier: .keyword(.async),
-        throwsClause: ThrowsClauseSyntax(throwsSpecifier: .keyword(.throws))
-      )
+    return MacroTemplateAdapter.makeEnum(
+      accessLevel: .private,
+      name: enumName,
+      members: [DeclSyntax(testFunc)]
     )
   }
 
@@ -288,7 +205,7 @@ public struct PropertyMacro: PeerMacro {
     parameterNames: [String]
   ) -> ExprSyntax {
     guard generators.count >= 2 else {
-      return generators.first ?? ExprSyntax(stringLiteral: "Gen.pure(())")
+      return generators.first ?? MacroExpansionEscapeHatches.expression("Gen.pure(())")
     }
 
     // Build from right to left
@@ -298,13 +215,17 @@ public struct PropertyMacro: PeerMacro {
     let tupleExpr = "(\(parameterNames.joined(separator: ", ")))"
 
     // Build innermost: lastGen.map { lastName in tupleExpr }
-    var result = ExprSyntax(stringLiteral: "\(lastGen).map { \(lastName) in \(tupleExpr) }")
+    var result = MacroExpansionEscapeHatches.expression(
+      "\(lastGen).map { \(lastName) in \(tupleExpr) }"
+    )
 
     // Build outward with flatMaps
     for i in stride(from: generators.count - 2, through: 0, by: -1) {
       let gen = generators[i]
       let name = parameterNames[i]
-      result = ExprSyntax(stringLiteral: "\(gen).flatMap { \(name) in \(result) }")
+      result = MacroExpansionEscapeHatches.expression(
+        "\(gen).flatMap { \(name) in \(result) }"
+      )
     }
 
     return result
@@ -330,14 +251,12 @@ public struct PropertyMacro: PeerMacro {
       trailingClosure: testClosure
     )
 
-    return VariableDeclSyntax(
-      bindingSpecifier: .keyword(.let),
-      bindings: PatternBindingListSyntax {
-        PatternBindingSyntax(
-          pattern: IdentifierPatternSyntax(identifier: .identifier("property")),
-          initializer: InitializerClauseSyntax(value: ExprSyntax(propertyInit))
-        )
-      }
+    return MacroTemplateAdapter.makeStoredProperty(
+      name: "property",
+      type: nil,
+      isStatic: false,
+      isLet: true,
+      initializer: ExprSyntax(propertyInit)
     )
   }
 
@@ -546,14 +465,12 @@ public struct PropertyMacro: PeerMacro {
       rightParen: .rightParenToken()
     )
 
-    return VariableDeclSyntax(
-      bindingSpecifier: .keyword(.let),
-      bindings: PatternBindingListSyntax {
-        PatternBindingSyntax(
-          pattern: IdentifierPatternSyntax(identifier: .identifier("config")),
-          initializer: InitializerClauseSyntax(value: ExprSyntax(configCall))
-        )
-      }
+    return MacroTemplateAdapter.makeStoredProperty(
+      name: "config",
+      type: nil,
+      isStatic: false,
+      isLet: true,
+      initializer: ExprSyntax(configCall)
     )
   }
 
@@ -577,14 +494,12 @@ public struct PropertyMacro: PeerMacro {
 
     // Synchronous properties don't support timeout (would block thread)
     // Timeout is only meaningful for async properties
-    return VariableDeclSyntax(
-      bindingSpecifier: .keyword(.let),
-      bindings: PatternBindingListSyntax {
-        PatternBindingSyntax(
-          pattern: IdentifierPatternSyntax(identifier: .identifier("result")),
-          initializer: InitializerClauseSyntax(value: ExprSyntax(checkCall))
-        )
-      }
+    return MacroTemplateAdapter.makeStoredProperty(
+      name: "result",
+      type: nil,
+      isStatic: false,
+      isLet: true,
+      initializer: ExprSyntax(checkCall)
     )
   }
 
@@ -646,14 +561,12 @@ public struct PropertyMacro: PeerMacro {
       finalExpr = ExprSyntax(AwaitExprSyntax(expression: runPropertyCall))
     }
 
-    return VariableDeclSyntax(
-      bindingSpecifier: .keyword(.let),
-      bindings: PatternBindingListSyntax {
-        PatternBindingSyntax(
-          pattern: IdentifierPatternSyntax(identifier: .identifier("result")),
-          initializer: InitializerClauseSyntax(value: finalExpr)
-        )
-      }
+    return MacroTemplateAdapter.makeStoredProperty(
+      name: "result",
+      type: nil,
+      isStatic: false,
+      isLet: true,
+      initializer: finalExpr
     )
   }
 
