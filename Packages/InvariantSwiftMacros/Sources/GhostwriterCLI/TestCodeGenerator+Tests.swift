@@ -2,6 +2,9 @@
 // Individual test code generation for each pattern.
 
 import Foundation
+import MacroTemplateKit
+import SwiftSyntax
+import SwiftSyntaxBuilder
 
 extension TestCodeGenerator {
   /// Generate a single test for a type and pattern.
@@ -42,108 +45,184 @@ extension TestCodeGenerator {
   }
 
   private func codableRoundtripTest(typeName: String) -> String {
-    """
-    /// Codable roundtrip: encoding and decoding preserves value.
-    @PropertyTest
-    func test\(typeName)_codableRoundtrip(value: \(typeName)) throws {
-      let encoded = try JSONEncoder().encode(value)
-      let decoded = try JSONDecoder().decode(\(typeName).self, from: encoded)
-      #expect(decoded == value, "Codable roundtrip should preserve value")
-    }
-    """
+    GhostwriterPatternRenderer.testFunction(
+      docComment: "Codable roundtrip: encoding and decoding preserves value.",
+      functionName: "test\(typeName)_codableRoundtrip",
+      parameters: [("value", typeName)],
+      isThrowing: true,
+      bodyStatements: [
+        GhostwriterPatternRenderer.letBinding(
+          name: "encoded",
+          initializer: .call("JSONEncoder")
+            .method("encode") { .unlabeled(.variable("value")) }
+            .trying()
+        ),
+        GhostwriterPatternRenderer.letBinding(
+          name: "decoded",
+          initializer: .call("JSONDecoder")
+            .method("decode") {
+              TemplateArgument<Void>.unlabeled(.property("self", on: typeName))
+              TemplateArgument<Void>.labeled("from", .variable("encoded"))
+            }
+            .trying()
+        ),
+        GhostwriterPatternRenderer.rawStatement(
+          "#expect(decoded == value, \"Codable roundtrip should preserve value\")"
+        ),
+      ]
+    )
   }
 
   private func equatableReflexiveTest(typeName: String) -> String {
-    """
-    /// Equatable reflexivity: x == x for all x.
-    @PropertyTest
-    func test\(typeName)_equatableReflexive(value: \(typeName)) {
-      #expect(value == value, "Reflexivity: x == x")
-    }
-    """
+    GhostwriterPatternRenderer.testFunction(
+      docComment: "Equatable reflexivity: x == x for all x.",
+      functionName: "test\(typeName)_equatableReflexive",
+      parameters: [("value", typeName)],
+      bodyStatements: [
+        GhostwriterPatternRenderer.rawStatement(
+          "#expect(value == value, \"Reflexivity: x == x\")"
+        )
+      ]
+    )
   }
 
   private func equatableSymmetricTest(typeName: String) -> String {
-    """
-    /// Equatable symmetry: x == y implies y == x.
-    @PropertyTest
-    func test\(typeName)_equatableSymmetric(a: \(typeName), b: \(typeName)) {
-      if a == b {
-        #expect(b == a, "Symmetry: a == b implies b == a")
-      }
-    }
-    """
+    GhostwriterPatternRenderer.testFunction(
+      docComment: "Equatable symmetry: x == y implies y == x.",
+      functionName: "test\(typeName)_equatableSymmetric",
+      parameters: [("a", typeName), ("b", typeName)],
+      bodyStatements: [
+        GhostwriterPatternRenderer.ifStatement(
+          condition: .operation(.variable("a"), "==", .variable("b")),
+          then: [
+            GhostwriterPatternRenderer.rawStatement(
+              "#expect(b == a, \"Symmetry: a == b implies b == a\")"
+            )
+          ]
+        )
+      ]
+    )
   }
 
   private func equatableTransitiveTest(typeName: String) -> String {
-    """
-    /// Equatable transitivity: x == y && y == z implies x == z.
-    @PropertyTest
-    func test\(typeName)_equatableTransitive(a: \(typeName), b: \(typeName), c: \(typeName)) {
-      if a == b && b == c {
-        #expect(a == c, "Transitivity: a == b && b == c implies a == c")
-      }
-    }
-    """
+    GhostwriterPatternRenderer.testFunction(
+      docComment: "Equatable transitivity: x == y && y == z implies x == z.",
+      functionName: "test\(typeName)_equatableTransitive",
+      parameters: [("a", typeName), ("b", typeName), ("c", typeName)],
+      bodyStatements: [
+        GhostwriterPatternRenderer.ifStatement(
+          condition: .operation(
+            .operation(.variable("a"), "==", .variable("b")),
+            "&&",
+            .operation(.variable("b"), "==", .variable("c"))
+          ),
+          then: [
+            GhostwriterPatternRenderer.rawStatement(
+              "#expect(a == c, \"Transitivity: a == b && b == c implies a == c\")"
+            )
+          ]
+        )
+      ]
+    )
   }
 
   private func hashableConsistencyTest(typeName: String) -> String {
-    """
-    /// Hashable consistency: equal values must have equal hash values.
-    @PropertyTest
-    func test\(typeName)_hashableConsistency(a: \(typeName), b: \(typeName)) {
-      if a == b {
-        #expect(a.hashValue == b.hashValue, "Equal values must have equal hash values")
-      }
-    }
-    """
+    GhostwriterPatternRenderer.testFunction(
+      docComment: "Hashable consistency: equal values must have equal hash values.",
+      functionName: "test\(typeName)_hashableConsistency",
+      parameters: [("a", typeName), ("b", typeName)],
+      bodyStatements: [
+        GhostwriterPatternRenderer.ifStatement(
+          condition: .operation(.variable("a"), "==", .variable("b")),
+          then: [
+            GhostwriterPatternRenderer.rawStatement(
+              "#expect(a.hashValue == b.hashValue, \"Equal values must have equal hash values\")"
+            )
+          ]
+        )
+      ]
+    )
   }
 
   private func comparableIrreflexiveTest(typeName: String) -> String {
-    """
-    /// Comparable irreflexivity: !(x < x) for all x.
-    @PropertyTest
-    func test\(typeName)_comparableIrreflexive(value: \(typeName)) {
-      #expect(!(value < value), "Irreflexivity: !(x < x)")
-    }
-    """
+    GhostwriterPatternRenderer.testFunction(
+      docComment: "Comparable irreflexivity: !(x < x) for all x.",
+      functionName: "test\(typeName)_comparableIrreflexive",
+      parameters: [("value", typeName)],
+      bodyStatements: [
+        GhostwriterPatternRenderer.rawStatement(
+          "#expect(!(value < value), \"Irreflexivity: !(x < x)\")"
+        )
+      ]
+    )
   }
 
   private func comparableAsymmetricTest(typeName: String) -> String {
-    """
-    /// Comparable asymmetry: x < y implies !(y < x).
-    @PropertyTest
-    func test\(typeName)_comparableAsymmetric(a: \(typeName), b: \(typeName)) {
-      if a < b {
-        #expect(!(b < a), "Asymmetry: a < b implies !(b < a)")
-      }
-    }
-    """
+    GhostwriterPatternRenderer.testFunction(
+      docComment: "Comparable asymmetry: x < y implies !(y < x).",
+      functionName: "test\(typeName)_comparableAsymmetric",
+      parameters: [("a", typeName), ("b", typeName)],
+      bodyStatements: [
+        GhostwriterPatternRenderer.ifStatement(
+          condition: .operation(.variable("a"), "<", .variable("b")),
+          then: [
+            GhostwriterPatternRenderer.rawStatement(
+              "#expect(!(b < a), \"Asymmetry: a < b implies !(b < a)\")"
+            )
+          ]
+        )
+      ]
+    )
   }
 
   private func comparableTransitiveTest(typeName: String) -> String {
-    """
-    /// Comparable transitivity: x < y && y < z implies x < z.
-    @PropertyTest
-    func test\(typeName)_comparableTransitive(a: \(typeName), b: \(typeName), c: \(typeName)) {
-      if a < b && b < c {
-        #expect(a < c, "Transitivity: a < b && b < c implies a < c")
-      }
-    }
-    """
+    GhostwriterPatternRenderer.testFunction(
+      docComment: "Comparable transitivity: x < y && y < z implies x < z.",
+      functionName: "test\(typeName)_comparableTransitive",
+      parameters: [("a", typeName), ("b", typeName), ("c", typeName)],
+      bodyStatements: [
+        GhostwriterPatternRenderer.ifStatement(
+          condition: .operation(
+            .operation(.variable("a"), "<", .variable("b")),
+            "&&",
+            .operation(.variable("b"), "<", .variable("c"))
+          ),
+          then: [
+            GhostwriterPatternRenderer.rawStatement(
+              "#expect(a < c, \"Transitivity: a < b && b < c implies a < c\")"
+            )
+          ]
+        )
+      ]
+    )
   }
 
   private func comparableTrichotomyTest(typeName: String) -> String {
-    """
-    /// Comparable trichotomy: exactly one of <, ==, > holds.
-    @PropertyTest
-    func test\(typeName)_comparableTrichotomy(a: \(typeName), b: \(typeName)) {
-      let isLess = a < b
-      let isEqual = a == b
-      let isGreater = b < a
-      let exactlyOne = [isLess, isEqual, isGreater].filter { $0 }.count == 1
-      #expect(exactlyOne, "Trichotomy: exactly one of <, ==, > holds")
-    }
-    """
+    GhostwriterPatternRenderer.testFunction(
+      docComment: "Comparable trichotomy: exactly one of <, ==, > holds.",
+      functionName: "test\(typeName)_comparableTrichotomy",
+      parameters: [("a", typeName), ("b", typeName)],
+      bodyStatements: [
+        GhostwriterPatternRenderer.letBinding(
+          name: "isLess",
+          initializer: .operation(.variable("a"), "<", .variable("b"))
+        ),
+        GhostwriterPatternRenderer.letBinding(
+          name: "isEqual",
+          initializer: .operation(.variable("a"), "==", .variable("b"))
+        ),
+        GhostwriterPatternRenderer.letBinding(
+          name: "isGreater",
+          initializer: .operation(.variable("b"), "<", .variable("a"))
+        ),
+        GhostwriterPatternRenderer.rawLetBinding(
+          name: "exactlyOne",
+          initializer: "[isLess, isEqual, isGreater].filter { $0 }.count == 1"
+        ),
+        GhostwriterPatternRenderer.rawStatement(
+          "#expect(exactlyOne, \"Trichotomy: exactly one of <, ==, > holds\")"
+        ),
+      ]
+    )
   }
 }

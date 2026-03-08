@@ -2,6 +2,7 @@
 // Generates property test code from extracted type information.
 
 import Foundation
+import MacroTemplateKit
 
 // MARK: - Test Pattern
 
@@ -31,6 +32,11 @@ public enum GhostwriterTestPattern: String, CaseIterable, Codable, Sendable {
 /// Result of attempting to generate an Arbitrary conformance for a property.
 public enum GeneratorResult: Sendable {
   case success(String)
+  case todoRequired(typeName: String, reason: String)
+}
+
+enum GeneratorTemplateResult {
+  case success(Template<Void>)
   case todoRequired(typeName: String, reason: String)
 }
 
@@ -138,17 +144,10 @@ extension TestCodeGenerator {
       buildPropertyGenerator(prop, todoProperties: &todoProperties)
     }
 
-    let code = """
-      extension \(type.name): Arbitrary {
-        public static var arbitrary: Gen<\(type.name)> {
-          Gen.compose { composer in
-            \(type.name)(
-              \(propGenerators.joined(separator: ",\n        "))
-            )
-          }
-        }
-      }
-      """
+    let code = GhostwriterTemplateRenderer.arbitraryExtension(
+      typeName: type.name,
+      propertyGenerators: propGenerators
+    )
 
     return ArbitraryGenerationResult(code: code, todoProperties: todoProperties)
   }
@@ -156,17 +155,24 @@ extension TestCodeGenerator {
   private func buildPropertyGenerator(
     _ prop: ExtractedProperty,
     todoProperties: inout [String]
-  ) -> String {
-    let result = generatorResult(for: prop.typeName)
+  ) -> GhostwriterTemplateRenderer.PropertyGenerator {
+    let result = generatorTemplateResult(for: prop.typeName)
 
     switch result {
-    case .success(let expr):
-      return "\(prop.name): \(expr)"
+    case .success(let expression):
+      return GhostwriterTemplateRenderer.PropertyGenerator(
+        name: prop.name,
+        expression: expression,
+        todoComment: nil
+      )
 
     case .todoRequired(let typeName, _):
       todoProperties.append(prop.name)
-      let todoComment = "/* TODO: supply generator for \(typeName) */"
-      return "\(prop.name): \(todoComment) composer.generate(using: \(typeName).arbitrary)"
+      return GhostwriterTemplateRenderer.PropertyGenerator(
+        name: prop.name,
+        expression: composerGenerateCall(for: typeName),
+        todoComment: "/* TODO: supply generator for \(typeName) */"
+      )
     }
   }
 }

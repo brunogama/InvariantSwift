@@ -2,6 +2,7 @@
 // Generates property test code from extracted type information.
 
 import Foundation
+import MacroTemplateKit
 
 // MARK: - Test Pattern
 
@@ -33,6 +34,11 @@ public enum GeneratorResult: Sendable {
   /// Generator can be automatically created.
   case success(String)
   /// Generator cannot be automatically created; requires user input.
+  case todoRequired(typeName: String, reason: String)
+}
+
+enum GeneratorTemplateResult {
+  case success(Template<Void>)
   case todoRequired(typeName: String, reason: String)
 }
 
@@ -165,29 +171,29 @@ public struct TestCodeGenerator {
   ) -> ArbitraryGenerationResult {
     var todoProperties: [String] = []
     let propGenerators = type.properties.map { prop in
-      let result = generatorResult(for: prop.typeName)
+      let result = generatorTemplateResult(for: prop.typeName)
       switch result {
-      case .success(let expr):
-        return "\(prop.name): \(expr)"
+      case .success(let expression):
+        return GhostwriterTemplateRenderer.PropertyGenerator(
+          name: prop.name,
+          expression: expression,
+          todoComment: nil
+        )
 
       case .todoRequired(let typeName, _):
         todoProperties.append(prop.name)
-        return
-          "\(prop.name): /* TODO: supply generator for \(typeName) */ composer.generate(using: \(typeName).arbitrary)"
+        return GhostwriterTemplateRenderer.PropertyGenerator(
+          name: prop.name,
+          expression: composerGenerateCall(for: typeName),
+          todoComment: "/* TODO: supply generator for \(typeName) */"
+        )
       }
     }
 
-    let code = """
-      extension \(type.name): Arbitrary {
-        public static var arbitrary: Gen<\(type.name)> {
-          Gen.compose { composer in
-            \(type.name)(
-              \(propGenerators.joined(separator: ",\n        "))
-            )
-          }
-        }
-      }
-      """
+    let code = GhostwriterTemplateRenderer.arbitraryExtension(
+      typeName: type.name,
+      propertyGenerators: propGenerators
+    )
 
     return ArbitraryGenerationResult(code: code, todoProperties: todoProperties)
   }
@@ -246,6 +252,16 @@ public struct TestCodeGenerator {
   /// Returns `.success(expr)` with generator expression if generatable,
   /// or `.todoRequired` with reason if not.
   public func generatorResult(for typeName: String) -> GeneratorResult {
+    switch generatorTemplateResult(for: typeName) {
+    case .success(let expression):
+      return .success(MacroTemplateKit.Renderer.render(expression).description)
+
+    case .todoRequired(let typeName, let reason):
+      return .todoRequired(typeName: typeName, reason: reason)
+    }
+  }
+
+  private func generatorTemplateResult(for typeName: String) -> GeneratorTemplateResult {
     var cleanedType =
       typeName
       .replacingOccurrences(of: "?", with: "")
@@ -265,7 +281,11 @@ public struct TestCodeGenerator {
     // Wrap in optional if needed
     switch innerResult {
     case .success(let expr):
-      return .success(isOptional ? "composer.generate(using: Gen.optional(\(expr)))" : expr)
+      return .success(
+        isOptional
+          ? composerGenerateOptionalCall(for: expr)
+          : expr
+      )
 
     case .todoRequired:
       return innerResult
@@ -273,7 +293,7 @@ public struct TestCodeGenerator {
   }
 
   /// Check generator result for inner (non-optional) type
-  private func checkInnerTypeResult(for cleanedType: String) -> GeneratorResult {
+  private func checkInnerTypeResult(for cleanedType: String) -> GeneratorTemplateResult {
     // Handle Array<T> or [T]
     if cleanedType.hasPrefix("Array<") && cleanedType.hasSuffix(">") {
       let inner = String(cleanedType.dropFirst(6).dropLast())
@@ -299,7 +319,7 @@ public struct TestCodeGenerator {
     }
     // Standard types
     if Self.knownGeneratableTypes.contains(cleanedType) {
-      return .success("composer.generate(using: \(cleanedType).arbitrary)")
+      return .success(composerGenerateCall(for: cleanedType))
     }
     return .todoRequired(
       typeName: cleanedType,
@@ -308,11 +328,24 @@ public struct TestCodeGenerator {
   }
 
   /// Check array type generation
-  private func checkArrayResult(inner: String, wrapper: String) -> GeneratorResult {
-    let innerCheck = generatorResult(for: inner)
+  private func checkArrayResult(inner: String, wrapper: String) -> GeneratorTemplateResult {
+    let innerCheck = generatorTemplateResult(for: inner)
     switch innerCheck {
     case .success:
-      return .success("composer.generate(using: Gen.array(of: \(inner).arbitrary))")
+      return .success(
+        Template<Void>.variable("composer")
+          .method("generate") {
+            TemplateArgument<Void>.labeled(
+              "using",
+              .variable("Gen").method("array") {
+                TemplateArgument<Void>.labeled(
+                  "of",
+                  .property("arbitrary", on: inner)
+                )
+              }
+            )
+          }
+      )
 
     case .todoRequired(_, let reason):
       return .todoRequired(
@@ -323,11 +356,31 @@ public struct TestCodeGenerator {
   }
 
   /// Check set type generation
-  private func checkSetResult(inner: String) -> GeneratorResult {
-    let innerCheck = generatorResult(for: inner)
+  private func checkSetResult(inner: String) -> GeneratorTemplateResult {
+    let innerCheck = generatorTemplateResult(for: inner)
     switch innerCheck {
     case .success:
-      return .success("Set(composer.generate(using: Gen.array(of: \(inner).arbitrary)))")
+      return .success(
+        .call(
+          "Set",
+          arguments: [
+            .unlabeled(
+              Template<Void>.variable("composer")
+                .method("generate") {
+                  TemplateArgument<Void>.labeled(
+                    "using",
+                    .variable("Gen").method("array") {
+                      TemplateArgument<Void>.labeled(
+                        "of",
+                        .property("arbitrary", on: inner)
+                      )
+                    }
+                  )
+                }
+            )
+          ]
+        )
+      )
 
     case .todoRequired(let innerTypeName, let reason):
       return .todoRequired(
@@ -353,4 +406,25 @@ public struct TestCodeGenerator {
 
   // MARK: - Individual Test Generation
   // Implementation moved to TestCodeGenerator+Patterns.swift extension
+}
+
+private extension TestCodeGenerator {
+  func composerGenerateCall(for typeName: String) -> Template<Void> {
+    Template<Void>.variable("composer")
+      .method("generate") {
+        TemplateArgument<Void>.labeled("using", .property("arbitrary", on: typeName))
+      }
+  }
+
+  func composerGenerateOptionalCall(for expression: Template<Void>) -> Template<Void> {
+    Template<Void>.variable("composer")
+      .method("generate") {
+        TemplateArgument<Void>.labeled(
+          "using",
+          .variable("Gen").method("optional") {
+            TemplateArgument<Void>.unlabeled(expression)
+          }
+        )
+      }
+  }
 }

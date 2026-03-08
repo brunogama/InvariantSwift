@@ -2,17 +2,28 @@
 // Type analysis for generator expression generation.
 
 import Foundation
+import MacroTemplateKit
 
 extension TestCodeGenerator {
   /// Determine generator result for a property type.
   public func generatorResult(for typeName: String) -> GeneratorResult {
+    switch generatorTemplateResult(for: typeName) {
+    case .success(let expression):
+      return .success(MacroTemplateKit.Renderer.render(expression).description)
+
+    case .todoRequired(let typeName, let reason):
+      return .todoRequired(typeName: typeName, reason: reason)
+    }
+  }
+
+  func generatorTemplateResult(for typeName: String) -> GeneratorTemplateResult {
     let cleanedType = cleanTypeName(typeName)
     let isOptional = typeName.contains("?") || typeName.hasPrefix("Optional<")
 
     let result = analyzeType(cleanedType)
 
-    if isOptional, case .success = result {
-      return .success("composer.generate(using: Gen.optional(\(cleanedType).arbitrary))")
+    if isOptional, case .success(let expression) = result {
+      return .success(composerGenerateOptionalCall(for: expression))
     }
 
     return result
@@ -32,7 +43,7 @@ extension TestCodeGenerator {
     return cleaned
   }
 
-  private func analyzeType(_ cleanedType: String) -> GeneratorResult {
+  private func analyzeType(_ cleanedType: String) -> GeneratorTemplateResult {
     if let arrayResult = analyzeArrayType(cleanedType) {
       return arrayResult
     }
@@ -49,7 +60,7 @@ extension TestCodeGenerator {
     }
 
     if Self.knownGeneratableTypes.contains(cleanedType) {
-      return .success("composer.generate(using: \(cleanedType).arbitrary)")
+      return .success(composerGenerateCall(for: cleanedType))
     }
 
     return .todoRequired(
@@ -58,7 +69,7 @@ extension TestCodeGenerator {
     )
   }
 
-  private func analyzeArrayType(_ type: String) -> GeneratorResult? {
+  private func analyzeArrayType(_ type: String) -> GeneratorTemplateResult? {
     if type.hasPrefix("Array<") && type.hasSuffix(">") {
       let inner = String(type.dropFirst(6).dropLast())
       return handleArrayElement(inner)
@@ -72,12 +83,22 @@ extension TestCodeGenerator {
     return nil
   }
 
-  private func handleArrayElement(_ inner: String) -> GeneratorResult {
-    let innerCheck = generatorResult(for: inner)
+  private func handleArrayElement(_ inner: String) -> GeneratorTemplateResult {
+    let innerCheck = generatorTemplateResult(for: inner)
 
     switch innerCheck {
     case .success:
-      return .success("composer.generate(using: Gen.array(of: \(inner).arbitrary))")
+      return .success(
+        Template<Void>.variable("composer")
+          .method("generate") {
+            TemplateArgument<Void>.labeled(
+              "using",
+              .variable("Gen").method("array") {
+                TemplateArgument<Void>.labeled("of", .property("arbitrary", on: inner))
+              }
+            )
+          }
+      )
 
     case .todoRequired(let typeName, let reason):
       return .todoRequired(
@@ -87,17 +108,34 @@ extension TestCodeGenerator {
     }
   }
 
-  private func analyzeSetType(_ type: String) -> GeneratorResult? {
+  private func analyzeSetType(_ type: String) -> GeneratorTemplateResult? {
     guard type.hasPrefix("Set<") && type.hasSuffix(">") else {
       return nil
     }
 
     let inner = String(type.dropFirst(4).dropLast())
-    let innerCheck = generatorResult(for: inner)
+    let innerCheck = generatorTemplateResult(for: inner)
 
     switch innerCheck {
     case .success:
-      return .success("Set(composer.generate(using: Gen.array(of: \(inner).arbitrary)))")
+      return .success(
+        .call(
+          "Set",
+          arguments: [
+            .unlabeled(
+              Template<Void>.variable("composer")
+                .method("generate") {
+                  TemplateArgument<Void>.labeled(
+                    "using",
+                    .variable("Gen").method("array") {
+                      TemplateArgument<Void>.labeled("of", .property("arbitrary", on: inner))
+                    }
+                  )
+                }
+            )
+          ]
+        )
+      )
 
     case .todoRequired(let typeName, let reason):
       return .todoRequired(
@@ -109,5 +147,26 @@ extension TestCodeGenerator {
 
   private func isDictionaryType(_ type: String) -> Bool {
     type.hasPrefix("Dictionary<") || (type.hasPrefix("[") && type.contains(":"))
+  }
+}
+
+extension TestCodeGenerator {
+  func composerGenerateCall(for typeName: String) -> Template<Void> {
+    Template<Void>.variable("composer")
+      .method("generate") {
+        TemplateArgument<Void>.labeled("using", .property("arbitrary", on: typeName))
+      }
+  }
+
+  func composerGenerateOptionalCall(for expression: Template<Void>) -> Template<Void> {
+    Template<Void>.variable("composer")
+      .method("generate") {
+        TemplateArgument<Void>.labeled(
+          "using",
+          .variable("Gen").method("optional") {
+            TemplateArgument<Void>.unlabeled(expression)
+          }
+        )
+      }
   }
 }
