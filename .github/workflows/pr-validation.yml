@@ -24,9 +24,10 @@ jobs:
 
       - name: Check Formatting
         run: |
-          swift-format lint --strict --recursive Sources/ Tests/
-          if [ $? -ne 0 ]; then
-            echo "::error::Code is not properly formatted. Run 'swift-format format --recursive Sources/ Tests/' locally."
+          swift-format -i --configuration .swift-format --recursive \
+            ./Package.swift ./Sources ./Tests
+          if ! git diff --quiet; then
+            echo "::error::Code is not properly formatted. Run 'make format' locally."
             exit 1
           fi
 
@@ -71,6 +72,11 @@ jobs:
       - name: Select Xcode 16.4
         run: sudo xcode-select -s /Applications/Xcode_16.4.app
 
+      - name: Setup Swift 6.2.4
+        uses: swift-actions/setup-swift@v3
+        with:
+          swift-version: '6.2.4'
+
       - name: Swift Version
         run: swift --version
 
@@ -89,6 +95,11 @@ jobs:
 
       - name: Select Xcode 16.4
         run: sudo xcode-select -s /Applications/Xcode_16.4.app
+
+      - name: Setup Swift 6.2.4
+        uses: swift-actions/setup-swift@v3
+        with:
+          swift-version: '6.2.4'
 
       - name: Swift Version
         run: swift --version
