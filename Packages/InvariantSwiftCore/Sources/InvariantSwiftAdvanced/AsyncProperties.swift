@@ -256,7 +256,7 @@ public actor SerialPropertyExecutor {
   private var isExecuting = false
 
   /// Execute task serially with deterministic ordering
-  public func execute<T>(
+  public func execute<T: Sendable>(
     _ operation: @escaping @Sendable () async throws -> T
   ) async rethrows -> T {
     while isExecuting {
@@ -691,7 +691,11 @@ private actor AsyncExecutionState {
 }
 
 private actor IsolatedPropertyExecutor {
-  func executeAll<T>(_ operation: @Sendable (IsolatedPropertyExecutor) async -> T) async -> T {
+  func executeAll<T: Sendable>(
+    _ operation: @Sendable (IsolatedPropertyExecutor) async -> T
+  )
+    async -> T
+  {
     await operation(self)
   }
 
