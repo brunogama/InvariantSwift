@@ -37,8 +37,11 @@ mkdir -p "$output_dir"
 
 echo -e "${YELLOW}Getting list of all tests...${NC}"
 
-# Get list of all tests
-test_list=$(swift test --list-tests 2>/dev/null | grep -E "^\s*.*\(\)" | sed 's/^[[:space:]]*//' | sed 's/()$//')
+# Get list of all tests without triggering the deprecated test enumeration path.
+test_list=$(
+    swift test list --skip-build 2>/dev/null \
+        | sed '/^$/d'
+)
 
 if [ -z "$test_list" ]; then
     echo -e "${RED}Could not retrieve test list. Make sure you're in a Swift package directory.${NC}"
