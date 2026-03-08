@@ -59,10 +59,9 @@ struct CrashIsolationIntegrationTests {
     }
   }
 
-  @Test("IsolatedPropertyRunner isolationCapability is a valid value")
-  func testIsolationCapabilityIsValid() async {
-    let runner = IsolatedPropertyRunner()
-    let cap = await runner.isolationCapability
+  @Test("IsolationCapability.current is a valid value")
+  func testIsolationCapabilityIsValid() {
+    let cap = IsolationCapability.current
     #expect(!cap.description.isEmpty)
   }
 
