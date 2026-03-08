@@ -1,10 +1,8 @@
 import Foundation
 import MacroTemplateKit
-import SwiftBasicFormat
 import SwiftSyntax
 import SwiftSyntaxBuilder
 
-// swiftlint:disable:next type_body_length
 public enum GhostwriterExpansionRenderer {
   public static func render(file: GhostwriterGeneratedFile) -> String {
     var parts = renderHeader(for: file)
@@ -63,16 +61,13 @@ public enum GhostwriterExpansionRenderer {
       ])
     )
 
-    return extensionDecl.with(\.memberBlock, memberBlock).formatted().description
+    return extensionDecl.with(\.memberBlock, memberBlock).description
   }
 
   public static func render(test: GhostwriterGeneratedTest) -> String {
     let function = MacroTemplateAdapter.makeFunction(
       attributes: [.init("PropertyTest")],
       name: test.functionName,
-      parameters: test.parameters.enumerated().map { index, parameter in
-        render(parameter: parameter, needsTrailingComma: index < test.parameters.count - 1)
-      },
       canThrow: test.isThrowing,
       body: CodeBlockSyntax(
         statements: CodeBlockItemListSyntax(test.bodyStatements.map(render(statement:)))
@@ -80,11 +75,11 @@ public enum GhostwriterExpansionRenderer {
     )
     .with(\.leadingTrivia, [.docLineComment("/// \(test.docComment)"), .newlines(1)])
 
-    return function.formatted().description
+    return function.description
   }
 
   public static func renderExpression(_ expression: ExpansionExpr) -> String {
-    render(expr: expression).formatted().description
+    render(expr: expression).description
   }
 
   private static func renderHeader(for file: GhostwriterGeneratedFile) -> [String] {
@@ -242,18 +237,6 @@ public enum GhostwriterExpansionRenderer {
     )
   }
 
-  private static func render(
-    parameter: ExpansionParameter,
-    needsTrailingComma: Bool
-  ) -> FunctionParameterSyntax {
-    FunctionParameterSyntax(
-      firstName: .identifier(parameter.name),
-      colon: .colonToken(trailingTrivia: .space),
-      type: TypeSyntax(stringLiteral: parameter.type),
-      trailingComma: needsTrailingComma ? .commaToken(trailingTrivia: .space) : nil
-    )
-  }
-
   private static func render(closure: ExpansionClosure) -> ClosureExprSyntax {
     ClosureExprSyntax(
       signature: closure.parameters.isEmpty
@@ -276,39 +259,28 @@ public enum GhostwriterExpansionRenderer {
     typeName: String,
     propertyGenerators: [GhostwriterPropertyGenerator]
   ) -> ExprSyntax {
-    let initializerCall = FunctionCallExprSyntax(
-      calledExpression: ExprSyntax(DeclReferenceExprSyntax(baseName: .identifier(typeName))),
-      leftParen: .leftParenToken(),
-      arguments: LabeledExprListSyntax(
-        propertyGenerators.map { property in
-          LabeledExprSyntax(
-            label: .identifier(property.name),
-            colon: .colonToken(trailingTrivia: .space),
-            expression: composerGenerateExpression(using: propertyExpression(for: property))
-          )
-        }
-      ),
-      rightParen: .rightParenToken()
-    )
-
-    return ExprSyntax(
-      FunctionCallExprSyntax(
-        calledExpression: render(expr: .property("compose", on: .variable("Gen"))),
-        leftParen: nil,
-        arguments: LabeledExprListSyntax(),
-        rightParen: nil,
-        trailingClosure: ClosureExprSyntax(
-          signature: ClosureSignatureSyntax(
-            parameterClause: .simpleInput(
-              ClosureShorthandParameterListSyntax([
-                ClosureShorthandParameterSyntax(name: .identifier("composer"))
-              ])
-            ),
-            inKeyword: .keyword(.in, trailingTrivia: .space)
-          ),
-          statements: CodeBlockItemListSyntax([
-            CodeBlockItemSyntax(item: .expr(ExprSyntax(initializerCall)))
-          ])
+    render(
+      expr: .variable("Gen").method(
+        "compose",
+        trailingClosure: ExpansionClosure(
+          parameters: ["composer"],
+          bodyStatements: [
+            .expression(
+              .call(
+                callee: .identifier(typeName),
+                arguments: propertyGenerators.map {
+                  ExpansionArgument.labeled(
+                    $0.name,
+                    .variable("composer").method(
+                      "generate",
+                      arguments: [.labeled("using", $0.expression)]
+                    )
+                  )
+                },
+                trailingClosure: nil
+              )
+            )
+          ]
         )
       )
     )
@@ -320,27 +292,5 @@ public enum GhostwriterExpansionRenderer {
       return expression
     }
     return expression.with(\.leadingTrivia, [.blockComment(todoComment), .spaces(1)])
-  }
-
-  private static func composerGenerateExpression(using generator: ExprSyntax) -> ExprSyntax {
-    ExprSyntax(
-      FunctionCallExprSyntax(
-        calledExpression: ExprSyntax(
-          MemberAccessExprSyntax(
-            base: ExprSyntax(DeclReferenceExprSyntax(baseName: .identifier("composer"))),
-            declName: DeclReferenceExprSyntax(baseName: .identifier("generate"))
-          )
-        ),
-        leftParen: .leftParenToken(),
-        arguments: LabeledExprListSyntax([
-          LabeledExprSyntax(
-            label: .identifier("using"),
-            colon: .colonToken(trailingTrivia: .space),
-            expression: generator
-          )
-        ]),
-        rightParen: .rightParenToken()
-      )
-    )
   }
 }
