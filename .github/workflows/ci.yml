@@ -83,6 +83,10 @@ jobs:
       - uses: actions/checkout@v4
       - name: Select Xcode 16.4
         run: sudo xcode-select -s /Applications/Xcode_16.4.app
+      - name: Setup Swift 6.2.4
+        uses: swift-actions/setup-swift@v3
+        with:
+          swift-version: '6.2.4'
       - name: Run Macro Golden Tests
         run: swift test --filter MacroGoldenTests
 
@@ -95,6 +99,10 @@ jobs:
       - uses: actions/checkout@v4
       - name: Select Xcode 16.4
         run: sudo xcode-select -s /Applications/Xcode_16.4.app
+      - name: Setup Swift 6.2.4
+        uses: swift-actions/setup-swift@v3
+        with:
+          swift-version: '6.2.4'
       - name: Cache SwiftSyntax Prebuilts
         uses: actions/cache@v4
         with:
@@ -122,6 +130,12 @@ jobs:
         uses: swift-actions/setup-swift@v3
         with:
           swift-version: '6.2.4'
+      - name: Export Swift toolchain for xcodebuild
+        run: |
+          SWIFT_TOOLCHAIN_PATH="$(swiftly use --print-location)"
+          TOOLCHAIN_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$SWIFT_TOOLCHAIN_PATH/Info.plist")"
+          echo "TOOLCHAINS=$TOOLCHAIN_ID" >> "$GITHUB_ENV"
+          echo "Using Swift toolchain: $TOOLCHAIN_ID"
       - name: Update xcbeautify
         run: brew update && brew upgrade xcbeautify
       - name: List available devices
@@ -142,9 +156,34 @@ jobs:
       - name: Build and Test
         run: |
           if [ "${{ matrix.command }}" = "test" ]; then
-            make test-${{ matrix.platform }}
+            case "${{ matrix.platform }}" in
+              IOS)
+                set -o pipefail
+                xcodebuild test \
+                  -scheme InvariantSwift \
+                  -toolchain "$TOOLCHAINS" \
+                  -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=latest' \
+                  | xcbeautify
+                ;;
+              MACOS)
+                set -o pipefail
+                xcodebuild test \
+                  -scheme InvariantSwift \
+                  -toolchain "$TOOLCHAINS" \
+                  -destination 'platform=macOS' \
+                  | xcbeautify
+                ;;
+              TVOS)
+                set -o pipefail
+                xcodebuild test \
+                  -scheme InvariantSwift \
+                  -toolchain "$TOOLCHAINS" \
+                  -destination 'platform=tvOS Simulator,name=Apple TV 4K (3rd generation),OS=latest' \
+                  | xcbeautify
+                ;;
+            esac
           else
-            make build
+            swift build --enable-experimental-prebuilts
           fi
 
   lint:
