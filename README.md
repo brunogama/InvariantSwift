@@ -66,7 +66,7 @@ import PackageDescription
 let package = Package(
     name: "MyProject",
     dependencies: [
-        .package(url: "https://github.com/your-org/InvariantSwift", from: "1.0.1")
+        .package(url: "https://github.com/brunogama/InvariantSwift", from: "0.2.0")
     ],
     targets: [
         .testTarget(
