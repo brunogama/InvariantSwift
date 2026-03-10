@@ -1,0 +1,11 @@
+@Tutorials(name: "InvariantSwiftTesting Tutorials") {
+  @Intro(title: "Learn the Swift Testing integration") {
+    Build property-based tests that look and behave like native Swift Testing tests, then turn failures into replayable regression cases.
+  }
+
+  @Chapter(name: "Get Started") {
+    Write your first property, forward Swift Testing traits, and preserve failure artifacts for GitHub-hosted DocC output.
+
+    @TutorialReference(tutorial: "doc:WriteYourFirstPropertyTest")
+  }
+}
