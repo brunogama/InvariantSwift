@@ -64,7 +64,11 @@ internal func recordPropertyFailureIssue(
   }
 
   if let classificationReport = report.classificationReport, !classificationReport.isEmpty {
-    Attachment.record(classificationReport, named: "classification.txt", sourceLocation: location)
+    Attachment.record(
+      classificationReport,
+      named: "classification.txt",
+      sourceLocation: location
+    )
   }
 }
 
@@ -140,7 +144,15 @@ internal func handleGeneratedPropertyResult<T: Sendable>(
     )
 
     if persistFailures {
-      try? FailurePersistenceManager().save(PersistedFailure(report: report))
+      do {
+        try FailurePersistenceManager().save(PersistedFailure(report: report))
+      } catch {
+        let location = makeSourceLocation(file: context.file, line: context.line)
+        Issue.record(
+          Comment(rawValue: "Failed to persist failure for replay: \(error.localizedDescription)"),
+          sourceLocation: location
+        )
+      }
     }
 
   case .gaveUp(let discarded, let iterations):
@@ -194,7 +206,11 @@ internal func verifyPersistedReplay<T: Sendable>(
         reproductionCommand: expectedFailure.reproductionCommand
       )
       if let propertyRunJSON = propertyRunJSON(for: record, context: context) {
-        Attachment.record(propertyRunJSON, named: "property-run.json", sourceLocation: location)
+        Attachment.record(
+          propertyRunJSON,
+          named: "property-run.json",
+          sourceLocation: location
+        )
       }
       return
     }

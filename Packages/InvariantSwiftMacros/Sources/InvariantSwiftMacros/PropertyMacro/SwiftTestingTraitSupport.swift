@@ -1,3 +1,4 @@
+import MacroTemplateKit
 import SwiftSyntax
 import SwiftSyntaxBuilder
 
@@ -149,60 +150,209 @@ enum SwiftTestingTraitBuilder {
   private static func buildTraitExpressions(
     _ request: GeneratedTestAttributeRequest
   ) -> [ExprSyntax] {
-    var expressions: [ExprSyntax] = [
-      ExprSyntax(
-        stringLiteral:
-          "InvariantSwiftPropertyExecutionTrait(testName: \"\(escape(request.displayName))\", labels: \(arrayLiteral(request.labels)), configuredSeed: \(configuredSeedLiteral(request.configuredSeed)))"
-      )
-    ]
+    var expressions: [ExprSyntax] = [makeExecutionTraitExpr(request)]
 
     if let enabledCondition = request.traits.enabledCondition {
-      expressions.append(ExprSyntax(stringLiteral: ".enabled(if: \(enabledCondition.description))"))
+      expressions.append(makeEnabledTraitExpr(enabledCondition))
     } else if let disabledReason = request.traits.disabledReason {
-      expressions.append(
-        ExprSyntax(
-          stringLiteral:
-            ".disabled(Comment(rawValue: \(disabledReason.description)))"
-        )
-      )
+      expressions.append(makeDisabledTraitExpr(disabledReason))
     }
 
     if request.traits.serialized {
-      expressions.append(ExprSyntax(stringLiteral: ".serialized"))
+      expressions.append(makeSerializedExpr())
     }
 
     if let timeLimit = request.traits.timeLimit {
-      expressions.append(ExprSyntax(stringLiteral: ".timeLimit(\(timeLimit.description))"))
+      expressions.append(makeTimeLimitExpr(timeLimit))
     }
 
-    var tagDescriptions = [".invariantSwiftPropertyBased"]
-    if request.includeReplayTag {
-      tagDescriptions.append(".invariantSwiftPropertyReplay")
-    }
-    tagDescriptions.append(contentsOf: request.traits.tags.map(\.description))
-    expressions.append(
-      ExprSyntax(stringLiteral: ".tags(\(tagDescriptions.joined(separator: ", ")))")
-    )
-
-    expressions.append(
-      contentsOf: request.traits.bugs.map { ExprSyntax(stringLiteral: $0.description) }
-    )
+    expressions.append(makeTagsExpr(request))
+    expressions.append(contentsOf: request.traits.bugs)
 
     return expressions
   }
 
-  private static func arrayLiteral(_ values: [String]) -> String {
-    let contents = values.map { "\"\(escape($0))\"" }.joined(separator: ", ")
-    return "[\(contents)]"
+  /// Builds `InvariantSwiftPropertyExecutionTrait(testName:labels:configuredSeed:)`.
+  ///
+  /// Uses `MacroTemplateKit.Renderer` for string and array literals. The seed is
+  /// rendered as an integer literal via SwiftSyntax directly because `Template`
+  /// only supports `Int` and UInt64 requires a raw token to avoid overflow.
+  private static func makeExecutionTraitExpr(
+    _ request: GeneratedTestAttributeRequest
+  ) -> ExprSyntax {
+    let testNameExpr = MacroTemplateKit.Renderer.render(
+      Template<Void>.literal(request.displayName)
+    )
+    let labelsExpr = MacroTemplateKit.Renderer.render(
+      Template<Void>.arrayLiteral(request.labels.map { .literal($0) })
+    )
+    let seedExpr: ExprSyntax =
+      request.configuredSeed.map {
+        ExprSyntax(IntegerLiteralExprSyntax(literal: .integerLiteral(String($0))))
+      } ?? MacroTemplateKit.Renderer.render(Template<Void>.nilLiteral())
+
+    return ExprSyntax(
+      FunctionCallExprSyntax(
+        calledExpression: ExprSyntax(
+          DeclReferenceExprSyntax(
+            baseName: .identifier("InvariantSwiftPropertyExecutionTrait")
+          )
+        ),
+        leftParen: .leftParenToken(),
+        arguments: LabeledExprListSyntax([
+          LabeledExprSyntax(
+            label: .identifier("testName"),
+            colon: .colonToken(),
+            expression: testNameExpr,
+            trailingComma: .commaToken()
+          ),
+          LabeledExprSyntax(
+            label: .identifier("labels"),
+            colon: .colonToken(),
+            expression: labelsExpr,
+            trailingComma: .commaToken()
+          ),
+          LabeledExprSyntax(
+            label: .identifier("configuredSeed"),
+            colon: .colonToken(),
+            expression: seedExpr
+          ),
+        ]),
+        rightParen: .rightParenToken()
+      )
+    )
   }
 
-  private static func configuredSeedLiteral(_ seed: UInt64?) -> String {
-    seed.map { String($0) } ?? "nil"
+  /// Builds `.enabled(if: condition)`.
+  private static func makeEnabledTraitExpr(_ condition: ExprSyntax) -> ExprSyntax {
+    ExprSyntax(
+      FunctionCallExprSyntax(
+        calledExpression: ExprSyntax(
+          MemberAccessExprSyntax(
+            declName: DeclReferenceExprSyntax(baseName: .identifier("enabled"))
+          )
+        ),
+        leftParen: .leftParenToken(),
+        arguments: LabeledExprListSyntax([
+          LabeledExprSyntax(
+            label: .identifier("if"),
+            colon: .colonToken(),
+            expression: condition
+          )
+        ]),
+        rightParen: .rightParenToken()
+      )
+    )
   }
 
-  private static func escape(_ value: String) -> String {
-    value
-      .replacingOccurrences(of: "\\", with: "\\\\")
-      .replacingOccurrences(of: "\"", with: "\\\"")
+  /// Builds `.disabled(Comment(rawValue: reason))`.
+  private static func makeDisabledTraitExpr(_ reason: ExprSyntax) -> ExprSyntax {
+    let commentExpr = ExprSyntax(
+      FunctionCallExprSyntax(
+        calledExpression: ExprSyntax(
+          DeclReferenceExprSyntax(baseName: .identifier("Comment"))
+        ),
+        leftParen: .leftParenToken(),
+        arguments: LabeledExprListSyntax([
+          LabeledExprSyntax(
+            label: .identifier("rawValue"),
+            colon: .colonToken(),
+            expression: reason
+          )
+        ]),
+        rightParen: .rightParenToken()
+      )
+    )
+
+    return ExprSyntax(
+      FunctionCallExprSyntax(
+        calledExpression: ExprSyntax(
+          MemberAccessExprSyntax(
+            declName: DeclReferenceExprSyntax(baseName: .identifier("disabled"))
+          )
+        ),
+        leftParen: .leftParenToken(),
+        arguments: LabeledExprListSyntax([
+          LabeledExprSyntax(expression: commentExpr)
+        ]),
+        rightParen: .rightParenToken()
+      )
+    )
+  }
+
+  /// Builds `.serialized`.
+  private static func makeSerializedExpr() -> ExprSyntax {
+    ExprSyntax(
+      MemberAccessExprSyntax(
+        declName: DeclReferenceExprSyntax(baseName: .identifier("serialized"))
+      )
+    )
+  }
+
+  /// Builds `.timeLimit(duration)`.
+  private static func makeTimeLimitExpr(_ timeLimit: ExprSyntax) -> ExprSyntax {
+    ExprSyntax(
+      FunctionCallExprSyntax(
+        calledExpression: ExprSyntax(
+          MemberAccessExprSyntax(
+            declName: DeclReferenceExprSyntax(baseName: .identifier("timeLimit"))
+          )
+        ),
+        leftParen: .leftParenToken(),
+        arguments: LabeledExprListSyntax([
+          LabeledExprSyntax(expression: timeLimit)
+        ]),
+        rightParen: .rightParenToken()
+      )
+    )
+  }
+
+  /// Builds `.tags(.invariantSwiftPropertyBased, [.invariantSwiftPropertyReplay,] ...userTags)`.
+  private static func makeTagsExpr(_ request: GeneratedTestAttributeRequest) -> ExprSyntax {
+    var tagExprs: [ExprSyntax] = [
+      ExprSyntax(
+        MemberAccessExprSyntax(
+          declName: DeclReferenceExprSyntax(
+            baseName: .identifier("invariantSwiftPropertyBased")
+          )
+        )
+      )
+    ]
+
+    if request.includeReplayTag {
+      tagExprs.append(
+        ExprSyntax(
+          MemberAccessExprSyntax(
+            declName: DeclReferenceExprSyntax(
+              baseName: .identifier("invariantSwiftPropertyReplay")
+            )
+          )
+        )
+      )
+    }
+
+    tagExprs.append(contentsOf: request.traits.tags)
+
+    let arguments = LabeledExprListSyntax(
+      tagExprs.enumerated().map { index, expr in
+        LabeledExprSyntax(
+          expression: expr,
+          trailingComma: index < tagExprs.count - 1 ? .commaToken() : nil
+        )
+      }
+    )
+
+    return ExprSyntax(
+      FunctionCallExprSyntax(
+        calledExpression: ExprSyntax(
+          MemberAccessExprSyntax(
+            declName: DeclReferenceExprSyntax(baseName: .identifier("tags"))
+          )
+        ),
+        leftParen: .leftParenToken(),
+        arguments: arguments,
+        rightParen: .rightParenToken()
+      )
+    )
   }
 }

@@ -72,13 +72,10 @@ public struct FailureReport: Sendable {
   }
 
   /// Command to reproduce this failure.
+  ///
+  /// Provides the seed value to reproduce via `@PropertyTest(configuredSeed:)`.
   public var reproductionCommand: String {
-    "swift test --filter \(testName) --env INVARIANT_SWIFT_SEED=\(seed.rawValue)"
-  }
-
-  /// Environment variable for reproduction.
-  public var reproductionEnvVar: String {
-    "INVARIANT_SWIFT_SEED=\(seed.rawValue)"
+    "swift test --filter \(testName)  # seed: \(seed.rawValue)"
   }
 }
 
@@ -235,21 +232,23 @@ public struct FailureReporter: Sendable {
       ║ REPRODUCTION:
       ║   Seed: \(report.seed.rawValue)
       ║   Command: \(report.reproductionCommand)
-      ║   Environment: \(report.reproductionEnvVar)
       """
 
+    let separator =
+      "╠══════════════════════════════════════════════════════════════════════════════╣"
+    let footer =
+      "╚══════════════════════════════════════════════════════════════════════════════╝"
+
     if let classificationReport = report.classificationReport, !classificationReport.isEmpty {
-      message +=
-        "\n╠══════════════════════════════════════════════════════════════════════════════╣\n"
+      message += "\n\(separator)\n"
       message += "║ CLASSIFICATION:\n"
-      // Indent classification report
       let lines = classificationReport.split(separator: "\n")
       for line in lines {
         message += "║   \(line)\n"
       }
     }
 
-    message += "╚══════════════════════════════════════════════════════════════════════════════╝"
+    message += footer
 
     return message
   }
