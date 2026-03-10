@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- **Docs**: Add a Swift Testing integration guide and update README examples to point at `InvariantSwiftTesting`
 - **Docs**: Standardize transient agent context storage under `.llm/{DIR}/` and document `.context/` as legacy-only
 - **Fix**: Move Ghostwriter integration targets to the root package so macro expansion tests no longer crash under the macro package test host
 - **Feat**: Forward native Swift Testing traits through generated property tests and add attachment-backed replay/context integration
