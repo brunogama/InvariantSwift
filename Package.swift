@@ -85,6 +85,7 @@ let utilityTargets: [Target] = [
     dependencies: [
       .product(name: "SwiftParser", package: "swift-syntax"),
       .product(name: "SwiftSyntax", package: "swift-syntax"),
+      .product(name: "InvariantSwiftExpansionSupport", package: "InvariantSwiftMacros"),
     ],
     path: "Packages/InvariantSwiftMacros/Sources/GhostwriterLib",
     swiftSettings: commonSwiftSettings

@@ -65,6 +65,20 @@ public enum GhostwriterExpansionRenderer {
   }
 
   public static func render(test: GhostwriterGeneratedTest) -> String {
+    let params = FunctionParameterListSyntax(
+      test.parameters.enumerated().map { index, param in
+        var p = FunctionParameterSyntax(
+          firstName: .identifier(param.name),
+          colon: .colonToken(trailingTrivia: .space),
+          type: TypeSyntax(stringLiteral: param.type)
+        )
+        if index < test.parameters.count - 1 {
+          p = p.with(\.trailingComma, .commaToken(trailingTrivia: .space))
+        }
+        return p
+      }
+    )
+
     let function = MacroTemplateAdapter.makeFunction(
       attributes: [.init("PropertyTest")],
       name: test.functionName,
@@ -73,9 +87,13 @@ public enum GhostwriterExpansionRenderer {
         statements: CodeBlockItemListSyntax(test.bodyStatements.map(render(statement:)))
       )
     )
+    .with(
+      \.signature.parameterClause,
+      FunctionParameterClauseSyntax(parameters: params)
+    )
     .with(\.leadingTrivia, [.docLineComment("/// \(test.docComment)"), .newlines(1)])
 
-    return function.description
+    return function.formatted().description
   }
 
   public static func renderExpression(_ expression: ExpansionExpr) -> String {
@@ -259,29 +277,51 @@ public enum GhostwriterExpansionRenderer {
     typeName: String,
     propertyGenerators: [GhostwriterPropertyGenerator]
   ) -> ExprSyntax {
-    render(
-      expr: .variable("Gen").method(
-        "compose",
-        trailingClosure: ExpansionClosure(
-          parameters: ["composer"],
-          bodyStatements: [
-            .expression(
-              .call(
-                callee: .identifier(typeName),
-                arguments: propertyGenerators.map {
-                  ExpansionArgument.labeled(
-                    $0.name,
-                    .variable("composer").method(
-                      "generate",
-                      arguments: [.labeled("using", $0.expression)]
-                    )
-                  )
-                },
-                trailingClosure: nil
-              )
-            )
-          ]
-        )
+    // propertyGenerators[i].expression is already composer.generate(using: ...).
+    // Use propertyExpression(for:) to apply TODO leading trivia and avoid double-wrapping.
+    let arguments = propertyGenerators.enumerated().map { index, generator -> LabeledExprSyntax in
+      var labeledExpr = LabeledExprSyntax(
+        label: .identifier(generator.name),
+        colon: .colonToken(trailingTrivia: .space),
+        expression: propertyExpression(for: generator)
+      )
+      if index < propertyGenerators.count - 1 {
+        labeledExpr = labeledExpr.with(\.trailingComma, .commaToken())
+      }
+      return labeledExpr
+    }
+
+    let typeCallExpr = FunctionCallExprSyntax(
+      calledExpression: ExprSyntax(DeclReferenceExprSyntax(baseName: .identifier(typeName))),
+      leftParen: .leftParenToken(),
+      arguments: LabeledExprListSyntax(arguments),
+      rightParen: .rightParenToken()
+    )
+
+    let closure = ClosureExprSyntax(
+      signature: ClosureSignatureSyntax(
+        parameterClause: .simpleInput(
+          ClosureShorthandParameterListSyntax([
+            ClosureShorthandParameterSyntax(name: .identifier("composer"))
+          ])
+        ),
+        inKeyword: .keyword(.in, trailingTrivia: .space)
+      ),
+      statements: CodeBlockItemListSyntax([
+        CodeBlockItemSyntax(item: .expr(ExprSyntax(typeCallExpr)))
+      ])
+    )
+
+    return ExprSyntax(
+      FunctionCallExprSyntax(
+        calledExpression: ExprSyntax(
+          MemberAccessExprSyntax(
+            base: ExprSyntax(DeclReferenceExprSyntax(baseName: .identifier("Gen"))),
+            declName: DeclReferenceExprSyntax(baseName: .identifier("compose"))
+          )
+        ),
+        arguments: LabeledExprListSyntax([]),
+        trailingClosure: closure
       )
     )
   }

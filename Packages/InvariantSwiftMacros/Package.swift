@@ -39,10 +39,10 @@ let package = Package(
       name: "InvariantSwiftMacroAPI",
       targets: ["InvariantSwiftMacroAPI"]
     ),
-    // Ghostwriter CLI for test generation
-    .executable(
-      name: "GhostwriterCLI",
-      targets: ["GhostwriterCLI"]
+    // Expansion support utilities - available for GhostwriterLib in root package
+    .library(
+      name: "InvariantSwiftExpansionSupport",
+      targets: ["InvariantSwiftExpansionSupport"]
     ),
   ],
   dependencies: [
@@ -94,33 +94,7 @@ let package = Package(
       swiftSettings: commonSwiftSettings
     ),
 
-    // MARK: - Layer 3: Ghostwriter (SwiftSyntax-based test generation)
-    // Library for analyzing Swift source and generating property tests
-    .target(
-      name: "GhostwriterLib",
-      dependencies: [
-        "InvariantSwiftExpansionSupport",
-        .product(name: "SwiftParser", package: "swift-syntax"),
-        .product(name: "SwiftSyntax", package: "swift-syntax"),
-      ],
-      path: "Sources/GhostwriterLib",
-      swiftSettings: commonSwiftSettings
-    ),
-
-    // CLI executable for Ghostwriter
-    .executableTarget(
-      name: "GhostwriterCLI",
-      dependencies: [
-        "GhostwriterLib",
-        .product(name: "MacroTemplateKit", package: "MacroTemplateKit"),
-        .product(name: "SwiftParser", package: "swift-syntax"),
-        .product(name: "SwiftSyntax", package: "swift-syntax"),
-      ],
-      path: "Sources/GhostwriterCLI",
-      swiftSettings: commonSwiftSettings
-    ),
-
-    // MARK: - Layer 4: Macro Tests
+    // MARK: - Layer 3: Macro Tests
     .testTarget(
       name: "InvariantSwiftMacroTests",
       dependencies: [
@@ -135,7 +109,6 @@ let package = Package(
       name: "MacroIntegrationTests",
       dependencies: [
         "InvariantSwiftMacroAPI",
-        "GhostwriterLib",
         .product(name: "InvariantSwift", package: "InvariantSwiftCore"),
         .product(name: "InvariantSwiftAdvanced", package: "InvariantSwiftCore"),
       ],

@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- **Fix**: Resolve integration branch build failures: export InvariantSwiftExpansionSupport as library product, remove duplicate macro declarations from PropertyMacro, and fix GhostwriterExpansionRenderer parameter rendering and compose-call double-wrapping
 - **Fix**: Correct the documentation coverage workflow to run `Tools/check_docs.py` and align mutation-testing commit lint with the primary PR validation policy
 - **Fix**: Resolve Ghostwriter renderer review findings, avoid the `ShrinkTree.findMinimalParallel` Swift 6.2.4 release-build optimizer crash, and restore root-package CI compatibility with Xcode `xcodebuild` by lowering the umbrella manifest tools version to `6.0`
 - **Test**: Replace placeholder dogfood coverage with behavior-driven tests; add external SwiftPM fixture-based macro integration tests using repo-local scratch directories to prevent temp-dir interference
