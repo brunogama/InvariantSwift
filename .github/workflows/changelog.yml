@@ -44,4 +44,6 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add CHANGELOG.md
           git commit -m "docs: update changelog [skip ci]"
-          git push
+          # Push may fail if main is branch-protected (changes must go through PR).
+          # This is expected — the changelog is maintained manually on release branches.
+          git push || echo "Push skipped: branch protection requires a pull request."

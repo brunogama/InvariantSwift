@@ -31,7 +31,7 @@ jobs:
       - name: Setup Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: '26.3'
+          xcode-version: '16.4'
 
       - name: Swift Version
         run: swift --version
@@ -39,17 +39,12 @@ jobs:
       - name: Build DocC Documentation
         run: |
           set -euxo pipefail
-          DERIVED_DATA=$(mktemp -d)
-          xcodebuild docbuild \
-            -scheme InvariantSwift \
-            -destination 'generic/platform=macOS' \
-            -derivedDataPath "$DERIVED_DATA"
-          DOCC_ARCHIVE=$(find "$DERIVED_DATA" -name "*.doccarchive" | head -1)
-          [ -n "$DOCC_ARCHIVE" ] || { echo "Error: No .doccarchive found in $DERIVED_DATA"; exit 1; }
-          xcrun docc process-archive transform-for-static-hosting \
-            "$DOCC_ARCHIVE" \
-            --hosting-base-path InvariantSwift \
-            --output-path docs
+          swift package --allow-writing-to-directory docs \
+            generate-documentation \
+            --target InvariantSwiftUmbrella \
+            --output-path docs \
+            --transform-for-static-hosting \
+            --hosting-base-path InvariantSwift
 
       - name: Upload Pages Artifact
         if: github.event_name != 'pull_request'
