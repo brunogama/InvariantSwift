@@ -1,8 +1,8 @@
+# Swift Testing Integration
+
 @Metadata {
   @PageKind(article)
 }
-
-# Swift Testing Integration
 
 Use `InvariantSwiftTesting` when you want property tests to participate in Swift Testing's traits, issues, attachments, and parameterized-case model.
 
