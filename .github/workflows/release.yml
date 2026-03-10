@@ -1,9 +1,10 @@
 name: Release
+# Superseded by release-on-merge.yml which runs changelog, tagging, and release in order.
+# Disabled by setting an impossible branch filter.
 
 on:
   push:
-    branches: [main]
-  workflow_dispatch:
+    branches: ['_disabled_release_superseded_by_release-on-merge']
 
 permissions:
   contents: write

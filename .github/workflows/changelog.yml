@@ -1,8 +1,10 @@
 name: Changelog
+# Superseded by release-on-merge.yml which runs changelog, tagging, and release in order.
+# Disabled by setting an impossible branch filter.
 
 on:
   push:
-    branches: [master, main] # or just master if that's your real target
+    branches: ['_disabled_changelog_superseded_by_release-on-merge']
 
 permissions:
   contents: write
