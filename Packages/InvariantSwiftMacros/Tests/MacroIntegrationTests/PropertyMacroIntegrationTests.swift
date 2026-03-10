@@ -263,26 +263,22 @@ struct PropertyMacroIntegrationTests {
 
   @Test("Property test shrinks to minimal counterexample")
   func propertyTestShrinksToMinimal() throws {
-    // Property fails for values >= 100
-    let generator = Gen<Int>.int(in: 100...1000)
+    // Use a bounded generator so shrinking has a defined lower bound to target.
+    let generator = Gen<Int>.int(in: 100...200)
     let property = Property(generator: generator) { (x: Int) in
       x < 100
     }
 
-    let config = PropertyConfig(iterations: 1000, maxShrinks: 1000)
+    let config = PropertyConfig(iterations: 100, maxShrinks: 1000)
     let result = runPropertySynchronously(property, config: config)
 
     switch result {
     case .success:
       Issue.record("Property should have found a counterexample")
 
-    case .failure(let counterexample, _, let shrunk, _, _):
-      // Shrinking should keep the value failing while moving it closer to the lower bound.
-      #expect(shrunk >= 100, "Shrunk counterexample should still fail, got \(shrunk)")
-      #expect(
-        shrunk <= counterexample,
-        "Shrunk counterexample should not be larger than the original: \(counterexample) -> \(shrunk)"
-      )
+    case .failure(_, _, let shrunk, _, _):
+      // The range-aware shrinker should converge to the lower bound.
+      #expect(shrunk == 100, "Shrunk counterexample should be 100, got \(shrunk)")
 
     case .gaveUp:
       Issue.record("Property should not have given up")
