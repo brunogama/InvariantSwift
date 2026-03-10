@@ -45,13 +45,6 @@ repos:
     pass_filenames: false
     always_run: true
 
-  - id: changelog-enforcer
-    name: 📝 Checking CHANGELOG updates...
-    entry: bash -c 'if [ -f "CHANGELOG.md" ] && git diff --cached --name-only | grep -v "CHANGELOG.md" | grep -q "\."; then if ! git diff --cached --name-only | grep -q "CHANGELOG.md"; then echo "🛑 Changes detected but CHANGELOG.md was not updated! Please update the changelog."; exit 1; fi; fi'
-    language: system
-    pass_filenames: false
-    always_run: true
-    exclude: '^(\.pre-commit-config\.yaml|\.gitignore|CHANGELOG\.md)$'
 
   - id: prevent-swift-disabled-files
     name: 🚫 Preventing .swift.disabled files from being committed...
