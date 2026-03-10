@@ -34,7 +34,7 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Install commitlint
-        run: npm ci --prefer-offline 2>/dev/null || npm install --save-dev @commitlint/cli @commitlint/config-conventional
+        run: npm ci --prefer-offline
 
       - name: Validate PR commits
         if: github.event_name == 'pull_request'
