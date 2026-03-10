@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- **CI**: Publish the `InvariantSwiftTesting` DocC site to GitHub Pages on `main` and validate DocC changes in docs-check
 - **Docs**: Add articles and tutorials for the specialized assertion macros, covering idempotence, determinism, and purity use cases
 - **Docs**: Add an `InvariantSwiftTesting` DocC catalog with article and tutorial pages for Swift Testing integration
 - **Docs**: Add a Swift Testing integration guide and update README examples to point at `InvariantSwiftTesting`
