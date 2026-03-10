@@ -44,6 +44,14 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add CHANGELOG.md
           git commit -m "docs: update changelog [skip ci]"
-          # Push may fail if main is branch-protected (changes must go through PR).
-          # This is expected — the changelog is maintained manually on release branches.
-          git push || echo "Push skipped: branch protection requires a pull request."
+          # Push may fail if main is branch-protected (GH006). Only treat that as non-fatal;
+          # fail on any other push error so real failures are not silently swallowed.
+          push_output="$(git push 2>&1)" && echo "${push_output}" || {
+            echo "${push_output}"
+            if echo "${push_output}" | grep -qE 'GH006|protected branch'; then
+              echo "Push skipped: branch protection requires a pull request."
+            else
+              echo "git push failed with an unexpected error."
+              exit 1
+            fi
+          }

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Feat**: Add `CommandStep`, `CommandTrace`, and `FailureInjector` for step-level diagnostics and deterministic failure injection in model-based tests; update `ModelTestResult.failure` to carry full `CommandTrace` instead of flat arrays; fix `shrinkCommandSequence` to be validity-preserving; add `TransactionStateMachineTests` as a realistic documentation example (closes #20)
 - **Fix**: Remove Swift 6-redundant StrictConcurrency upcoming feature flags and unsafe -strict-concurrency=complete flags from root and macros Package.swift; fix docs.yml to use swift package generate-documentation instead of xcodebuild docbuild; fix changelog.yml to tolerate push rejections from branch-protected main
+- **Fix**: Remove StrictConcurrency flags from `Packages/InvariantSwiftCore/Package.swift` and `Package.binary.swift` to align all manifests with Swift 6 defaults; harden changelog workflow git push to only treat GH006 protected-branch rejections as non-fatal
 
 ## [0.2.0] - 2026-03-10
 - **Fix**: Correct the documentation coverage workflow to run `Tools/check_docs.py` and align mutation-testing commit lint with the primary PR validation policy
