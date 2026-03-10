@@ -1,7 +1,5 @@
 ---
-applyTo:
-  - "Sources/**/*.swift"
-  - "Tests/**/*.swift"
+applyTo: "Sources/**/*.swift,Tests/**/*.swift"
 description: "Strict concurrency, isolation, and ownership review rules for Swift changes"
 ---
 

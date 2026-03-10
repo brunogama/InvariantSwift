@@ -1,7 +1,5 @@
 ---
-applyTo:
-  - "Sources/**/*.swift"
-  - "Tests/**/*.swift"
+applyTo: "Sources/**/*.swift,Tests/**/*.swift"
 description: "Ultra-strict merge blockers, architecture gates, and test expectations for Swift reviews"
 ---
 
@@ -25,6 +23,6 @@ description: "Ultra-strict merge blockers, architecture gates, and test expectat
 - New concurrency code must cover isolation, cancellation, reentrancy-sensitive behavior, ordering assumptions, and timeout behavior.
 - Security-sensitive code must cover malformed input, authorization failure, and secret leakage.
 - SwiftUI stateful flows must be covered via view-model, reducer, or UI tests as appropriate.
-- Vec0 or routing changes need matrix tests plus equivalence against the SQL baseline.
-- Index changes need nearest-neighbor correctness tests plus a recall regression guard.
-- Quantization changes need precision and recall bounds plus round-trip property coverage.
+- Generator or shrinking changes need matrix tests across representative generators and failure modes.
+- Execution or runner changes need determinism, flakiness, and concurrency stress tests with timeouts enforced.
+- Macro or Swift Testing integration changes need expansion snapshot tests plus round-trip compilation and runtime coverage.

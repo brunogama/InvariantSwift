@@ -1,7 +1,5 @@
 ---
-applyTo:
-  - "Sources/**/*.swift"
-  - "Tests/**/*.swift"
+applyTo: "Sources/**/*.swift,Tests/**/*.swift"
 description: "Correctness, security, persistence, performance, and macro review guidance for Swift changes"
 ---
 
@@ -21,4 +19,4 @@ description: "Correctness, security, persistence, performance, and macro review 
 
 ## Swift macros
 
-- All Swift macro code expansion must be built with the Swift AST and SwiftSyntax abstractions, never by interpolating raw source strings.
+- Swift macro expansions should be built with the Swift AST and SwiftSyntax abstractions (for example, via SwiftSyntaxBuilder) by default. String-based construction is allowed only via explicitly documented escape hatches, with strong justification and careful review, and those escape hatches should be treated as legacy and avoided in new code.
