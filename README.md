@@ -9,7 +9,7 @@
 
 **The most advanced property-based testing framework for Swift**
 
-[Getting Started](#getting-started) | [Documentation](docs/) | [Examples](Examples/) | [API Reference](#api-reference)
+[Getting Started](#getting-started) | [Swift Testing Guide](docs/swift-testing-integration.md) | [Examples](Examples/) | [API Reference](#api-reference)
 
 </div>
 
@@ -71,17 +71,19 @@ let package = Package(
     targets: [
         .testTarget(
             name: "MyProjectTests",
-            dependencies: ["InvariantSwift"]
+            dependencies: ["InvariantSwiftTesting"]
         )
     ]
 )
 ```
 
+If you only need generators and the core property runner outside Swift Testing, depend on `InvariantSwift`. If you want `@PropertyTest`, `@Regression`, `checkProperty`, or Swift Testing traits and attachments, use `InvariantSwiftTesting`.
+
 ### Your First Property Test
 
 ```swift
 import Testing
-import InvariantSwift
+import InvariantSwiftTesting
 
 @Test("Reversing an array twice returns the original")
 func testDoubleReverse() async throws {
@@ -98,7 +100,7 @@ The `@PropertyTest` macro automatically infers generators from parameter types:
 
 ```swift
 import Testing
-import InvariantSwift
+import InvariantSwiftTesting
 
 @PropertyTest
 func testAdditionCommutative(a: Int, b: Int) {
@@ -117,6 +119,18 @@ func testArrayAppendIncreasesCount(array: [Int], element: Int) {
     #expect(copy.count == array.count + 1)
 }
 ```
+
+### Swift Testing Integration
+
+Use `InvariantSwiftTesting` when you want property tests to behave like native Swift Testing tests:
+
+- `@PropertyTest` and `@AsyncPropertyTest` generate `@Test` wrappers and run properties with shrinking, issue recording, and reproducible seeds.
+- Native Swift Testing traits can be forwarded directly from the macro: `tags`, `bugs`, `serialized`, `timeLimit`, `enabledIf`, and `disabledReason`.
+- Property failures emit attachments such as `property-run.json`, `counterexample.txt`, and `shrunk-counterexample.txt` for CI and local debugging.
+- `@Regression` persists failing examples for replay, and `@Regression(exposeCasesAsTests: true)` exposes stored failures as parameterized Swift Testing cases.
+- `PropertyTestContext.current` exposes the current test name, seed, labels, replay state, and config inside helpers.
+
+See the full guide in `docs/swift-testing-integration.md`.
 
 ---
 

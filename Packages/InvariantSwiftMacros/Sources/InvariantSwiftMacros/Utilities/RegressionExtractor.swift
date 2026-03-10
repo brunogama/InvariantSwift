@@ -12,11 +12,23 @@ public struct RegressionConfig: Sendable {
   /// Maximum examples to replay (nil = all)
   public let maxExamples: Int?
 
-  public static let `default` = Self(replayFirst: true, maxExamples: nil)
+  /// Whether to expose persisted failures as parameterized Swift Testing cases.
+  public let exposeCasesAsTests: Bool
 
-  public init(replayFirst: Bool = true, maxExamples: Int? = nil) {
+  public static let `default` = Self(
+    replayFirst: true,
+    maxExamples: nil,
+    exposeCasesAsTests: false
+  )
+
+  public init(
+    replayFirst: Bool = true,
+    maxExamples: Int? = nil,
+    exposeCasesAsTests: Bool = false
+  ) {
     self.replayFirst = replayFirst
     self.maxExamples = maxExamples
+    self.exposeCasesAsTests = exposeCasesAsTests
   }
 }
 
@@ -55,6 +67,7 @@ public enum RegressionExtractor {
 
     var replayFirst: Bool = true
     var maxExamples: Int?
+    var exposeCasesAsTests = false
 
     for arg in args {
       let label = arg.label?.text
@@ -70,11 +83,20 @@ public enum RegressionExtractor {
           maxExamples = Int(intLiteral.literal.text)
         }
 
+      case "exposeCasesAsTests":
+        if let boolLiteral = arg.expression.as(BooleanLiteralExprSyntax.self) {
+          exposeCasesAsTests = boolLiteral.literal.tokenKind == .keyword(.true)
+        }
+
       default:
         break
       }
     }
 
-    return RegressionConfig(replayFirst: replayFirst, maxExamples: maxExamples)
+    return RegressionConfig(
+      replayFirst: replayFirst,
+      maxExamples: maxExamples,
+      exposeCasesAsTests: exposeCasesAsTests
+    )
   }
 }

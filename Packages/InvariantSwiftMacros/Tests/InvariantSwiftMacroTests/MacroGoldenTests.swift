@@ -41,6 +41,13 @@ final class MacroGoldenTests: XCTestCase {
     )
   }
 
+  func testPropertyTestWithTraitsGolden() throws {
+    try assertGolden(
+      macro: "PropertyTest",
+      testCase: "WithTraits"
+    )
+  }
+
   func testPropertyTestAsyncGolden() throws {
     try assertGolden(
       macro: "PropertyTest",

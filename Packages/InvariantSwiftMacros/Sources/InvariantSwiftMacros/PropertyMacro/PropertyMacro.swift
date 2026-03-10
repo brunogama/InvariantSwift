@@ -1,5 +1,4 @@
 import SwiftCompilerPlugin
-import InvariantSwiftExpansionSupport
 import SwiftSyntax
 import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
@@ -28,6 +27,15 @@ public struct PropertyMacro: PeerMacro {
     }
 
     let config = PropertyConfigExtractor.extract(from: node)
+    let swiftTestingTraits = SwiftTestingTraitExtractor.extract(from: node)
+
+    if swiftTestingTraits.hasConflictingConditions {
+      ctx.error(
+        "`enabledIf` and `disabledReason` cannot both be set on the same property test",
+        at: node
+      )
+      return []
+    }
 
     // Extract @Reproduce presence
     let hasReproduce = funcDecl.attributes.contains { attr in
@@ -65,6 +73,7 @@ public struct PropertyMacro: PeerMacro {
       config: config,
       regressionConfig: regressionConfig,
       timeoutConfig: timeoutConfig,
+      swiftTestingTraits: swiftTestingTraits,
       isAsync: isAsync
     )
 
@@ -82,12 +91,15 @@ public struct PropertyMacro: PeerMacro {
     config: PropertyMacroConfig,
     regressionConfig: RegressionConfig?,
     timeoutConfig: TimeoutConfig?,
+    swiftTestingTraits: SwiftTestingTraitConfig,
     isAsync: Bool
   ) -> EnumDeclSyntax {
     let enumName = "\(funcDecl.name.text)_PropertyTest"
     let testName = funcDecl.name.text
+    let labels = PropertyFailureFormatter.extractLabels(from: parameters)
 
     let testBody = buildPropertyTestBody(
+      testName: testName,
       parameters: parameters,
       originalBody: originalBody,
       config: config,
@@ -96,25 +108,124 @@ public struct PropertyMacro: PeerMacro {
       isAsync: isAsync
     )
 
-    let testFunc = MacroTemplateAdapter.makeFunction(
-      accessLevel: .internal,
-      attributes: [.arguments("Test", [.unlabeled("\"\(testName)\"")])],
-      isStatic: true,
-      name: "run",
-      isAsync: isAsync,
-      canThrow: true,
+    let testFunc = FunctionDeclSyntax(
+      attributes: SwiftTestingTraitBuilder.buildTestAttribute(
+        GeneratedTestAttributeRequest(
+          displayName: testName,
+          traits: swiftTestingTraits,
+          labels: labels,
+          configuredSeed: config.seed,
+          includeReplayTag: false,
+          arguments: nil
+        )
+      ),
+      modifiers: DeclModifierListSyntax {
+        DeclModifierSyntax(name: .keyword(.static))
+      },
+      funcKeyword: .keyword(.func),
+      name: .identifier("run"),
+      signature: isAsync ? buildAsyncThrowsSignature() : buildThrowsSignature(),
       body: testBody
     )
 
-    return MacroTemplateAdapter.makeEnum(
-      accessLevel: .private,
-      name: enumName,
-      members: [DeclSyntax(testFunc)]
+    return EnumDeclSyntax(
+      modifiers: DeclModifierListSyntax {
+        DeclModifierSyntax(name: .keyword(.private))
+      },
+      name: .identifier(enumName),
+      memberBlock: MemberBlockSyntax(
+        members: MemberBlockItemListSyntax {
+          MemberBlockItemSyntax(decl: testFunc)
+          if regressionConfig?.exposeCasesAsTests == true {
+            MemberBlockItemSyntax(
+              decl: buildReplayTestFunction(
+                testName: testName,
+                labels: labels,
+                parameters: parameters,
+                originalBody: originalBody,
+                config: config,
+                regressionConfig: regressionConfig,
+                timeoutConfig: timeoutConfig,
+                swiftTestingTraits: swiftTestingTraits,
+                isAsync: isAsync
+              )
+            )
+          }
+        }
+      )
+    )
+  }
+
+  // swiftlint:disable:next function_parameter_count
+  private static func buildTransformedFunction(
+    original funcDecl: FunctionDeclSyntax,
+    parameters: [ExtractedParameter],
+    originalBody: CodeBlockSyntax,
+    config: PropertyMacroConfig,
+    regressionConfig: RegressionConfig?,
+    isAsync: Bool
+  ) -> FunctionDeclSyntax {
+
+    let newName = "\(funcDecl.name.text)_PropertyTest"
+
+    let newBody = buildPropertyTestBody(
+      testName: funcDecl.name.text,
+      parameters: parameters,
+      originalBody: originalBody,
+      config: config,
+      regressionConfig: regressionConfig,
+      timeoutConfig: nil,  // Not used in this path
+      isAsync: isAsync
+    )
+
+    // Preserve original modifiers (do not auto-add static to support file-scope tests)
+    let modifiers = funcDecl.modifiers
+
+    return FunctionDeclSyntax(
+      attributes: buildTestAttribute(),
+      modifiers: modifiers,
+      funcKeyword: .keyword(.func),
+      name: .identifier(newName),
+      signature: isAsync ? buildAsyncThrowsSignature() : buildThrowsSignature(),
+      body: newBody
+    )
+  }
+
+  private static func buildTestAttribute() -> AttributeListSyntax {
+    // NOTE: We do NOT generate @Test here because combining peer macros
+    // (PropertyMacro generates peer + @Test generates peer) causes
+    // Swift symbol resolution failures.
+    // Users should wrap calls to the generated function with @Test manually:
+    //   @Test func myTest() throws { try myProperty_PropertyTest() }
+    AttributeListSyntax {}
+  }
+
+  private static func buildThrowsSignature() -> FunctionSignatureSyntax {
+    FunctionSignatureSyntax(
+      parameterClause: FunctionParameterClauseSyntax(
+        parameters: FunctionParameterListSyntax {}
+      ),
+      effectSpecifiers: FunctionEffectSpecifiersSyntax(
+        throwsClause: ThrowsClauseSyntax(throwsSpecifier: .keyword(.throws))
+      )
+    )
+  }
+
+  private static func buildAsyncThrowsSignature() -> FunctionSignatureSyntax {
+    FunctionSignatureSyntax(
+      parameterClause: FunctionParameterClauseSyntax(
+        parameters: FunctionParameterListSyntax {}
+      ),
+      effectSpecifiers: FunctionEffectSpecifiersSyntax(
+        asyncSpecifier: .keyword(.async),
+        throwsClause: ThrowsClauseSyntax(throwsSpecifier: .keyword(.throws))
+      )
     )
   }
 
   // swiftlint:disable:next function_parameter_count
   private static func buildPropertyTestBody(
+    testName: String,
     parameters: [ExtractedParameter],
     originalBody: CodeBlockSyntax,
     config: PropertyMacroConfig,
@@ -123,11 +234,11 @@ public struct PropertyMacro: PeerMacro {
     isAsync: Bool
   ) -> CodeBlockSyntax {
     let labels = PropertyFailureFormatter.extractLabels(from: parameters)
-    let hasSeed = true
 
     // If flake detection enabled, generate different code path
     if config.detectFlakiness {
       return buildFlakeDetectionBody(
+        testName: testName,
         parameters: parameters,
         originalBody: originalBody,
         config: config,
@@ -141,12 +252,13 @@ public struct PropertyMacro: PeerMacro {
       buildGeneratorDeclaration(parameters: parameters)
       buildPropertyDeclaration(parameters: parameters, originalBody: originalBody)
       buildConfigDeclaration(config: config, regressionConfig: regressionConfig)
-      if isAsync {
-        buildAsyncResultDeclaration(timeoutConfig: timeoutConfig)
-      } else {
-        buildResultDeclaration(timeoutConfig: timeoutConfig)
-      }
-      buildResultHandling(labels: labels, includeSeed: hasSeed)
+      buildGeneratedExecutionCall(
+        testName: testName,
+        labels: labels,
+        timeoutConfig: timeoutConfig,
+        persistFailures: regressionConfig != nil,
+        isAsync: isAsync
+      )
     }
   }
 
@@ -205,7 +317,7 @@ public struct PropertyMacro: PeerMacro {
     parameterNames: [String]
   ) -> ExprSyntax {
     guard generators.count >= 2 else {
-      return generators.first ?? MacroExpansionEscapeHatches.expression("Gen.pure(())")
+      return generators.first ?? ExprSyntax(stringLiteral: "Gen.pure(())")
     }
 
     // Build from right to left
@@ -215,17 +327,13 @@ public struct PropertyMacro: PeerMacro {
     let tupleExpr = "(\(parameterNames.joined(separator: ", ")))"
 
     // Build innermost: lastGen.map { lastName in tupleExpr }
-    var result = MacroExpansionEscapeHatches.expression(
-      "\(lastGen).map { \(lastName) in \(tupleExpr) }"
-    )
+    var result = ExprSyntax(stringLiteral: "\(lastGen).map { \(lastName) in \(tupleExpr) }")
 
     // Build outward with flatMaps
     for i in stride(from: generators.count - 2, through: 0, by: -1) {
       let gen = generators[i]
       let name = parameterNames[i]
-      result = MacroExpansionEscapeHatches.expression(
-        "\(gen).flatMap { \(name) in \(result) }"
-      )
+      result = ExprSyntax(stringLiteral: "\(gen).flatMap { \(name) in \(result) }")
     }
 
     return result
@@ -251,12 +359,14 @@ public struct PropertyMacro: PeerMacro {
       trailingClosure: testClosure
     )
 
-    return MacroTemplateAdapter.makeStoredProperty(
-      name: "property",
-      type: nil,
-      isStatic: false,
-      isLet: true,
-      initializer: ExprSyntax(propertyInit)
+    return VariableDeclSyntax(
+      bindingSpecifier: .keyword(.let),
+      bindings: PatternBindingListSyntax {
+        PatternBindingSyntax(
+          pattern: IdentifierPatternSyntax(identifier: .identifier("property")),
+          initializer: InitializerClauseSyntax(value: ExprSyntax(propertyInit))
+        )
+      }
     )
   }
 
@@ -465,12 +575,14 @@ public struct PropertyMacro: PeerMacro {
       rightParen: .rightParenToken()
     )
 
-    return MacroTemplateAdapter.makeStoredProperty(
-      name: "config",
-      type: nil,
-      isStatic: false,
-      isLet: true,
-      initializer: ExprSyntax(configCall)
+    return VariableDeclSyntax(
+      bindingSpecifier: .keyword(.let),
+      bindings: PatternBindingListSyntax {
+        PatternBindingSyntax(
+          pattern: IdentifierPatternSyntax(identifier: .identifier("config")),
+          initializer: InitializerClauseSyntax(value: ExprSyntax(configCall))
+        )
+      }
     )
   }
 
@@ -494,12 +606,14 @@ public struct PropertyMacro: PeerMacro {
 
     // Synchronous properties don't support timeout (would block thread)
     // Timeout is only meaningful for async properties
-    return MacroTemplateAdapter.makeStoredProperty(
-      name: "result",
-      type: nil,
-      isStatic: false,
-      isLet: true,
-      initializer: ExprSyntax(checkCall)
+    return VariableDeclSyntax(
+      bindingSpecifier: .keyword(.let),
+      bindings: PatternBindingListSyntax {
+        PatternBindingSyntax(
+          pattern: IdentifierPatternSyntax(identifier: .identifier("result")),
+          initializer: InitializerClauseSyntax(value: ExprSyntax(checkCall))
+        )
+      }
     )
   }
 
@@ -561,17 +675,20 @@ public struct PropertyMacro: PeerMacro {
       finalExpr = ExprSyntax(AwaitExprSyntax(expression: runPropertyCall))
     }
 
-    return MacroTemplateAdapter.makeStoredProperty(
-      name: "result",
-      type: nil,
-      isStatic: false,
-      isLet: true,
-      initializer: finalExpr
+    return VariableDeclSyntax(
+      bindingSpecifier: .keyword(.let),
+      bindings: PatternBindingListSyntax {
+        PatternBindingSyntax(
+          pattern: IdentifierPatternSyntax(identifier: .identifier("result")),
+          initializer: InitializerClauseSyntax(value: finalExpr)
+        )
+      }
     )
   }
 
   // swiftlint:disable:next function_parameter_count
   private static func buildFlakeDetectionBody(
+    testName: String,
     parameters: [ExtractedParameter],
     originalBody: CodeBlockSyntax,
     config: PropertyMacroConfig,
@@ -583,6 +700,7 @@ public struct PropertyMacro: PeerMacro {
     // Current implementation uses forbidden string interpolation
     // Fallback to standard property test body (manual API available)
     buildPropertyTestBody(
+      testName: testName,
       parameters: parameters,
       originalBody: originalBody,
       config: config,
@@ -590,6 +708,170 @@ public struct PropertyMacro: PeerMacro {
       timeoutConfig: timeoutConfig,
       isAsync: isAsync
     )
+  }
+
+  // swiftlint:disable:next function_parameter_count
+  private static func buildReplayTestFunction(
+    testName: String,
+    labels: [String],
+    parameters: [ExtractedParameter],
+    originalBody: CodeBlockSyntax,
+    config: PropertyMacroConfig,
+    regressionConfig: RegressionConfig?,
+    timeoutConfig: TimeoutConfig?,
+    swiftTestingTraits: SwiftTestingTraitConfig,
+    isAsync: Bool
+  ) -> FunctionDeclSyntax {
+    let replayName = "\(testName) regressions"
+    let arguments = buildReplayArgumentsExpression(
+      testName: testName,
+      maxExamples: regressionConfig?.maxExamples
+    )
+
+    return FunctionDeclSyntax(
+      attributes: SwiftTestingTraitBuilder.buildTestAttribute(
+        GeneratedTestAttributeRequest(
+          displayName: replayName,
+          traits: swiftTestingTraits,
+          labels: labels,
+          configuredSeed: nil,
+          includeReplayTag: true,
+          arguments: arguments
+        )
+      ),
+      modifiers: DeclModifierListSyntax {
+        DeclModifierSyntax(name: .keyword(.static))
+      },
+      funcKeyword: .keyword(.func),
+      name: .identifier("replay"),
+      signature: buildReplaySignature(isAsync: isAsync),
+      body: buildReplayBody(
+        testName: testName,
+        labels: labels,
+        parameters: parameters,
+        originalBody: originalBody,
+        config: config,
+        regressionConfig: regressionConfig,
+        timeoutConfig: timeoutConfig,
+        isAsync: isAsync
+      )
+    )
+  }
+
+  private static func buildReplaySignature(isAsync: Bool) -> FunctionSignatureSyntax {
+    let parameter = FunctionParameterSyntax(
+      firstName: .identifier("failure"),
+      colon: .colonToken(),
+      type: TypeSyntax(stringLiteral: "PersistedFailure")
+    )
+
+    return FunctionSignatureSyntax(
+      parameterClause: FunctionParameterClauseSyntax(
+        parameters: FunctionParameterListSyntax {
+          parameter
+        }
+      ),
+      effectSpecifiers: isAsync
+        ? buildAsyncThrowsSignature().effectSpecifiers : buildThrowsSignature().effectSpecifiers
+    )
+  }
+
+  private static func buildReplayArgumentsExpression(
+    testName: String,
+    maxExamples: Int?
+  ) -> ExprSyntax {
+    let maxExamplesArgument = maxExamples.map { ", maxExamples: \($0)" } ?? ""
+    return ExprSyntax(
+      stringLiteral:
+        "try await FailurePersistenceManager().loadReplayFailures(forTest: \"\(escapeStringLiteral(testName))\"\(maxExamplesArgument))"
+    )
+  }
+
+  // swiftlint:disable:next function_parameter_count
+  private static func buildReplayBody(
+    testName: String,
+    labels: [String],
+    parameters: [ExtractedParameter],
+    originalBody: CodeBlockSyntax,
+    config: PropertyMacroConfig,
+    regressionConfig: RegressionConfig?,
+    timeoutConfig: TimeoutConfig?,
+    isAsync: Bool
+  ) -> CodeBlockSyntax {
+    CodeBlockSyntax {
+      buildGeneratorDeclaration(parameters: parameters)
+      buildPropertyDeclaration(parameters: parameters, originalBody: originalBody)
+      buildConfigDeclaration(config: config, regressionConfig: regressionConfig)
+      buildReplayExecutionCall(
+        testName: testName,
+        labels: labels,
+        timeoutConfig: timeoutConfig,
+        isAsync: isAsync
+      )
+    }
+  }
+
+  // swiftlint:disable:next function_parameter_count
+  private static func buildGeneratedExecutionCall(
+    testName: String,
+    labels: [String],
+    timeoutConfig: TimeoutConfig?,
+    persistFailures: Bool,
+    isAsync: Bool
+  ) -> CodeBlockItemSyntax {
+    let labelsLiteral = stringArrayLiteral(labels)
+
+    if isAsync {
+      let expression = ExprSyntax(
+        stringLiteral:
+          "try await executeGeneratedPropertyTestAsync(property, config: config, testName: \"\(escapeStringLiteral(testName))\", labels: \(labelsLiteral), timeoutSeconds: \(timeoutLiteral(timeoutConfig)), persistFailures: \(persistFailures))"
+      )
+      return CodeBlockItemSyntax(item: .expr(expression))
+    }
+
+    let expression = ExprSyntax(
+      stringLiteral:
+        "try executeGeneratedPropertyTest(property, config: config, testName: \"\(escapeStringLiteral(testName))\", labels: \(labelsLiteral), persistFailures: \(persistFailures))"
+    )
+    return CodeBlockItemSyntax(item: .expr(expression))
+  }
+
+  private static func buildReplayExecutionCall(
+    testName: String,
+    labels: [String],
+    timeoutConfig: TimeoutConfig?,
+    isAsync: Bool
+  ) -> CodeBlockItemSyntax {
+    let labelsLiteral = stringArrayLiteral(labels)
+
+    if isAsync {
+      let expression = ExprSyntax(
+        stringLiteral:
+          "try await executePersistedFailureReplayAsync(property, baseConfig: config, persistedFailure: failure, testName: \"\(escapeStringLiteral(testName))\", labels: \(labelsLiteral), timeoutSeconds: \(timeoutLiteral(timeoutConfig)))"
+      )
+      return CodeBlockItemSyntax(item: .expr(expression))
+    }
+
+    let expression = ExprSyntax(
+      stringLiteral:
+        "try executePersistedFailureReplay(property, baseConfig: config, persistedFailure: failure, testName: \"\(escapeStringLiteral(testName))\", labels: \(labelsLiteral))"
+    )
+    return CodeBlockItemSyntax(item: .expr(expression))
+  }
+
+  private static func timeoutLiteral(_ timeoutConfig: TimeoutConfig?) -> String {
+    timeoutConfig?.seconds.map { String($0) } ?? "nil"
+  }
+
+  private static func stringArrayLiteral(_ values: [String]) -> String {
+    let contents = values.map { "\"\(escapeStringLiteral($0))\"" }.joined(separator: ", ")
+    return "[\(contents)]"
+  }
+
+  private static func escapeStringLiteral(_ value: String) -> String {
+    value
+      .replacingOccurrences(of: "\\", with: "\\\\")
+      .replacingOccurrences(of: "\"", with: "\\\"")
   }
 
   private static func buildGeneratorExpression(_ parameters: [ExtractedParameter]) -> String {

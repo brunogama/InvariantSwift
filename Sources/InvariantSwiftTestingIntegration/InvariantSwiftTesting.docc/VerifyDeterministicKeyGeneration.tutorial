@@ -1,0 +1,32 @@
+@Tutorial(time: 10) {
+  @Intro(title: "Verify deterministic key generation") {
+    Use ``Deterministic`` when repeated calls with the same input must always return the same output.
+  }
+
+  @Section(title: "Protect a stable helper") {
+    @ContentAndMedia {
+      Cache keys, canonical request encoders, and reproducible IDs are all good candidates for `@Deterministic`.
+
+      ```swift
+      import InvariantSwiftTesting
+
+      @Deterministic(iterations: 150, callCount: 4)
+      func cacheKey(for userID: Int) -> String {
+        "user:\\(userID)"
+      }
+      ```
+    }
+  }
+
+  @Section(title: "Pick it when repeatability is the contract") {
+    @ContentAndMedia {
+      This macro is the right level of specificity when you care about reproducibility but do not need to make a stronger claim about purity or fixed-point behavior.
+    }
+  }
+
+  @Section(title: "What it catches") {
+    @ContentAndMedia {
+      Failures usually point to hidden randomness, time-dependent formatting, unstable dictionary iteration, or access to mutable shared state.
+    }
+  }
+}

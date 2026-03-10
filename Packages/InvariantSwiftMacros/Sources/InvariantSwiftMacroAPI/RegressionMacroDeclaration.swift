@@ -70,5 +70,6 @@ import InvariantSwiftAdvanced
 @attached(peer)
 public macro Regression(
   replayFirst: Bool = true,
-  maxExamples: Int? = nil
+  maxExamples: Int? = nil,
+  exposeCasesAsTests: Bool = false
 ) = #externalMacro(module: "InvariantSwiftMacros", type: "RegressionMacro")

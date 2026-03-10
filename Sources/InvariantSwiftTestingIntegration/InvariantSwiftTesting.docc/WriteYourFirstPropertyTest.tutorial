@@ -1,0 +1,78 @@
+@Tutorial(time: 15) {
+  @Intro(title: "Write your first property test") {
+    Add `InvariantSwiftTesting` to a target, declare a property with ``PropertyTest``, and keep the generated attachments and replay cases visible in DocC and CI.
+  }
+
+  @Section(title: "Import the Swift Testing integration") {
+    @ContentAndMedia {
+      Import `InvariantSwiftTesting` alongside `Testing` so the property macros and runtime helpers participate in Swift Testing.
+
+      ```swift
+      import InvariantSwiftTesting
+      import Testing
+      ```
+    }
+  }
+
+  @Section(title: "Declare a property test") {
+    @ContentAndMedia {
+      Use ``PropertyTest`` to wrap an input generator, shrinking, and issue reporting in a native Swift Testing test.
+
+      ```swift
+      extension Tag {
+        @Tag static var regression: Self
+      }
+
+      @PropertyTest(
+        iterations: 200,
+        tags: [.regression],
+        timeLimit: .minutes(1)
+      )
+      func sortingPreservesCount(input: [Int]) {
+        #expect(input.sorted().count == input.count)
+      }
+      ```
+    }
+  }
+
+  @Section(title: "Add replay support and keep attachments") {
+    @ContentAndMedia {
+      Add ``Regression`` when you want persisted failures to replay on future runs or appear as parameterized Swift Testing cases.
+
+      ```swift
+      @PropertyTest
+      @Regression(replayFirst: true, maxExamples: 10, exposeCasesAsTests: true)
+      func parserNeverCrashes(input: String) {
+        _ = input.utf8.map { $0 }
+        #expect(true)
+      }
+      ```
+
+      When you run tests in CI, pass an attachments directory so files like `property-run.json` and `shrunk-counterexample.txt` remain available after the run.
+
+      ```bash
+      swift test --attachments-path .build/test-attachments
+      ```
+    }
+  }
+
+  @Section(title: "Read the active property context") {
+    @ContentAndMedia {
+      ``PropertyTestContext`` exposes the current seed, labels, configuration, and replay identifiers through a task-local value that helpers can read.
+
+      ```swift
+      @Test
+      func manualProperty() async throws {
+        try await checkProperty(
+          Property.forAll { (input: String) in
+            if let context = PropertyTestContext.current {
+              #expect(!context.testName.isEmpty)
+            }
+            return true
+          }
+        )
+      }
+      ```
+    }
+  }
+}

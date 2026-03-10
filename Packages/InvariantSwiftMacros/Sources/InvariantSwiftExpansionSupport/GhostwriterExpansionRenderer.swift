@@ -1,10 +1,8 @@
 import Foundation
 import MacroTemplateKit
-import SwiftBasicFormat
 import SwiftSyntax
 import SwiftSyntaxBuilder
 
-// swiftlint:disable:next type_body_length
 public enum GhostwriterExpansionRenderer {
   public static func render(file: GhostwriterGeneratedFile) -> String {
     var parts = renderHeader(for: file)
@@ -63,20 +61,35 @@ public enum GhostwriterExpansionRenderer {
       ])
     )
 
-    return extensionDecl.with(\.memberBlock, memberBlock).formatted().description
+    return extensionDecl.with(\.memberBlock, memberBlock).description
   }
 
   public static func render(test: GhostwriterGeneratedTest) -> String {
+    let params = FunctionParameterListSyntax(
+      test.parameters.enumerated().map { index, param in
+        var p = FunctionParameterSyntax(
+          firstName: .identifier(param.name),
+          colon: .colonToken(trailingTrivia: .space),
+          type: TypeSyntax(stringLiteral: param.type)
+        )
+        if index < test.parameters.count - 1 {
+          p = p.with(\.trailingComma, .commaToken(trailingTrivia: .space))
+        }
+        return p
+      }
+    )
+
     let function = MacroTemplateAdapter.makeFunction(
       attributes: [.init("PropertyTest")],
       name: test.functionName,
-      parameters: test.parameters.enumerated().map { index, parameter in
-        render(parameter: parameter, needsTrailingComma: index < test.parameters.count - 1)
-      },
       canThrow: test.isThrowing,
       body: CodeBlockSyntax(
         statements: CodeBlockItemListSyntax(test.bodyStatements.map(render(statement:)))
       )
+    )
+    .with(
+      \.signature.parameterClause,
+      FunctionParameterClauseSyntax(parameters: params)
     )
     .with(\.leadingTrivia, [.docLineComment("/// \(test.docComment)"), .newlines(1)])
 
@@ -84,7 +97,7 @@ public enum GhostwriterExpansionRenderer {
   }
 
   public static func renderExpression(_ expression: ExpansionExpr) -> String {
-    render(expr: expression).formatted().description
+    render(expr: expression).description
   }
 
   private static func renderHeader(for file: GhostwriterGeneratedFile) -> [String] {
@@ -242,18 +255,6 @@ public enum GhostwriterExpansionRenderer {
     )
   }
 
-  private static func render(
-    parameter: ExpansionParameter,
-    needsTrailingComma: Bool
-  ) -> FunctionParameterSyntax {
-    FunctionParameterSyntax(
-      firstName: .identifier(parameter.name),
-      colon: .colonToken(trailingTrivia: .space),
-      type: TypeSyntax(stringLiteral: parameter.type),
-      trailingComma: needsTrailingComma ? .commaToken(trailingTrivia: .space) : nil
-    )
-  }
-
   private static func render(closure: ExpansionClosure) -> ClosureExprSyntax {
     ClosureExprSyntax(
       signature: closure.parameters.isEmpty
@@ -276,40 +277,51 @@ public enum GhostwriterExpansionRenderer {
     typeName: String,
     propertyGenerators: [GhostwriterPropertyGenerator]
   ) -> ExprSyntax {
-    let initializerCall = FunctionCallExprSyntax(
+    // propertyGenerators[i].expression is already composer.generate(using: ...).
+    // Use propertyExpression(for:) to apply TODO leading trivia and avoid double-wrapping.
+    let arguments = propertyGenerators.enumerated().map { index, generator -> LabeledExprSyntax in
+      var labeledExpr = LabeledExprSyntax(
+        label: .identifier(generator.name),
+        colon: .colonToken(trailingTrivia: .space),
+        expression: propertyExpression(for: generator)
+      )
+      if index < propertyGenerators.count - 1 {
+        labeledExpr = labeledExpr.with(\.trailingComma, .commaToken())
+      }
+      return labeledExpr
+    }
+
+    let typeCallExpr = FunctionCallExprSyntax(
       calledExpression: ExprSyntax(DeclReferenceExprSyntax(baseName: .identifier(typeName))),
       leftParen: .leftParenToken(),
-      arguments: LabeledExprListSyntax(
-        propertyGenerators.map { property in
-          LabeledExprSyntax(
-            label: .identifier(property.name),
-            colon: .colonToken(trailingTrivia: .space),
-            expression: composerGenerateExpression(using: propertyExpression(for: property))
-          )
-        }
-      ),
+      arguments: LabeledExprListSyntax(arguments),
       rightParen: .rightParenToken()
+    )
+
+    let closure = ClosureExprSyntax(
+      signature: ClosureSignatureSyntax(
+        parameterClause: .simpleInput(
+          ClosureShorthandParameterListSyntax([
+            ClosureShorthandParameterSyntax(name: .identifier("composer"))
+          ])
+        ),
+        inKeyword: .keyword(.in, trailingTrivia: .space)
+      ),
+      statements: CodeBlockItemListSyntax([
+        CodeBlockItemSyntax(item: .expr(ExprSyntax(typeCallExpr)))
+      ])
     )
 
     return ExprSyntax(
       FunctionCallExprSyntax(
-        calledExpression: render(expr: .property("compose", on: .variable("Gen"))),
-        leftParen: nil,
-        arguments: LabeledExprListSyntax(),
-        rightParen: nil,
-        trailingClosure: ClosureExprSyntax(
-          signature: ClosureSignatureSyntax(
-            parameterClause: .simpleInput(
-              ClosureShorthandParameterListSyntax([
-                ClosureShorthandParameterSyntax(name: .identifier("composer"))
-              ])
-            ),
-            inKeyword: .keyword(.in, trailingTrivia: .space)
-          ),
-          statements: CodeBlockItemListSyntax([
-            CodeBlockItemSyntax(item: .expr(ExprSyntax(initializerCall)))
-          ])
-        )
+        calledExpression: ExprSyntax(
+          MemberAccessExprSyntax(
+            base: ExprSyntax(DeclReferenceExprSyntax(baseName: .identifier("Gen"))),
+            declName: DeclReferenceExprSyntax(baseName: .identifier("compose"))
+          )
+        ),
+        arguments: LabeledExprListSyntax([]),
+        trailingClosure: closure
       )
     )
   }
@@ -320,27 +332,5 @@ public enum GhostwriterExpansionRenderer {
       return expression
     }
     return expression.with(\.leadingTrivia, [.blockComment(todoComment), .spaces(1)])
-  }
-
-  private static func composerGenerateExpression(using generator: ExprSyntax) -> ExprSyntax {
-    ExprSyntax(
-      FunctionCallExprSyntax(
-        calledExpression: ExprSyntax(
-          MemberAccessExprSyntax(
-            base: ExprSyntax(DeclReferenceExprSyntax(baseName: .identifier("composer"))),
-            declName: DeclReferenceExprSyntax(baseName: .identifier("generate"))
-          )
-        ),
-        leftParen: .leftParenToken(),
-        arguments: LabeledExprListSyntax([
-          LabeledExprSyntax(
-            label: .identifier("using"),
-            colon: .colonToken(trailingTrivia: .space),
-            expression: generator
-          )
-        ]),
-        rightParen: .rightParenToken()
-      )
-    )
   }
 }
