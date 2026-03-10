@@ -42,8 +42,10 @@ jobs:
           echo "## 📚 Documentation Coverage Report" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          # Run coverage check and fail on the real script error.
-          python3 Tools/check_docs.py --json --output docs_report.json > docs_report.log 2>&1
+          # Run coverage check. The script exits 1 when there are undocumented symbols
+          # (by design, for backward-compatibility). Capture the exit code so bash -e
+          # does not abort before we can inspect the JSON and print the summary.
+          python3 Tools/check_docs.py --json --output docs_report.json > docs_report.log 2>&1 || true
 
           if [ ! -f docs_report.json ]; then
             echo "::error::Documentation coverage report was not generated."

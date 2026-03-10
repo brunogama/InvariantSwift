@@ -14,13 +14,8 @@ import PackageDescription
 // - Layer 2: InvariantSwiftMacroAPI (.target) - Public API for macro users
 // - Layer 3: InvariantSwiftMacroTests (.testTarget) - Macro expansion tests
 
-let commonSwiftSettings: [SwiftSetting] = [
-  .unsafeFlags([
-    "-Xfrontend", "-strict-concurrency=complete",
-    "-Xfrontend", "-warn-concurrency",
-  ]),
-  .enableUpcomingFeature("StrictConcurrency"),
-]
+// Swift 6 enables StrictConcurrency by default; no additional flags needed.
+let commonSwiftSettings: [SwiftSetting] = []
 
 let packagePlatforms: [SupportedPlatform] = [
   .iOS(.v17),

@@ -26,38 +26,6 @@ import Foundation
 ///   Use 100+ for critical systems, 20-50 for fast feedback during development.
 /// - **seed**: For reproducible testing of specific failures. Omit for random variation.
 ///
-/// **Usage**:
-/// ```swift
-/// // Development configuration: fast feedback
-/// let devConfig = ModelTestConfig(
-///   maxCommands: 10,
-///   maxShrinks: 100,
-///   iterations: 20,
-///   seed: nil
-/// )
-///
-/// // Production configuration: thorough testing
-/// let prodConfig = ModelTestConfig(
-///   maxCommands: 50,
-///   maxShrinks: 2000,
-///   iterations: 500,
-///   seed: nil
-/// )
-///
-/// // Reproduce a specific failure
-/// let reproduceConfig = ModelTestConfig(
-///   maxCommands: 30,
-///   maxShrinks: 1000,
-///   iterations: 1,
-///   seed: Seed(value: 12345)  // The seed from the failure report
-/// )
-/// ```
-///
-/// **Mathematical Perspective**:
-/// The configuration parameters affect test effectiveness through coverage probability theory.
-/// With `n` iterations and a state space of size `S`, the expected coverage approaches
-/// `1 - (1 - 1/S)^n`. More iterations provide exponentially better coverage.
-///
 /// - See Also: ``ModelTestRunner``, ``ModelTestResult``
 public struct ModelTestConfig: Sendable {
   /// **Maximum number of commands in a single test sequence**
@@ -109,22 +77,6 @@ public struct ModelTestConfig: Sendable {
   /// on each run, providing maximum variation. When set, the test runner produces deterministic
   /// sequences, enabling reproduction of specific failures.
   ///
-  /// **Setting a seed is essential for**:
-  /// - Reproducing reported failures
-  /// - Creating regression tests for bugs found during property testing
-  /// - Debugging test framework issues
-  ///
-  /// **Omit the seed for**:
-  /// - Regular development testing (want variation)
-  /// - CI/CD pipelines (want different sequences each run)
-  /// - Initial exploratory testing
-  ///
-  /// - Example:
-  ///   ```swift
-  ///   // From failure report: "Test failed with seed 5683091234"
-  ///   let config = ModelTestConfig(seed: Seed(value: 5683091234))
-  ///   ```
-  ///
   /// - See Also: ``Seed``, ``Seed.random``
   public let seed: Seed?
 
@@ -135,16 +87,6 @@ public struct ModelTestConfig: Sendable {
   ///   - maxShrinks: Maximum shrinking attempts (default: 1000)
   ///   - iterations: Number of test iterations (default: 100)
   ///   - seed: Optional seed for reproducibility (default: nil for random)
-  ///
-  /// - Example:
-  ///   ```swift
-  ///   let config = ModelTestConfig(
-  ///     maxCommands: 30,
-  ///     maxShrinks: 1500,
-  ///     iterations: 200,
-  ///     seed: nil
-  ///   )
-  ///   ```
   public init(
     maxCommands: Int = 20,
     maxShrinks: Int = 1000,
@@ -164,13 +106,6 @@ public struct ModelTestConfig: Sendable {
   /// - 1000 maximum shrinking attempts
   /// - 100 independent iterations
   /// - Random sequences (no fixed seed)
-  ///
-  /// Suitable for most testing scenarios. Customize for specific needs.
-  ///
-  /// - Example:
-  ///   ```swift
-  ///   let result = await runner.runModelTest(model, config: .default)
-  ///   ```
   public static let `default` = Self()
 }
 
@@ -185,31 +120,11 @@ public struct ModelTestConfig: Sendable {
 ///
 /// **Result Cases**:
 /// - **success**: All test iterations passed without discovering any violations
-/// - **failure**: A command sequence violated an invariant or postcondition with minimal counterexample
+/// - **failure**: A command sequence violated specification; includes the full ``CommandTrace``
+///   for the original sequence and the shrunk minimal counterexample
 /// - **gaveUp**: Too many command sequences were invalid, preventing thorough testing
 ///
-/// **Usage**:
-/// ```swift
-/// let result = await runner.runModelTest(model, config: config)
-///
-/// switch result {
-/// case .success(let iterations):
-// swiftlint:disable:next no_print
-///   print("All \(iterations) test iterations passed!")
-///
-/// case .failure(let commands, let failedCommand, let iterations, let shrunk):
-// swiftlint:disable:next no_print
-///   print("Failed after \(iterations) iterations")
-// swiftlint:disable:next no_print
-///   print("Minimal failing sequence: \(shrunk)")
-///
-/// case .gaveUp(let discarded, let iterations):
-// swiftlint:disable:next no_print
-///   print("Gave up after \(iterations) iterations (\(discarded) discarded)")
-/// }
-/// ```
-///
-/// - See Also: ``ModelTestRunner``, ``Command``, ``ModelTestConfig``
+/// - See Also: ``ModelTestRunner``, ``Command``, ``ModelTestConfig``, ``CommandTrace``
 public enum ModelTestResult<CommandType>: Sendable where CommandType: Command & Sendable {
   // swiftlint:disable:next orphaned_doc_comment
   /// **Test passed: All iterations succeeded without violations**
@@ -222,15 +137,14 @@ public enum ModelTestResult<CommandType>: Sendable where CommandType: Command & 
   /// **Test failed: Command sequence violated specification**
   ///
   /// - Parameters:
-  ///   - commands: The original complete command sequence that triggered the failure
-  ///   - failedCommand: The specific command in the sequence that violated the postcondition or invariant
+  ///   - trace: Full ``CommandTrace`` of the original failing sequence,
+  ///     including step-by-step state and the failing step index.
   ///   - iterations: The iteration number (1-indexed) when failure was detected
-  ///   - shrunk: The minimal command sequence that still exhibits the same failure
+  ///   - shrunkTrace: ``CommandTrace`` of the minimized failing sequence after shrinking
   case failure(
-    commands: [CommandType],
-    failedCommand: CommandType,
+    trace: CommandTrace<CommandType>,
     iterations: Int,
-    shrunk: [CommandType]
+    shrunkTrace: CommandTrace<CommandType>
   )
 
   // swiftlint:disable:next orphaned_doc_comment
@@ -258,12 +172,8 @@ public enum ModelTestResult<CommandType>: Sendable where CommandType: Command & 
 /// - **Deterministic or random**: Controlled via `Seed` parameter
 /// - **Comprehensive testing**: Checks preconditions, postconditions, and invariants
 /// - **Minimal counterexamples**: Automatically shrinks failures to simplest failing case
-///
-/// **Usage**:
-/// ```swift
-/// let runner = ModelTestRunner(seed: nil)
-/// let result = await runner.runModelTest(myModel, config: .default)
-/// ```
+/// - **Validity-preserving shrinking**: Shrink candidates are pre-filtered so every step's
+///   precondition holds in the reduced state sequence before attempting execution
 ///
 /// - See Also: ``ModelTestConfig``, ``ModelTestResult``, ``StateMachine``, ``Command``
 @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
@@ -294,11 +204,13 @@ public actor ModelTestRunner {
   /// - Parameters:
   ///   - model: The state machine model specifying the system under test
   ///   - config: Configuration controlling iterations, sequence length, and shrinking
+  ///   - failureInjector: Optional injector that forces errors at specific steps
   ///
   /// - Returns: Result indicating success, failure with counterexample, or test incompleteness
   public func runModelTest<Model: StateMachine>(
     _ model: Model,
-    config: ModelTestConfig = .default
+    config: ModelTestConfig = .default,
+    failureInjector: FailureInjector<Model.CommandType>? = nil
   ) async -> ModelTestResult<Model.CommandType> {
 
     for iteration in 0..<config.iterations {
@@ -308,29 +220,25 @@ public actor ModelTestRunner {
           maxCommands: config.maxCommands
         )
 
-        let result = try await executeCommandSequence(
+        let trace = await executeCommandSequence(
           model: model,
-          commands: commands
+          commands: commands,
+          injector: failureInjector
         )
 
-        switch result {
-        case .failure(let failedCommand):
-          let shrunkCommands = try await shrinkCommandSequence(
+        if trace.failingStepIndex != nil {
+          let shrunkTrace = await shrinkCommandSequence(
             model: model,
             commands: commands,
-            failedCommand: failedCommand,
+            injector: failureInjector,
             maxShrinks: config.maxShrinks
           )
 
           return .failure(
-            commands: commands,
-            failedCommand: failedCommand,
+            trace: trace,
             iterations: iteration + 1,
-            shrunk: shrunkCommands
+            shrunkTrace: shrunkTrace
           )
-
-        case .success:
-          continue
         }
       } catch {
         continue
@@ -339,6 +247,8 @@ public actor ModelTestRunner {
 
     return .success(iterations: config.iterations)
   }
+
+  // MARK: - Private helpers
 
   /// Generate a sequence of valid commands
   private func generateCommandSequence<Model: StateMachine>(
@@ -366,103 +276,199 @@ public actor ModelTestRunner {
     return commands
   }
 
-  /// Execute a sequence of commands and check for failures
+  /// Execute a sequence of commands and return a full ``CommandTrace``.
   private func executeCommandSequence<Model: StateMachine>(
     model: Model,
-    commands: [Model.CommandType]
-  ) async throws -> ExecutionResult<Model.CommandType> {
-    var currentState = model.initialState
+    commands: [Model.CommandType],
+    injector: FailureInjector<Model.CommandType>?
+  ) async -> CommandTrace<Model.CommandType> {
+    var steps: [CommandStep<Model.CommandType>] = []
+    var state = model.initialState
 
-    for command in commands {
-      guard model.invariant(state: currentState) else {
-        return .failure(command)
+    for (index, command) in commands.enumerated() {
+      if let injectedError = injector?.check(command, index) {
+        let step = CommandStep<Model.CommandType>(
+          index: index,
+          command: command,
+          stateBefore: state,
+          stateAfter: nil,
+          result: nil,
+          error: injectedError,
+          failureKind: .injectedFailure(injectedError.localizedDescription)
+        )
+        steps.append(step)
+        return CommandTrace(steps: steps, failingStepIndex: index)
       }
+      let outcome = await executeOneCommand(
+        model: model,
+        command: command,
+        index: index,
+        state: state
+      )
+      switch outcome {
+      case .passed(let step, let newState):
+        steps.append(step)
+        state = newState
 
-      guard command.precondition(state: currentState) else {
-        return .failure(command)
-      }
-
-      do {
-        let result = try await command.execute()
-
-        guard command.postcondition(state: currentState, result: result) else {
-          return .failure(command)
-        }
-
-        currentState = command.apply(state: currentState)
-
-        guard model.invariant(state: currentState) else {
-          return .failure(command)
-        }
-      } catch {
-        return .failure(command)
+      case .failed(let step):
+        steps.append(step)
+        return CommandTrace(steps: steps, failingStepIndex: index)
       }
     }
 
-    return .success
+    return CommandTrace(steps: steps, failingStepIndex: nil)
   }
 
-  /// Shrink a failed command sequence to find minimal counterexample
+  /// Execute a single command against the model and real system, returning either
+  /// a passed step (with updated state) or a failed step.
+  private func executeOneCommand<Model: StateMachine>(
+    model: Model,
+    command: Model.CommandType,
+    index: Int,
+    state: Model.CommandType.State
+  ) async -> CommandStepOutcome<Model.CommandType> {
+    let stateBefore = state
+    func failStep(
+      kind: CommandFailureKind,
+      err: (any Error)? = nil,
+      after: Model.CommandType.State? = nil,
+      res: Model.CommandType.Result? = nil
+    ) -> CommandStepOutcome<Model.CommandType> {
+      .failed(
+        CommandStep(
+          index: index,
+          command: command,
+          stateBefore: stateBefore,
+          stateAfter: after,
+          result: res,
+          error: err,
+          failureKind: kind
+        )
+      )
+    }
+
+    guard model.invariant(state: state) else {
+      return failStep(kind: .invariantViolated(when: "before"))
+    }
+    guard command.precondition(state: state) else {
+      return failStep(kind: .preconditionViolated)
+    }
+
+    let result: Model.CommandType.Result
+    do {
+      result = try await command.execute()
+    } catch {
+      return failStep(kind: .executionError(error.localizedDescription), err: error)
+    }
+
+    guard command.postcondition(state: state, result: result) else {
+      return failStep(kind: .postconditionFailed, res: result)
+    }
+
+    let stateAfter = command.apply(state: state)
+
+    guard model.invariant(state: stateAfter) else {
+      return failStep(kind: .invariantViolated(when: "after"), after: stateAfter, res: result)
+    }
+
+    let passedStep = CommandStep(
+      index: index,
+      command: command,
+      stateBefore: stateBefore,
+      stateAfter: stateAfter,
+      result: result,
+      error: nil,
+      failureKind: nil
+    )
+    return .passed(passedStep, newState: stateAfter)
+  }
+
+  /// Returns `true` when every command in `commands` has a valid precondition and
+  /// the model invariant holds throughout — using only dry-run model operations
+  /// (no I/O, no async calls).
+  private func isModelValid<Model: StateMachine>(
+    model: Model,
+    commands: [Model.CommandType]
+  ) -> Bool {
+    var state = model.initialState
+    for command in commands {
+      guard model.invariant(state: state) else { return false }
+      guard command.precondition(state: state) else { return false }
+      state = command.apply(state: state)
+    }
+    return model.invariant(state: state)
+  }
+
+  /// Generate validity-preserving shrink candidates.
+  ///
+  /// Only candidates where every step's precondition holds in the reduced model
+  /// state sequence are returned, preventing invalid sequences during shrinking.
+  private func generateShrinkCandidates<Model: StateMachine>(
+    model: Model,
+    commands: [Model.CommandType]
+  ) -> [[Model.CommandType]] {
+    var candidates: [[Model.CommandType]] = []
+
+    // Remove one command at a time, pre-filter for model validity
+    for i in 0..<commands.count {
+      var shrunk = commands
+      shrunk.remove(at: i)
+      if !shrunk.isEmpty && isModelValid(model: model, commands: shrunk) {
+        candidates.append(shrunk)
+      }
+    }
+
+    // Shortest valid prefix
+    for len in stride(from: commands.count - 1, through: 1, by: -1) {
+      let prefix = Array(commands.prefix(len))
+      if isModelValid(model: model, commands: prefix) {
+        candidates.append(prefix)
+        break
+      }
+    }
+
+    return candidates
+  }
+
+  /// Shrink a failed command sequence to find a minimal counterexample.
   private func shrinkCommandSequence<Model: StateMachine>(
     model: Model,
     commands: [Model.CommandType],
-    failedCommand: Model.CommandType,
+    injector: FailureInjector<Model.CommandType>?,
     maxShrinks: Int
-  ) async throws -> [Model.CommandType] {
-    var current = commands
+  ) async -> CommandTrace<Model.CommandType> {
+    var currentCommands = commands
     var shrinkAttempts = 0
 
     while shrinkAttempts < maxShrinks {
-      let candidates = generateShrinkCandidates(commands: current)
+      let candidates = generateShrinkCandidates(model: model, commands: currentCommands)
 
       var foundBetter = false
       for candidate in candidates {
-        let result = try await executeCommandSequence(model: model, commands: candidate)
+        let trace = await executeCommandSequence(
+          model: model,
+          commands: candidate,
+          injector: injector
+        )
 
-        if case .failure = result {
-          current = candidate
+        if trace.failingStepIndex != nil {
+          currentCommands = candidate
           foundBetter = true
           break
         }
       }
 
-      if !foundBetter {
-        break
-      }
-
+      if !foundBetter { break }
       shrinkAttempts += 1
     }
 
-    return current
+    // Re-execute the final shrunk sequence to produce the definitive trace
+    return await executeCommandSequence(
+      model: model,
+      commands: currentCommands,
+      injector: injector
+    )
   }
-
-  /// Generate shrinking candidates for a command sequence
-  private func generateShrinkCandidates<C>(commands: [C]) -> [[C]] {
-    var candidates: [[C]] = []
-
-    for i in 0..<commands.count {
-      var shrunk = commands
-      shrunk.remove(at: i)
-      if !shrunk.isEmpty {
-        candidates.append(shrunk)
-      }
-    }
-
-    if commands.count > 1 {
-      candidates.append(Array(commands.dropFirst()))
-      candidates.append(Array(commands.dropLast()))
-    }
-
-    return candidates
-  }
-}
-
-// MARK: - ExecutionResult
-
-/// Result of executing a command sequence (internal type)
-private enum ExecutionResult<C> {
-  case success
-  case failure(C)
 }
 
 // MARK: - Convenience Extensions
@@ -473,14 +479,16 @@ extension ModelTestRunner {
   /// - Parameters:
   ///   - model: The state machine model to test
   ///   - config: Configuration for the test run
+  ///   - failureInjector: Optional injector that forces errors at specific steps
   ///
   /// - Returns: The model test result
   public static func checkModel<Model: StateMachine>(
     _ model: Model,
-    config: ModelTestConfig = .default
+    config: ModelTestConfig = .default,
+    failureInjector: FailureInjector<Model.CommandType>? = nil
   ) async -> ModelTestResult<Model.CommandType> {
     let runner = ModelTestRunner(seed: config.seed)
-    return await runner.runModelTest(model, config: config)
+    return await runner.runModelTest(model, config: config, failureInjector: failureInjector)
   }
 }
 
@@ -529,13 +537,6 @@ extension Property {
 /// framework by converting a `StateMachine` into a `Gen` that produces valid command sequences.
 /// It ensures all generated sequences respect the state machine's preconditions and state evolution.
 ///
-/// **How It Works**:
-/// 1. Starts with the model's initial state
-/// 2. For each step, generates a command valid in the current state using `model.generateCommand`
-/// 3. Applies the command to update the model state
-/// 4. Continues until reaching max commands or the size parameter
-/// 5. Returns a complete valid command sequence
-///
 /// - See Also: ``ModelTestRunner``, ``StateMachine``, ``Gen``
 public struct ModelCommandSequenceGenerator<Model: StateMachine>: Sendable {
   /// The state machine model providing initial state and command generation
@@ -555,12 +556,6 @@ public struct ModelCommandSequenceGenerator<Model: StateMachine>: Sendable {
   }
 
   /// **Convert to a generator for use in property-based testing**
-  ///
-  /// Creates a `Gen` that produces valid command sequences. Each sequence:
-  /// - Respects state machine preconditions
-  /// - Follows valid state transitions
-  /// - Contains 1 to `config.maxCommands` commands
-  /// - Is completely deterministic given a seed and size
   ///
   /// - Returns: A generator producing valid command sequences
   public func asGen() -> Gen<[Model.CommandType]> {
@@ -582,4 +577,17 @@ public struct ModelCommandSequenceGenerator<Model: StateMachine>: Sendable {
       return commands
     }
   }
+}
+
+// MARK: - CommandStepOutcome
+
+/// Internal result of executing a single command step.
+///
+/// Used by `ModelTestRunner.executeOneCommand` to communicate whether a command
+/// passed (carrying the resulting state) or failed (carrying the failing step).
+private enum CommandStepOutcome<C: Command> {
+  /// The command passed all checks. Carries the recorded step and the new model state.
+  case passed(CommandStep<C>, newState: C.State)
+  /// The command failed one check. Carries the failing step.
+  case failed(CommandStep<C>)
 }
