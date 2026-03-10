@@ -1,7 +1,7 @@
 # Pre-commit hooks configuration
 # Install with: pip install pre-commit && pre-commit install
 
-default_install_hook_types: [ pre-commit ]
+default_install_hook_types: [ pre-commit, commit-msg ]
 default_stages: [ pre-commit ]
 
 repos:
@@ -21,6 +21,13 @@ repos:
     language: system
     files: \.swift$
     exclude: ^Packages/InvariantSwiftMacros/Tests/InvariantSwiftMacroTests/Resources/
+    pass_filenames: true
+
+  - id: strip-ai-coauthors
+    name: 🤖 Stripping AI co-author trailers...
+    entry: bash Tools/strip_ai_coauthors.sh
+    language: system
+    stages: [ commit-msg ]
     pass_filenames: true
 
   - id: branch-guardian
