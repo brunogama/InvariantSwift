@@ -14,7 +14,7 @@ extension ShrinkTree {
   ///
   /// Uses Swift Concurrency to explore multiple branches of the shrink tree
   /// concurrently. When multiple minimal candidates are found, selects
-  /// deterministically (first in breadth-first order) to ensure reproducible results.
+  /// deterministically using the original child order to ensure reproducible results.
   ///
   /// For small trees (budget < 100) or single-worker scenarios, automatically
   /// falls back to sequential search to avoid TaskGroup overhead.
@@ -49,60 +49,37 @@ extension ShrinkTree {
       return await findMinimalAsync(budget: budget, satisfying: predicate)
     }
 
-    return await withTaskGroup(of: T?.self) { group in
-      var best: T = value
+    return await withTaskGroup(of: (Int, T)?.self) { group in
       let budgetPerWorker = budget / workers
-      let childBatches = children.chunked(into: workers)
+      let childBatches = Array(children.enumerated()).chunked(into: workers)
 
       // Spawn workers for each batch of children
       for batch in childBatches {
         group.addTask {
-          var localBest: T?
-          for child in batch {
+          for (index, child) in batch {
             if let found = await child.findMinimalAsync(
               budget: budgetPerWorker,
               satisfying: predicate
             ) {
-              if localBest == nil {
-                localBest = found
-              } else {
-                // Keep the first found (stable, deterministic selection)
-                // For Comparable types, use findMinimalParallelComparable instead
-                localBest = localBest
-              }
+              return (index, found)
             }
           }
-          return localBest
+          return nil
         }
       }
 
       // Collect results from all workers
+      var bestMatch: (Int, T)?
       for await result in group {
-        if let found = result {
-          // Use deterministic selection: prefer first-found (BFS order)
-          best = found
+        if let match = result,
+          bestMatch == nil || match.0 < bestMatch!.0
+        {
+          bestMatch = match
         }
       }
 
-      return best
+      return bestMatch?.1 ?? value
     }
-  }
-
-  /// Deterministic selection between two minimal candidates.
-  ///
-  /// Default implementation prefers the first value (stable sort property).
-  /// This ensures reproducibility: same tree + predicate + budget always
-  /// produces the same minimal value.
-  ///
-  /// - Parameters:
-  ///   - a: First candidate
-  ///   - b: Second candidate
-  ///
-  /// - Returns: The selected candidate (default: a)
-  private func selectSmaller(_ a: T, _ b: T) -> T {
-    // Default: prefer first found (stable sort property)
-    // Comparable-specific version overrides this
-    a
   }
 }
 
@@ -211,39 +188,40 @@ extension ShrinkTree {
   ) async -> T? {
     do {
       // Attempt parallel search
-      return try await withThrowingTaskGroup(of: T?.self) { group in
+      return try await withThrowingTaskGroup(of: (Int, T)?.self) { group in
         guard await predicate(value) else { return nil }
 
         if budget < 100 || workers <= 1 {
           return await findMinimalAsync(budget: budget, satisfying: predicate)
         }
 
-        var best: T = value
         let budgetPerWorker = budget / workers
-        let childBatches = children.chunked(into: workers)
+        let childBatches = Array(children.enumerated()).chunked(into: workers)
 
         for batch in childBatches {
           group.addTask {
-            var localBest: T?
-            for child in batch {
+            for (index, child) in batch {
               if let found = await child.findMinimalAsync(
                 budget: budgetPerWorker,
                 satisfying: predicate
               ) {
-                localBest = localBest == nil ? found : localBest
+                return (index, found)
               }
             }
-            return localBest
+            return nil
           }
         }
 
+        var bestMatch: (Int, T)?
         for try await result in group {
-          if let found = result {
-            best = found
+          if let match = result,
+            bestMatch == nil || match.0 < bestMatch!.0
+          {
+            bestMatch = match
           }
         }
 
-        return best
+        return bestMatch?.1 ?? value
       }
     } catch {
       // Fallback to sequential on any error
