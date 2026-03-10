@@ -258,7 +258,7 @@ public struct FailureReporter: Sendable {
 // MARK: - Report Builder
 
 /// Builder for creating failure reports with fluent API.
-public final class FailureReportBuilder: @unchecked Sendable {
+public struct FailureReportBuilder: Sendable {
     private var testName: String = "unknown"
     private var seed = Seed.random
     private var originalValue: String = ""
@@ -272,50 +272,50 @@ public final class FailureReportBuilder: @unchecked Sendable {
     public init() {}
 
     @discardableResult
-    public func testName(_ name: String) -> Self {
+    public mutating func testName(_ name: String) -> Self {
         self.testName = name
         return self
     }
 
     @discardableResult
-    public func seed(_ seed: Seed) -> Self {
+    public mutating func seed(_ seed: Seed) -> Self {
         self.seed = seed
         return self
     }
 
     @discardableResult
-    public func originalValue<T>(_ value: T) -> Self {
+    public mutating func originalValue<T>(_ value: T) -> Self {
         self.originalValue = String(describing: value)
         return self
     }
 
     @discardableResult
-    public func shrunkValue<T>(_ value: T) -> Self {
+    public mutating func shrunkValue<T>(_ value: T) -> Self {
         self.shrunkValue = String(describing: value)
         return self
     }
 
     @discardableResult
-    public func iterations(_ count: Int) -> Self {
+    public mutating func iterations(_ count: Int) -> Self {
         self.iterations = count
         return self
     }
 
     @discardableResult
-    public func shrinking(attempts: Int, successful: Int) -> Self {
+    public mutating func shrinking(attempts: Int, successful: Int) -> Self {
         self.shrinkAttempts = attempts
         self.successfulShrinks = successful
         return self
     }
 
     @discardableResult
-    public func reason(_ reason: FailureReason) -> Self {
+    public mutating func reason(_ reason: FailureReason) -> Self {
         self.failureReason = reason
         return self
     }
 
     @discardableResult
-    public func time(_ time: TimeInterval) -> Self {
+    public mutating func time(_ time: TimeInterval) -> Self {
         self.totalTime = time
         return self
     }

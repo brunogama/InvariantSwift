@@ -538,7 +538,7 @@ public func checkProperty<T: Sendable>(
       testName: currentPropertyTestName(fallback: "ClassifyingProperty"),
       discarded: discarded,
       iterations: iterations,
-      seed: PropertyTestContext.current?.seed,
+      seed: config.seed?.rawValue ?? PropertyTestContext.current?.seed,
       context: PropertyIssueContext(
         labels: PropertyTestContext.current?.labels ?? [],
         file: file,

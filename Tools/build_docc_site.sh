@@ -17,6 +17,10 @@ fi
 DERIVED_DATA="$(mktemp -d)"
 trap 'rm -rf "$DERIVED_DATA"' EXIT
 
+if [[ -z "${OUTPUT_PATH:-}" || "$OUTPUT_PATH" == "/" || "$OUTPUT_PATH" == "." || "$OUTPUT_PATH" == ".." ]]; then
+  echo "error: OUTPUT_PATH is empty or dangerous: '${OUTPUT_PATH:-}'" >&2
+  exit 1
+fi
 rm -rf "$OUTPUT_PATH"
 
 xcodebuild docbuild \
