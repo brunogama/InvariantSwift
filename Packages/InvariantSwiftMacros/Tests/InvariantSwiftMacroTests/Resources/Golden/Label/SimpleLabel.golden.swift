@@ -6,7 +6,15 @@ func testUserValidation(
 }
 
 private enum testUserValidation_PropertyTest {
-  @Test("testUserValidation") static func run() throws {
+  @Test(
+    "testUserValidation",
+    InvariantSwiftPropertyExecutionTrait(
+      testName: "testUserValidation",
+      labels: ["User's Age", "Account Balance"],
+      configuredSeed: nil
+    ),
+    .tags(.invariantSwiftPropertyBased)
+  ) static func run() throws {
     let generator: Gen<(Int, Double)> = Gen<Int>.int.flatMap { age in
       Gen<Double>.double.map { balance in
         (age, balance)
@@ -17,19 +25,12 @@ private enum testUserValidation_PropertyTest {
       return true
     }
     let config = PropertyConfig(iterations: 100, maxShrinks: 1000)
-    let result = runPropertySynchronously(property, config: config)
-    switch result {
-    case .success:
-      break
-    case .failure(let counterexample, let iterations, let shrunk, reason: _, let seed):
-      Issue.record(
-        Comment(
-          rawValue:
-            "Property failed after \(iterations) iterations. Original: User's Age=\(counterexample), Account Balance=\(counterexample) | Shrunk: User's Age=\(shrunk), Account Balance=\(shrunk) | Seed: \(seed.rawValue)"
-        )
-      )
-    case .gaveUp(discarded: _, iterations: _):
-      Issue.record(Comment(stringLiteral: "Property test gaveUp"))
-    }
+    try executeGeneratedPropertyTest(
+      property,
+      config: config,
+      testName: "testUserValidation",
+      labels: ["User's Age", "Account Balance"],
+      persistFailures: false
+    )
   }
 }

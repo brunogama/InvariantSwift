@@ -141,11 +141,29 @@ public struct FailureReporter: Sendable {
   ///   - line: Source line (auto-captured).
   public func recordFailure(
     _ report: FailureReport,
-    file: StaticString = #file,
+    file: StaticString = #filePath,
     line: UInt = #line
   ) {
-    let message = formatMessage(report)
-    Issue.record(Comment(stringLiteral: message))
+    recordFailure(report, labels: [], file: file, line: line)
+  }
+
+  /// Records a failure with additional property metadata for attachment-backed diagnostics.
+  public func recordFailure(
+    _ report: FailureReport,
+    labels: [String],
+    replayFailureID: UUID? = nil,
+    file: StaticString = #filePath,
+    line: UInt = #line
+  ) {
+    recordPropertyFailureIssue(
+      report,
+      context: PropertyIssueContext(
+        labels: labels,
+        file: file,
+        line: line,
+        replayFailureID: replayFailureID
+      )
+    )
   }
 
   /// Records a failure and optionally persists it.
@@ -157,17 +175,7 @@ public struct FailureReporter: Sendable {
     recordFailure(report)
 
     if persist, let persistence = persistence {
-      let persisted = PersistedFailure(
-        testName: report.testName,
-        seed: report.seed.rawValue,
-        originalValue: report.originalValue,
-        shrunkValue: report.shrunkValue,
-        iterationsBeforeFailure: report.iterationsBeforeFailure,
-        shrinkAttempts: report.shrinkAttempts,
-        failureReason: report.failureReason.description
-      )
-
-      try? persistence.save(persisted)
+      try? persistence.save(PersistedFailure(report: report))
     }
   }
 

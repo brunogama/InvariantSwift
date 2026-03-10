@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 - **Docs**: Standardize transient agent context storage under `.llm/{DIR}/` and document `.context/` as legacy-only
 - **Fix**: Move Ghostwriter integration targets to the root package so macro expansion tests no longer crash under the macro package test host
+- **Feat**: Forward native Swift Testing traits through generated property tests and add attachment-backed replay/context integration
 - **Feat**: Add automated release tagging from `main` using conventional-commit semver bumping and rebuild documentation automatically on `main` and published releases
 - **Fix**: Align PR validation and xcode CI jobs with Swift 6.2.4, export the installed toolchain to `xcodebuild`, and make the PR format gate check actual formatting diffs instead of unrelated strict doc-style linting
 - **Fix**: Add `Sendable` return constraints to actor-crossing async helpers in `AsyncProperties` and `GeneratorRegistry` for Swift 6.2 strict concurrency builds
