@@ -3,21 +3,28 @@ func testAsync(value: Int) async -> Bool {
 }
 
 private enum testAsync_PropertyTest {
-    @Test("testAsync") static func run() async throws {
-        let generator: Gen<Int> = Gen<Int>.int
-        let property = Property(generator: generator) { (value: Int) in
-          await someAsyncCheck(value)
-          return true
-        }
-        let config = PropertyConfig(iterations: 100, maxShrinks: 1000)
-        let result = await runPropertyAsync(property, config: config)
-        switch result {
-        case .success:
-            break
-        case .failure(counterexample: let counterexample, iterations: let iterations, shrunk: let shrunk, reason: _, seed: let seed):
-            Issue.record(Comment(rawValue: "Property failed after \(iterations) iterations. Original: value=\(counterexample) | Shrunk: value=\(shrunk) | Seed: \(seed.rawValue)"))
-        case .gaveUp(discarded: _, iterations: _):
-            Issue.record(Comment(stringLiteral: "Property test gaveUp"))
-        }
+  @Test(
+    "testAsync",
+    InvariantSwiftPropertyExecutionTrait(
+      testName: "testAsync",
+      labels: ["value"],
+      configuredSeed: nil
+    ),
+    .tags(.invariantSwiftPropertyBased)
+  ) static func run() async throws {
+    let generator = Gen<Int>.int
+    let property = Property(generator: generator) { (value: Int) in
+      await someAsyncCheck(value)
+      return true
     }
+    let config = PropertyConfig(iterations: 100, maxShrinks: 1000)
+    try await executeGeneratedPropertyTestAsync(
+      property,
+      config: config,
+      testName: "testAsync",
+      labels: ["value"],
+      timeoutSeconds: nil,
+      persistFailures: false
+    )
+  }
 }
