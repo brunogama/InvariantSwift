@@ -29,6 +29,7 @@ let packagePlatforms: [SupportedPlatform] = [
 let packageDependencies: [Package.Dependency] = [
   .package(path: "Packages/InvariantSwiftCore"),
   .package(path: "Packages/InvariantSwiftMacros"),
+  .package(url: "https://github.com/swiftlang/swift-syntax", from: "602.0.0"),
   .package(url: "https://github.com/google/swift-benchmark", from: "0.1.2"),
 ]
 
@@ -39,6 +40,8 @@ let packageProducts: [Product] = [
   .library(name: "InvariantSwiftUmbrella", targets: ["InvariantSwiftUmbrella"]),
   // Testing integration layer (core + macros + Swift Testing)
   .library(name: "InvariantSwiftTesting", targets: ["InvariantSwiftTesting"]),
+  // Ghostwriter CLI for test generation and source analysis
+  .executable(name: "GhostwriterCLI", targets: ["GhostwriterCLI"]),
   // Plugins
   .plugin(name: "InvariantSwiftPlugin", targets: ["InvariantSwiftPlugin"]),
   .plugin(name: "GhostwriterPlugin", targets: ["GhostwriterPlugin"]),
@@ -77,6 +80,25 @@ let umbrellaTargets: [Target] = [
 // MARK: - Utility CLIs (remain in root)
 
 let utilityTargets: [Target] = [
+  .target(
+    name: "GhostwriterLib",
+    dependencies: [
+      .product(name: "SwiftParser", package: "swift-syntax"),
+      .product(name: "SwiftSyntax", package: "swift-syntax"),
+    ],
+    path: "Packages/InvariantSwiftMacros/Sources/GhostwriterLib",
+    swiftSettings: commonSwiftSettings
+  ),
+  .executableTarget(
+    name: "GhostwriterCLI",
+    dependencies: [
+      "GhostwriterLib",
+      .product(name: "SwiftParser", package: "swift-syntax"),
+      .product(name: "SwiftSyntax", package: "swift-syntax"),
+    ],
+    path: "Packages/InvariantSwiftMacros/Sources/GhostwriterCLI",
+    swiftSettings: commonSwiftSettings
+  ),
   .executableTarget(
     name: "Benchmarks",
     dependencies: [
@@ -122,9 +144,7 @@ let pluginTargets: [Target] = [
       intent: .custom(verb: "ghostwrite", description: "Generate property tests"),
       permissions: [.writeToPackageDirectory(reason: "Generate test files")]
     ),
-    dependencies: [
-      .product(name: "GhostwriterCLI", package: "InvariantSwiftMacros")
-    ],
+    dependencies: ["GhostwriterCLI"],
     path: "Plugins/GhostwriterPlugin"
   ),
   .plugin(
@@ -161,6 +181,18 @@ let testTargets: [Target] = [
       "InvariantSwiftTesting",
     ],
     path: "Tests/GeneratedPropertyTests",
+    swiftSettings: commonSwiftSettings
+  ),
+  .testTarget(
+    name: "MacroIntegrationTests",
+    dependencies: [
+      "GhostwriterCLI",
+      "GhostwriterLib",
+      .product(name: "InvariantSwiftCore", package: "InvariantSwiftCore"),
+      .product(name: "InvariantSwift", package: "InvariantSwiftCore"),
+      .product(name: "InvariantSwiftAdvanced", package: "InvariantSwiftCore"),
+    ],
+    path: "Packages/InvariantSwiftMacros/Tests/MacroIntegrationTests",
     swiftSettings: commonSwiftSettings
   ),
   .testTarget(

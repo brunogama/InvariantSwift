@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 - **Fix**: Correct the documentation coverage workflow to run `Tools/check_docs.py` and align mutation-testing commit lint with the primary PR validation policy
 - **Fix**: Resolve Ghostwriter renderer review findings, avoid the `ShrinkTree.findMinimalParallel` Swift 6.2.4 release-build optimizer crash, and restore root-package CI compatibility with Xcode `xcodebuild` by lowering the umbrella manifest tools version to `6.0`
+- **Test**: Replace placeholder dogfood coverage with behavior-driven tests; add external SwiftPM fixture-based macro integration tests using repo-local scratch directories to prevent temp-dir interference
+- **CI**: Publish the `InvariantSwiftTesting` DocC site to GitHub Pages on `main` and validate DocC changes in docs-check
+- **Docs**: Add articles and tutorials for the specialized assertion macros, covering idempotence, determinism, and purity use cases
+- **Docs**: Add an `InvariantSwiftTesting` DocC catalog with article and tutorial pages for Swift Testing integration
+- **Docs**: Add a Swift Testing integration guide and update README examples to point at `InvariantSwiftTesting`
+- **Docs**: Standardize transient agent context storage under `.llm/{DIR}/` and document `.context/` as legacy-only
+- **Fix**: Move Ghostwriter integration targets to the root package so macro expansion tests no longer crash under the macro package test host
+- **Feat**: Forward native Swift Testing traits through generated property tests and add attachment-backed replay/context integration
+- **Fix**: Preserve deterministic shrink candidate ordering so minimal counterexamples are not overwritten by later siblings
+- **Test**: Update Ghostwriter synthetic type generation coverage to opt out of supported-type filtering explicitly
 - **Feat**: Add automated release tagging from `main` using conventional-commit semver bumping and rebuild documentation automatically on `main` and published releases
 - **Fix**: Align PR validation and xcode CI jobs with Swift 6.2.4, export the installed toolchain to `xcodebuild`, and make the PR format gate check actual formatting diffs instead of unrelated strict doc-style linting
 - **Fix**: Add `Sendable` return constraints to actor-crossing async helpers in `AsyncProperties` and `GeneratorRegistry` for Swift 6.2 strict concurrency builds

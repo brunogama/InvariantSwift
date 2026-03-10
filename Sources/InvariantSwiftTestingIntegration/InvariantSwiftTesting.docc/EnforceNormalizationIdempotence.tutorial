@@ -1,0 +1,38 @@
+@Tutorial(time: 10) {
+  @Intro(title: "Enforce normalization idempotence") {
+    Use ``Idempotent`` when a cleanup or canonicalization pass should stop changing values after the first application.
+  }
+
+  @Section(title: "Annotate the normalizer") {
+    @ContentAndMedia {
+      `@Idempotent` generates a property test that applies the function repeatedly and checks that one more application leaves the result unchanged.
+
+      ```swift
+      import InvariantSwiftTesting
+
+      @Idempotent(iterations: 200, applicationCount: 3)
+      func normalizeEmail(_ raw: String) -> String {
+        raw
+          .trimmingCharacters(in: .whitespacesAndNewlines)
+          .lowercased()
+      }
+      ```
+    }
+  }
+
+  @Section(title: "Use it for fixed-point transforms") {
+    @ContentAndMedia {
+      Reach for this macro when the operation should converge to a stable representation:
+
+      - trimming and lowercasing identifiers
+      - sorting and deduplicating a canonical list
+      - rewriting equivalent paths into one normalized form
+    }
+  }
+
+  @Section(title: "Interpret failures") {
+    @ContentAndMedia {
+      If the generated property fails, the shrunk counterexample tells you which input still changes after repeated application. That usually points at the exact rule in the normalization pipeline that is missing or misordered.
+    }
+  }
+}

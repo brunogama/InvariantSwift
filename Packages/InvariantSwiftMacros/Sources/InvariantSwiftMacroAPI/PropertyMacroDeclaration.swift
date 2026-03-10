@@ -2,6 +2,7 @@ import InvariantSwiftCore
 import InvariantSwift
 import InvariantSwiftAdvanced
 import Foundation
+import Testing
 /// Property-based testing macro with flaky test detection support.
 ///
 /// Use `@Property` to turn a function into a property test that runs with
@@ -48,7 +49,13 @@ public macro Property(
   verbose: Bool = false,
   detectFlakiness: Bool = false,
   runs: Int = 100,
-  failOnFlaky: Bool = false
+  failOnFlaky: Bool = false,
+  tags: [Tag] = [],
+  bugs: [Bug] = [],
+  serialized: Bool = false,
+  timeLimit: TimeLimitTrait.Duration? = nil,
+  enabledIf: Bool? = nil,
+  disabledReason: String? = nil
 ) = #externalMacro(module: "InvariantSwiftMacros", type: "PropertyMacro")
 
 // MARK: - @AsyncPropertyTest Macro Declaration
@@ -107,7 +114,13 @@ public macro AsyncPropertyTest(
   scheduler: Scheduler.Strategy = .random(seed: nil),
   iterations: Int = 100,
   maxInterleavings: Int = 1000,
-  timeout: Duration = .seconds(30)
+  timeout: Duration = .seconds(30),
+  tags: [Tag] = [],
+  bugs: [Bug] = [],
+  serialized: Bool = false,
+  timeLimit: TimeLimitTrait.Duration? = nil,
+  enabledIf: Bool? = nil,
+  disabledReason: String? = nil
 ) = #externalMacro(module: "InvariantSwiftMacros", type: "AsyncPropertyTestMacro")
 
 // MARK: - @Gen Parameter Attribute

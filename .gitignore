@@ -132,6 +132,7 @@ Temporary Items
 # AI tool directories
 .claude/
 .gemini/
+.llm/
 .opencode/
 .planning/
 .context/
