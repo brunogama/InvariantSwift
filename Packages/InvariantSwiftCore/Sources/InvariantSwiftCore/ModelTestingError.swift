@@ -64,4 +64,11 @@ public enum ModelTestError: Error, Sendable {
   ///
   /// - Parameter message: Description of the invariant that was violated
   case invariantViolated(String)
+
+  /// **A ``FailureInjector`` explicitly injected this error**
+  ///
+  /// Produced when a `FailureInjector` triggers during command execution.
+  ///
+  /// - Parameter message: Human-readable description of the injected failure
+  case injectedFailure(String)
 }

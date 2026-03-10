@@ -18,11 +18,11 @@ struct ModelBasedTests {
     case .success(let iterations):
       #expect(iterations == 20, "Should complete all iterations")
 
-    case .failure(let commands, let failedCommand, let iterations, let shrunk):
+    case .failure(let trace, let iterations, let shrunkTrace):
       Issue.record(
         """
-        Counter model failed: \(failedCommand) in sequence \(commands.count), \
-        shrunk to \(shrunk.count) commands after \(iterations) iterations
+        Counter model failed: \(trace.failedCommand as Any) in sequence \(trace.commands.count), \
+        shrunk to \(shrunkTrace.commands.count) commands after \(iterations) iterations
         """
       )
 
@@ -44,18 +44,21 @@ struct ModelBasedTests {
     case .success(let iterations):
       #expect(iterations == 30, "Stack model should pass all iterations")
 
-    case .failure(let commands, let failedCommand, _, let shrunk):
+    case .failure(let trace, _, let shrunkTrace):
       // Analyze the failure
-      switch failedCommand {
+      switch trace.failedCommand {
       case .push(let value):
         Issue.record(
-          "Stack push(\(value)) failed in sequence of \(commands.count) commands, shrunk to \(shrunk.count)"
+          "Stack push(\(value)) failed in sequence of \(trace.commands.count) commands, shrunk to \(shrunkTrace.commands.count)"
         )
 
       case .pop:
         Issue.record(
-          "Stack pop failed in sequence of \(commands.count) commands, shrunk to \(shrunk.count)"
+          "Stack pop failed in sequence of \(trace.commands.count) commands, shrunk to \(shrunkTrace.commands.count)"
         )
+
+      case .none:
+        Issue.record("Stack model failed with no identified command")
       }
 
     case .gaveUp(let discarded, let iterations):
@@ -76,10 +79,10 @@ struct ModelBasedTests {
     switch result {
     case .success:
       break  // Invariant held throughout testing
-    case .failure(_, let failedCommand, _, let shrunk):
+    case .failure(let trace, _, let shrunkTrace):
       // If it fails, it should be due to invariant violation
       Issue.record(
-        "Counter invariant violated by command: \(failedCommand), minimal sequence: \(shrunk)"
+        "Counter invariant violated by command: \(trace.failedCommand as Any), minimal sequence: \(shrunkTrace.commands)"
       )
 
     case .gaveUp:
@@ -98,9 +101,9 @@ struct ModelBasedTests {
     switch result {
     case .success:
       break  // All tests respected stack size limits
-    case .failure(_, let failedCommand, _, let shrunk):
+    case .failure(let trace, _, let shrunkTrace):
       Issue.record(
-        "Stack invariant violated by: \(failedCommand), minimal failing sequence has \(shrunk.count) commands"
+        "Stack invariant violated by: \(trace.failedCommand as Any), minimal failing sequence has \(shrunkTrace.commands.count) commands"
       )
 
     case .gaveUp:
@@ -166,18 +169,17 @@ struct ModelBasedTests {
     case .success:
       Issue.record("Expected bounded counter to fail but it succeeded")
 
-    case .failure(let original, _, _, let shrunk):
+    case .failure(let trace, _, let shrunkTrace):
       // Shrunk sequence should be smaller
       #expect(
-        shrunk.count <= original.count,
-        "Shrunk sequence (\(shrunk.count)) should be smaller than original (\(original.count))"
+        shrunkTrace.commands.count <= trace.commands.count,
+        "Shrunk sequence (\(shrunkTrace.commands.count)) should be smaller than original (\(trace.commands.count))"
       )
 
       // Shrunk sequence should still fail
-      // Shrunk sequence should still fail
       var state = model.initialState
       var invariantViolated = false
-      for command in shrunk {
+      for command in shrunkTrace.commands {
         if !command.precondition(state: state) {
           break  // Precondition violation is also a failure mode, but we target invariant here
         }
@@ -292,11 +294,11 @@ struct ModelBasedTests {
     case .success:
       break
 
-    case .failure(let commands, let failedCommand, _, let shrunk):
+    case .failure(let trace, _, let shrunkTrace):
       Issue.record(
         """
-        Complex state machine failed at command \(failedCommand) \
-        in sequence of \(commands.count), shrunk to \(shrunk.count)
+        Complex state machine failed at command \(trace.failedCommand as Any) \
+        in sequence of \(trace.commands.count), shrunk to \(shrunkTrace.commands.count)
         """
       )
 
