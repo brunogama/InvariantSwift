@@ -284,19 +284,32 @@ public struct PropertyMacro: PeerMacro {
         }
 
         // Build explicit type annotation: Gen<(T1, T2, ...)> or Gen<T>
-        let typeAnnotation: TypeAnnotationSyntax
+        let innerType: TypeSyntax
         if parameters.count == 1 {
-            let genType = "Gen<\(parameters[0].type.description)>"
-            typeAnnotation = TypeAnnotationSyntax(
-                type: TypeSyntax(stringLiteral: genType)
-            )
+            innerType = parameters[0].type
         } else {
-            let tupleTypes = parameters.map { $0.type.description }.joined(separator: ", ")
-            let genType = "Gen<(\(tupleTypes))>"
-            typeAnnotation = TypeAnnotationSyntax(
-                type: TypeSyntax(stringLiteral: genType)
+            let tupleElements = TupleTypeElementListSyntax(
+                parameters.enumerated().map { index, param in
+                    TupleTypeElementSyntax(
+                        type: param.type,
+                        trailingComma: index < parameters.count - 1 ? .commaToken() : nil
+                    )
+                }
             )
+            innerType = TypeSyntax(TupleTypeSyntax(elements: tupleElements))
         }
+        let typeAnnotation = TypeAnnotationSyntax(
+            type: TypeSyntax(
+                IdentifierTypeSyntax(
+                    name: .identifier("Gen"),
+                    genericArgumentClause: GenericArgumentClauseSyntax(
+                        arguments: GenericArgumentListSyntax([
+                            GenericArgumentSyntax(argument: .type(innerType))
+                        ])
+                    )
+                )
+            )
+        )
 
         return VariableDeclSyntax(
             bindingSpecifier: .keyword(.let),
@@ -847,7 +860,7 @@ public struct PropertyMacro: PeerMacro {
         let parameter = FunctionParameterSyntax(
             firstName: .identifier("failure"),
             colon: .colonToken(),
-            type: TypeSyntax(stringLiteral: "PersistedFailure")
+            type: TypeSyntax(IdentifierTypeSyntax(name: .identifier("PersistedFailure")))
         )
 
         let effectSpecifiers =
@@ -983,33 +996,6 @@ public struct PropertyMacro: PeerMacro {
         } else {
             return MacroTemplateKit.Renderer.render(Template<Void>.try(callTemplate))
         }
-    }
-
-    private static func buildGeneratorExpression(_ parameters: [ExtractedParameter]) -> String {
-        let generators = parameters.map { param -> String in
-            "Gen<\(param.type.description)>.arbitrary"
-        }
-
-        if generators.count == 1 {
-            return generators[0]
-        } else {
-            // Build flatMap chain
-            var result = generators[0]
-            for i in 1..<generators.count {
-                let paramNames = parameters.prefix(i + 1).map { $0.name }.joined(separator: ", ")
-                result =
-                    "\(result).flatMap { \(parameters[i - 1].name) in \(generators[i]).map { \(parameters[i].name) in (\(paramNames)) } }"
-            }
-            return result
-        }
-    }
-
-    private static func buildClosureParameters(_ parameters: [ExtractedParameter]) -> String {
-        parameters.map { "\($0.name): \($0.type.description)" }.joined(separator: ", ")
-    }
-
-    private static func buildClosureBody(_ body: CodeBlockSyntax) -> String {
-        body.statements.map { $0.description }.joined(separator: "\n")
     }
 
     private static func buildResultHandling(
