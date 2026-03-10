@@ -1,7 +1,7 @@
 # Pre-commit hooks configuration
 # Install with: pip install pre-commit && pre-commit install
 
-default_install_hook_types: [ pre-commit ]
+default_install_hook_types: [ pre-commit, commit-msg ]
 default_stages: [ pre-commit ]
 
 repos:
@@ -23,6 +23,13 @@ repos:
     exclude: ^Packages/InvariantSwiftMacros/Tests/InvariantSwiftMacroTests/Resources/
     pass_filenames: true
 
+  - id: strip-ai-coauthors
+    name: 🤖 Stripping AI co-author trailers...
+    entry: bash Tools/strip_ai_coauthors.sh
+    language: system
+    stages: [ commit-msg ]
+    pass_filenames: true
+
   - id: branch-guardian
     name: 🚫 Checking branch protection...
     entry: bash -c 'BRANCH=$(git rev-parse --abbrev-ref HEAD); if [ "$BRANCH" = "main" ] || [ "$BRANCH" = "dev" ]; then echo "🛑 Direct commits to $BRANCH branch are not allowed! Use feature branches and PRs instead 🚀"; exit 1; fi'
@@ -38,13 +45,6 @@ repos:
     pass_filenames: false
     always_run: true
 
-  - id: changelog-enforcer
-    name: 📝 Checking CHANGELOG updates...
-    entry: bash -c 'if [ -f "CHANGELOG.md" ] && git diff --cached --name-only | grep -v "CHANGELOG.md" | grep -q "\."; then if ! git diff --cached --name-only | grep -q "CHANGELOG.md"; then echo "🛑 Changes detected but CHANGELOG.md was not updated! Please update the changelog."; exit 1; fi; fi'
-    language: system
-    pass_filenames: false
-    always_run: true
-    exclude: '^(\.pre-commit-config\.yaml|\.gitignore|CHANGELOG\.md)$'
 
   - id: prevent-swift-disabled-files
     name: 🚫 Preventing .swift.disabled files from being committed...

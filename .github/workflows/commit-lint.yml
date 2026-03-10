@@ -1,15 +1,24 @@
 name: Commit Lint
 
+# Runs on every push and every PR, for every branch.
+# Enforces Conventional Commits and rejects AI agent co-author trailers.
+
 on:
   push:
-    branches: [main]
+    branches: ['**']
   pull_request:
-    branches: [main]
+    branches: ['**']
+
+concurrency:
+  group: commit-lint-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   commitlint:
     name: Validate Commits
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout
@@ -21,35 +30,62 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
 
       - name: Install commitlint
-        run: |
-          npm install --save-dev @commitlint/cli @commitlint/config-conventional
-
-      - name: Create commitlint config
-        run: |
-          # Ignore the coding-agent bootstrap commit created by report_progress.
-          cat > commitlint.config.js << 'EOF'
-          module.exports = {
-            extends: ['@commitlint/config-conventional'],
-            defaultIgnores: true,
-            ignores: [(message) => message.trim().startsWith('Initial plan')],
-          };
-          EOF
+        run: npm ci --prefer-offline
 
       - name: Validate PR commits
         if: github.event_name == 'pull_request'
         run: |
           echo "Validating commits from ${{ github.event.pull_request.base.sha }} to ${{ github.event.pull_request.head.sha }}"
-          npx commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose
+          npx commitlint \
+            --from ${{ github.event.pull_request.base.sha }} \
+            --to ${{ github.event.pull_request.head.sha }} \
+            --config commitlint.config.js \
+            --verbose
 
       - name: Validate push commits
         if: github.event_name == 'push'
         run: |
           if [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
-            echo "New branch detected, validating HEAD commit only"
-            npx commitlint --from HEAD~1 --to HEAD --verbose
+            echo "New branch — validating HEAD commit only"
+            npx commitlint --from HEAD~1 --to HEAD --config commitlint.config.js --verbose
           else
             echo "Validating commits from ${{ github.event.before }} to ${{ github.sha }}"
-            npx commitlint --from ${{ github.event.before }} --to ${{ github.sha }} --verbose
+            npx commitlint \
+              --from ${{ github.event.before }} \
+              --to ${{ github.sha }} \
+              --config commitlint.config.js \
+              --verbose
           fi
+
+      - name: Reject AI co-author trailers
+        run: |
+          # Determine the range of commits to inspect.
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            FROM="${{ github.event.pull_request.base.sha }}"
+            TO="${{ github.event.pull_request.head.sha }}"
+          elif [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
+            FROM="HEAD~1"
+            TO="HEAD"
+          else
+            FROM="${{ github.event.before }}"
+            TO="${{ github.sha }}"
+          fi
+
+          # Collect all commit messages in range.
+          MESSAGES=$(git log --format="%B" "${FROM}..${TO}" 2>/dev/null || git log --format="%B" HEAD~1..HEAD)
+
+          # Check for AI agent co-author trailers (case-insensitive).
+          AI_PATTERN='(?i)^Co-Authored-By:.*\b(claude|anthropic|copilot|github-actions\[bot\]|gemini|chatgpt|openai)\b'
+          if echo "${MESSAGES}" | grep -Pq "${AI_PATTERN}"; then
+            echo "::error::AI agent Co-Authored-By trailers found in commits. Remove them before merging."
+            echo ""
+            echo "Offending lines:"
+            echo "${MESSAGES}" | grep -Pi "${AI_PATTERN}"
+            exit 1
+          fi
+
+          echo "No AI co-author trailers found."

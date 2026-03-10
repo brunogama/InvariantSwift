@@ -1,0 +1,121 @@
+name: Release on Merge
+
+# Runs when a PR is merged to main (or a direct push lands on main).
+# Sequence: generate changelog → determine version → tag → GitHub release.
+# Documentation is handled by docs.yml, which triggers on the published release event.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-on-merge
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Changelog, Tag, and Release
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip release]') && !contains(github.event.head_commit.message, '[skip ci]')"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install git-cliff
+        run: |
+          set -euo pipefail
+
+          GIT_CLIFF_VERSION="2.7.0"
+          GIT_CLIFF_ARCHIVE="git-cliff-${GIT_CLIFF_VERSION}-x86_64-unknown-linux-gnu.tar.gz"
+          # SHA512 from the official v2.7.0 release assets.
+          GIT_CLIFF_SHA512="9a8f22829deb31b3004c2f789dad77c526447aecd272ed64041a046e5a4386b527851d4a65fa1a4b1a4e75b7f50bc71c118507c7bbbd225b49da2f2a3e030f0e"
+
+          curl -sSfL \
+            -o "${GIT_CLIFF_ARCHIVE}" \
+            "https://github.com/orhun/git-cliff/releases/download/v${GIT_CLIFF_VERSION}/${GIT_CLIFF_ARCHIVE}"
+
+          echo "${GIT_CLIFF_SHA512}  ${GIT_CLIFF_ARCHIVE}" | sha512sum -c -
+
+          tar xzf "${GIT_CLIFF_ARCHIVE}"
+          sudo mv "git-cliff-${GIT_CLIFF_VERSION}/git-cliff" /usr/local/bin/
+          rm -rf "${GIT_CLIFF_ARCHIVE}" "git-cliff-${GIT_CLIFF_VERSION}"
+
+      - name: Determine next version
+        id: version
+        run: |
+          eval "$(bash Tools/release/next_version.sh)"
+          echo "should_release=${should_release}" >> "$GITHUB_OUTPUT"
+          echo "previous_tag=${previous_tag}"      >> "$GITHUB_OUTPUT"
+          echo "bump=${bump}"                      >> "$GITHUB_OUTPUT"
+          echo "version=${version}"                >> "$GITHUB_OUTPUT"
+          echo "tag=${tag}"                        >> "$GITHUB_OUTPUT"
+
+      - name: Skip when no release needed
+        if: steps.version.outputs.should_release != 'true'
+        run: echo "No releasable commits since last tag. Skipping."
+
+      - name: Generate changelog
+        if: steps.version.outputs.should_release == 'true'
+        id: changelog
+        run: |
+          # Generate the full CHANGELOG.md
+          git-cliff \
+            --config .github/cliff.toml \
+            --tag "${{ steps.version.outputs.tag }}" \
+            --output CHANGELOG.md
+
+          # Extract only the section for this release (for the GitHub release body)
+          git-cliff \
+            --config .github/cliff.toml \
+            --tag "${{ steps.version.outputs.tag }}" \
+            --unreleased \
+            --strip header \
+            --output release-notes.md
+
+          echo "Release notes preview:"
+          cat release-notes.md
+
+      - name: Commit updated changelog
+        if: steps.version.outputs.should_release == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md
+          git diff --cached --quiet && echo "No changelog changes to commit" && exit 0
+          git commit -m "docs: update changelog for ${{ steps.version.outputs.tag }} [skip release]"
+          push_output="$(git push 2>&1)" && echo "${push_output}" || {
+            echo "${push_output}"
+            if echo "${push_output}" | grep -qE 'GH006|protected branch'; then
+              echo "Push skipped: branch protection in effect. Changelog will be in the release artifact only."
+            else
+              echo "git push failed with an unexpected error."
+              exit 1
+            fi
+          }
+
+      - name: Create and push tag
+        if: steps.version.outputs.should_release == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "${{ steps.version.outputs.tag }}" \
+            -m "Release ${{ steps.version.outputs.tag }}"
+          git push origin "${{ steps.version.outputs.tag }}"
+
+      - name: Create GitHub release
+        if: steps.version.outputs.should_release == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ steps.version.outputs.tag }}" \
+            --target "${{ github.sha }}" \
+            --title "${{ steps.version.outputs.tag }}" \
+            --notes-file release-notes.md

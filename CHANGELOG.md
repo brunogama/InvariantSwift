@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Fix**: Remove Swift 6-redundant StrictConcurrency upcoming feature flags and unsafe -strict-concurrency=complete flags from root and macros Package.swift; fix docs.yml to use swift package generate-documentation instead of xcodebuild docbuild; fix changelog.yml to tolerate push rejections from branch-protected main
 - **Fix**: Remove StrictConcurrency flags from `Packages/InvariantSwiftCore/Package.swift` and `Package.binary.swift` to align all manifests with Swift 6 defaults; harden changelog workflow git push to only treat GH006 protected-branch rejections as non-fatal
 - **Fix**: Documentation Check workflow fails because `check_docs.py` exits 1 when undocumented symbols exist; capture exit code with `|| true` so the step proceeds to parse the JSON and report coverage instead of aborting
+- **Feat**: Add `release-on-merge.yml` to consolidate changelog generation (git-cliff), semver tagging, and GitHub release into a single ordered workflow triggered on merge to main; disable standalone `changelog.yml` and `release.yml` to eliminate race conditions
+- **Feat**: Add `commitlint.config.js` and `package.json` to version-control conventional commit rules; update `pr-validation.yml` commitlint-check to use checked-in config with npm caching; disable redundant standalone `commit-lint.yml`
+- **Feat**: Re-enable `commit-lint.yml` for all branches (push and PR); add AI co-author trailer detection step that rejects Claude/Anthropic/Copilot/Gemini/ChatGPT/OpenAI `Co-Authored-By` lines; add `strip-ai-coauthors` commit-msg pre-commit hook that removes them locally before commit lands
 
 ## [0.2.0] - 2026-03-10
 - **Fix**: Correct the documentation coverage workflow to run `Tools/check_docs.py` and align mutation-testing commit lint with the primary PR validation policy
