@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 - **Fix**: Correct the documentation coverage workflow to run `Tools/check_docs.py` and align mutation-testing commit lint with the primary PR validation policy
 - **Fix**: Resolve Ghostwriter renderer review findings, avoid the `ShrinkTree.findMinimalParallel` Swift 6.2.4 release-build optimizer crash, and restore root-package CI compatibility with Xcode `xcodebuild` by lowering the umbrella manifest tools version to `6.0`
+- **Docs**: Standardize transient agent context storage under `.llm/{DIR}/` and document `.context/` as legacy-only
 - **Feat**: Add automated release tagging from `main` using conventional-commit semver bumping and rebuild documentation automatically on `main` and published releases
 - **Fix**: Align PR validation and xcode CI jobs with Swift 6.2.4, export the installed toolchain to `xcodebuild`, and make the PR format gate check actual formatting diffs instead of unrelated strict doc-style linting
 - **Fix**: Add `Sendable` return constraints to actor-crossing async helpers in `AsyncProperties` and `GeneratorRegistry` for Swift 6.2 strict concurrency builds
