@@ -1,10 +1,11 @@
 name: Commit Lint
+# Superseded by the commitlint-check job in pr-validation.yml, which is a required
+# PR gate and uses the checked-in commitlint.config.js with npm caching.
+# Disabled by setting an impossible trigger.
 
 on:
   push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+    branches: ['_disabled_commit-lint_superseded_by_pr-validation']
 
 jobs:
   commitlint:
