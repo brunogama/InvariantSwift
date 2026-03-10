@@ -1,0 +1,32 @@
+@Tutorial(time: 10) {
+  @Intro(title: "Document pure helper contracts") {
+    Use ``Pure`` when you want the test declaration itself to say that a helper should behave like a side-effect-free, deterministic function.
+  }
+
+  @Section(title: "Annotate a formatting helper") {
+    @ContentAndMedia {
+      `@Pure` is useful for helpers that should be safe to cache, parallelize, or reorder.
+
+      ```swift
+      import InvariantSwiftTesting
+
+      @Pure(iterations: 200, callCount: 3)
+      func renderSummary(name: String, count: Int) -> String {
+        "\\(name): \\(count)"
+      }
+      ```
+    }
+  }
+
+  @Section(title: "Use it as a contract marker") {
+    @ContentAndMedia {
+      The macro checks repeatability, but the stronger value is communicative: it tells maintainers this function is expected to stay side-effect free.
+    }
+  }
+
+  @Section(title: "Remember the limitation") {
+    @ContentAndMedia {
+      `@Pure` cannot prove the absence of hidden mutation, logging, persistence, or network I/O. Use it after code review has already established that the implementation is meant to be pure.
+    }
+  }
+}

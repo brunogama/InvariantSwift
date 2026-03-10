@@ -38,3 +38,12 @@ If you only need generators, shrinking, and the core property runner without Swi
 - ``FailurePersistenceManager/loadReplayFailures(forTest:maxExamples:)``
 - ``executePersistedFailureReplay(_:baseConfig:persistedFailure:testName:labels:file:line:)``
 - ``executePersistedFailureReplayAsync(_:baseConfig:persistedFailure:testName:labels:timeoutSeconds:file:line:)``
+
+### Specialized Macros
+
+- <doc:SpecializedMacroUseCases>
+- <doc:ChoosingAssertionMacros>
+- <doc:SpecializedMacroTutorials>
+- ``Idempotent(iterations:applicationCount:)``
+- ``Deterministic(iterations:callCount:)``
+- ``Pure(iterations:callCount:)``

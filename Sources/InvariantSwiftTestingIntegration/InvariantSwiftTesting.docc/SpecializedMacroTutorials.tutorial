@@ -1,0 +1,13 @@
+@Tutorials(name: "Specialized Macro Tutorials") {
+  @Intro(title: "Learn the non-property macros") {
+    Use the assertion-style macros when a reusable law already describes the behavior you need to test.
+  }
+
+  @Chapter(name: "Three Common Use Cases") {
+    Add focused tests for normalization, deterministic helpers, and pure utility functions.
+
+    @TutorialReference(tutorial: "doc:EnforceNormalizationIdempotence")
+    @TutorialReference(tutorial: "doc:VerifyDeterministicKeyGeneration")
+    @TutorialReference(tutorial: "doc:DocumentPureHelperContracts")
+  }
+}

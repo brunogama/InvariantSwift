@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 - **Fix**: Correct the documentation coverage workflow to run `Tools/check_docs.py` and align mutation-testing commit lint with the primary PR validation policy
 - **Fix**: Resolve Ghostwriter renderer review findings, avoid the `ShrinkTree.findMinimalParallel` Swift 6.2.4 release-build optimizer crash, and restore root-package CI compatibility with Xcode `xcodebuild` by lowering the umbrella manifest tools version to `6.0`
+- **Docs**: Add articles and tutorials for the specialized assertion macros, covering idempotence, determinism, and purity use cases
 - **Docs**: Add an `InvariantSwiftTesting` DocC catalog with article and tutorial pages for Swift Testing integration
 - **Docs**: Add a Swift Testing integration guide and update README examples to point at `InvariantSwiftTesting`
 - **Docs**: Standardize transient agent context storage under `.llm/{DIR}/` and document `.context/` as legacy-only
