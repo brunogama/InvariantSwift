@@ -69,6 +69,13 @@ Multiple agents may work in the same worktree. Protect other agents’ changes.
 - No fluff.
 - No emojis in commits, issues, PR comments, or code comments unless the user explicitly asked for them.
 
+## Context Storage
+- Store transient agent context, scratch notes, logs, and task state under `.llm/{DIR}/`.
+- Choose `{DIR}` per task or per agent to avoid collisions when multiple agents share the same worktree.
+- Do not use `.context/` for new work. It is treated as a legacy location only.
+- Treat `.llm/` contents as disposable working state, not as tracked project source.
+- If temporary context needs to become durable documentation, promote it into a tracked docs path explicitly.
+
 ## Repository References
 - `RULES.md` is the canonical source for:
   - definition of done

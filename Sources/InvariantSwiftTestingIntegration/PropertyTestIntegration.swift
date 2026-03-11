@@ -116,7 +116,13 @@ public macro PropertyTest(
   _ name: String? = nil,
   iterations: Int = 100,
   seed: UInt64? = nil,
-  maxShrinks: Int = 1000
+  maxShrinks: Int = 1000,
+  tags: [Tag] = [],
+  bugs: [Bug] = [],
+  serialized: Bool = false,
+  timeLimit: TimeLimitTrait.Duration? = nil,
+  enabledIf: Bool? = nil,
+  disabledReason: String? = nil
 ) = #externalMacro(module: "InvariantSwiftMacros", type: "PropertyTestMacro")
 
 // MARK: - Swift Testing Integration Utilities
@@ -180,58 +186,17 @@ public macro PropertyTest(
 public func checkProperty<T: Sendable>(
   _ property: Property<T>,
   config: PropertyConfig = .default,
-  file: StaticString = #file,
+  file: StaticString = #filePath,
   line: UInt = #line
 ) async throws {
-  let runner = PropertyRunner(seed: config.seed)
-  let result = await runner.runProperty(property, config: config)
-
-  switch result {
-  case .success:
-    break  // Test passes; no issue to record
-
-  case .failure(let counterexample, let iterations, let shrunk, let reason, let seed):
-    let reproString = result.reproString?.description ?? "N/A"
-    let printer = PrettyPrinter(config: .testOutput)
-
-    let counterexampleStr: String
-    if let printable = counterexample as? PrettyPrintable {
-      // swiftlint:disable:next no_print
-      counterexampleStr = printer.print(printable)
-    } else {
-      counterexampleStr = "\(counterexample)"
-    }
-
-    let shrunkStr: String
-    if let printable = shrunk as? PrettyPrintable {
-      // swiftlint:disable:next no_print
-      shrunkStr = printer.print(printable)
-    } else {
-      shrunkStr = "\(shrunk)"
-    }
-
-    let message = """
-      Property failed after \(iterations) iterations (\(reason)).
-
-      Counterexample:
-        \(counterexampleStr)
-
-      Shrunk counterexample:
-        \(shrunkStr)
-
-      Seed: \(seed.rawValue)
-      \(reproString)
-      """
-    Issue.record(Comment(stringLiteral: message))
-
-  case .gaveUp(let discarded, let iterations):
-    let message = """
-      Property gave up after discarding \(discarded) cases in \(iterations) iterations.
-      This usually means your property predicate is too restrictive.
-      Consider loosening the predicate or using a more focused generator.
-      """
-    Issue.record(Comment(stringLiteral: message))
-  }
+  try executeGeneratedPropertyTest(
+    property,
+    config: config,
+    testName: currentPropertyTestName(),
+    labels: PropertyTestContext.current?.labels ?? [],
+    file: file,
+    line: line
+  )
 }
 
 /// Asynchronously execute a property-based test with integration to Swift Testing.
@@ -319,56 +284,17 @@ public func checkProperty<T: Sendable>(
 public func checkPropertyAsync<T: Sendable>(
   _ property: Property<T>,
   config: PropertyConfig = .default,
-  file: StaticString = #file,
+  file: StaticString = #filePath,
   line: UInt = #line
 ) async throws {
-  let runner = PropertyRunner(seed: config.seed)
-  let result = await runner.runProperty(property, config: config)
-
-  switch result {
-  case .success:
-    break  // Test passes; no issue to record
-
-  case .failure(let counterexample, let iterations, let shrunk, _, let seed):
-    let printer = PrettyPrinter(config: .testOutput)
-
-    let counterexampleStr: String
-    if let printable = counterexample as? PrettyPrintable {
-      // swiftlint:disable:next no_print
-      counterexampleStr = printer.print(printable)
-    } else {
-      counterexampleStr = "\(counterexample)"
-    }
-
-    let shrunkStr: String
-    if let printable = shrunk as? PrettyPrintable {
-      // swiftlint:disable:next no_print
-      shrunkStr = printer.print(printable)
-    } else {
-      shrunkStr = "\(shrunk)"
-    }
-
-    let message = """
-      Property failed after \(iterations) iterations.
-
-      Counterexample:
-        \(counterexampleStr)
-
-      Shrunk counterexample:
-        \(shrunkStr)
-
-      Reproduction seed: \(seed.rawValue)
-      """
-    Issue.record(Comment(stringLiteral: message))
-
-  case .gaveUp(let discarded, let iterations):
-    let message = """
-      Property gave up after discarding \(discarded) cases in \(iterations) iterations.
-      This usually means your property predicate is too restrictive.
-      Consider loosening the predicate or using a more focused generator.
-      """
-    Issue.record(Comment(stringLiteral: message))
-  }
+  try await executeGeneratedPropertyTestAsync(
+    property,
+    config: config,
+    testName: currentPropertyTestName(),
+    labels: PropertyTestContext.current?.labels ?? [],
+    file: file,
+    line: line
+  )
 }
 
 // MARK: - Utility Functions for Macro-Generated Code
@@ -585,7 +511,7 @@ extension Gen {
 public func checkProperty<T: Sendable>(
   _ property: ClassifyingProperty<T>,
   config: PropertyConfig = .default,
-  file: StaticString = #file,
+  file: StaticString = #filePath,
   line: UInt = #line
 ) async throws {
   let runner = PropertyRunner(seed: config.seed)
@@ -593,24 +519,31 @@ public func checkProperty<T: Sendable>(
 
   switch result.result {
   case .success:
-    // Attach classification report as comment if non-empty
     let report = result.classification.format()
-    if !report.isEmpty {
-      Issue.record(Comment(stringLiteral: report))
-    }
+    attachClassificationReport(report, file: file, line: line)
 
   case .failure:
     if let failureReport = FailureReport.from(result, config: config) {
       let reporter = FailureReporter(verbose: true)
-      reporter.recordFailure(failureReport, file: file, line: line)
+      reporter.recordFailure(
+        failureReport,
+        labels: PropertyTestContext.current?.labels ?? [],
+        file: file,
+        line: line
+      )
     }
 
   case .gaveUp(let discarded, let iterations):
-    let message = """
-      Property gave up after discarding \(discarded) cases in \(iterations) iterations.
-      This usually means your property predicate is too restrictive.
-      Consider loosening the predicate or using a more focused generator.
-      """
-    Issue.record(Comment(stringLiteral: message))
+    recordPropertyGiveUpIssue(
+      testName: currentPropertyTestName(fallback: "ClassifyingProperty"),
+      discarded: discarded,
+      iterations: iterations,
+      seed: config.seed?.rawValue ?? PropertyTestContext.current?.seed,
+      context: PropertyIssueContext(
+        labels: PropertyTestContext.current?.labels ?? [],
+        file: file,
+        line: line
+      )
+    )
   }
 }

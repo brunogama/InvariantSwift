@@ -19,6 +19,7 @@ excluded:
 - Sources/FuncTestCLI  # CLI tools use print statements
 - Sources/GhostwriterCLI  # CLI tools use print statements
 - Tests/InvariantSwiftMacroTests/Resources  # Macro expansion output
+- Packages/InvariantSwiftMacros/Tests/InvariantSwiftMacroTests/Resources  # Macro expansion output
 
 # Enabled rules beyond default
 opt_in_rules:

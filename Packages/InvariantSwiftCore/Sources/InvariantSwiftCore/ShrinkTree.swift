@@ -1,7 +1,7 @@
 /// ShrinkTree - Lazy tree structure for deterministic shrinking
 ///
-/// Represents shrink candidates as a lazy tree, enabling BFS search
-/// for minimal counterexamples instead of greedy-first shrinking.
+/// Represents shrink candidates as a lazy tree with deterministic,
+/// order-preserving search for minimal counterexamples.
 
 import Foundation
 
@@ -11,7 +11,7 @@ import Foundation
 ///
 /// `ShrinkTree<T>` represents a value and its potential simplifications
 /// (shrinks) as children. This tree structure enables:
-/// - **BFS shrinking**: Find truly minimal counterexamples
+/// - **Ordered shrinking**: Respect generator-provided simplification order
 /// - **Lazy evaluation**: Children computed only when needed
 /// - **Deterministic order**: Reproducible shrink sequences
 ///
@@ -161,11 +161,11 @@ extension ShrinkTree {
 // MARK: - Search
 
 extension ShrinkTree {
-  /// Finds the minimal value satisfying a predicate using BFS.
+  /// Finds the minimal value satisfying a predicate using deterministic tree order.
   ///
-  /// Searches the shrink tree breadth-first, looking for the smallest
-  /// (most shrunk) value that still satisfies the predicate. This finds
-  /// better counterexamples than greedy-first shrinking.
+  /// Searches children in the order produced by the shrink strategy and
+  /// continues down the first satisfying branch. This preserves the
+  /// generator's notion of "simpler" values while remaining deterministic.
   ///
   /// - Parameters:
   ///   - budget: Maximum number of nodes to visit
@@ -173,28 +173,10 @@ extension ShrinkTree {
   ///
   /// - Returns: The minimal satisfying value, or nil if none found within budget
   ///
-  /// - Complexity: O(budget) time, O(width) space for the BFS queue
+  /// - Complexity: O(budget) time, O(depth) space for recursion
   public func findMinimal(budget: Int, satisfying predicate: (T) -> Bool) -> T? {
-    // Start with root if it satisfies predicate
-    guard predicate(value) else { return nil }
-
-    var best: T = value
-    var queue: [ShrinkTree<T>] = children
-    var visited = 0
-
-    while !queue.isEmpty && visited < budget {
-      let current = queue.removeFirst()
-      visited += 1
-
-      if predicate(current.value) {
-        // Found a smaller value that still satisfies
-        best = current.value
-        // Continue searching this branch for even smaller values
-        queue.append(contentsOf: current.children)
-      }
-    }
-
-    return best
+    var remainingBudget = max(0, budget)
+    return findMinimalInOrder(remainingBudget: &remainingBudget, satisfying: predicate)
   }
 
   @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
@@ -202,23 +184,11 @@ extension ShrinkTree {
     budget: Int,
     satisfying predicate: @escaping @Sendable (T) async -> Bool
   ) async -> T? {
-    guard await predicate(value) else { return nil }
-
-    var best: T = value
-    var queue: [ShrinkTree<T>] = children
-    var visited = 0
-
-    while !queue.isEmpty && visited < budget {
-      let current = queue.removeFirst()
-      visited += 1
-
-      if await predicate(current.value) {
-        best = current.value
-        queue.append(contentsOf: current.children)
-      }
-    }
-
-    return best
+    var remainingBudget = max(0, budget)
+    return await findMinimalInOrderAsync(
+      remainingBudget: &remainingBudget,
+      satisfying: predicate
+    )
   }
 
   /// Breadth-first traversal of all values in the tree.
@@ -246,6 +216,51 @@ extension ShrinkTree {
       result.append(contentsOf: child.depthFirst())
     }
     return result
+  }
+}
+
+private extension ShrinkTree {
+  func findMinimalInOrder(
+    remainingBudget: inout Int,
+    satisfying predicate: (T) -> Bool
+  ) -> T? {
+    guard predicate(value) else { return nil }
+
+    for child in children {
+      guard remainingBudget > 0 else { break }
+      remainingBudget -= 1
+
+      if let minimal = child.findMinimalInOrder(
+        remainingBudget: &remainingBudget,
+        satisfying: predicate
+      ) {
+        return minimal
+      }
+    }
+
+    return value
+  }
+
+  @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
+  func findMinimalInOrderAsync(
+    remainingBudget: inout Int,
+    satisfying predicate: @escaping @Sendable (T) async -> Bool
+  ) async -> T? {
+    guard await predicate(value) else { return nil }
+
+    for child in children {
+      guard remainingBudget > 0 else { break }
+      remainingBudget -= 1
+
+      if let minimal = await child.findMinimalInOrderAsync(
+        remainingBudget: &remainingBudget,
+        satisfying: predicate
+      ) {
+        return minimal
+      }
+    }
+
+    return value
   }
 }
 

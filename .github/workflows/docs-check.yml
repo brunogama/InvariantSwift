@@ -7,15 +7,23 @@ on:
   pull_request:
     paths:
       - 'Sources/**/*.swift'
+      - 'Sources/**/*.docc/**'
       - 'docs/**'
+      - 'Tools/build_docc_site.sh'
       - 'Package.swift'
+      - '.github/workflows/docs.yml'
+      - '.github/workflows/docs-check.yml'
   push:
     branches:
       - main
     paths:
       - 'Sources/**/*.swift'
+      - 'Sources/**/*.docc/**'
       - 'docs/**'
+      - 'Tools/build_docc_site.sh'
       - 'Package.swift'
+      - '.github/workflows/docs.yml'
+      - '.github/workflows/docs-check.yml'
   workflow_dispatch:
 
 concurrency:
@@ -23,6 +31,26 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  build-docc-site:
+    name: Build DocC Site
+    runs-on: macos-15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '26.3'
+
+      - name: Build DocC static site
+        run: |
+          chmod +x Tools/build_docc_site.sh
+          DOCC_SCHEME=InvariantSwiftTesting \
+          DOCC_OUTPUT_PATH=.build/docc-site \
+          Tools/build_docc_site.sh
+
   documentation-coverage:
     name: Documentation Coverage
     runs-on: ubuntu-latest

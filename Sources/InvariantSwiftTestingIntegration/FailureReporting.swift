@@ -71,14 +71,12 @@ public struct FailureReport: Sendable {
     self.classificationReport = classificationReport
   }
 
-  /// Command to reproduce this failure.
+  /// Reproduction hint for this failure.
+  ///
+  /// Runs the failing test by name. To reproduce deterministically, add
+  /// `seed: \(seed.rawValue)` to the `@PropertyTest` annotation before running.
   public var reproductionCommand: String {
-    "swift test --filter \(testName) --env INVARIANT_SWIFT_SEED=\(seed.rawValue)"
-  }
-
-  /// Environment variable for reproduction.
-  public var reproductionEnvVar: String {
-    "INVARIANT_SWIFT_SEED=\(seed.rawValue)"
+    "swift test --filter \(testName)  # To reproduce: @PropertyTest(seed: \(seed.rawValue))"
   }
 }
 
@@ -141,11 +139,29 @@ public struct FailureReporter: Sendable {
   ///   - line: Source line (auto-captured).
   public func recordFailure(
     _ report: FailureReport,
-    file: StaticString = #file,
+    file: StaticString = #filePath,
     line: UInt = #line
   ) {
-    let message = formatMessage(report)
-    Issue.record(Comment(stringLiteral: message))
+    recordFailure(report, labels: [], file: file, line: line)
+  }
+
+  /// Records a failure with additional property metadata for attachment-backed diagnostics.
+  public func recordFailure(
+    _ report: FailureReport,
+    labels: [String],
+    replayFailureID: UUID? = nil,
+    file: StaticString = #filePath,
+    line: UInt = #line
+  ) {
+    recordPropertyFailureIssue(
+      report,
+      context: PropertyIssueContext(
+        labels: labels,
+        file: file,
+        line: line,
+        replayFailureID: replayFailureID
+      )
+    )
   }
 
   /// Records a failure and optionally persists it.
@@ -157,17 +173,13 @@ public struct FailureReporter: Sendable {
     recordFailure(report)
 
     if persist, let persistence = persistence {
-      let persisted = PersistedFailure(
-        testName: report.testName,
-        seed: report.seed.rawValue,
-        originalValue: report.originalValue,
-        shrunkValue: report.shrunkValue,
-        iterationsBeforeFailure: report.iterationsBeforeFailure,
-        shrinkAttempts: report.shrinkAttempts,
-        failureReason: report.failureReason.description
-      )
-
-      try? persistence.save(persisted)
+      do {
+        try persistence.save(PersistedFailure(report: report))
+      } catch {
+        Issue.record(
+          Comment(rawValue: "Failed to persist failure for replay: \(error.localizedDescription)")
+        )
+      }
     }
   }
 
@@ -227,21 +239,23 @@ public struct FailureReporter: Sendable {
       ║ REPRODUCTION:
       ║   Seed: \(report.seed.rawValue)
       ║   Command: \(report.reproductionCommand)
-      ║   Environment: \(report.reproductionEnvVar)
       """
 
+    let separator =
+      "╠══════════════════════════════════════════════════════════════════════════════╣"
+    let footer =
+      "╚══════════════════════════════════════════════════════════════════════════════╝"
+
     if let classificationReport = report.classificationReport, !classificationReport.isEmpty {
-      message +=
-        "\n╠══════════════════════════════════════════════════════════════════════════════╣\n"
+      message += "\n\(separator)\n"
       message += "║ CLASSIFICATION:\n"
-      // Indent classification report
       let lines = classificationReport.split(separator: "\n")
       for line in lines {
         message += "║   \(line)\n"
       }
     }
 
-    message += "╚══════════════════════════════════════════════════════════════════════════════╝"
+    message += footer
 
     return message
   }
@@ -251,7 +265,7 @@ public struct FailureReporter: Sendable {
 // MARK: - Report Builder
 
 /// Builder for creating failure reports with fluent API.
-public final class FailureReportBuilder: @unchecked Sendable {
+public struct FailureReportBuilder: Sendable {
   private var testName: String = "unknown"
   private var seed = Seed.random
   private var originalValue: String = ""
@@ -264,53 +278,53 @@ public final class FailureReportBuilder: @unchecked Sendable {
 
   public init() {}
 
-  @discardableResult
   public func testName(_ name: String) -> Self {
-    self.testName = name
-    return self
+    var copy = self
+    copy.testName = name
+    return copy
   }
 
-  @discardableResult
   public func seed(_ seed: Seed) -> Self {
-    self.seed = seed
-    return self
+    var copy = self
+    copy.seed = seed
+    return copy
   }
 
-  @discardableResult
   public func originalValue<T>(_ value: T) -> Self {
-    self.originalValue = String(describing: value)
-    return self
+    var copy = self
+    copy.originalValue = String(describing: value)
+    return copy
   }
 
-  @discardableResult
   public func shrunkValue<T>(_ value: T) -> Self {
-    self.shrunkValue = String(describing: value)
-    return self
+    var copy = self
+    copy.shrunkValue = String(describing: value)
+    return copy
   }
 
-  @discardableResult
   public func iterations(_ count: Int) -> Self {
-    self.iterations = count
-    return self
+    var copy = self
+    copy.iterations = count
+    return copy
   }
 
-  @discardableResult
   public func shrinking(attempts: Int, successful: Int) -> Self {
-    self.shrinkAttempts = attempts
-    self.successfulShrinks = successful
-    return self
+    var copy = self
+    copy.shrinkAttempts = attempts
+    copy.successfulShrinks = successful
+    return copy
   }
 
-  @discardableResult
   public func reason(_ reason: FailureReason) -> Self {
-    self.failureReason = reason
-    return self
+    var copy = self
+    copy.failureReason = reason
+    return copy
   }
 
-  @discardableResult
   public func time(_ time: TimeInterval) -> Self {
-    self.totalTime = time
-    return self
+    var copy = self
+    copy.totalTime = time
+    return copy
   }
 
   public func build() -> FailureReport {

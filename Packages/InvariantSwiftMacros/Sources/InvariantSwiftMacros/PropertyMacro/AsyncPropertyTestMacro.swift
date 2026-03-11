@@ -34,6 +34,7 @@ public struct AsyncPropertyTestMacro: PeerMacro {
     providingPeersOf declaration: some DeclSyntaxProtocol,
     in context: some MacroExpansionContext
   ) throws -> [DeclSyntax] {
+    let macroContext = MacroContext(context: context)
 
     guard let funcDecl = declaration.as(FunctionDeclSyntax.self) else {
       throw AsyncPropertyTestError.notAFunction
@@ -41,6 +42,15 @@ public struct AsyncPropertyTestMacro: PeerMacro {
 
     // Extract configuration from attribute arguments
     let config = extractConfig(from: node)
+    let swiftTestingTraits = SwiftTestingTraitExtractor.extract(from: node)
+
+    if swiftTestingTraits.hasConflictingConditions {
+      macroContext.error(
+        "`enabledIf` and `disabledReason` cannot both be set on the same property test",
+        at: node
+      )
+      return []
+    }
 
     // Extract parameters using existing infrastructure
     let parameters = ParameterExtractor.extract(from: funcDecl)
@@ -61,6 +71,7 @@ public struct AsyncPropertyTestMacro: PeerMacro {
       parameters: parameters,
       body: body,
       config: config,
+      swiftTestingTraits: swiftTestingTraits,
       isMainActor: isMainActor
     )
 
@@ -116,20 +127,23 @@ public struct AsyncPropertyTestMacro: PeerMacro {
     parameters: [ExtractedParameter],
     body: CodeBlockSyntax,
     config: AsyncPropertyTestConfig,
+    swiftTestingTraits: SwiftTestingTraitConfig,
     isMainActor: Bool
   ) -> FunctionDeclSyntax {
 
     let newName = "\(funcDecl.name.text)_AsyncPropertyTest"
+    let labels = PropertyFailureFormatter.extractLabels(from: parameters)
 
     // Build attributes
-    var attributesList: [AttributeListSyntax.Element] = []
-
-    // Add @Test attribute
-    attributesList.append(
-      .attribute(
-        AttributeSyntax(
-          atSign: .atSignToken(),
-          attributeName: IdentifierTypeSyntax(name: .identifier("Test"))
+    var attributesList = Array(
+      SwiftTestingTraitBuilder.buildTestAttribute(
+        GeneratedTestAttributeRequest(
+          displayName: funcDecl.name.text,
+          traits: swiftTestingTraits,
+          labels: labels,
+          configuredSeed: nil,
+          includeReplayTag: false,
+          arguments: nil
         )
       )
     )

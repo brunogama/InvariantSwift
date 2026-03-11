@@ -192,10 +192,8 @@ struct TestGeneratorTests {
 
   @Test("TestGenerator generates tests for type with patterns")
   func generateTestsForType() {
-    let config = GhostwriterConfig(
-      sources: [],
-      supportedArbitraryTypes: []
-    )
+    // Opt out of built-in type filtering so this synthetic type can generate tests.
+    let config = GhostwriterConfig(sources: [], supportedArbitraryTypes: [])
     let generator = TestGenerator(config: config)
 
     let typeInfo = TypeInfo(
