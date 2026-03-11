@@ -31,8 +31,8 @@ if [[ -z "$_RESOLVED" || "$_RESOLVED" == "/" ]]; then
   echo "error: OUTPUT_PATH resolves to a dangerous path: '${_RESOLVED}'" >&2
   exit 1
 fi
-if [[ "$_RESOLVED" != "$_ROOT"/* && "$_RESOLVED" != "$_ROOT" ]]; then
-  echo "error: OUTPUT_PATH resolves outside the project directory: '${_RESOLVED}'" >&2
+if [[ "$_RESOLVED" != "$_ROOT"/* ]]; then
+  echo "error: OUTPUT_PATH must resolve to a subdirectory of the project (got: '${_RESOLVED}')" >&2
   exit 1
 fi
 
