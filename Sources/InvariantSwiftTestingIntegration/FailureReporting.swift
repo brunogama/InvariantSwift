@@ -271,50 +271,42 @@ public struct FailureReportBuilder: Sendable {
 
     public init() {}
 
-    @discardableResult
     public mutating func testName(_ name: String) -> Self {
         self.testName = name
         return self
     }
 
-    @discardableResult
     public mutating func seed(_ seed: Seed) -> Self {
         self.seed = seed
         return self
     }
 
-    @discardableResult
     public mutating func originalValue<T>(_ value: T) -> Self {
         self.originalValue = String(describing: value)
         return self
     }
 
-    @discardableResult
     public mutating func shrunkValue<T>(_ value: T) -> Self {
         self.shrunkValue = String(describing: value)
         return self
     }
 
-    @discardableResult
     public mutating func iterations(_ count: Int) -> Self {
         self.iterations = count
         return self
     }
 
-    @discardableResult
     public mutating func shrinking(attempts: Int, successful: Int) -> Self {
         self.shrinkAttempts = attempts
         self.successfulShrinks = successful
         return self
     }
 
-    @discardableResult
     public mutating func reason(_ reason: FailureReason) -> Self {
         self.failureReason = reason
         return self
     }
 
-    @discardableResult
     public mutating func time(_ time: TimeInterval) -> Self {
         self.totalTime = time
         return self

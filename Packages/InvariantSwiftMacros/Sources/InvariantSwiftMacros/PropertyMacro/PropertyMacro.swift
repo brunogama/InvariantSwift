@@ -40,7 +40,10 @@ public struct PropertyMacro: PeerMacro {
 
         // Extract @Reproduce presence
         let hasReproduce = funcDecl.attributes.contains { attr in
-            attr.as(AttributeSyntax.self)?.attributeName.description.contains("Reproduce") == true
+            guard let attr = attr.as(AttributeSyntax.self),
+                  let name = attr.attributeName.as(IdentifierTypeSyntax.self)
+            else { return false }
+            return name.name.text.contains("Reproduce")
         }
 
         // Extract @Regression config
@@ -155,50 +158,6 @@ public struct PropertyMacro: PeerMacro {
                 }
             )
         )
-    }
-
-    // swiftlint:disable:next function_parameter_count
-    private static func buildTransformedFunction(
-        original funcDecl: FunctionDeclSyntax,
-        parameters: [ExtractedParameter],
-        originalBody: CodeBlockSyntax,
-        config: PropertyMacroConfig,
-        regressionConfig: RegressionConfig?,
-        isAsync: Bool
-    ) -> FunctionDeclSyntax {
-
-        let newName = "\(funcDecl.name.text)_PropertyTest"
-
-        let newBody = buildPropertyTestBody(
-            testName: funcDecl.name.text,
-            parameters: parameters,
-            originalBody: originalBody,
-            config: config,
-            regressionConfig: regressionConfig,
-            timeoutConfig: nil,  // Not used in this path
-            isAsync: isAsync
-        )
-
-        // Preserve original modifiers (do not auto-add static to support file-scope tests)
-        let modifiers = funcDecl.modifiers
-
-        return FunctionDeclSyntax(
-            attributes: buildTestAttribute(),
-            modifiers: modifiers,
-            funcKeyword: .keyword(.func),
-            name: .identifier(newName),
-            signature: isAsync ? buildAsyncThrowsSignature() : buildThrowsSignature(),
-            body: newBody
-        )
-    }
-
-    private static func buildTestAttribute() -> AttributeListSyntax {
-        // NOTE: We do NOT generate @Test here because combining peer macros
-        // (PropertyMacro generates peer + @Test generates peer) causes
-        // Swift symbol resolution failures.
-        // Users should wrap calls to the generated function with @Test manually:
-        //   @Test func myTest() throws { try myProperty_PropertyTest() }
-        AttributeListSyntax {}
     }
 
     private static func buildThrowsSignature() -> FunctionSignatureSyntax {

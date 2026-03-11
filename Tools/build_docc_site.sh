@@ -17,11 +17,20 @@ fi
 DERIVED_DATA="$(mktemp -d)"
 trap 'rm -rf "$DERIVED_DATA"' EXIT
 
-if [[ -z "${OUTPUT_PATH:-}" || "$OUTPUT_PATH" == "/" || "$OUTPUT_PATH" == "." || "$OUTPUT_PATH" == ".." ]]; then
-  echo "error: OUTPUT_PATH is empty or dangerous: '${OUTPUT_PATH:-}'" >&2
+if [[ -z "${OUTPUT_PATH:-}" ]]; then
+  echo "error: OUTPUT_PATH is empty" >&2
   exit 1
 fi
-rm -rf "$OUTPUT_PATH"
+
+# Resolve to an absolute path and verify it is safe before deleting
+_PARENT="$(cd "$(dirname "$OUTPUT_PATH")" 2>/dev/null && pwd)" || true
+_RESOLVED="${_PARENT:+$_PARENT/}$(basename "$OUTPUT_PATH")"
+if [[ -z "$_RESOLVED" || "$_RESOLVED" == "/" ]]; then
+  echo "error: OUTPUT_PATH resolves to a dangerous path: '${_RESOLVED}'" >&2
+  exit 1
+fi
+
+rm -rf "$_RESOLVED"
 
 xcodebuild docbuild \
   -scheme "$SCHEME" \

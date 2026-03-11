@@ -84,7 +84,9 @@ enum MacroRuntimeFixtureSupport {
 
         pipe.fileHandleForReading.readabilityHandler = nil
         let trailing = pipe.fileHandleForReading.readDataToEndOfFile()
-        lock.withLock { collectedData.append(trailing) }
+        if !trailing.isEmpty {
+            lock.withLock { collectedData.append(trailing) }
+        }
 
         let output = String(data: collectedData, encoding: .utf8) ?? ""
 
