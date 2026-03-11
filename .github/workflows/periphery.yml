@@ -1,0 +1,94 @@
+name: Periphery
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'Sources/**/*.swift'
+      - 'Packages/**/*.swift'
+      - 'Package.swift'
+      - '.github/workflows/periphery.yml'
+      - '.periphery.yml'
+  workflow_dispatch:
+  schedule:
+    - cron: '0 4 * * 1'  # Mondays at 04:00 UTC
+
+permissions:
+  contents: read
+  issues: write
+  # Note: if GITHUB_TOKEN is blocked for scheduled issue creation in your org/repo,
+  # create a fine-scoped PAT and store it as CI_ISSUE_TOKEN, then replace
+  # `github-token: ${{ secrets.GITHUB_TOKEN }}` with
+  # `github-token: ${{ secrets.CI_ISSUE_TOKEN }}` in the issue step below.
+
+concurrency:
+  group: periphery-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  periphery:
+    name: Periphery Scan
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode 16.4
+        run: sudo xcode-select -s /Applications/Xcode_16.4.app
+
+      - name: Install Periphery
+        run: brew install peripheryapp/periphery/periphery
+
+      - name: Build (SwiftPM)
+        run: |
+          set -euxo pipefail
+          swift build -c debug
+
+      - name: Scan (Periphery)
+        run: |
+          set -euxo pipefail
+          periphery scan --config .periphery.yml
+
+      - name: Create or Update Issue on Failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const title = "CI: Periphery failing";
+            const runUrl = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`;
+            const body = [
+              "Periphery workflow failed.",
+              "",
+              `Run: ${runUrl}`,
+              `Ref: ${process.env.GITHUB_REF}`,
+              `SHA: ${process.env.GITHUB_SHA}`,
+              "",
+              "Artifacts are available on the run page linked above."
+            ].join("\n");
+
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "open",
+              per_page: 100
+            });
+
+            const existing = issues.find(i => i.title === title);
+
+            if (existing) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.number,
+                body
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+                labels: ["ci", "periphery"]
+              });
+            }

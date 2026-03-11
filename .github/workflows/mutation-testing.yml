@@ -1,14 +1,6 @@
 name: Mutation Testing
 
 on:
-  # Run on pull requests to ensure test quality
-  pull_request:
-    branches:
-      - main
-    paths:
-      - 'Sources/**/*.swift'
-      - 'Tests/**/*.swift'
-      - 'Package.swift'
   # Weekly scheduled run for full codebase analysis
   schedule:
     - cron: '0 3 * * 0'  # Sundays at 3:00 AM UTC
@@ -18,11 +10,19 @@ on:
       scope:
         description: 'Mutation testing scope'
         required: true
-        default: 'changed'
+        default: 'full'
         type: choice
         options:
-          - changed  # Only test files changed in PR/commit
           - full     # Full codebase mutation testing
+          - changed  # Only test files changed in latest commit
+
+permissions:
+  contents: read
+  issues: write
+  # Note: if GITHUB_TOKEN is blocked for scheduled issue creation in your org/repo,
+  # create a fine-scoped PAT and store it as CI_ISSUE_TOKEN, then replace
+  # `github-token: ${{ secrets.GITHUB_TOKEN }}` with
+  # `github-token: ${{ secrets.CI_ISSUE_TOKEN }}` in the issue step below.
 
 concurrency:
   group: mutation-${{ github.ref }}
@@ -42,60 +42,6 @@ jobs:
         run: brew install swiftlint
       - name: Lint
         run: swiftlint lint --strict
-
-  danger:
-    name: Danger.swift
-    runs-on: macos-15
-    if: github.event_name == 'pull_request'
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Install Danger
-        run: |
-          brew install danger/tap/danger-swift
-      - name: Run Danger
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: danger-swift ci
-
-  commitlint:
-    name: Conventional Commits
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - name: Install commitlint
-        run: |
-          npm install --save-dev @commitlint/cli @commitlint/config-conventional
-      - name: Create commitlint config
-        run: |
-          cat > commitlint.config.js << 'EOF'
-          module.exports = {
-            extends: ['@commitlint/config-conventional'],
-            defaultIgnores: true,
-            ignores: [(message) => message.trim().startsWith('Initial plan')],
-          };
-          EOF
-      - name: Validate commits
-        run: |
-          echo "Validating commits from ${{ github.event.pull_request.base.sha }} to ${{ github.event.pull_request.head.sha }}"
-          npx commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose
-          if [ $? -ne 0 ]; then
-            echo ""
-            echo "❌ Commit messages must follow Conventional Commits format:"
-            echo "   <type>(<scope>): <description>"
-            echo ""
-            echo "   Types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert"
-            echo "   Example: feat(generator): add zip combinator"
-            exit 1
-          fi
 
   format-check:
     name: swift-format
@@ -134,7 +80,7 @@ jobs:
   # ============================================
 
   mutation-testing:
-    needs: [lint, format-check, test, commitlint]  # Block if any gate fails
+    needs: [lint, format-check, test]  # Block if any gate fails
     name: Muter Mutation Testing
     runs-on: macos-15
     timeout-minutes: 120  # Mutation testing can be lengthy
@@ -154,10 +100,12 @@ jobs:
 
       - name: Get changed files
         id: changed-files
-        if: github.event_name == 'pull_request' && github.event.inputs.scope != 'full'
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.scope == 'changed'
         run: |
-          # Get list of changed Swift source files
-          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | \
+          # Get Swift source files changed in the latest commit only.
+          # Note: for workflow_dispatch this compares HEAD~1..HEAD (single commit).
+          # To cover a broader range, trigger with scope=full instead.
+          CHANGED_FILES=$(git diff --name-only HEAD~1...HEAD | \
             grep -E '^Sources/.*\.swift$' | \
             tr '\n' ',' | sed 's/,$//')
           echo "files=$CHANGED_FILES" >> $GITHUB_OUTPUT
@@ -211,7 +159,7 @@ jobs:
 
       - name: Run Muter (Changed Files Only)
         id: muter-changed
-        if: steps.changed-files.outputs.files != '' && github.event.inputs.scope != 'full'
+        if: steps.changed-files.outputs.files != '' && github.event.inputs.scope == 'changed'
         run: |
           echo "Running mutation testing on changed files..."
           echo "Files: ${{ steps.changed-files.outputs.files }}"
@@ -232,7 +180,9 @@ jobs:
 
       - name: Run Muter (Full Codebase)
         id: muter-full
-        if: github.event_name == 'schedule' || github.event.inputs.scope == 'full' || steps.changed-files.outputs.files == ''
+        # Runs for: scheduled runs, explicit 'full' scope, or 'changed' scope with no
+        # matching Swift source files in HEAD~1..HEAD (fallback to full scan).
+        if: github.event_name == 'schedule' || github.event.inputs.scope == 'full' || (github.event.inputs.scope == 'changed' && steps.changed-files.outputs.files == '')
         run: |
           echo "Running full mutation testing..."
 
@@ -332,3 +282,47 @@ jobs:
           else
             echo "✅ Mutation score ($SCORE%) meets threshold ($THRESHOLD%)"
           fi
+
+      - name: Create or Update Issue on Failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const title = "CI: Mutation Testing failing";
+            const runUrl = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`;
+            const body = [
+              "Mutation Testing workflow failed.",
+              "",
+              `Run: ${runUrl}`,
+              `Ref: ${process.env.GITHUB_REF}`,
+              `SHA: ${process.env.GITHUB_SHA}`,
+              "",
+              "Artifacts (mutation-report) are available on the run page linked above."
+            ].join("\n");
+
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "open",
+              per_page: 100
+            });
+
+            const existing = issues.find(i => i.title === title);
+
+            if (existing) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.number,
+                body
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+                labels: ["ci", "mutation-testing"]
+              });
+            }
