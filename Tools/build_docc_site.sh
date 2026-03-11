@@ -22,11 +22,17 @@ if [[ -z "${OUTPUT_PATH:-}" ]]; then
   exit 1
 fi
 
-# Resolve to an absolute path and verify it is safe before deleting
+# Resolve to an absolute path and verify it stays within the project root.
+# This guards against path traversal (e.g. DOCC_OUTPUT_PATH=../../etc).
+_ROOT="$(pwd)"
 _PARENT="$(cd "$(dirname "$OUTPUT_PATH")" 2>/dev/null && pwd)" || true
 _RESOLVED="${_PARENT:+$_PARENT/}$(basename "$OUTPUT_PATH")"
 if [[ -z "$_RESOLVED" || "$_RESOLVED" == "/" ]]; then
   echo "error: OUTPUT_PATH resolves to a dangerous path: '${_RESOLVED}'" >&2
+  exit 1
+fi
+if [[ "$_RESOLVED" != "$_ROOT"/* && "$_RESOLVED" != "$_ROOT" ]]; then
+  echo "error: OUTPUT_PATH resolves outside the project directory: '${_RESOLVED}'" >&2
   exit 1
 fi
 

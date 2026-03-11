@@ -1,7 +1,10 @@
 import Foundation
 import MacroTemplateKit
+import SwiftBasicFormat
 import SwiftSyntax
 import SwiftSyntaxBuilder
+
+// MARK: - Public Interface
 
 public enum GhostwriterExpansionRenderer {
   public static func render(file: GhostwriterGeneratedFile) -> String {
@@ -32,18 +35,20 @@ public enum GhostwriterExpansionRenderer {
     return parts.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines) + "\n"
   }
 
-  public static func render(arbitraryExtension: GhostwriterGeneratedArbitraryExtension) -> String {
+  public static func render(
+    arbitraryExtension ext: GhostwriterGeneratedArbitraryExtension
+  ) -> String {
     let property = MacroTemplateAdapter.makeComputedProperty(
       accessLevel: .public,
       name: "arbitrary",
-      type: "Gen<\(arbitraryExtension.typeName)>",
+      type: "Gen<\(ext.typeName)>",
       isStatic: true,
       getterBody: CodeBlockSyntax {
         CodeBlockItemSyntax(
           item: .expr(
             composeCall(
-              typeName: arbitraryExtension.typeName,
-              propertyGenerators: arbitraryExtension.propertyGenerators
+              typeName: ext.typeName,
+              propertyGenerators: ext.propertyGenerators
             )
           )
         )
@@ -51,7 +56,7 @@ public enum GhostwriterExpansionRenderer {
     )
 
     let extensionDecl = MacroTemplateAdapter.makeExtension(
-      typeName: arbitraryExtension.typeName,
+      typeName: ext.typeName,
       conformances: ["Arbitrary"]
     )
 
@@ -99,8 +104,12 @@ public enum GhostwriterExpansionRenderer {
   public static func renderExpression(_ expression: ExpansionExpr) -> String {
     render(expr: expression).description
   }
+}
 
-  private static func renderHeader(for file: GhostwriterGeneratedFile) -> [String] {
+// MARK: - Private Rendering Helpers
+
+private extension GhostwriterExpansionRenderer {
+  static func renderHeader(for file: GhostwriterGeneratedFile) -> [String] {
     [
       "// swiftlint:disable file_header identifier_name",
       "// swiftformat:disable all",
@@ -114,13 +123,13 @@ public enum GhostwriterExpansionRenderer {
     ] + file.imports.map(render(importDecl:)) + [""]
   }
 
-  private static func render(importDecl: GhostwriterImport) -> String {
+  static func render(importDecl: GhostwriterImport) -> String {
     importDecl.isTestable
       ? "@testable import \(importDecl.moduleName)"
       : "import \(importDecl.moduleName)"
   }
 
-  private static func render(statement: ExpansionStatement) -> CodeBlockItemSyntax {
+  static func render(statement: ExpansionStatement) -> CodeBlockItemSyntax {
     switch statement {
     case .letBinding(let name, let initializer):
       return CodeBlockItemSyntax(
@@ -131,7 +140,9 @@ public enum GhostwriterExpansionRenderer {
               bindings: PatternBindingListSyntax([
                 PatternBindingSyntax(
                   pattern: IdentifierPatternSyntax(identifier: .identifier(name)),
-                  initializer: InitializerClauseSyntax(value: render(expr: initializer))
+                  initializer: InitializerClauseSyntax(
+                    value: render(expr: initializer)
+                  )
                 )
               ])
             )
@@ -145,7 +156,9 @@ public enum GhostwriterExpansionRenderer {
           ExprSyntax(
             IfExprSyntax(
               conditions: ConditionElementListSyntax([
-                ConditionElementSyntax(condition: .expression(render(expr: condition)))
+                ConditionElementSyntax(
+                  condition: .expression(render(expr: condition))
+                )
               ]),
               body: CodeBlockSyntax(
                 statements: CodeBlockItemListSyntax(body.map(render(statement:)))
@@ -166,7 +179,7 @@ public enum GhostwriterExpansionRenderer {
     }
   }
 
-  private static func render(expr: ExpansionExpr) -> ExprSyntax {
+  static func render(expr: ExpansionExpr) -> ExprSyntax {
     switch expr {
     case .identifier(let name):
       return ExprSyntax(DeclReferenceExprSyntax(baseName: .identifier(name)))
@@ -180,7 +193,11 @@ public enum GhostwriterExpansionRenderer {
       )
 
     case .call(let callee, let arguments, let trailingClosure):
-      return renderCall(callee: callee, arguments: arguments, trailingClosure: trailingClosure)
+      return renderCall(
+        callee: callee,
+        arguments: arguments,
+        trailingClosure: trailingClosure
+      )
 
     case .tryExpr(let expression):
       return ExprSyntax(TryExprSyntax(expression: render(expr: expression)))
@@ -231,7 +248,7 @@ public enum GhostwriterExpansionRenderer {
     }
   }
 
-  private static func renderCall(
+  static func renderCall(
     callee: ExpansionExpr,
     arguments: [ExpansionArgument],
     trailingClosure: ExpansionClosure?
@@ -247,7 +264,7 @@ public enum GhostwriterExpansionRenderer {
     )
   }
 
-  private static func render(argument: ExpansionArgument) -> LabeledExprSyntax {
+  static func render(argument: ExpansionArgument) -> LabeledExprSyntax {
     LabeledExprSyntax(
       label: argument.label.map { .identifier($0) },
       colon: argument.label == nil ? nil : .colonToken(trailingTrivia: .space),
@@ -255,7 +272,7 @@ public enum GhostwriterExpansionRenderer {
     )
   }
 
-  private static func render(closure: ExpansionClosure) -> ClosureExprSyntax {
+  static func render(closure: ExpansionClosure) -> ClosureExprSyntax {
     ClosureExprSyntax(
       signature: closure.parameters.isEmpty
         ? nil
@@ -273,13 +290,13 @@ public enum GhostwriterExpansionRenderer {
     )
   }
 
-  private static func composeCall(
+  static func composeCall(
     typeName: String,
     propertyGenerators: [GhostwriterPropertyGenerator]
   ) -> ExprSyntax {
     // propertyGenerators[i].expression is already composer.generate(using: ...).
     // Use propertyExpression(for:) to apply TODO leading trivia and avoid double-wrapping.
-    let arguments = propertyGenerators.enumerated().map { index, generator -> LabeledExprSyntax in
+    let arguments = propertyGenerators.enumerated().map { index, generator in
       var labeledExpr = LabeledExprSyntax(
         label: .identifier(generator.name),
         colon: .colonToken(trailingTrivia: .space),
@@ -288,7 +305,7 @@ public enum GhostwriterExpansionRenderer {
       if index < propertyGenerators.count - 1 {
         labeledExpr = labeledExpr.with(\.trailingComma, .commaToken())
       }
-      return labeledExpr
+      return labeledExpr as LabeledExprSyntax
     }
 
     let typeCallExpr = FunctionCallExprSyntax(
@@ -320,13 +337,17 @@ public enum GhostwriterExpansionRenderer {
             declName: DeclReferenceExprSyntax(baseName: .identifier("compose"))
           )
         ),
+        leftParen: nil,
         arguments: LabeledExprListSyntax([]),
+        rightParen: nil,
         trailingClosure: closure
       )
     )
   }
 
-  private static func propertyExpression(for property: GhostwriterPropertyGenerator) -> ExprSyntax {
+  static func propertyExpression(
+    for property: GhostwriterPropertyGenerator
+  ) -> ExprSyntax {
     let expression = render(expr: property.expression)
     guard let todoComment = property.todoComment else {
       return expression

@@ -12,7 +12,7 @@ Use:
 Add the testing integration product to your test target:
 
 ```swift
-// swift-tools-version: 6.0
+// swift-tools-version: 6.2
 import PackageDescription
 
 let package = Package(

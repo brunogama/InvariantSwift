@@ -72,6 +72,10 @@ enum MacroRuntimeFixtureSupport {
     process.standardOutput = pipe
     process.standardError = pipe
 
+    // `@unchecked Sendable`: all mutable state (`storage`) is protected by
+    // `lock` (NSLock). The type crosses into the `readabilityHandler` closure
+    // (a @Sendable context) only via the immutable `collected` binding.
+    // Every read and write to `storage` is serialised through `lock.withLock`.
     final class LockedData: @unchecked Sendable {
       private let lock = NSLock()
       private var storage = Data()
