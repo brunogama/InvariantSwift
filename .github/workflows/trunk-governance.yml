@@ -1,0 +1,49 @@
+name: trunk-governance
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  change-budget:
+    name: change-budget
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Make script executable
+        run: chmod +x scripts/change-budget.sh
+
+      - name: Evaluate change budget
+        if: github.event_name == 'pull_request'
+        run: |
+          scripts/change-budget.sh --mode range --base origin/${{ github.base_ref }} --head HEAD
+
+      - name: Evaluate main push budget
+        if: github.event_name == 'push'
+        run: |
+          scripts/change-budget.sh --mode head
+
+  governance-files:
+    name: governance-files
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify expected governance files exist
+        run: |
+          test -f AGENTS.md
+          test -f CLAUDE.md
+          test -f RULES.md
+          test -f WORKFLOW.md
+          test -f CONTRIBUTING.md
+          test -f RELEASING.md
+          test -f CHANGELOG.md
+          test -f scripts/change-budget.sh
+          test -f skills/trunk-delivery-guard/SKILL.md
