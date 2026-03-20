@@ -1,250 +1,123 @@
-# Contributing to FunctionalTesting
+# Contributing to MacroTemplateKit
 
-We love your input! We want to make contributing to FunctionalTesting as easy and transparent as possible, whether it's:
+Thank you for contributing to MacroTemplateKit.
+This repository uses trunk-based development.
+The target branch is `main`.
 
-- Reporting a bug
-- Discussing the current state of the code
-- Submitting a fix
-- Proposing new features
-- Becoming a maintainer
+## Core expectations
+- Keep changes small and focused.
+- Prefer the smallest mergeable slice.
+- If a branch is needed, use a short-lived branch and merge it back quickly.
+- If work is incomplete but must land, hide it behind a feature flag or an inactive path.
+- Do not rely on long-lived feature branches or release branches.
 
-## Development Process
-
-We use GitHub to host code, to track issues and feature requests, as well as accept pull requests.
-
-## Pull Request Process
-
-1. Fork the repo and create your branch from `main`.
-2. If you've added code that should be tested, add tests.
-3. If you've changed APIs, update the documentation.
-4. Ensure the test suite passes.
-5. Make sure your code lints.
-6. Issue that pull request!
+## Reporting Issues
+1. Search existing issues first.
+2. Use the issue template when available.
+3. Provide clear reproduction steps for bugs.
+4. Include environment details such as Swift version, OS, and Xcode version.
 
 ## Development Setup
-
 ### Prerequisites
+- Swift 5.10+
+- Xcode 16+
+- macOS 13+
 
-- Swift 6.0+
-- Xcode 16.0+ (for iOS/macOS development)
-- SwiftLint for code formatting
+### Bootstrap
+Install the same tooling used in CI:
 
-### Getting Started
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/your-org/FunctionalTesting.git
-   cd FunctionalTesting
-   ```
-
-2. **Install dependencies**
-   ```bash
-   swift package resolve
-   ```
-
-3. **Run the tests**
-   ```bash
-   swift test
-   ```
-
-4. **Run linting**
-   ```bash
-   swiftlint
-   ```
-
-## Code Style
-
-We follow the Google Swift Style Guide with some modifications:
-
-### Formatting
-- Use 2 spaces for indentation
-- Line length limit: 100 characters
-- Use SwiftLint for automated formatting
-
-### Conventions
-- Use descriptive variable names
-- Prefer `let` over `var` when possible
-- Use guard statements for early returns
-- Document public APIs with triple-slash comments (`///`)
-
-### Example
-```swift
-/// Generates random integers within a specified range.
-///
-/// - Parameter range: The range of integers to generate from
-/// - Returns: A generator that produces integers in the given range
-public static func int(in range: ClosedRange<Int>) -> Gen<Int> {
-  Gen { rng, size in
-    Int.random(in: range, using: &rng)
-  }
-}
+```bash
+./scripts/bootstrap.sh
 ```
 
-## Testing Guidelines
-
-### Test Structure
-- Use Swift Testing framework for all tests
-- Follow the Arrange-Act-Assert pattern
-- Use descriptive test names that explain the behavior being tested
-
-### Property Testing
-- Add property tests for new generators
-- Include edge cases and error scenarios
-- Aim for 99%+ code coverage
-
-### Example Test
-```swift
-@Test("Integer generator produces values in range")
-func testIntegerGeneratorRange() {
-  let range = -100...100
-  let property = Property(generator: Gen.int(in: range)) { value in
-    range.contains(value)
-  }
-  
-  try checkProperty(property, config: PropertyConfig(iterations: 1000))
-}
+### Build
+```bash
+git clone https://github.com/YOUR_USERNAME/MacroTemplateKit.git
+cd MacroTemplateKit
+swift build
+swift test
 ```
 
-## Documentation
+## Local Validation
+Before opening a PR, run the same checks CI runs:
 
-### API Documentation
-- All public APIs must have documentation comments
-- Include usage examples for complex APIs
-- Document parameters, return values, and thrown errors
-
-### README Updates
-- Update README.md for new features
-- Include code examples showing usage
-- Update feature lists and compatibility information
-
-### Changelog
-- Add entries to CHANGELOG.md for all changes
-- Follow [Keep a Changelog](https://keepachangelog.com/) format
-- Categorize changes as Added, Changed, Deprecated, Removed, Fixed, or Security
-
-## Submitting Changes
-
-### Commit Messages
-Follow [Conventional Commits](https://www.conventionalcommits.org/):
-
+```bash
+./scripts/ci-local.sh
 ```
-type(scope): description
+
+If you prefer running commands individually:
+
+```bash
+swift-format lint --strict <changed-swift-files>
+swiftlint lint --strict --config Sources/MacroTemplateKit/.swiftlint.yml Sources/MacroTemplateKit/
+swiftlint lint --strict --config Tests/MacroTemplateKitTests/.swiftlint.yml Tests/MacroTemplateKitTests/
+swift test --parallel -Xswiftc -warnings-as-errors
+./scripts/change-budget.sh --mode range --base origin/main --head HEAD
+```
+
+## Coding Standards
+- Follow Swift API Design Guidelines.
+- Use 2-space indentation.
+- Maximum line length: 100 characters.
+- Use meaningful names.
+- Add `///` documentation comments for public APIs.
+- Update README or DocC content for significant user-facing changes.
+
+## Commit Messages
+This repository enforces Conventional Commits plus repository-specific body requirements.
+
+Format:
+
+```text
+<type>(<scope>): <subject>
 
 [optional body]
 
 [optional footer]
 ```
 
-Types:
-- `feat`: New feature
-- `fix`: Bug fix
-- `docs`: Documentation changes
-- `style`: Formatting, missing semi-colons, etc.
-- `refactor`: Code change that neither fixes a bug nor adds a feature
-- `perf`: Performance improvement
-- `test`: Adding missing tests
-- `chore`: Changes to build process, tools, etc.
+Required body fields:
 
-Examples:
-```
-feat(generators): add UUID generator
-fix(shrinking): handle empty arrays correctly
-docs(readme): update installation instructions
+```text
+Description:
+- Summary: <what changed>
+- Breaking Rule: yes|no
+- Breaking API Rule: yes|no
+- Breaking API Commit: yes|no
 ```
 
-### Pull Request Guidelines
+Rules:
+- type must be lowercase
+- subject must be lowercase
+- no period at the end of the subject
+- header length must be <= 100 characters
+- commits should be atomic and scoped to one logical change
+- do not include `Co-authored-by:` or other author trailers unless repository policy explicitly allows them
 
-1. **Branch Naming**: Use descriptive names like `feat/uuid-generator` or `fix/shrinking-bug`
+## Pull Requests
+1. Sync with `main`.
+2. Create a short-lived branch only if needed.
+3. Make one focused logical change.
+4. Run local validation.
+5. Open a small PR against `main`.
 
-2. **PR Title**: Use conventional commit format
+### PR checklist
+- [ ] all tests pass
+- [ ] no compiler warnings
+- [ ] documentation updated when needed
+- [ ] changelog updated for user-facing changes
+- [ ] change budget is acceptable or the work is explicitly approved as an exception
+- [ ] incomplete work is protected by a feature flag or not merged
 
-3. **PR Description**: Include:
-   - What changes were made and why
-   - How to test the changes
-   - Any breaking changes
-   - Links to related issues
-
-4. **Checklist**:
-   - [ ] Tests added/updated
-   - [ ] Documentation updated
-   - [ ] CHANGELOG.md updated
-   - [ ] All tests pass
-   - [ ] Code follows style guidelines
-   - [ ] No breaking changes (or clearly documented)
-
-## Issue Reporting
-
-### Bug Reports
-Include:
-- Swift version
-- Platform (iOS, macOS, etc.) and version
-- Minimal code example that reproduces the issue
-- Expected vs. actual behavior
-- Stack trace or error messages
-
-### Feature Requests
-Include:
-- Use case and motivation
-- Proposed API (if applicable)
-- Examples of how it would be used
-- Alternatives you've considered
-
-## Architecture Guidelines
-
-### Core Principles
-- **Composability**: New features should work well with existing ones
-- **Performance**: Maintain high performance standards
-- **Safety**: Prefer compile-time safety over runtime checks
-- **Simplicity**: APIs should be easy to understand and use
-
-### Adding New Generators
-1. Implement the generator function
-2. Add comprehensive tests
-3. Update documentation
-4. Add usage examples
-
-### Adding New Features
-1. Discuss in an issue first for large changes
-2. Consider backwards compatibility
-3. Add tests and documentation
-4. Update relevant examples
-
-## Performance Considerations
-
-- Property tests should run efficiently (>10,000 generations/second for simple types)
-- Memory usage should be reasonable for large data structures
-- Shrinking should complete quickly (<100ms for typical cases)
-
-## Platform Support
-
-Ensure new features work on all supported platforms:
-- iOS 16.0+
-- macOS 13.0+
-- tvOS 16.0+
-- watchOS 9.0+
-- Linux (Ubuntu LTS)
+## Release Process
+Releases are managed by maintainers and documented in `RELEASING.md`.
+Do not cut releases from a side branch.
+Release from validated `main`.
 
 ## Getting Help
-
-- **Discussions**: Use GitHub Discussions for questions and ideas
-- **Issues**: Use GitHub Issues for bugs and feature requests
-- **Discord**: Join our community Discord server (link in README)
-
-## Recognition
-
-Contributors will be:
-- Listed in the CHANGELOG.md for their contributions
-- Added to the README.md contributors section
-- Given credit in release notes for significant contributions
+- Questions: open a GitHub Discussion
+- Bugs: open a GitHub Issue
+- Security: contact maintainers privately
 
 ## License
-
-By contributing, you agree that your contributions will be licensed under the MIT License that covers the project. Feel free to contact the maintainers if that's a concern.
-
-## Code of Conduct
-
-This project and everyone participating in it is governed by our [Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code.
-
----
-
-Thank you for contributing to FunctionalTesting! 🎉
+By contributing, you agree that your contributions will be licensed under the MIT License.

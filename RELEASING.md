@@ -12,10 +12,12 @@ For day-to-day repository operating behavior, follow `AGENTS.md`.
 - Do not release from a dirty worktree.
 - Do not release if formatter, lint, build, tests, or coverage gates fail.
 - Do not publish a release unless the user explicitly asked.
+- Once a version has been released, its contents must not be modified.
+- Any post-release change requires a new version.
+- Release from validated `main`, not from a long-lived release branch.
 
 ## Versioning
 Use semantic versioning:
-
 - `MAJOR`: breaking changes
 - `MINOR`: backward-compatible features
 - `PATCH`: backward-compatible fixes
@@ -26,17 +28,14 @@ Examples:
 - `1.1.1` — bug fix only
 - `2.0.0` — breaking API or behavior change
 
-## Release Automation
-This repository supports automatic release tagging from `main`.
+## Pre-1.0 Policy
+This repository is currently in the `0.y.z` phase.
 
-- The release workflow computes the next version from conventional commits since the latest `v*.*.*` tag.
-- `feat:` commits bump `MINOR`.
-- `fix:`, `docs:`, `ci:`, `chore:`, and similar non-breaking commits bump `PATCH`.
-- Commits with `!` in the type scope or a `BREAKING CHANGE:` footer bump `MAJOR`.
-- If no prior release tag exists, the first automated release starts at `v0.1.0`.
-- Pushing `[skip release]` in the head commit message suppresses the automated tag for that push.
+- `PATCH`: backward-compatible bug fixes and small internal corrections
+- `MINOR`: new backward-compatible features and any breaking change introduced before `1.0.0`
+- `1.0.0`: reserved for the first release with a stable public API
 
-Documentation is rebuilt automatically on `main` and when a GitHub Release is published.
+Until `1.0.0`, the public API is not considered stable.
 
 ## When to Bump
 ### Patch
@@ -44,13 +43,14 @@ Use for:
 - bug fixes
 - internal fixes with no API change
 - build or packaging fixes without public API changes
-- docs-only clarifications if your repo tags docs releases
+- docs-only clarifications if this repository tags docs releases
 
 ### Minor
 Use for:
 - new backward-compatible features
 - new modules, commands, options, or extension points
 - meaningful DX improvements that do not break callers
+- breaking changes while the repository remains in `0.y.z`
 
 ### Major
 Use for:
@@ -61,6 +61,7 @@ Use for:
 
 ## Changelog Policy
 Maintain a human-readable changelog.
+Use `YYYY-MM-DD` release dates.
 
 Recommended section structure:
 - Added
@@ -80,9 +81,9 @@ Rules:
 
 ## Changelog Entry Style
 Good:
-- Added HNSW index build command for offline vector indexing.
-- Fixed null handling in distance function for sparse records.
-- Changed default package validation to fail on warnings.
+- Added typed extractor support for multi-binding variable declarations.
+- Fixed nil-coalescing rendering in release builds.
+- Changed local validation to fail on warnings.
 
 Bad:
 - update files
@@ -92,9 +93,8 @@ Bad:
 
 ## Release Checklist
 Before releasing:
-
 1. Confirm intended release scope.
-2. Ensure worktree is clean.
+2. Ensure the worktree is clean.
 3. Run full validation required by `RULES.md`.
 4. Confirm public API and behavior changes are documented.
 5. Update version numbers in all required locations.
@@ -105,16 +105,15 @@ Before releasing:
 10. Tag the release if the user explicitly asked.
 
 ## Multi-Package Repositories
-If this repository contains multiple packages or publishable units:
-
-- Decide whether versioning is lockstep or independent.
-- Do not mix both strategies accidentally.
-- If lockstep, all published packages share the same version.
-- If independent, update only impacted packages and their dependency constraints.
+If this repository contains multiple publishable units:
+- decide whether versioning is lockstep or independent
+- do not mix both strategies accidentally
+- if lockstep, all published packages share the same version
+- if independent, update only impacted packages and their dependency constraints
 
 Recommended rule:
-- Use lockstep only if packages are tightly coupled and released together.
-- Use independent versioning only if packages are truly separable operationally and semantically.
+- use lockstep only if packages are tightly coupled and released together
+- use independent versioning only if packages are truly separable operationally and semantically
 
 ## Tagging
 Recommended tag format:
@@ -125,7 +124,7 @@ Examples:
 - `v1.0.0`
 - `v2.3.1`
 
-Tags created by the release workflow must also use this format.
+Do not create tags unless the user explicitly asked.
 
 ## Release Notes
 Release notes should summarize:
@@ -143,12 +142,11 @@ Recommended structure:
 
 ## Breaking Changes
 If a release is breaking:
-
-- bump major version
+- bump the correct version line according to the current phase
 - state the break clearly
 - explain impacted users
 - provide migration guidance
-- avoid vague wording like “some APIs changed”
+- avoid vague wording like `some APIs changed`
 
 Bad:
 - Several internals were improved.
@@ -160,7 +158,7 @@ Good:
 Before publishing, verify:
 - the previous version can still be identified and restored
 - release artifacts are reproducible
-- any generated files are committed if the repo requires them
+- any generated files are committed if the repository requires them
 - version bumps are internally consistent
 
 ## Release Command Policy
@@ -169,8 +167,6 @@ If the repository uses release scripts:
 - do not bypass validation inside release scripts
 - keep release scripts idempotent where possible
 - keep version bump logic centralized
-
-Current centralized version bump logic lives in `Tools/release/next_version.sh`.
 
 ## Post-Release Checks
 After a release, verify:

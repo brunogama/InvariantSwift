@@ -1,138 +1,87 @@
 # AI Coding Agent Rules (Project-Agnostic, Lint-First)
 
-**Purpose**: Ensure any AI agent changes compile cleanly, pass tests, and comply with repo lint/format rules *by design* (not by cleanup at the end).
-
----
+## Purpose
+Ensure any AI agent changes compile cleanly, pass tests, and comply with repository lint and format rules by design, not by cleanup at the end.
 
 ## 1) Non-negotiables (Definition of Done)
+Work is not done unless all items below are true:
 
-Work is **not done** unless all items below are true:
+1. Formatting is applied using the repository formatter.
+2. Lint is clean: run lint fix mode if available, then strict mode, on the changed files.
+3. Zero warnings and zero errors when building with warnings treated as errors.
+4. Tests pass.
+5. Coverage gate passes when the repository enforces it.
+6. No bypasses: never use `--no-verify`, never disable hooks, never temporarily commit broken code.
 
-1. **Formatting applied** using the repo formatter (Swift: `swift-format` with the repo `.swift-format`).
-2. **Lint clean**: run SwiftLint in *fix* mode, then in *strict* mode, on the changed files.
-3. **Zero warnings / zero errors** when building with warnings treated as errors (Swift: `swift build -Xswiftc -warnings-as-errors`).
-4. **Tests pass** (Swift packages: `swift test`).
-5. **Coverage gate passes** when the repo enforces it (do not lower thresholds or bypass checks).
-6. **No bypasses**: never use `--no-verify`, never disable hooks, never “temporarily” commit broken code.
+If your output would fail repository hooks or CI, refactor before finishing.
 
-These checks are enforced by pre-commit hooks in many repos (format, lint strict, tests, coverage, warnings-as-errors). If your output would fail them, refactor before finishing.
+## 2) Treat lint rules as design constraints
+### 2.1 Hard budgets (SwiftLint defaults if the repo does not define tighter values)
+- Line length: 100
+- Function parameters: warn 4, error 6
+- Function body length: warn 60, error 120
+- Type body length: warn 300, error 800
+- File length: warn 400, error 1000
+- Cyclomatic complexity: warn 10, error 15
+- Nesting: type level 2, function level 3
 
----
+Also respect repository custom rules, such as preferring `struct` over `class` when appropriate and avoiding `print(...)` in production sources.
 
-## 2) Treat lint rules as design constraints (budget-based coding)
-
-### 2.1 Hard budgets (SwiftLint)
-When writing or extending code, stay comfortably under these limits. If you are trending toward a limit, **split before you cross it**.
-
-- **Line length**: 100 (warning/error)
-- **Function parameters**: warn 4, error 6
-- **Function body length**: warn 60, error 120
-- **Type body length**: warn 300, error 800
-- **File length**: warn 400, error 1000
-- **Cyclomatic complexity**: warn 10, error 15
-- **Nesting**: type level 2, function level 3
-
-Also respect SwiftLint custom rules such as:
-- Prefer `struct` over `class` when possible.
-- No `print(...)` in production sources (allowed in excluded paths only).
-
-### 2.2 “Refactor triggers” (act early)
-Refactor **before** adding more code when any of these are true:
-
-- A function is likely to exceed ~50 lines (you are approaching the 60-line warning).
-- Complexity is increasing (multiple `if`/`switch` branches, nested loops, deep guards).
-- A file is trending past ~350 lines (you are approaching the 400-line warning).
-- A type becomes a “god type” (multiple responsibilities, many private helpers, many stored properties).
-
----
+### 2.2 Refactor triggers
+Refactor before adding more code when any of these are true:
+- a function is likely to exceed ~50 lines
+- complexity is increasing due to branching or deep nesting
+- a file is trending past ~350 lines
+- a type is becoming a god object with multiple responsibilities
 
 ## 3) Mandatory tactics to stay under budgets
-
 ### 3.1 Keep functions small and flat
-Preferred shape:
+- Prefer early exits over deep nesting.
+- Extract helpers when a block exceeds roughly 10–15 lines, when a branch does more than one thing, or when a loop mixes responsibilities.
+- Split do-everything functions into parse/validate, transform, perform, and persist phases when appropriate.
 
-- Early exits (`guard`) instead of deep nesting.
-- Extract private helpers when:
-  - A block is >10–15 lines,
-  - A branch has >1 responsibility,
-  - A loop does more than one conceptual thing.
-- Split “do everything” functions into:
-  - `parse/validate` (pure), `transform` (pure), `perform` (side effects), `persist` (I/O).
+### 3.2 Reduce cyclomatic complexity
+- Replace long if/else chains with table-driven mappings, small strategy types, or extracted switch handlers.
+- If a switch has many cases, extract per-case helpers so the main function stays small.
 
-### 3.2 Reduce cyclomatic complexity (target ≤ 8)
-Use these patterns:
+### 3.3 Keep files and types small
+- Prefer one main type per file.
+- Split protocols, adapters, and mappers into separate files when they are not tiny helpers.
+- Move large helper sections into `TypeName+Helpers.swift`, nested types, or separate collaborators.
 
-- Replace long `if/else` chains with:
-  - Table-driven mappings (`Dictionary` lookup),
-  - Small strategy types (protocol + structs),
-  - `switch` with extracted case handlers.
-- If a `switch` has many cases, create a per-case private function (or type) so the main function stays small.
+### 3.4 Control parameter count
+If a function wants more than four parameters, prefer a parameter object or a small domain type.
 
-### 3.3 Keep files/types small
-Default split rules:
+## 4) Process the agent must follow
+1. Plan what will change and where.
+2. Implement with budget-first refactoring.
+3. Self-review for large functions, large files, nesting, complexity, and unnecessary public API.
+4. Run the same checks the repository runs.
 
-- **1 type per file** (exceptions: tiny internal helpers tightly coupled to the type).
-- If a file has multiple “sections” (protocols, adapters, mappers), split them.
-- If a type needs many helpers: move helpers into:
-  - `TypeName+Helpers.swift`,
-  - nested types,
-  - or separate collaborator types.
+Typical Swift sequence:
+- `swift-format -i --configuration .swift-format <changed files>`
+- `swiftlint lint --fix --config .swiftlint.yml <changed files>`
+- `swiftlint lint --strict --config .swiftlint.yml <changed files>`
+- `swift test`
+- `swift build -Xswiftc -warnings-as-errors`
+- coverage script, if present
 
-### 3.4 Parameter count control
-If a function wants >4 parameters:
+If any check fails, fix the code. Do not weaken rules.
 
-- Introduce a parameter object (`struct`) or a small domain type.
-- Prefer passing cohesive objects (e.g., `Request`, `Context`) over parallel primitives.
+## 5) Allowed exceptions
+Temporary `swiftlint:disable` is allowed only when:
+- you include a one-line justification
+- you scope it to the smallest region
+- you add a TODO with a removal plan
 
----
-
-## 4) Process the agent must follow (every change)
-
-1. **Plan**: state what you will change and where (files/types), and how you will keep within the budgets above.
-2. **Implement** with budget-first refactoring (do not “just add code”).
-3. **Self-review** (required): verify you did not introduce:
-   - large functions,
-   - large files,
-   - added nesting,
-   - increased complexity,
-   - unnecessary public API surface.
-4. **Run the same checks the repo runs** (locally or logically, if tooling is unavailable):
-   - `swift-format -i --configuration .swift-format <changed files>`
-   - `swiftlint lint --fix --config .swiftlint.yml <changed files>` and then
-     `swiftlint lint --strict --config .swiftlint.yml <changed files>`
-   - `swift test` (when `Package.swift` exists and Swift files changed)
-   - `swift build -Xswiftc -warnings-as-errors` (same condition)
-   - Coverage gate script, if present
-
-If any check fails, **fix the code** (do not weaken rules).
-
----
-
-## 5) Allowed exceptions (rare, documented, minimal)
-
-- Temporary `swiftlint:disable` is allowed only when:
-  - you include a one-line justification,
-  - you scope it to the smallest region,
-  - you add a TODO with a removal plan.
-- Never disable: file length, function length, complexity, nesting, warnings-as-errors, or tests, unless the repo owner explicitly changed policy.
-
----
+Never disable file length, function length, complexity, nesting, warnings-as-errors, or tests unless the repository owner explicitly changed policy.
 
 ## 6) Output requirements for AI agents
-
-When producing code changes, the agent must also:
-
-- Avoid unrelated refactors, reformat-only diffs, or renames unless required to meet budgets.
+- Avoid unrelated refactors, reformat-only diffs, or renames unless required.
 - Keep the public API stable unless the request explicitly requires changes.
-- Prefer incremental PR-friendly changes: small commits, small diff, high signal.
+- Prefer incremental, PR-friendly changes: small commits, small diffs, high signal.
 
----
-
-## 7) Keep this document reusable
-
+## 7) Reusability
 This file is intentionally project-agnostic.
-
-Repository-specific details belong in:
-- `.swiftlint.yml`, `.swift-format`, CI, `Makefile`, and per-module READMEs.
-
-When this document conflicts with repo tooling, **repo tooling wins**.
+Repository-specific details belong in `.swiftlint.yml`, `.swift-format`, CI, `Makefile`, and per-module READMEs.
+When this document conflicts with repository tooling, tooling wins.
