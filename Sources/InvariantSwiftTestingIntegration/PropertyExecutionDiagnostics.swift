@@ -40,12 +40,12 @@ internal func recordPropertyFailureIssue(
     "Property failed after \(report.iterationsBeforeFailure) iterations (\(report.failureReason))."
   Issue.record(Comment(rawValue: message), sourceLocation: location)
 
-  Attachment.record(
+  Testing.Attachment.record(
     stringifyAttachment(report.originalValue),
     named: "counterexample.txt",
     sourceLocation: location
   )
-  Attachment.record(
+  Testing.Attachment.record(
     stringifyAttachment(report.shrunkValue),
     named: "shrunk-counterexample.txt",
     sourceLocation: location
@@ -60,11 +60,15 @@ internal func recordPropertyFailureIssue(
     reproductionCommand: report.reproductionCommand
   )
   if let propertyRunJSON = propertyRunJSON(for: record, context: context) {
-    Attachment.record(propertyRunJSON, named: "property-run.json", sourceLocation: location)
+    Testing.Attachment.record(
+      propertyRunJSON,
+      named: "property-run.json",
+      sourceLocation: location
+    )
   }
 
   if let classificationReport = report.classificationReport, !classificationReport.isEmpty {
-    Attachment.record(
+    Testing.Attachment.record(
       classificationReport,
       named: "classification.txt",
       sourceLocation: location
@@ -93,7 +97,11 @@ internal func recordPropertyGiveUpIssue(
     reproductionCommand: nil
   )
   if let propertyRunJSON = propertyRunJSON(for: record, context: context) {
-    Attachment.record(propertyRunJSON, named: "property-run.json", sourceLocation: location)
+    Testing.Attachment.record(
+      propertyRunJSON,
+      named: "property-run.json",
+      sourceLocation: location
+    )
   }
 }
 
@@ -103,7 +111,7 @@ internal func attachClassificationReport(
   line: UInt = #line
 ) {
   guard !report.isEmpty else { return }
-  Attachment.record(
+  Testing.Attachment.record(
     report,
     named: "classification.txt",
     sourceLocation: makeSourceLocation(file: file, line: line)
@@ -187,12 +195,12 @@ internal func verifyPersistedReplay<T: Sendable>(
         ),
         sourceLocation: location
       )
-      Attachment.record(
+      Testing.Attachment.record(
         expectedFailure.shrunkValue,
         named: "expected-counterexample.txt",
         sourceLocation: location
       )
-      Attachment.record(
+      Testing.Attachment.record(
         actualShrunkValue,
         named: "actual-counterexample.txt",
         sourceLocation: location
@@ -206,7 +214,7 @@ internal func verifyPersistedReplay<T: Sendable>(
         reproductionCommand: expectedFailure.reproductionCommand
       )
       if let propertyRunJSON = propertyRunJSON(for: record, context: context) {
-        Attachment.record(
+        Testing.Attachment.record(
           propertyRunJSON,
           named: "property-run.json",
           sourceLocation: location
@@ -221,7 +229,7 @@ internal func verifyPersistedReplay<T: Sendable>(
       Comment(rawValue: "Persisted replay case no longer fails for \(testName)."),
       sourceLocation: location
     )
-    Attachment.record(
+    Testing.Attachment.record(
       expectedFailure.shrunkValue,
       named: "expected-counterexample.txt",
       sourceLocation: location
