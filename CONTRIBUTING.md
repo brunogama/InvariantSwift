@@ -1,6 +1,6 @@
-# Contributing to MacroTemplateKit
+# Contributing to InvariantSwift
 
-Thank you for contributing to MacroTemplateKit.
+Thank you for contributing to InvariantSwift.
 This repository uses trunk-based development.
 The target branch is `main`.
 
@@ -19,21 +19,21 @@ The target branch is `main`.
 
 ## Development Setup
 ### Prerequisites
-- Swift 5.10+
-- Xcode 16+
-- macOS 13+
+- Swift 6.2.4+
+- Xcode 16.4+
+- macOS 14+
 
 ### Bootstrap
 Install the same tooling used in CI:
 
 ```bash
-./scripts/bootstrap.sh
+make setup
 ```
 
 ### Build
 ```bash
-git clone https://github.com/YOUR_USERNAME/MacroTemplateKit.git
-cd MacroTemplateKit
+git clone https://github.com/brunogama/InvariantSwift.git
+cd InvariantSwift
 swift build
 swift test
 ```
@@ -42,17 +42,19 @@ swift test
 Before opening a PR, run the same checks CI runs:
 
 ```bash
-./scripts/ci-local.sh
+make format
+make lint
+swift build -Xswiftc -warnings-as-errors
+swift test --parallel
 ```
 
 If you prefer running commands individually:
 
 ```bash
-swift-format lint --strict <changed-swift-files>
-swiftlint lint --strict --config Sources/MacroTemplateKit/.swiftlint.yml Sources/MacroTemplateKit/
-swiftlint lint --strict --config Tests/MacroTemplateKitTests/.swiftlint.yml Tests/MacroTemplateKitTests/
+swift-format lint --strict Sources/ Tests/
+swiftlint lint --strict Sources/ Tests/
 swift test --parallel -Xswiftc -warnings-as-errors
-./scripts/change-budget.sh --mode range --base origin/main --head HEAD
+scripts/change-budget.sh --mode range --base origin/main --head HEAD
 ```
 
 ## Coding Standards

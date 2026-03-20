@@ -22,10 +22,10 @@ For repository operating behavior during implementation, follow `AGENTS.md`.
 - Do not close issues unless the user explicitly asked.
 
 ## Branching
-- Prefer direct work on `main` when repository policy allows it.
-- If a branch is needed, it must be short-lived and focused on one small logical slice.
+- Direct commits to `main` and `dev` are blocked by the repo's `branch-guardian` pre-commit hook.
+- Always use a short-lived branch for any change and open a PR against `main`.
+- Branches must be focused on one small logical slice and merged back as soon as checks pass.
 - Do not create long-lived feature branches, `develop`, integration branches, or release branches.
-- Branches should be merged back as soon as checks pass.
 
 Recommended patterns:
 - `feat/<area>-<topic>`
@@ -72,7 +72,7 @@ When reviewing a change, check at minimum:
 - One logical change per commit.
 - Stage files explicitly by path.
 - Verify staged content with `git status` and `git diff --cached` before committing.
-- If `scripts/change-budget.sh` exists, run it before proposing or creating a commit.
+- Run `scripts/change-budget.sh` before proposing or creating a commit.
 - Reference the issue in the commit message when applicable using `fixes #<number>` or `closes #<number>`.
 
 ## Merge Policy

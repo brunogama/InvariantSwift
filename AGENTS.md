@@ -16,7 +16,8 @@ For release and changelog policy, follow `RELEASING.md`.
 - Prefer the smallest safe slice that leaves `main` releasable.
 
 ## Trunk Rules
-- Prefer direct work against `main` or a very short-lived branch.
+- Prefer working off `main` via very short-lived branches and PRs.
+- Direct commits to `main` and `dev` are blocked by the repo's `branch-guardian` pre-commit hook; always use a branch and open a PR.
 - Do not propose long-lived feature branches, `develop`, `release/*`, or branch pyramids.
 - Keep work in small, reviewable, mergeable slices.
 - If a requested change is too large, implement the first safe slice instead of forcing one oversized change.
@@ -31,7 +32,7 @@ For release and changelog policy, follow `RELEASING.md`.
 
 ## Validation
 - After code changes, run the repository validation commands that enforce the standards in `RULES.md`.
-- Run `scripts/change-budget.sh` before proposing a commit or PR when that script exists.
+- Run `scripts/change-budget.sh` before proposing a commit or PR.
 - Treat formatter, lint, warnings-as-errors, tests, and coverage as design constraints, not cleanup steps.
 - Never bypass hooks or checks.
 - Never use `--no-verify`.

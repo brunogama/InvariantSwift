@@ -124,7 +124,9 @@ Examples:
 - `v1.0.0`
 - `v2.3.1`
 
-Do not create tags unless the user explicitly asked.
+Tags are created automatically by the `release-on-merge` workflow when a PR is merged to `main`.
+To suppress an automated release, include `[skip release]` in the merge commit message.
+Do not create or push tags manually unless the automation has explicitly been bypassed and the user has asked.
 
 ## Release Notes
 Release notes should summarize:
