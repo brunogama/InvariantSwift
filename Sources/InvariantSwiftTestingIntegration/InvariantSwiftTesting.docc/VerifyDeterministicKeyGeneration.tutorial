@@ -1,6 +1,6 @@
 @Tutorial(time: 10) {
   @Intro(title: "Verify deterministic key generation") {
-    Use ``Deterministic`` when repeated calls with the same input must always return the same output.
+    Use `@Deterministic` when repeated calls with the same input must always return the same output.
   }
 
   @Section(title: "Protect a stable helper") {
@@ -9,6 +9,7 @@
 
       ```swift
       import InvariantSwiftTesting
+      import InvariantSwiftMacroAPI
 
       @Deterministic(iterations: 150, callCount: 4)
       func cacheKey(for userID: Int) -> String {

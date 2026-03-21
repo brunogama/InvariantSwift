@@ -135,7 +135,8 @@ enum MacroRuntimeFixtureSupport {
           .testTarget(
             name: "FixtureTests",
             dependencies: [
-              .product(name: "InvariantSwiftTesting", package: "InvariantSwift")
+              .product(name: "InvariantSwiftTesting", package: "InvariantSwift"),
+              .product(name: "InvariantSwiftMacroAPI", package: "InvariantSwift")
             ],
             path: "Tests/FixtureTests"
           )

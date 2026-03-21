@@ -1,7 +1,7 @@
 // swift-tools-version: 6.2
 // Package.binary.swift -- Release manifest for binary macro distribution.
-// On tagged releases, CI swaps this file to Package.swift so consumers
-// resolve the pre-built InvariantSwiftMacros plugin without swift-syntax.
+// On tagged releases, CI swaps this file to Package.swift so consumers resolve
+// the pre-built InvariantSwiftMacros target without pulling swift-syntax.
 import PackageDescription
 
 // Swift 6 enables StrictConcurrency by default; no additional flags needed.
@@ -16,53 +16,42 @@ let packagePlatforms: [SupportedPlatform] = [
 ]
 
 let packageProducts: [Product] = [
-  .library(name: "InvariantSwiftUmbrella", targets: ["InvariantSwiftUmbrella"]),
   .library(name: "InvariantSwiftCore", targets: ["InvariantSwiftCore"]),
+  .library(name: "InvariantSwiftGenerators", targets: ["InvariantSwiftGenerators"]),
+  .library(name: "InvariantSwiftExecution", targets: ["InvariantSwiftExecution"]),
   .library(name: "InvariantSwift", targets: ["InvariantSwift"]),
-  .library(name: "InvariantSwiftTesting", targets: ["InvariantSwiftTesting"]),
   .library(name: "InvariantSwiftAdvanced", targets: ["InvariantSwiftAdvanced"]),
   .library(name: "InvariantSwiftDomainGenerators", targets: ["InvariantSwiftDomainGenerators"]),
+  .library(name: "InvariantSwiftMacroAPI", targets: ["InvariantSwiftMacroAPI"]),
+  .library(name: "InvariantSwiftTesting", targets: ["InvariantSwiftTesting"]),
+  .library(name: "InvariantSwiftUmbrella", targets: ["InvariantSwiftUmbrella"]),
   .plugin(name: "InvariantSwiftPlugin", targets: ["InvariantSwiftPlugin"]),
-  // Note: GhostwriterPlugin excluded -- depends on GhostwriterCLI which requires swift-syntax.
 ]
 
-// No swift-syntax, no swift-benchmark in the binary manifest.
+// No swift-syntax, swift-benchmark, or MacroTemplateKit in the binary manifest.
 let packageDependencies: [Package.Dependency] = []
 
-// MARK: - Layer 0: Foundation (zero dependencies)
+// MARK: - Core Libraries
 
 let coreTargets: [Target] = [
   .target(
     name: "InvariantSwiftCore",
     dependencies: [],
-    path: "Sources/InvariantSwiftCore",
+    path: "Packages/InvariantSwiftCore/Sources/InvariantSwiftCore",
     swiftSettings: commonSwiftSettings
-  )
-]
-
-// MARK: - Layer 1: Building Blocks (depend only on Core)
-
-let generatorTargets: [Target] = [
+  ),
   .target(
     name: "InvariantSwiftGenerators",
     dependencies: ["InvariantSwiftCore"],
-    path: "Sources/InvariantSwiftGenerators",
+    path: "Packages/InvariantSwiftCore/Sources/InvariantSwiftGenerators",
     swiftSettings: commonSwiftSettings
-  )
-]
-
-let executionTargets: [Target] = [
+  ),
   .target(
     name: "InvariantSwiftExecution",
     dependencies: ["InvariantSwiftCore"],
-    path: "Sources/InvariantSwiftExecution",
+    path: "Packages/InvariantSwiftCore/Sources/InvariantSwiftExecution",
     swiftSettings: commonSwiftSettings
-  )
-]
-
-// MARK: - Layer 2: Main Library (combines internal modules)
-
-let libraryTargets: [Target] = [
+  ),
   .target(
     name: "InvariantSwift",
     dependencies: [
@@ -70,38 +59,38 @@ let libraryTargets: [Target] = [
       "InvariantSwiftGenerators",
       "InvariantSwiftExecution",
     ],
-    path: "Sources/InvariantSwift",
-    exclude: [
-      "Core",
-      "Generators",
-      "Testing",
-      "Contract",
-      "Database",
-      "Advanced",
-      "Coverage",
-      "Extensions",
-      "Fuzzing",
-      "Reliability",
-      "Observability",
-      "SwiftTesting",
-      "Macros",
-      "CLAUDE.md",
-      "AGENTS.md",
-    ],
-    sources: [
-      "Differential",
-      "Ghostwriter",
-      "Presentation",
-      "FunctionalTesting.swift",
-      "InvariantSwift.swift",
-    ],
+    path: "Packages/InvariantSwiftCore/Sources/InvariantSwift",
     swiftSettings: commonSwiftSettings
-  )
+  ),
+  .target(
+    name: "InvariantSwiftAdvanced",
+    dependencies: [
+      "InvariantSwiftCore",
+      "InvariantSwift",
+    ],
+    path: "Packages/InvariantSwiftCore/Sources/InvariantSwiftAdvanced",
+    swiftSettings: commonSwiftSettings
+  ),
+  .target(
+    name: "InvariantSwiftDomainGenerators",
+    dependencies: [
+      "InvariantSwiftCore",
+      "InvariantSwift",
+    ],
+    path: "Packages/InvariantSwiftCore/Sources/InvariantSwiftDomainGenerators",
+    swiftSettings: commonSwiftSettings
+  ),
 ]
 
-// MARK: - Layer 3: Extensions (depend on main library)
+// MARK: - Compile-Time Macro Surface
 
-let macroAPITargets: [Target] = [
+let macroTargets: [Target] = [
+  .binaryTarget(
+    name: "InvariantSwiftMacros",
+    url:
+      "https://github.com/brunogama/InvariantSwift/releases/download/__VERSION__/InvariantSwiftMacros.artifactbundle.zip",
+    checksum: "__CHECKSUM__"
+  ),
   .target(
     name: "InvariantSwiftMacroAPI",
     dependencies: [
@@ -110,63 +99,33 @@ let macroAPITargets: [Target] = [
       "InvariantSwiftAdvanced",
       "InvariantSwiftMacros",
     ],
-    path: "Sources/InvariantSwiftMacroAPI",
+    path: "Packages/InvariantSwiftMacros/Sources/InvariantSwiftMacroAPI",
     swiftSettings: commonSwiftSettings
-  )
+  ),
 ]
 
-let experimentalTargets: [Target] = [
-  .target(
-    name: "InvariantSwiftAdvanced",
-    dependencies: [
-      "InvariantSwiftCore",
-      "InvariantSwift",
-    ],
-    path: "Sources/InvariantSwiftAdvanced",
-    swiftSettings: commonSwiftSettings
-  )
-]
+// MARK: - Swift Testing Runtime
 
-// MARK: - Layer 4: Testing Integration (depends on everything)
-
-let testingIntegrationTargets: [Target] = [
+let testingTargets: [Target] = [
   .target(
     name: "InvariantSwiftTesting",
     dependencies: [
       "InvariantSwiftCore",
       "InvariantSwift",
       "InvariantSwiftAdvanced",
-      "InvariantSwiftMacroAPI",
-      "InvariantSwiftMacros",
     ],
     path: "Sources/InvariantSwiftTestingIntegration",
     swiftSettings: commonSwiftSettings
   )
 ]
 
-// MARK: - Compile-Time Only (pre-built binary)
-
-let macroTargets: [Target] = [
-  // Pre-built macro plugin binary.
-  // The executable name matches #externalMacro(module: "InvariantSwiftMacros", ...)
-  // in InvariantSwiftMacroAPI declaration files.
-  .binaryTarget(
-    name: "InvariantSwiftMacros",
-    url:
-      "https://github.com/brunogama/InvariantSwift/releases/download/__VERSION__/InvariantSwiftMacros.artifactbundle.zip",
-    checksum: "__CHECKSUM__"
-  )
-]
-
-// Note: GhostwriterLib, GhostwriterCLI, and GhostwriterPlugin are excluded
-// from the binary manifest because they depend directly on swift-syntax.
-
-// MARK: - Umbrella (re-exports from sub-packages)
+// MARK: - Umbrella
 
 let umbrellaTargets: [Target] = [
   .target(
     name: "InvariantSwiftUmbrella",
     dependencies: [
+      "InvariantSwiftTesting",
       "InvariantSwift",
       "InvariantSwiftCore",
       "InvariantSwiftMacroAPI",
@@ -175,20 +134,6 @@ let umbrellaTargets: [Target] = [
     swiftSettings: commonSwiftSettings
   )
 ]
-
-// MARK: - Domain & Utilities
-
-let domainTargets: [Target] = [
-  .target(
-    name: "InvariantSwiftDomainGenerators",
-    dependencies: ["InvariantSwiftCore", "InvariantSwift"],
-    path: "Sources/InvariantSwiftDomainGenerators",
-    swiftSettings: commonSwiftSettings
-  )
-]
-
-// Note: Benchmarks, PropertyTestHelper, GeneratorCatalogCLI excluded from
-// binary manifest (Benchmarks depends on swift-benchmark; others are dev tools).
 
 // MARK: - Plugins
 
@@ -202,8 +147,6 @@ let pluginTargets: [Target] = [
     dependencies: [],
     path: "Plugins/InvariantSwiftPlugin"
   )
-  // GhostwriterPlugin excluded -- depends on GhostwriterCLI (swift-syntax).
-  // GeneratorCatalogPlugin excluded -- depends on GeneratorCatalogCLI (dev tool).
 ]
 
 // MARK: - Tests
@@ -212,7 +155,7 @@ let testTargets: [Target] = [
   .testTarget(
     name: "InvariantSwiftCoreTests",
     dependencies: ["InvariantSwiftCore"],
-    path: "Tests/InvariantSwiftCoreTests",
+    path: "Packages/InvariantSwiftCore/Tests/InvariantSwiftCoreTests",
     swiftSettings: commonSwiftSettings
   ),
   .testTarget(
@@ -220,24 +163,27 @@ let testTargets: [Target] = [
     dependencies: [
       "InvariantSwiftCore",
       "InvariantSwift",
-      "InvariantSwiftMacros",
-      "InvariantSwiftTesting",
       "InvariantSwiftAdvanced",
     ],
-    path: "Tests/InvariantSwiftTests",
+    path: "Packages/InvariantSwiftCore/Tests/InvariantSwiftTests",
     swiftSettings: commonSwiftSettings
   ),
-  // InvariantSwiftMacroTests excluded -- depends on SwiftSyntaxMacrosTestSupport.
   .testTarget(
     name: "InvariantSwiftDomainGeneratorsTests",
-    dependencies: ["InvariantSwiftDomainGenerators", "InvariantSwift"],
-    path: "Tests/InvariantSwiftDomainGeneratorsTests",
+    dependencies: [
+      "InvariantSwiftDomainGenerators",
+      "InvariantSwift",
+    ],
+    path: "Packages/InvariantSwiftCore/Tests/InvariantSwiftDomainGeneratorsTests",
     swiftSettings: commonSwiftSettings
   ),
   .testTarget(
     name: "PerformanceTests",
-    dependencies: ["InvariantSwift"],
-    path: "Tests/PerformanceTests",
+    dependencies: [
+      "InvariantSwift",
+      "InvariantSwiftAdvanced",
+    ],
+    path: "Packages/InvariantSwiftCore/Tests/PerformanceTests",
     swiftSettings: commonSwiftSettings
   ),
   .testTarget(
@@ -245,9 +191,8 @@ let testTargets: [Target] = [
     dependencies: [
       "InvariantSwiftCore",
       "InvariantSwift",
-      "InvariantSwiftMacros",
-      "InvariantSwiftTesting",
       "InvariantSwiftAdvanced",
+      "InvariantSwiftTesting",
     ],
     path: "Tests/CoverageIntegrationTests",
     swiftSettings: commonSwiftSettings
@@ -257,9 +202,9 @@ let testTargets: [Target] = [
     dependencies: [
       "InvariantSwiftCore",
       "InvariantSwift",
-      "InvariantSwiftMacros",
-      "InvariantSwiftTesting",
       "InvariantSwiftAdvanced",
+      "InvariantSwiftTesting",
+      "InvariantSwiftMacroAPI",
     ],
     path: "Tests/GeneratedPropertyTests",
     swiftSettings: commonSwiftSettings
@@ -269,28 +214,20 @@ let testTargets: [Target] = [
     dependencies: [
       "InvariantSwiftCore",
       "InvariantSwift",
-      "InvariantSwiftMacros",
-      "InvariantSwiftTesting",
       "InvariantSwiftAdvanced",
+      "InvariantSwiftTesting",
+      "InvariantSwiftMacroAPI",
     ],
     path: "Tests/SmokeTests",
     swiftSettings: commonSwiftSettings
   ),
 ]
 
-// MARK: - Package
-
 let allTargets =
   coreTargets
-  + generatorTargets
-  + executionTargets
-  + libraryTargets
-  + macroAPITargets
-  + experimentalTargets
-  + testingIntegrationTargets
   + macroTargets
+  + testingTargets
   + umbrellaTargets
-  + domainTargets
   + pluginTargets
   + testTargets
 

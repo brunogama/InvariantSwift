@@ -71,13 +71,38 @@ let package = Package(
     targets: [
         .testTarget(
             name: "MyProjectTests",
-            dependencies: ["InvariantSwiftTesting"]
+            dependencies: [
+                .product(name: "InvariantSwiftTesting", package: "InvariantSwift"),
+                .product(name: "InvariantSwiftMacroAPI", package: "InvariantSwift")
+            ]
         )
     ]
 )
 ```
 
-If you only need generators and the core property runner outside Swift Testing, depend on `InvariantSwift`. If you want `@PropertyTest`, `@Regression`, `checkProperty`, or Swift Testing traits and attachments, use `InvariantSwiftTesting`.
+If you only need the foundation surface (`Property`, the base `Gen` type, shrinking primitives, replay tokens, crash isolation, and related low-level utilities), depend on `InvariantSwiftCore`. If you want the built-in generator catalog and the higher-level property runner outside Swift Testing, depend on `InvariantSwift`. If you want Swift Testing runtime helpers such as `checkProperty`, traits, attachments, and replay support, use `InvariantSwiftTesting`. If you want the macro declarations (`@PropertyTest`, `@AsyncPropertyTest`, `@Regression`, `@RuleBasedTest`, and related attributes), add `InvariantSwiftMacroAPI`.
+
+Core-only root-package example:
+
+```swift
+// swift-tools-version: 6.0
+import PackageDescription
+
+let package = Package(
+    name: "MyProject",
+    dependencies: [
+        .package(url: "https://github.com/brunogama/InvariantSwift", from: "0.2.0")
+    ],
+    targets: [
+        .target(
+            name: "MyProjectCoreChecks",
+            dependencies: [
+                .product(name: "InvariantSwiftCore", package: "InvariantSwift")
+            ]
+        )
+    ]
+)
+```
 
 ### Your First Property Test
 
@@ -101,6 +126,7 @@ The `@PropertyTest` macro automatically infers generators from parameter types:
 ```swift
 import Testing
 import InvariantSwiftTesting
+import InvariantSwiftMacroAPI
 
 @PropertyTest
 func testAdditionCommutative(a: Int, b: Int) {
@@ -122,7 +148,7 @@ func testArrayAppendIncreasesCount(array: [Int], element: Int) {
 
 ### Swift Testing Integration
 
-Use `InvariantSwiftTesting` when you want property tests to behave like native Swift Testing tests:
+Use `InvariantSwiftTesting` for the runtime integration and add `InvariantSwiftMacroAPI` when you want macro declarations:
 
 - `@PropertyTest` and `@AsyncPropertyTest` generate `@Test` wrappers and run properties with shrinking, issue recording, and reproducible seeds.
 - Native Swift Testing traits can be forwarded directly from the macro: `tags`, `bugs`, `serialized`, `timeLimit`, `enabledIf`, and `disabledReason`.

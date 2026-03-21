@@ -4,21 +4,21 @@
   @PageKind(article)
 }
 
-Use `InvariantSwiftTesting` when you want property tests to participate in Swift Testing's traits, issues, attachments, and parameterized-case model.
+Use `InvariantSwiftTesting` when you want property tests to participate in Swift Testing's traits, issues, attachments, and parameterized-case model. Add `InvariantSwiftMacroAPI` when you want the macro declarations.
 
 ## Overview
 
-`InvariantSwiftTesting` layers InvariantSwift's generators, shrinking, and replay support onto Apple's `Testing` framework.
+`InvariantSwiftTesting` layers InvariantSwift's generators, shrinking, and replay support onto Apple's `Testing` framework. `InvariantSwiftMacroAPI` provides the compile-time declarations for the testing macros.
 
 The integration gives you three main entry points:
 
-- ``PropertyTest`` for synchronous macro-generated property tests
-- ``AsyncPropertyTest`` for async or scheduler-driven properties
+- `@PropertyTest` for synchronous macro-generated property tests
+- `@AsyncPropertyTest` for async or scheduler-driven properties
 - ``checkProperty(_:config:file:line:)`` and ``checkPropertyAsync(_:config:file:line:)`` when you want to construct a ``Property`` manually inside a `@Test`
 
 ## Macro-Generated Tests
 
-``PropertyTest`` and ``AsyncPropertyTest`` expand to Swift Testing `@Test` wrappers.
+`@PropertyTest` and `@AsyncPropertyTest` expand to Swift Testing `@Test` wrappers.
 
 They automatically:
 
@@ -32,6 +32,7 @@ Example:
 
 ```swift
 import InvariantSwiftTesting
+import InvariantSwiftMacroAPI
 import Testing
 
 @PropertyTest(
@@ -61,6 +62,7 @@ Example:
 
 ```swift
 import InvariantSwiftTesting
+import InvariantSwiftMacroAPI
 import Testing
 
 extension Tag {
@@ -113,12 +115,13 @@ swift test --attachments-path .build/test-attachments
 
 ## Replay and Regression Workflows
 
-``Regression`` persists failures and can replay them on later runs.
+`@Regression` persists failures and can replay them on later runs.
 
 Example:
 
 ```swift
 import InvariantSwiftTesting
+import InvariantSwiftMacroAPI
 import Testing
 
 @PropertyTest
@@ -159,7 +162,7 @@ This is useful in helper APIs that need to inspect the active property run witho
 
 Use this rule of thumb:
 
-- choose ``PropertyTest`` for standard synchronous property functions
-- choose ``AsyncPropertyTest`` for async properties or scheduler-driven interleaving checks
+- choose `@PropertyTest` for standard synchronous property functions
+- choose `@AsyncPropertyTest` for async properties or scheduler-driven interleaving checks
 - choose ``checkProperty(_:config:file:line:)`` or ``checkPropertyAsync(_:config:file:line:)`` when you need to build the property manually inside a `@Test`
-- add ``Regression`` when you want failures to persist across runs and CI
+- add `@Regression` when you want failures to persist across runs and CI

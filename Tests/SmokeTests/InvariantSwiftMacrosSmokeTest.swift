@@ -1,5 +1,4 @@
-import InvariantSwiftTesting
+import InvariantSwiftMacroAPI
 
-// Smoke test: Verify InvariantSwiftTesting (which uses macros) can be imported
-// Note: Macro targets (InvariantSwiftMacros) cannot be directly imported in regular code.
-// Macros are used via their declarations in InvariantSwiftTesting.
+// Smoke test: Verify the public macro declaration surface can be imported directly.
+// Note: Macro implementation targets cannot be directly imported in regular code.

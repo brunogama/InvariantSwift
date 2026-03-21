@@ -20,12 +20,12 @@ jobs:
 
       - name: Build arm64
         run: |
-          swift build -c release --product $PRODUCT --triple arm64-apple-macosx
+          swift build -c release --target $PRODUCT --triple arm64-apple-macosx
           codesign --sign - --force .build/arm64-apple-macosx/release/$PRODUCT
 
       - name: Build x86_64
         run: |
-          swift build -c release --product $PRODUCT --triple x86_64-apple-macosx
+          swift build -c release --target $PRODUCT --triple x86_64-apple-macosx
           codesign --sign - --force .build/x86_64-apple-macosx/release/$PRODUCT
 
       - uses: actions/upload-artifact@v4
@@ -47,7 +47,7 @@ jobs:
           swift-version: '6.0'
 
       - name: Build Linux x86_64
-        run: swift build -c release --product $PRODUCT
+        run: swift build -c release --target $PRODUCT
 
       - uses: actions/upload-artifact@v4
         with:

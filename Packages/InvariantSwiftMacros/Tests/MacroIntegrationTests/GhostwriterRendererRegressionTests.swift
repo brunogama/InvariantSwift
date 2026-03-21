@@ -27,6 +27,31 @@ struct GhostwriterRendererRegressionTests {
     #expect(code.contains("b == a"))
   }
 
+  @Test("Generated files include runtime and macro imports")
+  func generatedFilesIncludeRuntimeAndMacroImports() {
+    let generator = TestCodeGenerator()
+    let file = generator.generateTestFile(
+      types: [
+        ExtractedTypeInfo(
+          name: "Point",
+          kind: "struct",
+          sourceFile: "Point.swift",
+          line: 1,
+          conformances: ["Equatable"],
+          hasArbitraryAttribute: false,
+          properties: [],
+          methods: [],
+          genericParameters: [],
+          accessLevel: .public
+        )
+      ],
+      sourceFile: "Point.swift"
+    )
+
+    #expect(file.contains("import InvariantSwiftTesting"))
+    #expect(file.contains("import InvariantSwiftMacroAPI"))
+  }
+
   @Test("Generated arbitrary extensions emit TODO comments once")
   func generatedArbitraryExtensionsEmitTodoComments() {
     let generator = TestCodeGenerator()

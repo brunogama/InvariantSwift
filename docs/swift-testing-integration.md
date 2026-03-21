@@ -4,8 +4,10 @@
 
 Use:
 
+- `InvariantSwiftCore` when you only need the lowest-level primitives such as `Property`, `Gen`, shrinking support, and crash-isolation utilities.
 - `InvariantSwift` when you only need generators, shrinkers, and the core property runner.
-- `InvariantSwiftTesting` when you want `@PropertyTest`, `@AsyncPropertyTest`, `@Regression`, `checkProperty`, Swift Testing traits, and attachment-backed failure reporting.
+- `InvariantSwiftTesting` when you want the Swift Testing runtime helpers such as `checkProperty`, traits, attachments, and replay support.
+- `InvariantSwiftMacroAPI` when you want macro declarations such as `@PropertyTest`, `@AsyncPropertyTest`, and `@Regression`.
 
 ## Quick Start
 
@@ -23,16 +25,20 @@ let package = Package(
   targets: [
     .testTarget(
       name: "MyProjectTests",
-      dependencies: ["InvariantSwiftTesting"]
+      dependencies: [
+        .product(name: "InvariantSwiftTesting", package: "InvariantSwift"),
+        .product(name: "InvariantSwiftMacroAPI", package: "InvariantSwift")
+      ]
     )
   ]
 )
 ```
 
-Then import `Testing` and `InvariantSwiftTesting`:
+Then import `Testing`, `InvariantSwiftTesting`, and `InvariantSwiftMacroAPI`:
 
 ```swift
 import InvariantSwiftTesting
+import InvariantSwiftMacroAPI
 import Testing
 
 @PropertyTest(
@@ -49,6 +55,7 @@ If you want to build a property manually instead of using the macro:
 
 ```swift
 import InvariantSwiftTesting
+import InvariantSwiftMacroAPI
 import Testing
 
 @Test("sorting preserves count")
@@ -81,6 +88,7 @@ Example:
 
 ```swift
 import InvariantSwiftTesting
+import InvariantSwiftMacroAPI
 import Testing
 
 extension Tag {
@@ -111,6 +119,7 @@ Use `@AsyncPropertyTest` for async properties and scheduler-driven concurrent in
 
 ```swift
 import InvariantSwiftTesting
+import InvariantSwiftMacroAPI
 import Testing
 
 @available(macOS 15.0, *)
@@ -129,6 +138,7 @@ func actorProperty(value: Int) async {
 
 ```swift
 import InvariantSwiftTesting
+import InvariantSwiftMacroAPI
 import Testing
 
 @PropertyTest

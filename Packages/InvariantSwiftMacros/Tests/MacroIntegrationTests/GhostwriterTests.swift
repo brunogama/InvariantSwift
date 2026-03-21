@@ -286,4 +286,35 @@ struct TestGeneratorTests {
     let test = generator.generateTest(for: typeInfo, pattern: .equatableReflexive)
     #expect(test?.code.contains("verify_") == true)
   }
+
+  @Test("Generated test files import runtime and macro surfaces separately")
+  func generatedTestFileImportsRuntimeAndMacroModules() {
+    let config = GhostwriterConfig(sources: [])
+    let generator = TestGenerator(config: config)
+
+    let sourceFile = SourceFileInfo(
+      path: "Sources/Point.swift",
+      types: [
+        TypeInfo(
+          name: "Point",
+          kind: .structType,
+          sourceFile: "Point.swift",
+          line: 1,
+          conformances: [.equatable],
+          genericParameters: [],
+          properties: [],
+          methods: [],
+          hasFailableInit: false,
+          hasPublicInit: true
+        )
+      ],
+      imports: [],
+      hash: "hash"
+    )
+
+    let file = generator.generateTestFile(for: sourceFile)
+
+    #expect(file.contains("import InvariantSwiftTesting"))
+    #expect(file.contains("import InvariantSwiftMacroAPI"))
+  }
 }

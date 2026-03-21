@@ -1,6 +1,6 @@
 @Tutorial(time: 10) {
   @Intro(title: "Enforce normalization idempotence") {
-    Use ``Idempotent`` when a cleanup or canonicalization pass should stop changing values after the first application.
+    Use `@Idempotent` when a cleanup or canonicalization pass should stop changing values after the first application.
   }
 
   @Section(title: "Annotate the normalizer") {
@@ -9,6 +9,7 @@
 
       ```swift
       import InvariantSwiftTesting
+      import InvariantSwiftMacroAPI
 
       @Idempotent(iterations: 200, applicationCount: 3)
       func normalizeEmail(_ raw: String) -> String {

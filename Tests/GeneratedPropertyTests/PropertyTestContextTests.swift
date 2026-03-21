@@ -1,4 +1,5 @@
 import InvariantSwiftTesting
+import InvariantSwiftMacroAPI
 import Testing
 
 @Suite("PropertyTest Context Tests")

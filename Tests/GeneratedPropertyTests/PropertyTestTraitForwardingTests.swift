@@ -1,4 +1,5 @@
 import InvariantSwiftTesting
+import InvariantSwiftMacroAPI
 import Testing
 
 private extension Tag {

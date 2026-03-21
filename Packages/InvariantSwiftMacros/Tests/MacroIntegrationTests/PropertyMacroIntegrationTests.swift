@@ -48,6 +48,7 @@ private extension PropertyMacroIntegrationTests {
   func propertyMacroFixtureSource() -> String {
     """
     import InvariantSwiftTesting
+    import InvariantSwiftMacroAPI
     import Testing
 
     @PropertyTest("sync property fixture", iterations: 3, seed: 11)
@@ -66,6 +67,7 @@ private extension PropertyMacroIntegrationTests {
   func failingPropertyMacroFixtureSource() -> String {
     """
     import InvariantSwiftTesting
+    import InvariantSwiftMacroAPI
     import Testing
 
     @PropertyTest("failing property fixture", iterations: 1, seed: 21)
@@ -79,6 +81,7 @@ private extension PropertyMacroIntegrationTests {
     """
     import Foundation
     import InvariantSwiftTesting
+    import InvariantSwiftMacroAPI
     import Testing
 
     @RuleBasedTest(maxSteps: 3, maxExamples: 2)

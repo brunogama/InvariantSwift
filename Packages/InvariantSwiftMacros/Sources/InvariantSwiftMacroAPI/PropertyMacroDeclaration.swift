@@ -58,6 +58,26 @@ public macro Property(
   disabledReason: String? = nil
 ) = #externalMacro(module: "InvariantSwiftMacros", type: "PropertyMacro")
 
+/// Swift Testing-friendly property macro declaration.
+///
+/// Use `@PropertyTest` when you want a property to expand into a Swift Testing
+/// test with generated inputs, shrinking, replay support, and forwarded traits.
+/// The optional leading name argument is preserved for compatibility with the
+/// existing runtime-facing API surface.
+@attached(peer, names: suffixed(_PropertyTest))
+public macro PropertyTest(
+  _ name: String? = nil,
+  iterations: Int = 100,
+  seed: UInt64? = nil,
+  maxShrinks: Int = 1000,
+  tags: [Tag] = [],
+  bugs: [Bug] = [],
+  serialized: Bool = false,
+  timeLimit: TimeLimitTrait.Duration? = nil,
+  enabledIf: Bool? = nil,
+  disabledReason: String? = nil
+) = #externalMacro(module: "InvariantSwiftMacros", type: "PropertyTestMacro")
+
 // MARK: - @AsyncPropertyTest Macro Declaration
 
 /// A macro for testing concurrent Swift code with controlled scheduling.

@@ -133,6 +133,8 @@ extension TestCodeGenerator {
       imports: [
         GhostwriterImport(moduleName: "Testing"),
         GhostwriterImport(moduleName: "Foundation"),
+        GhostwriterImport(moduleName: "InvariantSwiftTesting"),
+        GhostwriterImport(moduleName: "InvariantSwiftMacroAPI"),
         GhostwriterImport(moduleName: "InvariantSwift", isTestable: true),
       ],
       arbitraryExtensions: plannedArbitraryExtensions(for: types),

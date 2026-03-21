@@ -1,8 +1,9 @@
 // swift-tools-version: 6.0
-// Umbrella manifest -- sources live in sub-packages.
-//   Packages/InvariantSwiftCore  (core + generators + execution + advanced + domain)
+// Workspace manifest -- library sources live in subdirectories that also carry
+// focused package manifests for local development.
+//   Packages/InvariantSwiftCore   (core + generators + execution + advanced + domain)
 //   Packages/InvariantSwiftMacros (macros + ghostwriter)
-// Root targets: umbrella re-export, testing integration, utility CLIs, plugins, integration tests.
+// The root package exports these libraries directly, similar to swift-syntax.
 // swiftlint:disable all
 import PackageDescription
 import CompilerPluginSupport
@@ -19,21 +20,28 @@ let packagePlatforms: [SupportedPlatform] = [
 ]
 
 // MARK: - Workspace Structure
-// This package is the root umbrella of the monorepo workspace.
-// Sub-packages:
-//   - Packages/InvariantSwiftCore: Core library without SwiftSyntax dependency
-//   - Packages/InvariantSwiftMacros: Macro implementations with SwiftSyntax
+// This package is the root workspace manifest.
+// Nested manifests remain useful for focused work, but the root manifest exposes
+// the publishable libraries directly from the workspace source directories.
 
 let packageDependencies: [Package.Dependency] = [
-  .package(path: "Packages/InvariantSwiftCore"),
-  .package(path: "Packages/InvariantSwiftMacros"),
   .package(url: "https://github.com/swiftlang/swift-syntax", from: "602.0.0"),
   .package(url: "https://github.com/google/swift-benchmark", from: "0.1.2"),
+  .package(url: "https://github.com/brunogama/MacroTemplateKit.git", exact: "0.0.6"),
 ]
 
 // MARK: - Products
 
 let packageProducts: [Product] = [
+  // Core libraries
+  .library(name: "InvariantSwiftCore", targets: ["InvariantSwiftCore"]),
+  .library(name: "InvariantSwiftGenerators", targets: ["InvariantSwiftGenerators"]),
+  .library(name: "InvariantSwiftExecution", targets: ["InvariantSwiftExecution"]),
+  .library(name: "InvariantSwift", targets: ["InvariantSwift"]),
+  .library(name: "InvariantSwiftAdvanced", targets: ["InvariantSwiftAdvanced"]),
+  .library(name: "InvariantSwiftDomainGenerators", targets: ["InvariantSwiftDomainGenerators"]),
+  // Macro API
+  .library(name: "InvariantSwiftMacroAPI", targets: ["InvariantSwiftMacroAPI"]),
   // Umbrella library - re-exports everything from sub-packages
   .library(name: "InvariantSwiftUmbrella", targets: ["InvariantSwiftUmbrella"]),
   // Testing integration layer (core + macros + Swift Testing)
@@ -45,17 +53,107 @@ let packageProducts: [Product] = [
   .plugin(name: "GhostwriterPlugin", targets: ["GhostwriterPlugin"]),
 ]
 
-// MARK: - Umbrella Target
+// MARK: - Core Libraries
+
+let coreTargets: [Target] = [
+  .target(
+    name: "InvariantSwiftCore",
+    dependencies: [],
+    path: "Packages/InvariantSwiftCore/Sources/InvariantSwiftCore",
+    swiftSettings: commonSwiftSettings
+  ),
+  .target(
+    name: "InvariantSwiftGenerators",
+    dependencies: ["InvariantSwiftCore"],
+    path: "Packages/InvariantSwiftCore/Sources/InvariantSwiftGenerators",
+    swiftSettings: commonSwiftSettings
+  ),
+  .target(
+    name: "InvariantSwiftExecution",
+    dependencies: ["InvariantSwiftCore"],
+    path: "Packages/InvariantSwiftCore/Sources/InvariantSwiftExecution",
+    swiftSettings: commonSwiftSettings
+  ),
+  .target(
+    name: "InvariantSwift",
+    dependencies: [
+      "InvariantSwiftCore",
+      "InvariantSwiftGenerators",
+      "InvariantSwiftExecution",
+    ],
+    path: "Packages/InvariantSwiftCore/Sources/InvariantSwift",
+    swiftSettings: commonSwiftSettings
+  ),
+  .target(
+    name: "InvariantSwiftAdvanced",
+    dependencies: [
+      "InvariantSwiftCore",
+      "InvariantSwift",
+    ],
+    path: "Packages/InvariantSwiftCore/Sources/InvariantSwiftAdvanced",
+    swiftSettings: commonSwiftSettings
+  ),
+  .target(
+    name: "InvariantSwiftDomainGenerators",
+    dependencies: [
+      "InvariantSwiftCore",
+      "InvariantSwift",
+    ],
+    path: "Packages/InvariantSwiftCore/Sources/InvariantSwiftDomainGenerators",
+    swiftSettings: commonSwiftSettings
+  ),
+]
+
+// MARK: - Macro Libraries
+
+let macroTargets: [Target] = [
+  .target(
+    name: "InvariantSwiftExpansionSupport",
+    dependencies: [
+      .product(name: "MacroTemplateKit", package: "MacroTemplateKit"),
+      .product(name: "SwiftBasicFormat", package: "swift-syntax"),
+      .product(name: "SwiftSyntax", package: "swift-syntax"),
+      .product(name: "SwiftSyntaxBuilder", package: "swift-syntax"),
+    ],
+    path: "Packages/InvariantSwiftMacros/Sources/InvariantSwiftExpansionSupport",
+    swiftSettings: commonSwiftSettings
+  ),
+  .macro(
+    name: "InvariantSwiftMacros",
+    dependencies: [
+      "InvariantSwiftExpansionSupport",
+      .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
+      .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
+      .product(name: "SwiftParser", package: "swift-syntax"),
+    ],
+    path: "Packages/InvariantSwiftMacros/Sources/InvariantSwiftMacros",
+    swiftSettings: commonSwiftSettings
+  ),
+  .target(
+    name: "InvariantSwiftMacroAPI",
+    dependencies: [
+      "InvariantSwiftMacros",
+      "InvariantSwiftCore",
+      "InvariantSwift",
+      "InvariantSwiftAdvanced",
+    ],
+    path: "Packages/InvariantSwiftMacros/Sources/InvariantSwiftMacroAPI",
+    swiftSettings: commonSwiftSettings
+  ),
+]
+
+// MARK: - Umbrella Targets
 
 let umbrellaTargets: [Target] = [
+
   // Full umbrella: re-exports core + macros
   .target(
     name: "InvariantSwiftUmbrella",
     dependencies: [
       "InvariantSwiftTesting",
-      .product(name: "InvariantSwift", package: "InvariantSwiftCore"),
-      .product(name: "InvariantSwiftCore", package: "InvariantSwiftCore"),
-      .product(name: "InvariantSwiftMacroAPI", package: "InvariantSwiftMacros"),
+      "InvariantSwift",
+      "InvariantSwiftCore",
+      "InvariantSwiftMacroAPI",
     ],
     path: "Sources/InvariantSwiftUmbrella",
     swiftSettings: commonSwiftSettings
@@ -65,10 +163,9 @@ let umbrellaTargets: [Target] = [
   .target(
     name: "InvariantSwiftTesting",
     dependencies: [
-      .product(name: "InvariantSwiftCore", package: "InvariantSwiftCore"),
-      .product(name: "InvariantSwift", package: "InvariantSwiftCore"),
-      .product(name: "InvariantSwiftAdvanced", package: "InvariantSwiftCore"),
-      .product(name: "InvariantSwiftMacroAPI", package: "InvariantSwiftMacros"),
+      "InvariantSwiftCore",
+      "InvariantSwift",
+      "InvariantSwiftAdvanced",
     ],
     path: "Sources/InvariantSwiftTestingIntegration",
     swiftSettings: commonSwiftSettings
@@ -83,7 +180,7 @@ let utilityTargets: [Target] = [
     dependencies: [
       .product(name: "SwiftParser", package: "swift-syntax"),
       .product(name: "SwiftSyntax", package: "swift-syntax"),
-      .product(name: "InvariantSwiftExpansionSupport", package: "InvariantSwiftMacros"),
+      "InvariantSwiftExpansionSupport",
     ],
     path: "Packages/InvariantSwiftMacros/Sources/GhostwriterLib",
     swiftSettings: commonSwiftSettings
@@ -101,8 +198,8 @@ let utilityTargets: [Target] = [
   .executableTarget(
     name: "Benchmarks",
     dependencies: [
-      .product(name: "InvariantSwiftCore", package: "InvariantSwiftCore"),
-      .product(name: "InvariantSwift", package: "InvariantSwiftCore"),
+      "InvariantSwiftCore",
+      "InvariantSwift",
       .product(name: "Benchmark", package: "swift-benchmark"),
     ],
     path: "Benchmarks",
@@ -116,9 +213,7 @@ let utilityTargets: [Target] = [
   ),
   .executableTarget(
     name: "GeneratorCatalogCLI",
-    dependencies: [
-      .product(name: "InvariantSwift", package: "InvariantSwiftCore")
-    ],
+    dependencies: ["InvariantSwift"],
     path: "Sources/GeneratorCatalogCLI",
     swiftSettings: commonSwiftSettings
   ),
@@ -157,15 +252,15 @@ let pluginTargets: [Target] = [
   ),
 ]
 
-// MARK: - Integration Tests (remain in root, exercise sub-package products)
+// MARK: - Integration Tests (remain in root, exercise workspace products)
 
 let testTargets: [Target] = [
   .testTarget(
     name: "CoverageIntegrationTests",
     dependencies: [
-      .product(name: "InvariantSwiftCore", package: "InvariantSwiftCore"),
-      .product(name: "InvariantSwift", package: "InvariantSwiftCore"),
-      .product(name: "InvariantSwiftAdvanced", package: "InvariantSwiftCore"),
+      "InvariantSwiftCore",
+      "InvariantSwift",
+      "InvariantSwiftAdvanced",
       "InvariantSwiftTesting",
     ],
     path: "Tests/CoverageIntegrationTests",
@@ -174,10 +269,11 @@ let testTargets: [Target] = [
   .testTarget(
     name: "GeneratedPropertyTests",
     dependencies: [
-      .product(name: "InvariantSwiftCore", package: "InvariantSwiftCore"),
-      .product(name: "InvariantSwift", package: "InvariantSwiftCore"),
-      .product(name: "InvariantSwiftAdvanced", package: "InvariantSwiftCore"),
+      "InvariantSwiftCore",
+      "InvariantSwift",
+      "InvariantSwiftAdvanced",
       "InvariantSwiftTesting",
+      "InvariantSwiftMacroAPI",
     ],
     path: "Tests/GeneratedPropertyTests",
     swiftSettings: commonSwiftSettings
@@ -187,9 +283,9 @@ let testTargets: [Target] = [
     dependencies: [
       "GhostwriterCLI",
       "GhostwriterLib",
-      .product(name: "InvariantSwiftCore", package: "InvariantSwiftCore"),
-      .product(name: "InvariantSwift", package: "InvariantSwiftCore"),
-      .product(name: "InvariantSwiftAdvanced", package: "InvariantSwiftCore"),
+      "InvariantSwiftCore",
+      "InvariantSwift",
+      "InvariantSwiftAdvanced",
     ],
     path: "Packages/InvariantSwiftMacros/Tests/MacroIntegrationTests",
     swiftSettings: commonSwiftSettings
@@ -197,10 +293,11 @@ let testTargets: [Target] = [
   .testTarget(
     name: "SmokeTests",
     dependencies: [
-      .product(name: "InvariantSwiftCore", package: "InvariantSwiftCore"),
-      .product(name: "InvariantSwift", package: "InvariantSwiftCore"),
-      .product(name: "InvariantSwiftAdvanced", package: "InvariantSwiftCore"),
+      "InvariantSwiftCore",
+      "InvariantSwift",
+      "InvariantSwiftAdvanced",
       "InvariantSwiftTesting",
+      "InvariantSwiftMacroAPI",
     ],
     path: "Tests/SmokeTests",
     swiftSettings: commonSwiftSettings
@@ -214,5 +311,6 @@ let package = Package(
   platforms: packagePlatforms,
   products: packageProducts,
   dependencies: packageDependencies,
-  targets: umbrellaTargets + utilityTargets + pluginTargets + testTargets
+  targets: coreTargets + macroTargets + umbrellaTargets + utilityTargets + pluginTargets
+    + testTargets
 )

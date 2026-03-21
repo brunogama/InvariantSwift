@@ -56,13 +56,13 @@ if [[ "$CI_MODE" == true ]]; then
     [[ -n "$MACOS_X86_64" ]] && cp "$MACOS_X86_64" "$BUNDLE_DIR/$PRODUCT-macos-x86_64/bin/$PRODUCT"
     [[ -n "$LINUX_X86_64" ]] && cp "$LINUX_X86_64" "$BUNDLE_DIR/$PRODUCT-linux-x86_64/bin/$PRODUCT"
 else
-    echo "==> Building $PRODUCT from source (macOS arm64)"
+    echo "==> Building $PRODUCT target from source (macOS arm64)"
     cd "$REPO_ROOT"
-    swift build -c release --product "$PRODUCT" --triple arm64-apple-macosx
+    swift build -c release --target "$PRODUCT" --triple arm64-apple-macosx
     cp ".build/arm64-apple-macosx/release/$PRODUCT" "$BUNDLE_DIR/$PRODUCT-macos-arm64/bin/$PRODUCT"
 
-    echo "==> Building $PRODUCT from source (macOS x86_64)"
-    swift build -c release --product "$PRODUCT" --triple x86_64-apple-macosx
+    echo "==> Building $PRODUCT target from source (macOS x86_64)"
+    swift build -c release --target "$PRODUCT" --triple x86_64-apple-macosx
     cp ".build/x86_64-apple-macosx/release/$PRODUCT" "$BUNDLE_DIR/$PRODUCT-macos-x86_64/bin/$PRODUCT"
 
     echo "==> Code signing macOS binaries"

@@ -1,6 +1,6 @@
 @Tutorial(time: 10) {
   @Intro(title: "Document pure helper contracts") {
-    Use ``Pure`` when you want the test declaration itself to say that a helper should behave like a side-effect-free, deterministic function.
+    Use `@Pure` when you want the test declaration itself to say that a helper should behave like a side-effect-free, deterministic function.
   }
 
   @Section(title: "Annotate a formatting helper") {
@@ -9,6 +9,7 @@
 
       ```swift
       import InvariantSwiftTesting
+      import InvariantSwiftMacroAPI
 
       @Pure(iterations: 200, callCount: 3)
       func renderSummary(name: String, count: Int) -> String {

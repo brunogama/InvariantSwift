@@ -4,15 +4,16 @@ Property-based testing integrated directly into Apple's `Testing` framework.
 
 ## Overview
 
-`InvariantSwiftTesting` is the high-level module for writing InvariantSwift properties as native Swift Testing tests.
+`InvariantSwiftTesting` is the high-level runtime module for writing InvariantSwift properties as native Swift Testing tests.
 
 Import this module when you want:
 
-- `@PropertyTest` and `@AsyncPropertyTest`
-- `@Regression` replay and persisted-failure workflows
 - `checkProperty` and `checkPropertyAsync`
 - attachment-backed failure reporting
 - property execution context inside helpers
+- Swift Testing traits, attachments, and replay helpers around property execution
+
+Add `InvariantSwiftMacroAPI` alongside `InvariantSwiftTesting` when you want macro declarations such as `@PropertyTest`, `@AsyncPropertyTest`, `@Regression`, `@Idempotent`, `@Deterministic`, or `@Pure`.
 
 If you only need generators, shrinking, and the core property runner without Swift Testing-specific behavior, use `InvariantSwift` instead.
 
@@ -22,9 +23,6 @@ If you only need generators, shrinking, and the core property runner without Swi
 
 - <doc:SwiftTestingIntegration>
 - <doc:InvariantSwiftTestingTutorials>
-- ``PropertyTest``
-- ``AsyncPropertyTest``
-- ``Regression``
 
 ### Manual Execution
 
@@ -44,6 +42,3 @@ If you only need generators, shrinking, and the core property runner without Swi
 - <doc:SpecializedMacroUseCases>
 - <doc:ChoosingAssertionMacros>
 - <doc:SpecializedMacroTutorials>
-- ``Idempotent(iterations:applicationCount:)``
-- ``Deterministic(iterations:callCount:)``
-- ``Pure(iterations:callCount:)``

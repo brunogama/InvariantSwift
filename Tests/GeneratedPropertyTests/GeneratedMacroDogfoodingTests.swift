@@ -1,4 +1,5 @@
 import InvariantSwiftTesting
+import InvariantSwiftMacroAPI
 import Testing
 
 @RuleBasedTest(maxSteps: 5, maxExamples: 3)
