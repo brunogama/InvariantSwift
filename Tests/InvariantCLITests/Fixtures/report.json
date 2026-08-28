@@ -1,0 +1,9 @@
+{
+  "coverage" : 0.87,
+  "duration" : 12.34,
+  "failedTests" : 2,
+  "passedTests" : 40,
+  "successRate" : 0.95238095238095233,
+  "timestamp" : "Friday, January 2, 2026 at 3:04:05 AM",
+  "totalTests" : 42
+}

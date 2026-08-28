@@ -47,6 +47,8 @@ let packageProducts: [Product] = [
   .library(name: "InvariantSwiftUmbrella", targets: ["InvariantSwiftUmbrella"]),
   // Testing integration layer (core + macros + Swift Testing)
   .library(name: "InvariantSwiftTesting", targets: ["InvariantSwiftTesting"]),
+  // Canonical command owner
+  .executable(name: "invariant-cli", targets: ["invariant-cli"]),
   // Ghostwriter CLI for test generation and source analysis
   .executable(name: "GhostwriterCLI", targets: ["GhostwriterCLI"]),
   // Plugins
@@ -179,6 +181,18 @@ let umbrellaTargets: [Target] = [
 
 let utilityTargets: [Target] = [
   .target(
+    name: "InvariantCLIKit",
+    dependencies: ["InvariantSwift", "GhostwriterLib"],
+    path: "Sources/InvariantCLIKit",
+    swiftSettings: commonSwiftSettings
+  ),
+  .executableTarget(
+    name: "invariant-cli",
+    dependencies: ["InvariantCLIKit"],
+    path: "Sources/InvariantCLI",
+    swiftSettings: commonSwiftSettings
+  ),
+  .target(
     name: "GhostwriterLib",
     dependencies: [
       .product(name: "SwiftParser", package: "swift-syntax"),
@@ -263,6 +277,13 @@ let pluginTargets: [Target] = [
 // MARK: - Integration Tests (remain in root, exercise workspace products)
 
 let testTargets: [Target] = [
+  .testTarget(
+    name: "InvariantCLITests",
+    dependencies: ["InvariantCLIKit", "invariant-cli"],
+    path: "Tests/InvariantCLITests",
+    resources: [.copy("Fixtures")],
+    swiftSettings: commonSwiftSettings
+  ),
   .testTarget(
     name: "CoverageIntegrationTests",
     dependencies: [

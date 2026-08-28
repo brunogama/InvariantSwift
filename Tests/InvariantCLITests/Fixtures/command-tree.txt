@@ -1,0 +1,16 @@
+InvariantSwift CLI
+
+USAGE:
+    invariant-cli <command> [options]
+
+COMMANDS:
+    run           Run property-based tests
+    report        Generate test reports
+    corpus        Manage the example corpus
+    benchmark     Run performance benchmarks
+    characterize  Record or verify characterization tests
+    ghostwrite    Generate property tests from Swift sources
+    generators    Browse the generator catalog
+    interactive   Start interactive mode
+    version       Show version information
+    help          Show this help
