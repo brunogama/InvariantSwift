@@ -28,6 +28,7 @@ let packageDependencies: [Package.Dependency] = [
   .package(url: "https://github.com/swiftlang/swift-syntax", from: "602.0.0"),
   .package(url: "https://github.com/google/swift-benchmark", from: "0.1.2"),
   .package(url: "https://github.com/brunogama/MacroTemplateKit.git", exact: "0.0.6"),
+  .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", from: "1.19.4"),
 ]
 
 // MARK: - Products
@@ -166,8 +167,10 @@ let umbrellaTargets: [Target] = [
       "InvariantSwiftCore",
       "InvariantSwift",
       "InvariantSwiftAdvanced",
+      .product(name: "SnapshotTesting", package: "swift-snapshot-testing"),
     ],
     path: "Sources/InvariantSwiftTestingIntegration",
+    resources: [.process("InvariantSwiftTesting.docc")],
     swiftSettings: commonSwiftSettings
   ),
 ]
@@ -217,7 +220,12 @@ let utilityTargets: [Target] = [
     path: "Sources/GeneratorCatalogCLI",
     swiftSettings: commonSwiftSettings
   ),
-  // FuncTestCLI: present in Sources/ but not yet exposed as a target (has pre-existing build issues)
+  .executableTarget(
+    name: "CharacterizationCLI",
+    dependencies: [],
+    path: "Sources/CharacterizationCLI",
+    swiftSettings: commonSwiftSettings
+  ),
 ]
 
 // MARK: - Plugins
@@ -229,7 +237,7 @@ let pluginTargets: [Target] = [
       intent: .custom(verb: "invariant", description: "Run property-based tests"),
       permissions: [.writeToPackageDirectory(reason: "Generate test reports")]
     ),
-    dependencies: [],
+    dependencies: ["CharacterizationCLI"],
     path: "Plugins/InvariantSwiftPlugin"
   ),
   .plugin(
@@ -276,6 +284,7 @@ let testTargets: [Target] = [
       "InvariantSwiftMacroAPI",
     ],
     path: "Tests/GeneratedPropertyTests",
+    resources: [.copy("Fixtures")],
     swiftSettings: commonSwiftSettings
   ),
   .testTarget(

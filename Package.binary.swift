@@ -28,8 +28,10 @@ let packageProducts: [Product] = [
   .plugin(name: "InvariantSwiftPlugin", targets: ["InvariantSwiftPlugin"]),
 ]
 
-// No swift-syntax, swift-benchmark, or MacroTemplateKit in the binary manifest.
-let packageDependencies: [Package.Dependency] = []
+// SnapshotTesting supplies characterization storage and diffing.
+let packageDependencies: [Package.Dependency] = [
+  .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", from: "1.19.4")
+]
 
 // MARK: - Core Libraries
 
@@ -113,8 +115,10 @@ let testingTargets: [Target] = [
       "InvariantSwiftCore",
       "InvariantSwift",
       "InvariantSwiftAdvanced",
+      .product(name: "SnapshotTesting", package: "swift-snapshot-testing"),
     ],
     path: "Sources/InvariantSwiftTestingIntegration",
+    resources: [.process("InvariantSwiftTesting.docc")],
     swiftSettings: commonSwiftSettings
   )
 ]
@@ -138,15 +142,21 @@ let umbrellaTargets: [Target] = [
 // MARK: - Plugins
 
 let pluginTargets: [Target] = [
+  .executableTarget(
+    name: "CharacterizationCLI",
+    dependencies: [],
+    path: "Sources/CharacterizationCLI",
+    swiftSettings: commonSwiftSettings
+  ),
   .plugin(
     name: "InvariantSwiftPlugin",
     capability: .command(
       intent: .custom(verb: "invariant", description: "Run property-based tests"),
       permissions: [.writeToPackageDirectory(reason: "Generate test reports")]
     ),
-    dependencies: [],
+    dependencies: ["CharacterizationCLI"],
     path: "Plugins/InvariantSwiftPlugin"
-  )
+  ),
 ]
 
 // MARK: - Tests
@@ -207,6 +217,7 @@ let testTargets: [Target] = [
       "InvariantSwiftMacroAPI",
     ],
     path: "Tests/GeneratedPropertyTests",
+    resources: [.copy("Fixtures")],
     swiftSettings: commonSwiftSettings
   ),
   .testTarget(

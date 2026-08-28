@@ -35,7 +35,7 @@ import PackagePlugin
 struct InvariantSwiftPlugin: CommandPlugin {
 
   func performCommand(context: PluginContext, arguments: [String]) async throws {
-    let funcTestCLIURL = try context.tool(named: "FuncTestCLI").url
+    let characterizationCLIURL = try context.tool(named: "CharacterizationCLI").url
     let packageDirectoryURL = context.package.directoryURL
 
     // Parse command arguments
@@ -53,7 +53,7 @@ struct InvariantSwiftPlugin: CommandPlugin {
 
     if verbose {
       print("InvariantSwift Plugin Configuration:")
-      print("   CLI Tool: \(funcTestCLIURL.path)")
+      print("   CLI Tool: \(characterizationCLIURL.path)")
       print("   Working Directory: \(packageDirectoryURL.path)")
       print("   Arguments: \(allArguments)")
       if let report = reportPath {
@@ -92,12 +92,12 @@ struct InvariantSwiftPlugin: CommandPlugin {
       cliArguments.append(contentsOf: Array(allArguments.dropFirst()))
     }
 
-    // Execute the FuncTest CLI tool
+    // Execute the characterization CLI tool
     print("InvariantSwift: Running via Swift Package Manager Plugin")
     print("=" * 60)
 
     let process = Process()
-    process.executableURL = funcTestCLIURL
+    process.executableURL = characterizationCLIURL
     process.arguments = cliArguments
     process.currentDirectoryURL = packageDirectoryURL
 
@@ -109,7 +109,7 @@ struct InvariantSwiftPlugin: CommandPlugin {
     process.environment = environment
 
     if verbose {
-      print("Executing: \(funcTestCLIURL.path) \(cliArguments.joined(separator: " "))")
+      print("Executing: \(characterizationCLIURL.path) \(cliArguments.joined(separator: " "))")
       print()
     }
 
