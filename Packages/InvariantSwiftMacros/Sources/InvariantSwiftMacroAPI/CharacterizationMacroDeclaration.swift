@@ -4,7 +4,8 @@ import InvariantSwiftCore
 
 /// Captures and verifies current behavior for explicit Codable inputs.
 ///
-/// The generated Swift Testing wrapper delegates execution to `characterize`.
+/// The generated Swift Testing wrapper delegates execution to
+/// `InvariantSwiftTesting.CharacterizationTestRuntime`.
 /// Use the record mode command to create or update the checked-in JSON fixture.
 ///
 /// ```swift
@@ -16,8 +17,9 @@ import InvariantSwiftCore
 ///   input.count
 /// }
 /// ```
-@attached(peer, names: suffixed(_CharacterizationTest))
-public macro CharacterizationTest(
+@attached(peer)
+public macro CharacterizationTest<C>(
   fixture: String,
-  inputs: Any
+  inputs: C
 ) = #externalMacro(module: "InvariantSwiftMacros", type: "CharacterizationTestMacro")
+where C: Collection & Sendable, C.Element: Codable & Sendable

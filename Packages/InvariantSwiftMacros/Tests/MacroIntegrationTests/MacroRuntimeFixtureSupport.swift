@@ -54,19 +54,35 @@ enum MacroRuntimeFixtureSupport {
   static func runTests(
     in package: MacroRuntimeFixturePackage
   ) throws -> MacroRuntimeFixtureResult {
+    try runSwift(["test"], in: package)
+  }
+
+  static func buildTests(
+    in package: MacroRuntimeFixturePackage
+  ) throws -> MacroRuntimeFixtureResult {
+    try runSwift(["build", "--build-tests"], in: package)
+  }
+
+  private static func runSwift(
+    _ arguments: [String],
+    in package: MacroRuntimeFixturePackage
+  ) throws -> MacroRuntimeFixtureResult {
     let process = Process()
     process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
     var environment = ProcessInfo.processInfo.environment
     environment["TMPDIR"] = package.temporaryDirectory.path + "/"
     process.environment = environment
-    process.arguments = [
-      "swift",
-      "test",
-      "--package-path",
-      package.directory.path,
-      "--attachments-path",
-      package.attachmentsDirectory.path,
-    ]
+    process.arguments =
+      ["swift"] + arguments + [
+        "--package-path",
+        package.directory.path,
+      ]
+    if arguments.first == "test" {
+      process.arguments?.append(contentsOf: [
+        "--attachments-path",
+        package.attachmentsDirectory.path,
+      ])
+    }
 
     let pipe = Pipe()
     process.standardOutput = pipe

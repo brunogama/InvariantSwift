@@ -174,6 +174,32 @@ public enum CharacterizationTestingError: Error, Sendable, CustomStringConvertib
   }
 }
 
+/// The stable runtime entry used by generated characterization tests.
+public enum CharacterizationTestRuntime {
+  /// Runs a generated characterization test through the public manual facade.
+  public static func run<C, Input, Output>(
+    name: String,
+    fixture: String,
+    inputs: C,
+    operation: @escaping @Sendable (Input) async throws -> Output
+  ) async throws -> CharacterizationReport
+  where
+    C: Collection & Sendable,
+    C.Element == CharacterizationInput<Input>,
+    Input: Codable & Sendable,
+    Output: Codable & Sendable
+  {
+    try await characterize(
+      CharacterizationConfiguration(
+        name: name,
+        fixture: fixture,
+        inputs: Array(inputs)
+      ),
+      operation: operation
+    )
+  }
+}
+
 /// Runs an explicit input corpus against a system under test.
 public func characterize<Input, Output>(
   _ configuration: CharacterizationConfiguration<Input>,
