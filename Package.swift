@@ -54,6 +54,7 @@ let packageProducts: [Product] = [
   // Plugins
   .plugin(name: "InvariantSwiftPlugin", targets: ["InvariantSwiftPlugin"]),
   .plugin(name: "GhostwriterPlugin", targets: ["GhostwriterPlugin"]),
+  .plugin(name: "GeneratorCatalogPlugin", targets: ["GeneratorCatalogPlugin"]),
 ]
 
 // MARK: - Core Libraries
@@ -188,7 +189,11 @@ let utilityTargets: [Target] = [
   ),
   .executableTarget(
     name: "invariant-cli",
-    dependencies: ["InvariantCLIKit"],
+    dependencies: [
+      "InvariantCLIKit",
+      .product(name: "SwiftBasicFormat", package: "swift-syntax"),
+      .product(name: "SwiftSyntaxBuilder", package: "swift-syntax"),
+    ],
     path: "Sources/InvariantCLI",
     swiftSettings: commonSwiftSettings
   ),
@@ -251,7 +256,7 @@ let pluginTargets: [Target] = [
       intent: .custom(verb: "invariant", description: "Run property-based tests"),
       permissions: [.writeToPackageDirectory(reason: "Generate test reports")]
     ),
-    dependencies: ["CharacterizationCLI"],
+    dependencies: ["invariant-cli"],
     path: "Plugins/InvariantSwiftPlugin"
   ),
   .plugin(
@@ -260,7 +265,7 @@ let pluginTargets: [Target] = [
       intent: .custom(verb: "ghostwrite", description: "Generate property tests"),
       permissions: [.writeToPackageDirectory(reason: "Generate test files")]
     ),
-    dependencies: ["GhostwriterCLI"],
+    dependencies: ["invariant-cli"],
     path: "Plugins/GhostwriterPlugin"
   ),
   .plugin(
@@ -269,7 +274,7 @@ let pluginTargets: [Target] = [
       intent: .custom(verb: "browse-generators", description: "Browse generator catalog"),
       permissions: []
     ),
-    dependencies: ["GeneratorCatalogCLI"],
+    dependencies: ["invariant-cli"],
     path: "Plugins/GeneratorCatalogPlugin"
   ),
 ]
@@ -277,6 +282,17 @@ let pluginTargets: [Target] = [
 // MARK: - Integration Tests (remain in root, exercise workspace products)
 
 let testTargets: [Target] = [
+  .testTarget(
+    name: "PluginIntegrationTests",
+    dependencies: ["invariant-cli"],
+    path: "Tests/PluginIntegrationTests",
+    exclude: [
+      "Fixtures/AdapterProbe/Package.swift",
+      "Fixtures/PluginClient/Package.swift",
+    ],
+    resources: [.copy("Fixtures")],
+    swiftSettings: commonSwiftSettings
+  ),
   .testTarget(
     name: "InvariantCLITests",
     dependencies: ["InvariantCLIKit", "invariant-cli"],

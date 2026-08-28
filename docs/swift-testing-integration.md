@@ -182,7 +182,7 @@ Normal test runs verify fixtures and aggregate every mismatch. To create or upda
 swift package invariant characterize --record --target ParserTests
 ```
 
-> Current S0 limitation: `swift package invariant run`, `report`, `corpus`, and `benchmark` still route to the characterization-only executable and fail with its usage error. This is documented and intentionally deferred to the accepted `invariant-cli` unification work.
+All command plugins use `invariant-cli` as their command owner. The `invariant` plugin forwards arguments unchanged, while `ghostwrite` and `browse-generators` select the fixed `ghostwrite` and `generators` subcommands. The release manifest keeps these plugin products available by source-building the CLI and its SwiftSyntax and MacroTemplateKit tool dependencies alongside the pre-built macro.
 
 The runtime API is also available when a macro is not appropriate:
 
