@@ -1,6 +1,6 @@
 import Foundation
 import InvariantSwiftMacroAPI
-import InvariantSwiftTesting
+@testable import InvariantSwiftTesting
 import Testing
 
 @Suite("Characterization Testing")
@@ -28,6 +28,66 @@ struct CharacterizationTestingTests {
     )
     #expect(verified.caseCount == 2)
     #expect(verified.differences.isEmpty)
+  }
+
+  @Test("missing verification snapshots report ordered differences without creating fixtures")
+  func missingVerificationSnapshotsAreReportedWithoutWriting() async throws {
+    let snapshotDirectory = temporarySnapshotDirectory()
+    defer { try? FileManager.default.removeItem(at: snapshotDirectory) }
+
+    let inputs = [
+      CharacterizationInput(id: "first", value: 1),
+      CharacterizationInput(id: "second", value: 2),
+    ]
+    let configuration = CharacterizationConfiguration(
+      name: "identity",
+      fixture: snapshotDirectory.path,
+      inputs: inputs
+    )
+    let request: CharacterizationExecutionRequest<Int, Int, Int> = CharacterizationExecutionRequest(
+      configuration: configuration,
+      observe: { $0 },
+      observeError: nil,
+      operation: { $0 }
+    )
+    let reporter = CapturingDifferenceReporter()
+    let report = try await CharacterizationExecution.run(
+      request,
+      modeSelector: FixedCharacterizationModeSelector(mode: .verify),
+      fixtures: FileSystemSnapshotTestingFixtures(configuration: configuration),
+      reporter: reporter
+    )
+
+    #expect(report.caseCount == 2)
+    #expect(report.differences.map(\.caseID) == ["first", "second"])
+    #expect(reporter.reports.count == 1)
+    #expect(!FileManager.default.fileExists(atPath: snapshotDirectory.path))
+  }
+
+  @Test("in-memory fixtures share the JSON snapshot contract")
+  func inMemoryFixturesShareJSONSnapshotContract() throws {
+    let fixtures = InMemoryCharacterizationFixtures()
+    let original = characterizationCase(input: 1, output: 1)
+    let changed = characterizationCase(input: 1, output: 2)
+
+    let missing = fixtures.verify([original], mode: .verify)
+    #expect(missing.map(\.caseID) == ["one"])
+
+    try fixtures.prepareForRecording()
+    #expect(fixtures.verify([original], mode: .record).isEmpty)
+    let replayed: [CharacterizationCase<Int, Int>] = try fixtures.load()
+    #expect(replayed.map(\.id) == ["one"])
+    #expect(replayed.map(\.input) == [1])
+    #expect(fixtures.verify([original], mode: .verify).isEmpty)
+
+    let mismatch = fixtures.verify([changed], mode: .verify)
+    #expect(mismatch.map(\.caseID) == ["one"])
+    #expect(mismatch.first?.message.hasPrefix("@@ ") == true)
+    #expect(mismatch.first?.message.contains("\"value\" : 2") == true)
+
+    #expect(fixtures.verify([original], mode: .verify).isEmpty)
+    let replayedAfterVerify: [CharacterizationCase<Int, Int>] = try fixtures.load()
+    #expect(replayedAfterVerify.map(\.input) == [1])
   }
 
   @Test("verification does not rewrite a snapshot")
@@ -219,6 +279,13 @@ struct CharacterizationTestingTests {
     )
     #expect(snapshot.id == "named-case")
     #expect(snapshot.input == 7)
+  }
+
+  private func characterizationCase(
+    input: Int,
+    output: Int
+  ) -> CharacterizationCase<Int, Int> {
+    CharacterizationCase(id: "one", input: input, expected: .returned(output))
   }
 
   private static func failingObservation(_ value: Int) throws -> Int {
