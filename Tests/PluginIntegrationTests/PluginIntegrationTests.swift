@@ -22,7 +22,6 @@ struct PluginIntegrationTests {
     }
   }
 
-
   @Test("Binary manifest mirrors source development targets and fixture resources")
   func binaryManifestDevelopmentParity() throws {
     let source = try String(
@@ -38,11 +37,9 @@ struct PluginIntegrationTests {
       #expect(source.contains(declaration))
       #expect(binary.contains(declaration))
     }
-    let fixtures = ".copy(\"Fixtures\")"
-    #expect(
-      binary.components(separatedBy: fixtures).count
-        == source.components(separatedBy: fixtures).count
-    )
+    let sourceFixtureTargets = try fixtureResourceTargets(in: source)
+    let binaryFixtureTargets = try fixtureResourceTargets(in: binary)
+    #expect(binaryFixtureTargets == sourceFixtureTargets)
   }
 
   @Test("Adapters inherit process streams, environment, and package root")
@@ -96,10 +93,11 @@ struct PluginIntegrationTests {
     let fixture = try makeAdapterProbePackage()
     defer { try? FileManager.default.removeItem(at: fixture) }
     try preparePluginTools(at: fixture)
+    let fixtureCLI = try fixtureCLIURL(at: fixture)
 
     for route in routes {
       let direct = try runProcess(
-        executable: fixture.appendingPathComponent(".build/debug/invariant-cli"),
+        executable: fixtureCLI,
         arguments: route.cliArguments + ["--fail"],
         at: fixture
       )
@@ -118,6 +116,14 @@ struct PluginIntegrationTests {
     let fixture = try makeAdapterProbePackage()
     defer { try? FileManager.default.removeItem(at: fixture) }
     try preparePluginTools(at: fixture)
+    let pathResult = try runProcess(
+      executable: URL(fileURLWithPath: "/usr/bin/env"),
+      arguments: ["pwd", "-P"],
+      at: fixture
+    )
+    let fixturePath = pathResult.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
+    try #require(pathResult.status == 0)
+    let fixtureCLI = try fixtureCLIURL(at: fixture)
 
     let environment = ["PARENT_SENTINEL": "preserved"]
     for route in routes {
@@ -126,11 +132,11 @@ struct PluginIntegrationTests {
       var directEnvironment = environment
       if route.pluginVerb == "invariant" {
         directEnvironment["FUNCTEST_PLUGIN_MODE"] = "true"
-        directEnvironment["FUNCTEST_PACKAGE_PATH"] = fixture.path
+        directEnvironment["FUNCTEST_PACKAGE_PATH"] = fixturePath
         directEnvironment["FUNCTEST_PACKAGE_NAME"] = "AdapterProbe"
       }
       let direct = try runProcess(
-        executable: fixture.appendingPathComponent(".build/debug/invariant-cli"),
+        executable: fixtureCLI,
         arguments: Array(directArguments),
         at: fixture,
         environment: directEnvironment
@@ -144,7 +150,7 @@ struct PluginIntegrationTests {
       #expect(adapter.status == direct.status)
       #expect(adapter.stdout == direct.stdout)
       #expect(adapter.stderr == direct.stderr)
-      #expect(adapter.stdout.contains("cwd=\(fixture.path)"))
+      #expect(adapter.stdout.contains("cwd=\(fixturePath)"))
       #expect(adapter.stdout.contains("parent=preserved"))
     }
   }
@@ -203,7 +209,21 @@ private func preparePluginTools(at directory: URL) throws {
   }
 }
 
+private func fixtureCLIURL(at directory: URL) throws -> URL {
+  let result = try runProcess(
+    executable: URL(fileURLWithPath: "/usr/bin/env"),
+    arguments: ["swift", "build", "--show-bin-path"],
+    at: directory
+  )
+  guard result.status == 0 else {
+    throw FixtureError.binPathFailed(result.stderr)
+  }
+  let path = result.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
+  return URL(fileURLWithPath: path).appendingPathComponent("invariant-cli")
+}
+
 private enum FixtureError: Error {
+  case binPathFailed(String)
   case pluginBuildFailed(String)
 }
 
@@ -281,7 +301,7 @@ private func makeFixturePackage() throws -> URL {
 }
 
 private func makeAdapterProbePackage() throws -> URL {
-  let fixture = URL(fileURLWithPath: "/private/tmp")
+  let fixture = FileManager.default.temporaryDirectory
     .appendingPathComponent("invariant-adapter-probe-\(UUID().uuidString)")
   try FileManager.default.copyItem(
     at: packageRoot.appendingPathComponent("Tests/PluginIntegrationTests/Fixtures/AdapterProbe"),
@@ -297,6 +317,21 @@ private func makeAdapterProbePackage() throws -> URL {
     )
   }
   return fixture
+}
+
+private func fixtureResourceTargets(in manifest: String) throws -> [String] {
+  let marker = ".copy(\"Fixtures\")"
+  let prefixes = manifest.components(separatedBy: marker).dropLast()
+  var targets: [String] = []
+  for prefix in prefixes {
+    let targetStart = try #require(prefix.range(of: ".testTarget(", options: .backwards))
+    let target = prefix[targetStart.lowerBound...]
+    let nameStart = try #require(target.range(of: "name: \"")?.upperBound)
+    let nameSuffix = target[nameStart...]
+    let nameEnd = try #require(nameSuffix.firstIndex(of: "\""))
+    targets.append(String(target[nameStart..<nameEnd]))
+  }
+  return targets.sorted()
 }
 
 private func pluginDeclaration(named name: String, in manifest: String) throws -> Substring {
