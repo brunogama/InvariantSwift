@@ -22,19 +22,15 @@ if [[ -z "${OUTPUT_PATH:-}" ]]; then
   exit 1
 fi
 
-# Resolve to an absolute path and verify it stays within the project root.
-# This guards against path traversal (e.g. DOCC_OUTPUT_PATH=../../etc).
+# Resolve a relative path under the project root and reject path traversal.
 _ROOT="$(pwd)"
-_PARENT="$(cd "$(dirname "$OUTPUT_PATH")" 2>/dev/null && pwd)" || true
-_RESOLVED="${_PARENT:+$_PARENT/}$(basename "$OUTPUT_PATH")"
-if [[ -z "$_RESOLVED" || "$_RESOLVED" == "/" ]]; then
-  echo "error: OUTPUT_PATH resolves to a dangerous path: '${_RESOLVED}'" >&2
-  exit 1
-fi
-if [[ "$_RESOLVED" != "$_ROOT"/* ]]; then
-  echo "error: OUTPUT_PATH must resolve to a subdirectory of the project (got: '${_RESOLVED}')" >&2
-  exit 1
-fi
+case "$OUTPUT_PATH" in
+  /* | . | .. | ../* | */.. | */../*)
+    echo "error: OUTPUT_PATH must resolve to a subdirectory of the project (got: '${OUTPUT_PATH}')" >&2
+    exit 1
+    ;;
+esac
+_RESOLVED="$_ROOT/$OUTPUT_PATH"
 
 rm -rf "$_RESOLVED"
 
