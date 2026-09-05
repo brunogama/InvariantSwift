@@ -1,5 +1,8 @@
 set default-list
 
+# Allow explicit `just default` invocation as well as bare `just`.
+default: help
+
 # Test on Linux using Docker.
 test-linux:
     docker run --rm -v "$PWD:$PWD" -w "$PWD" swift:6.0-jammy bash -c 'swift test'
