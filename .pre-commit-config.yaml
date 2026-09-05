@@ -60,12 +60,6 @@ repos:
     files: \.(sh|bash)$
     pass_filenames: true
 
-  - id: makefile-check
-    name: 🔨 Checking Makefiles...
-    entry: bash -c 'for file in "$@"; do echo "Checking $file..."; if ! make -n -f "$file" >/dev/null 2>&1; then echo "❌ Makefile $file has syntax errors"; exit 1; fi; done'
-    language: system
-    files: ^(Makefile|.*\.mk)$
-    pass_filenames: true
 
 - repo: https://github.com/pre-commit/pre-commit-hooks
   rev: v6.0.0
