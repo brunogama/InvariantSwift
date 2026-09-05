@@ -104,10 +104,10 @@ internal func attachClassificationReport(
   line: UInt = #line
 ) {
   guard !report.isEmpty else { return }
-  Testing.Attachment.record(
+  recordAttachment(
     report,
     named: "classification.txt",
-    sourceLocation: makeSourceLocation(file: file, line: line)
+    location: makeSourceLocation(file: file, line: line)
   )
 }
 

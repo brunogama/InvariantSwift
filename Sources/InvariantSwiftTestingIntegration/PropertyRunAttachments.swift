@@ -66,7 +66,11 @@ func recordAttachment(
   named name: String,
   location: Testing.SourceLocation
 ) {
+  #if compiler(>=6.2)
   Testing.Attachment.record(value, named: name, sourceLocation: location)
+  #else
+  _ = (value, name, location)
+  #endif
 }
 
 func recordRunJSON(
