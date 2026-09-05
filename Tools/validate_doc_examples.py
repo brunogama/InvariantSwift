@@ -6,7 +6,7 @@ Extracts Swift code examples from DocC comments and validates they compile.
 This helps catch stale examples that no longer match the API.
 
 Usage:
-    python3 Scripts/validate_doc_examples.py [--verbose] [--check-only]
+    python3 Tools/validate_doc_examples.py [--verbose] [--check-only]
 """
 import argparse
 import os

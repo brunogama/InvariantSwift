@@ -1,9 +1,0 @@
-node_modules/
-*.log
-.DS_Store
-
-# Ralph run artifacts can contain sensitive session data.
-.ralph/runs/
-
-# Local git worktrees for isolated agent work.
-.worktrees/
