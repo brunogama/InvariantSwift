@@ -1,5 +1,5 @@
 {
-  "originHash" : "c483492227b2f50c6a5b5618ac33c6324d4a66de3c4501e4dfd4e57ae96c8cb4",
+  "originHash" : "54f320bf64b7606da0ee3b7889e344446b497193ff271bccd88f3a0912a030a5",
   "pins" : [
     {
       "identity" : "macrotemplatekit",
@@ -26,6 +26,33 @@
       "state" : {
         "revision" : "8163295f6fe82356b0bcf8e1ab991645de17d096",
         "version" : "0.1.2"
+      }
+    },
+    {
+      "identity" : "swift-custom-dump",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/pointfreeco/swift-custom-dump",
+      "state" : {
+        "revision" : "ada3fea49b5f4279a71daad27987cb179ddba757",
+        "version" : "1.7.2"
+      }
+    },
+    {
+      "identity" : "swift-issue-reporting",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/pointfreeco/swift-issue-reporting",
+      "state" : {
+        "revision" : "71c7c9a761d1ca6ed4ccb6ced040fe1c1a39e8e7",
+        "version" : "2.1.0"
+      }
+    },
+    {
+      "identity" : "swift-snapshot-testing",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/pointfreeco/swift-snapshot-testing",
+      "state" : {
+        "revision" : "bf8d8c27f0f0c6d5e77bff0db76ab68f2050d15d",
+        "version" : "1.18.9"
       }
     },
     {

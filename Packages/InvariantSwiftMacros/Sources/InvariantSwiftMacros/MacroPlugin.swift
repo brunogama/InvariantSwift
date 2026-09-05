@@ -25,6 +25,7 @@ struct InvariantSwiftMacroPlugin: CompilerPlugin {
     RegressionMacro.self,
     ReproduceMacro.self,
     DifferentialTestMacro.self,
+    CharacterizationTestMacro.self,
     ContractMacro.self,
     TestContractMacro.self,
     LawMacro.self,

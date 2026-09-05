@@ -4,7 +4,7 @@ import Foundation
 
 /// Comprehensive code coverage analysis and reporting tool
 /// Integrates with Swift Package Manager and various coverage analysis tools
-/// Usage: swift Scripts/coverage-analysis.swift [--generate-report] [--validate-threshold] [--badge]
+/// Usage: swift Tools/coverage-analysis.swift [--generate-report] [--validate-threshold] [--badge]
 
 struct CoverageAnalyzer {
 
@@ -237,7 +237,7 @@ struct CoverageAnalyzer {
   }
 
   static func countLines(in filePath: String) -> Int {
-    guard let content = try? String(contentsOfFile: filePath) else {
+    guard let content = try? String(contentsOfFile: filePath, encoding: .utf8) else {
       return 0
     }
     return content.components(separatedBy: .newlines).count
@@ -446,7 +446,7 @@ struct CoverageAnalyzer {
     print(
       """
 
-      Usage: swift Scripts/coverage-analysis.swift [options]
+      Usage: swift Tools/coverage-analysis.swift [options]
 
       Options:
         --generate-report     Generate HTML coverage report (default)
@@ -455,9 +455,9 @@ struct CoverageAnalyzer {
         --help               Show this help message
 
       Examples:
-        swift Scripts/coverage-analysis.swift
-        swift Scripts/coverage-analysis.swift --badge
-        swift Scripts/coverage-analysis.swift --generate-report --validate-threshold
+        swift Tools/coverage-analysis.swift
+        swift Tools/coverage-analysis.swift --badge
+        swift Tools/coverage-analysis.swift --generate-report --validate-threshold
 
       """
     )

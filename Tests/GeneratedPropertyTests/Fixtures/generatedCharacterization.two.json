@@ -1,0 +1,8 @@
+{
+  "expected" : {
+    "kind" : "returned",
+    "value" : 4
+  },
+  "id" : "two",
+  "input" : 2
+}

@@ -22,15 +22,6 @@ internal struct PropertyIssueContext {
   }
 }
 
-private struct PropertyRunRecord {
-  let testName: String
-  let seed: UInt64?
-  let iterations: Int
-  let outcome: String
-  let reason: String
-  let reproductionCommand: String?
-}
-
 internal func recordPropertyFailureIssue(
   _ report: FailureReport,
   context: PropertyIssueContext = .init(labels: [])
@@ -40,15 +31,10 @@ internal func recordPropertyFailureIssue(
     "Property failed after \(report.iterationsBeforeFailure) iterations (\(report.failureReason))."
   Issue.record(Comment(rawValue: message), sourceLocation: location)
 
-  Testing.Attachment.record(
-    stringifyAttachment(report.originalValue),
-    named: "counterexample.txt",
-    sourceLocation: location
-  )
-  Testing.Attachment.record(
-    stringifyAttachment(report.shrunkValue),
-    named: "shrunk-counterexample.txt",
-    sourceLocation: location
+  recordCounterexamples(
+    original: stringifyAttachment(report.originalValue),
+    shrunk: stringifyAttachment(report.shrunkValue),
+    location: location
   )
 
   let record = PropertyRunRecord(
@@ -59,21 +45,34 @@ internal func recordPropertyFailureIssue(
     reason: report.failureReason.description,
     reproductionCommand: report.reproductionCommand
   )
-  if let propertyRunJSON = propertyRunJSON(for: record, context: context) {
-    Testing.Attachment.record(
-      propertyRunJSON,
-      named: "property-run.json",
-      sourceLocation: location
-    )
-  }
+  recordRunJSON(record, context: context, location: location)
+  recordClassificationIfPresent(report.classificationReport, location: location)
+}
 
-  if let classificationReport = report.classificationReport, !classificationReport.isEmpty {
-    Testing.Attachment.record(
-      classificationReport,
-      named: "classification.txt",
-      sourceLocation: location
-    )
-  }
+private func recordCounterexamples(
+  original: String,
+  shrunk: String,
+  location: Testing.SourceLocation
+) {
+  recordAttachment(original, named: "counterexample.txt", location: location)
+  recordAttachment(
+    shrunk,
+    named: "shrunk-counterexample.txt",
+    location: location
+  )
+}
+
+private func recordClassificationIfPresent(
+  _ report: String?,
+  location: Testing.SourceLocation
+) {
+  guard let classificationReport = report else { return }
+  guard !classificationReport.isEmpty else { return }
+  recordAttachment(
+    classificationReport,
+    named: "classification.txt",
+    location: location
+  )
 }
 
 internal func recordPropertyGiveUpIssue(
@@ -96,13 +95,7 @@ internal func recordPropertyGiveUpIssue(
     reason: "discarded \(discarded) cases",
     reproductionCommand: nil
   )
-  if let propertyRunJSON = propertyRunJSON(for: record, context: context) {
-    Testing.Attachment.record(
-      propertyRunJSON,
-      named: "property-run.json",
-      sourceLocation: location
-    )
-  }
+  recordRunJSON(record, context: context, location: location)
 }
 
 internal func attachClassificationReport(
@@ -111,14 +104,16 @@ internal func attachClassificationReport(
   line: UInt = #line
 ) {
   guard !report.isEmpty else { return }
-  Testing.Attachment.record(
+  recordAttachment(
     report,
     named: "classification.txt",
-    sourceLocation: makeSourceLocation(file: file, line: line)
+    location: makeSourceLocation(file: file, line: line)
   )
 }
 
-internal func currentPropertyTestName(fallback: String = "PropertyTest") -> String {
+internal func currentPropertyTestName(
+  fallback: String = "PropertyTest"
+) -> String {
   Test.current?.displayName ?? Test.current?.name ?? fallback
 }
 
@@ -128,216 +123,138 @@ internal func handleGeneratedPropertyResult<T: Sendable>(
   persistFailures: Bool,
   context: PropertyIssueContext
 ) {
+  handleGeneratedResult(
+    result,
+    settings: GeneratedResultSettings(
+      testName: testName,
+      persistFailures: persistFailures,
+      context: context
+    )
+  )
+}
+
+private struct GeneratedResultSettings {
+  let testName: String
+  let persistFailures: Bool
+  let context: PropertyIssueContext
+}
+
+private func handleGeneratedResult<T: Sendable>(
+  _ result: PropertyResult<T>,
+  settings: GeneratedResultSettings
+) {
   switch result {
   case .success:
     break
 
-  case .failure(let counterexample, let iterations, let shrunk, let reason, let seed):
-    let report = FailureReport(
-      testName: testName,
-      seed: seed,
-      originalValue: stringifyValue(counterexample),
-      shrunkValue: stringifyValue(shrunk),
-      iterationsBeforeFailure: iterations,
-      shrinkAttempts: 0,
-      successfulShrinks: 0,
-      failureReason: reason,
-      totalTime: 0
-    )
-    FailureReporter(verbose: false).recordFailure(
-      report,
-      labels: context.labels,
-      file: context.file,
-      line: context.line
-    )
-
-    if persistFailures {
-      do {
-        try FailurePersistenceManager().save(PersistedFailure(report: report))
-      } catch {
-        let location = makeSourceLocation(file: context.file, line: context.line)
-        Issue.record(
-          Comment(rawValue: "Failed to persist failure for replay: \(error.localizedDescription)"),
-          sourceLocation: location
-        )
-      }
-    }
+  case .failure:
+    handleGeneratedFailureResult(result, settings: settings)
 
   case .gaveUp(let discarded, let iterations):
     recordPropertyGiveUpIssue(
-      testName: testName,
+      testName: settings.testName,
       discarded: discarded,
       iterations: iterations,
       seed: PropertyTestContext.current?.seed,
-      context: context
+      context: settings.context
     )
   }
 }
 
-internal func verifyPersistedReplay<T: Sendable>(
+private struct GeneratedFailure {
+  let originalValue: String
+  let shrunkValue: String
+  let iterations: Int
+  let reason: FailureReason
+  let seed: Seed
+}
+
+private func handleGeneratedFailureResult<T: Sendable>(
   _ result: PropertyResult<T>,
-  expectedFailure: PersistedFailure,
-  testName: String,
-  context: PropertyIssueContext
+  settings: GeneratedResultSettings
 ) {
-  switch result {
-  case .failure(_, let iterations, let shrunk, let reason, let seed):
-    let actualShrunkValue = stringifyValue(shrunk)
-    let actualReason = reason.description
-    let matchesReason = expectedFailure.failureReason.map { $0 == actualReason } ?? true
+  guard
+    case .failure(
+      let counterexample,
+      let iterations,
+      let shrunk,
+      let reason,
+      let seed
+    ) = result
+  else { return }
 
-    guard actualShrunkValue == expectedFailure.shrunkValue, matchesReason else {
-      let location = makeSourceLocation(file: context.file, line: context.line)
-      Issue.record(
-        Comment(
-          rawValue:
-            "Persisted replay case no longer reproduces the stored counterexample for \(testName)."
-        ),
-        sourceLocation: location
-      )
-      Testing.Attachment.record(
-        expectedFailure.shrunkValue,
-        named: "expected-counterexample.txt",
-        sourceLocation: location
-      )
-      Testing.Attachment.record(
-        actualShrunkValue,
-        named: "actual-counterexample.txt",
-        sourceLocation: location
-      )
-      let record = PropertyRunRecord(
-        testName: testName,
-        seed: seed.rawValue,
-        iterations: iterations,
-        outcome: "failure",
-        reason: actualReason,
-        reproductionCommand: expectedFailure.reproductionCommand
-      )
-      if let propertyRunJSON = propertyRunJSON(for: record, context: context) {
-        Testing.Attachment.record(
-          propertyRunJSON,
-          named: "property-run.json",
-          sourceLocation: location
-        )
-      }
-      return
-    }
+  let failure = GeneratedFailure(
+    originalValue: stringifyValue(counterexample),
+    shrunkValue: stringifyValue(shrunk),
+    iterations: iterations,
+    reason: reason,
+    seed: seed
+  )
+  handleGeneratedFailure(failure, settings: settings)
+}
 
-  case .success, .gaveUp:
+private func handleGeneratedFailure(
+  _ failure: GeneratedFailure,
+  settings: GeneratedResultSettings
+) {
+  let report = FailureReport(
+    testName: settings.testName,
+    seed: failure.seed,
+    originalValue: failure.originalValue,
+    shrunkValue: failure.shrunkValue,
+    iterationsBeforeFailure: failure.iterations,
+    shrinkAttempts: 0,
+    successfulShrinks: 0,
+    failureReason: failure.reason,
+    totalTime: 0
+  )
+  FailureReporter(verbose: false).recordFailure(
+    report,
+    labels: settings.context.labels,
+    file: settings.context.file,
+    line: settings.context.line
+  )
+  persistFailureIfRequested(report, settings: settings)
+}
+
+private func persistFailureIfRequested(
+  _ report: FailureReport,
+  settings: GeneratedResultSettings
+) {
+  guard settings.persistFailures else { return }
+  do {
+    try FailurePersistenceManager().save(PersistedFailure(report: report))
+  } catch {
+    let context = settings.context
     let location = makeSourceLocation(file: context.file, line: context.line)
     Issue.record(
-      Comment(rawValue: "Persisted replay case no longer fails for \(testName)."),
-      sourceLocation: location
-    )
-    Testing.Attachment.record(
-      expectedFailure.shrunkValue,
-      named: "expected-counterexample.txt",
+      Comment(rawValue: "Failed to persist failure for replay: \(error.localizedDescription)"),
       sourceLocation: location
     )
   }
 }
 
-private func makeSourceLocation(file: StaticString, line: UInt) -> Testing.SourceLocation {
+internal func makeSourceLocation(
+  file: StaticString,
+  line: UInt
+) -> Testing.SourceLocation {
   let path = String(describing: file)
-  return Testing.SourceLocation(fileID: path, filePath: path, line: Int(line), column: 1)
-}
-
-private func propertyRunJSON(
-  for record: PropertyRunRecord,
-  context: PropertyIssueContext
-) -> String? {
-  let attachment = PropertyRunAttachment(
-    testName: record.testName,
-    seed: record.seed,
-    iterations: record.iterations,
-    outcome: record.outcome,
-    reason: record.reason,
-    file: String(describing: context.file),
-    line: Int(context.line),
-    labels: context.labels,
-    reproductionCommand: record.reproductionCommand,
-    replayFailureID: context.replayFailureID?.uuidString
+  return Testing.SourceLocation(
+    fileID: path,
+    filePath: path,
+    line: Int(line),
+    column: 1
   )
-
-  let encoder = JSONEncoder()
-  encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-  return try? String(data: encoder.encode(attachment), encoding: .utf8)
-}
-
-private func stringifyValue<T>(_ value: T) -> String {
-  let printer = PrettyPrinter(config: .testOutput)
-
-  if let printable = value as? PrettyPrintable {
-    // swiftlint:disable:next no_print
-    return printer.print(printable)
-  }
-
-  return String(describing: value)
-}
-
-private func stringifyAttachment(_ value: String) -> String {
-  value.hasSuffix("\n") ? value : value + "\n"
-}
-
-private struct PropertyRunAttachment: Encodable {
-  let testName: String
-  let seed: UInt64?
-  let iterations: Int
-  let outcome: String
-  let reason: String
-  let file: String
-  let line: Int
-  let labels: [String]
-  let reproductionCommand: String?
-  let replayFailureID: String?
 }
 
 extension PropertyConfig {
-  func withExecutionSeed(_ seed: Seed) -> Self {
-    PropertyConfig(
-      iterations: iterations,
-      maxShrinks: maxShrinks,
-      maxDiscarded: maxDiscarded,
-      seed: seed,
-      verbose: verbose,
-      timeout: timeout,
-      verbosity: verbosity,
-      regressionBank: regressionBank,
-      propertyId: propertyId,
-      failingExampleDatabase: failingExampleDatabase,
-      testIdentifier: testIdentifier,
-      replayFirst: replayFirst,
-      maxReplayExamples: maxReplayExamples,
-      unicodeMode: unicodeMode,
-      maxStringShrinkSteps: maxStringShrinkSteps,
-      coverage: coverage,
-      discard: discard,
-      showProgress: showProgress,
-      progressInterval: progressInterval
-    )
-  }
-
+  /// Adapts a persisted failure to the focused replay derivation owned by
+  /// `PropertyConfig`, which preserves execution settings and clears
+  /// persistence so the replay never re-persists or re-replays.
   func replayConfiguration(for failure: PersistedFailure) -> Self {
-    PropertyConfig(
-      iterations: max(iterations, failure.iterationsBeforeFailure),
-      maxShrinks: maxShrinks,
-      maxDiscarded: maxDiscarded,
+    replayConfiguration(
       seed: Seed(value: failure.seed),
-      verbose: verbose,
-      timeout: timeout,
-      verbosity: verbosity,
-      regressionBank: nil,
-      propertyId: nil,
-      failingExampleDatabase: nil,
-      testIdentifier: nil,
-      replayFirst: false,
-      maxReplayExamples: nil,
-      unicodeMode: unicodeMode,
-      maxStringShrinkSteps: maxStringShrinkSteps,
-      coverage: coverage,
-      discard: discard,
-      showProgress: showProgress,
-      progressInterval: progressInterval
+      minimumIterations: failure.iterationsBeforeFailure
     )
   }
 }

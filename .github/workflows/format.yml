@@ -22,9 +22,9 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Install swift-format
-        run: brew install swift-format
+        run: brew install just swift-format swiftlint
       - name: Format code
-        run: make format
+        run: just format
       - name: Commit changes
         run: |
           git config --local user.email "action@github.com"

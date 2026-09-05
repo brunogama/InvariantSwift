@@ -1,7 +1,7 @@
 // swift-tools-version: 6.2
 // Package.binary.swift -- Release manifest for binary macro distribution.
 // On tagged releases, CI swaps this file to Package.swift so consumers resolve
-// the pre-built InvariantSwiftMacros target without pulling swift-syntax.
+// the pre-built macro while source-building the unified CLI and its tool dependencies.
 import PackageDescription
 
 // Swift 6 enables StrictConcurrency by default; no additional flags needed.
@@ -25,11 +25,19 @@ let packageProducts: [Product] = [
   .library(name: "InvariantSwiftMacroAPI", targets: ["InvariantSwiftMacroAPI"]),
   .library(name: "InvariantSwiftTesting", targets: ["InvariantSwiftTesting"]),
   .library(name: "InvariantSwiftUmbrella", targets: ["InvariantSwiftUmbrella"]),
+  .executable(name: "invariant-cli", targets: ["invariant-cli"]),
   .plugin(name: "InvariantSwiftPlugin", targets: ["InvariantSwiftPlugin"]),
+  .plugin(name: "GhostwriterPlugin", targets: ["GhostwriterPlugin"]),
+  .plugin(name: "GeneratorCatalogPlugin", targets: ["GeneratorCatalogPlugin"]),
 ]
 
-// No swift-syntax, swift-benchmark, or MacroTemplateKit in the binary manifest.
-let packageDependencies: [Package.Dependency] = []
+// SnapshotTesting supplies characterization storage and diffing.
+let packageDependencies: [Package.Dependency] = [
+  .package(url: "https://github.com/swiftlang/swift-syntax", from: "602.0.0"),
+  .package(url: "https://github.com/google/swift-benchmark", from: "0.1.2"),
+  .package(url: "https://github.com/brunogama/MacroTemplateKit.git", exact: "0.0.6"),
+  .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", exact: "1.18.9"),
+]
 
 // MARK: - Core Libraries
 
@@ -113,8 +121,10 @@ let testingTargets: [Target] = [
       "InvariantSwiftCore",
       "InvariantSwift",
       "InvariantSwiftAdvanced",
+      .product(name: "SnapshotTesting", package: "swift-snapshot-testing"),
     ],
     path: "Sources/InvariantSwiftTestingIntegration",
+    resources: [.process("InvariantSwiftTesting.docc")],
     swiftSettings: commonSwiftSettings
   )
 ]
@@ -135,6 +145,58 @@ let umbrellaTargets: [Target] = [
   )
 ]
 
+// MARK: - Unified CLI
+
+let utilityTargets: [Target] = [
+  .target(
+    name: "InvariantSwiftExpansionSupport",
+    dependencies: [
+      .product(name: "MacroTemplateKit", package: "MacroTemplateKit"),
+      .product(name: "SwiftBasicFormat", package: "swift-syntax"),
+      .product(name: "SwiftSyntax", package: "swift-syntax"),
+      .product(name: "SwiftSyntaxBuilder", package: "swift-syntax"),
+    ],
+    path: "Packages/InvariantSwiftMacros/Sources/InvariantSwiftExpansionSupport",
+    swiftSettings: commonSwiftSettings
+  ),
+  .target(
+    name: "GhostwriterLib",
+    dependencies: [
+      .product(name: "SwiftParser", package: "swift-syntax"),
+      .product(name: "SwiftSyntax", package: "swift-syntax"),
+      "InvariantSwiftExpansionSupport",
+    ],
+    path: "Packages/InvariantSwiftMacros/Sources/GhostwriterLib",
+    swiftSettings: commonSwiftSettings
+  ),
+  .target(
+    name: "InvariantCLIKit",
+    dependencies: ["InvariantSwift", "GhostwriterLib"],
+    path: "Sources/InvariantCLIKit",
+    swiftSettings: commonSwiftSettings
+  ),
+  .executableTarget(
+    name: "invariant-cli",
+    dependencies: [
+      "InvariantCLIKit",
+      .product(name: "SwiftBasicFormat", package: "swift-syntax"),
+      .product(name: "SwiftSyntaxBuilder", package: "swift-syntax"),
+    ],
+    path: "Sources/InvariantCLI",
+    swiftSettings: commonSwiftSettings
+  ),
+  .executableTarget(
+    name: "Benchmarks",
+    dependencies: [
+      "InvariantSwiftCore",
+      "InvariantSwift",
+      .product(name: "Benchmark", package: "swift-benchmark"),
+    ],
+    path: "Benchmarks",
+    swiftSettings: commonSwiftSettings
+  ),
+]
+
 // MARK: - Plugins
 
 let pluginTargets: [Target] = [
@@ -144,14 +206,50 @@ let pluginTargets: [Target] = [
       intent: .custom(verb: "invariant", description: "Run property-based tests"),
       permissions: [.writeToPackageDirectory(reason: "Generate test reports")]
     ),
-    dependencies: [],
+    dependencies: ["invariant-cli"],
     path: "Plugins/InvariantSwiftPlugin"
-  )
+  ),
+  .plugin(
+    name: "GhostwriterPlugin",
+    capability: .command(
+      intent: .custom(verb: "ghostwrite", description: "Generate property tests"),
+      permissions: [.writeToPackageDirectory(reason: "Generate test files")]
+    ),
+    dependencies: ["invariant-cli"],
+    path: "Plugins/GhostwriterPlugin"
+  ),
+  .plugin(
+    name: "GeneratorCatalogPlugin",
+    capability: .command(
+      intent: .custom(verb: "browse-generators", description: "Browse generator catalog"),
+      permissions: []
+    ),
+    dependencies: ["invariant-cli"],
+    path: "Plugins/GeneratorCatalogPlugin"
+  ),
 ]
 
 // MARK: - Tests
 
 let testTargets: [Target] = [
+  .testTarget(
+    name: "PluginIntegrationTests",
+    dependencies: ["invariant-cli"],
+    path: "Tests/PluginIntegrationTests",
+    exclude: [
+      "Fixtures/AdapterProbe/Package.swift",
+      "Fixtures/PluginClient/Package.swift",
+    ],
+    resources: [.copy("Fixtures")],
+    swiftSettings: commonSwiftSettings
+  ),
+  .testTarget(
+    name: "InvariantCLITests",
+    dependencies: ["InvariantCLIKit", "invariant-cli"],
+    path: "Tests/InvariantCLITests",
+    resources: [.copy("Fixtures")],
+    swiftSettings: commonSwiftSettings
+  ),
   .testTarget(
     name: "InvariantSwiftCoreTests",
     dependencies: ["InvariantSwiftCore"],
@@ -207,6 +305,7 @@ let testTargets: [Target] = [
       "InvariantSwiftMacroAPI",
     ],
     path: "Tests/GeneratedPropertyTests",
+    resources: [.copy("Fixtures")],
     swiftSettings: commonSwiftSettings
   ),
   .testTarget(
@@ -228,6 +327,7 @@ let allTargets =
   + macroTargets
   + testingTargets
   + umbrellaTargets
+  + utilityTargets
   + pluginTargets
   + testTargets
 

@@ -155,6 +155,9 @@ Use `InvariantSwiftTesting` for the runtime integration and add `InvariantSwiftM
 - Property failures emit attachments such as `property-run.json`, `counterexample.txt`, and `shrunk-counterexample.txt` for CI and local debugging.
 - `@Regression` persists failing examples for replay, and `@Regression(exposeCasesAsTests: true)` exposes stored failures as parameterized Swift Testing cases.
 - `PropertyTestContext.current` exposes the current test name, seed, labels, replay state, and config inside helpers.
+- `@CharacterizationTest` and `characterize` use Point-Free SnapshotTesting to preserve current Codable behavior as checked-in, replayable JSON snapshots.
+- Run `swift package invariant characterize --record --target <TestTarget>` explicitly to create or update fixtures; normal runs verify without rewriting.
+
 
 See the full guide in `docs/swift-testing-integration.md`.
 

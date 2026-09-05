@@ -27,7 +27,8 @@ jobs:
           swift-format -i --configuration .swift-format --recursive \
             ./Package.swift ./Sources ./Tests
           if ! git diff --quiet; then
-            echo "::error::Code is not properly formatted. Run 'make format' locally."
+            echo "::error::Code is not properly formatted. Run 'just format'" \
+              "locally."
             exit 1
           fi
 
@@ -45,18 +46,26 @@ jobs:
 
       - name: Check for Forbidden Disable Tags
         run: |
-          echo "Checking for blanket swiftlint disable directives affecting all rules..."
-          if grep -rnE "swiftlint:disable(:next|:this)?[[:space:]]+([^[:space:]]+[[:space:]]+)*all([[:space:]]|$)" Sources/ Tests/ --include="*.swift"; then
-            echo "::error::Blanket swiftlint disable directives affecting all rules are forbidden."
+          echo "Checking for blanket swiftlint disable directives affecting" \
+            "all rules..."
+          blanket_disable_pattern='swiftlint:disable(:next|:this)?[[:space:]]+'
+          blanket_disable_pattern+='([^[:space:]]+[[:space:]]+)*all([[:space:]]|$)'
+          if grep -rnE "$blanket_disable_pattern" \
+            Sources/ Tests/ --include="*.swift"
+          then
+            echo "::error::Blanket swiftlint disable directives affecting" \
+              "all rules are forbidden."
             exit 1
           fi
           echo "No blanket disable directives found."
 
       - name: Run SwiftLint Strict
         run: |
-          swiftlint lint --strict --reporter github-actions-logging Sources/ Tests/
-          if [ $? -ne 0 ]; then
-            echo "::error::SwiftLint violations found. All issues must be fixed."
+          if ! swiftlint lint --strict --reporter github-actions-logging \
+            Sources/ Tests/
+          then
+            echo "::error::SwiftLint violations found. All issues must be" \
+              "fixed."
             exit 1
           fi
 
@@ -123,7 +132,10 @@ jobs:
         run: sudo xcode-select -s /Applications/Xcode_16.2.app
 
       - name: Install Danger
-        run: brew install danger/tap/danger-swift
+        run: |
+          brew trust --formula danger/tap/danger-swift
+          brew trust --formula danger/tap/danger-js
+          brew install danger/tap/danger-swift
 
       - name: Run Danger
         env:

@@ -34,6 +34,12 @@ If this file conflicts with repository tooling or explicit user instructions, th
 - Do not “fix” dependency or type problems by deleting behavior or weakening checks. Prefer the real fix.
 - Keep diffs tight. Avoid unrelated refactors and formatting-only churn unless required to satisfy repository rules.
 
+
+## Package Manifest Synchronization
+- Treat `Package.swift` as the active source manifest and keep `Package.local.swift` as its exact local-development copy.
+- Whenever a change affects package products, targets, dependencies, platforms, resources, plugins, or tests, update `Package.swift`, `Package.local.swift`, and `Package.binary.swift` in the same change.
+- Preserve intentional binary-manifest differences such as `.binaryTarget` declarations, release placeholders, and source-only tooling boundaries. Mirror the resulting package surface rather than copying incompatible implementation details.
+- Before finishing a manifest change, verify `Package.swift` and `Package.local.swift` are identical and validate both source and binary manifest behavior.
 ## Validation
 
 - After code changes, run the repository validation commands that enforce the standards in `RULES.md`.

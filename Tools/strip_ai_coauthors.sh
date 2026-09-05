@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Strips AI agent Co-Authored-By trailers from a commit message file.
-# Used as a commit-msg hook via pre-commit.
+# Used as a commit-msg hook via prek.
 # Usage: strip_ai_coauthors.sh <commit-msg-file>
 
 set -euo pipefail

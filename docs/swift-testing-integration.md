@@ -156,6 +156,55 @@ Behavior:
 - `exposeCasesAsTests: true` emits separate parameterized Swift Testing cases for stored failures.
 - Replay cases are automatically tagged with `InvariantSwiftTestingTags.propertyReplay`.
 
+---
+
+## Characterization testing
+
+Characterization tests preserve the current behavior of an existing system as checked-in JSON fixtures. Each fixture stores explicit inputs, a stable case ID, and a returned value or projected error envelope.
+
+```swift
+import InvariantSwiftMacroAPI
+import InvariantSwiftTesting
+import Testing
+
+@CharacterizationTest(
+  fixture: "Fixtures/Characterization",
+  inputs: [CharacterizationInput<ParserInput>(id: "empty", value: .empty)]
+)
+func parser(_ input: ParserInput) throws -> ParserOutput {
+  try Parser.parse(input)
+}
+```
+
+A relative `fixture` path resolves against the directory of the declaring source file, so fixtures stay next to the test regardless of the process working directory. Absolute paths are used unchanged.
+
+Normal test runs verify fixtures and aggregate every mismatch. To create or update a fixture, use the explicit record command:
+
+```bash
+swift package invariant characterize --record --target ParserTests
+```
+
+All command plugins use `invariant-cli` as their command owner. The `invariant` plugin forwards arguments unchanged, while `ghostwrite` and `browse-generators` select the fixed `ghostwrite` and `generators` subcommands. The release manifest keeps these plugin products available by source-building the CLI and its SwiftSyntax and MacroTemplateKit tool dependencies alongside the pre-built macro.
+
+The runtime API is also available when a macro is not appropriate:
+
+```swift
+try await characterize(
+  CharacterizationConfiguration(
+    name: "parser",
+    fixture: "Fixtures/Characterization",
+    inputs: [CharacterizationInput(id: "empty", value: .empty)]
+  ),
+  observe: { $0.normalized },
+  observeError: { error in stableErrorEnvelope(error) },
+  operation: { input in try await parser.parse(input) }
+)
+```
+
+Inputs and observations must be Codable. InvariantSwift uses Point-Free SnapshotTesting for sorted-key JSON storage, recording, and diff reporting. Each named input becomes a replayable `<test-name>.<case-id>.json` snapshot. Use `observe` and `observeError` to normalize nondeterministic details.
+
+---
+
 ## Tags and Context
 
 `InvariantSwiftTesting` exposes a small public tag namespace for generated tests:

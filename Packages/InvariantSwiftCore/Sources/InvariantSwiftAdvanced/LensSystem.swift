@@ -188,7 +188,7 @@ extension Lens {
   ///
   /// - See Also: ``over(_:)``
   public func set(_ newValue: Value, _ root: Root) -> Root {
-    set(newValue, root)
+    self[keyPath: \Self.set](newValue, root)
   }
 
   /// Extract the focused value from the root structure.
