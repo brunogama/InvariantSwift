@@ -11,9 +11,7 @@ body:
 
         **Before asking**: Please check our
         [documentation](https://your-org.github.io/FunctionalTesting/) and
-        [discussions][repo-discussions] first.
-
-        [repo-discussions]: https://github.com/brunogama/InvariantSwift/discussions
+        existing repository discussions first.
 
   - type: textarea
     id: question
