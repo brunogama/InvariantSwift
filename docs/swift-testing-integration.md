@@ -168,13 +168,15 @@ import InvariantSwiftTesting
 import Testing
 
 @CharacterizationTest(
-  fixture: "Tests/ParserTests/Fixtures/Characterization",
+  fixture: "Fixtures/Characterization",
   inputs: [CharacterizationInput<ParserInput>(id: "empty", value: .empty)]
 )
 func parser(_ input: ParserInput) throws -> ParserOutput {
   try Parser.parse(input)
 }
 ```
+
+A relative `fixture` path resolves against the directory of the declaring source file, so fixtures stay next to the test regardless of the process working directory. Absolute paths are used unchanged.
 
 Normal test runs verify fixtures and aggregate every mismatch. To create or update a fixture, use the explicit record command:
 
@@ -190,7 +192,7 @@ The runtime API is also available when a macro is not appropriate:
 try await characterize(
   CharacterizationConfiguration(
     name: "parser",
-    fixture: "Tests/ParserTests/Fixtures/Characterization",
+    fixture: "Fixtures/Characterization",
     inputs: [CharacterizationInput(id: "empty", value: .empty)]
   ),
   observe: { $0.normalized },

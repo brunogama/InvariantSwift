@@ -29,6 +29,8 @@ public macro CharacterizationTest<C>(
 
 `InvariantSwiftMacroAPI` does not import or depend on `InvariantSwiftTesting`. The generated peer makes exactly one qualified runtime call to `InvariantSwiftTesting.CharacterizationTestRuntime.run`. That public entry converts the generic collection and delegates to the existing public manual `characterize` facade. Generated code does not construct `CharacterizationConfiguration` or call a global `characterize` function directly.
 
+The runtime seam also carries the source context of the declaring test. `CharacterizationTestRuntime.run` and `CharacterizationConfiguration` accept a `sourceFile` argument that defaults to `#filePath`, so manual calls capture their declaring file automatically. The generated peer passes the declaring file explicitly, using the expansion context location of the attribute. Relative `fixture` paths resolve against the directory of that declaring source file, never the process working directory or a resource bundle; absolute paths are used unchanged. Recording is the only operation that writes fixtures. Verification reads them and reports differences without creating or rewriting files.
+
 The macro diagnoses non-function attachment at the attribute and wrong function arity at the parameter clause. The compiler owns collection and element constraints, missing labels, carrier/function input mismatches, and output constraints.
 
 Peer names use `MacroExpansionContext.makeUniqueName` with a stable discriminator derived from the complete function signature so overloaded declarations do not collide.
@@ -37,4 +39,4 @@ Peer names use `MacroExpansionContext.makeUniqueName` with a stable discriminato
 
 Typed nonempty collections remain supported. Empty collections require an explicit element type. Scalars and non-Codable or non-Sendable elements fail during macro argument type checking. Carrier/function and output mismatches fail while type-checking the generated runtime call.
 
-`CharacterizationTestRuntime.run` is the sole public generated-code compatibility seam. `CharacterizationConfiguration` and both `characterize` overloads remain unchanged as the manual API and composition roots. No shared carrier module or MacroAPI-to-Testing dependency is introduced.
+`CharacterizationTestRuntime.run` is the sole public generated-code compatibility seam. `CharacterizationConfiguration` and both `characterize` overloads remain the manual API and composition roots; the defaulted `sourceFile` parameter keeps existing call sites source compatible. Manual and macro-generated calls share identical source-relative fixture behavior because both flow through the same configuration. No shared carrier module or MacroAPI-to-Testing dependency is introduced.

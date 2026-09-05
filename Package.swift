@@ -229,7 +229,7 @@ let utilityTargets: [Target] = [
   ),
   .executableTarget(
     name: "PropertyTestHelper",
-    dependencies: [],
+    dependencies: ["InvariantSwiftCore"],
     path: "Sources/PropertyTestHelper",
     swiftSettings: commonSwiftSettings
   ),

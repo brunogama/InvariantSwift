@@ -212,7 +212,7 @@ jobs:
             ./Package.swift ./Sources ./Tests
           # Check if any files were modified
           if ! git diff --quiet; then
-            echo "❌ Code is not formatted. Run 'make format' to fix."
+            echo "❌ Code is not formatted. Run 'just format' to fix."
             echo "Files that need formatting:"
             git diff --name-only
             git diff

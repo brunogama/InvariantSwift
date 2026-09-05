@@ -3,7 +3,7 @@ import InvariantSwiftTesting
 import Testing
 
 @CharacterizationTest(
-  fixture: "Tests/GeneratedPropertyTests/Fixtures",
+  fixture: "Fixtures",
   inputs: [CharacterizationInput<Int>(id: "two", value: 2)]
 )
 func generatedCharacterization(_ input: Int) -> Int {

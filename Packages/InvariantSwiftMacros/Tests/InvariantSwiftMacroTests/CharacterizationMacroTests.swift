@@ -5,6 +5,37 @@ import Testing
 
 @testable import InvariantSwiftMacros
 
+private let parseSource = """
+  @CharacterizationTest(
+    fixture: "parser.json",
+    inputs: [CharacterizationInput(id: "empty", value: "")]
+  )
+  func parse(_ input: String) throws -> Int {
+    input.count
+  }
+  """
+
+private let expectedParseExpansion = """
+  func parse(_ input: String) throws -> Int {
+    input.count
+  }
+
+  private enum __macro_local_43parse_efc6cae9b2a58279_CharacterizationTestfMu_ {
+    @Test("parse characterization")
+    static func run() async throws {
+      _ = try await InvariantSwiftTesting.CharacterizationTestRuntime.run(
+        name: "parse",
+        fixture: "parser.json",
+        inputs: [CharacterizationInput(id: "empty", value: "")],
+        operation: { input in
+          try parse(input)
+        },
+        sourceFile: "test.swift"
+      )
+    }
+  }
+  """
+
 @Suite("Characterization Macro Tests")
 struct CharacterizationMacroTests {
   @Test("CharacterizationTestMacro is registered")
@@ -16,34 +47,8 @@ struct CharacterizationMacroTests {
   @Test("CharacterizationTest generates one stable runtime call")
   func generatesStableRuntimeCall() {
     assertCharacterizationMacroExpansion(
-      """
-      @CharacterizationTest(
-        fixture: "parser.json",
-        inputs: [CharacterizationInput(id: "empty", value: "")]
-      )
-      func characterizeParser(_ input: String) throws -> Int {
-        input.count
-      }
-      """,
-      expandedSource: """
-        func characterizeParser(_ input: String) throws -> Int {
-          input.count
-        }
-
-        private enum __macro_local_56characterizeParser_efc6cae9b2a58279_CharacterizationTestfMu_ {
-          @Test("characterizeParser characterization")
-          static func run() async throws {
-            _ = try await InvariantSwiftTesting.CharacterizationTestRuntime.run(
-              name: "characterizeParser",
-              fixture: "parser.json",
-              inputs: [CharacterizationInput(id: "empty", value: "")],
-              operation: { input in
-                try characterizeParser(input)
-              }
-            )
-          }
-        }
-        """
+      parseSource,
+      expandedSource: expectedParseExpansion
     )
   }
 
@@ -67,8 +72,8 @@ struct CharacterizationMacroTests {
     )
   }
 
-  @Test("CharacterizationTest rejects zero and two parameters at parameter clauses")
-  func rejectsWrongArity() {
+  @Test("CharacterizationTest rejects zero parameters at parameter clauses")
+  func rejectsZeroParameters() {
     assertCharacterizationMacroExpansion(
       """
       @CharacterizationTest(fixture: "none.json", inputs: [1])
@@ -85,7 +90,10 @@ struct CharacterizationMacroTests {
         )
       ]
     )
+  }
 
+  @Test("CharacterizationTest rejects two parameters at parameter clauses")
+  func rejectsTwoParameters() {
     assertCharacterizationMacroExpansion(
       """
       @CharacterizationTest(fixture: "two.json", inputs: [1])

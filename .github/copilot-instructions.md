@@ -25,7 +25,7 @@ Read `AGENTS.md`, `RULES.md`, and `WORKFLOW.md` before editing. They define the 
   - `Packages/InvariantSwiftMacros/` for SwiftSyntax-based macros and `GhostwriterCLI`.
   - `Sources/InvariantSwiftTestingIntegration/` for the Swift Testing integration layer exported by the root package.
   - Root `Tests/` mainly contains integration, generated, and smoke tests.
-- Utility and maintenance scripts live under `Tools/`. The `Makefile` exposes the most common build, test, and docs commands.
+- Utility and maintenance scripts live under `Tools/`. The `justfile` exposes the most common build, test, and docs commands.
 
 ## Test and code style expectations
 
@@ -38,21 +38,21 @@ Read `AGENTS.md`, `RULES.md`, and `WORKFLOW.md` before editing. They define the 
 
 For Swift code changes, the repo rules expect these checks:
 
-1. Format changed Swift files with `swift-format -i --configuration .swift-format <files>` or run `make format` for the root recursive formatter.
+1. Format changed Swift files with `swift-format -i --configuration .swift-format <files>` or run `just format` for the root recursive formatter.
 2. Run `swiftlint lint --fix <files>` and then `swiftlint lint --strict <files>`.
 3. Run `swift build -Xswiftc -warnings-as-errors`.
 4. Run `swift test`.
 
 Useful repo-specific shortcuts:
 
-- `make build-core`
-- `make test-core`
-- `make build-macros` (uses `--enable-experimental-prebuilts`)
-- `make test-macros`
-- `make build`
-- `make test-swift`
-- `make lint`
-- `make docs-validate`
+- `just build-core`
+- `just test-core`
+- `just build-macros` (uses `--enable-experimental-prebuilts`)
+- `just test-macros`
+- `just build`
+- `just test-swift`
+- `just lint`
+- `just docs-validate`
 
 When you only touch one package, prefer `swift build --package-path ...` / `swift test --package-path ...` over rebuilding the entire workspace.
 
@@ -71,7 +71,7 @@ When you only touch one package, prefer `swift build --package-path ...` / `swif
 
 ## Known issues and workarounds observed during onboarding
 
-- In this onboarding sandbox, `swift-format` and `swiftlint` were not installed (`command not found`). On macOS, `make setup` installs the expected tooling through Homebrew; otherwise install equivalent binaries before running repo validation locally.
+- In this onboarding sandbox, `swift-format` and `swiftlint` were not installed (`command not found`). On macOS, install Just with `brew install just`, then run `just setup` for the remaining tooling; otherwise install equivalent binaries before running repo validation locally.
 - A baseline Linux root build failed before any changes with `CFAbsoluteTimeGetCurrent` / `CFAbsoluteTime` errors in:
   - `Packages/InvariantSwiftCore/Sources/InvariantSwiftCore/PropertyRunner+Async.swift`
   - `Packages/InvariantSwiftCore/Sources/InvariantSwiftCore/PropertyRunner+Progress.swift`
@@ -101,16 +101,16 @@ When you only touch one package, prefer `swift build --package-path ...` / `swif
 Follow `RULES.md`: format, lint, build with warnings as errors, and run tests for the area you changed.
 
 ### Tooling prerequisites
-- Run `make setup` before using the repo wrappers if `swiftlint`, `swift-format`, or `xcbeautify` are missing.
-- `make setup` installs those tools with Homebrew, so it is mainly for macOS developer machines.
+- Install Just with `brew install just` before invoking repo recipes, then run `just setup` if `swiftlint`, `swift-format`, or `xcbeautify` are missing.
+- `just setup` installs those tools with Homebrew, so it is mainly for macOS developer machines.
 
 ### Root workspace commands
 Use these when changing root `Sources/`, root `Tests/`, or shared workspace configuration:
-- `make format`
-- `make lint`
+- `just format`
+- `just lint`
 - `swift build -Xswiftc -warnings-as-errors`
 - `swift test --parallel`
-- `make test-swift` if `xcbeautify` is installed and you want the repo's preferred wrapper (`swift test --enable-experimental-prebuilts | xcbeautify`)
+- `just test-swift` if `xcbeautify` is installed and you want the repo's preferred wrapper (`swift test --enable-experimental-prebuilts | xcbeautify`)
 
 ### Sub-package commands
 If you change code under `Packages/`, validate the affected package directly:
@@ -120,10 +120,10 @@ If you change code under `Packages/`, validate the affected package directly:
 - Macros package:
   - `swift build --package-path Packages/InvariantSwiftMacros --enable-experimental-prebuilts`
   - `swift test --package-path Packages/InvariantSwiftMacros --enable-experimental-prebuilts`
-- If a change touches macro-heavy code or root integration targets, `make ci-build` is the closest local approximation of the CI build order (`build-core`, then `build-macros`, then root build).
+- If a change touches macro-heavy code or root integration targets, `just ci-build` is the closest local approximation of the CI build order (`build-core`, then `build-macros`, then root build).
 
 ## Format and lint scope gotchas
-- `make format` only formats `./Package.swift`, `./Sources`, and `./Tests` from the repo root. It does **not** recurse through `Packages/**`.
+- `just format` only formats `./Package.swift`, `./Sources`, and `./Tests` from the repo root. It does **not** recurse through `Packages/**`.
 - The root `.swiftlint.yml` includes only `Sources`, `Benchmarks`, and `Tests`. It does **not** cover `Packages/**`.
 - `Packages/InvariantSwiftMacros/.swiftlint.yml` exists for the macros package. If you edit files there, use that config explicitly.
 - There is no package-local formatter config under `Packages/`; use the root `.swift-format` when formatting package files manually.
@@ -136,7 +136,7 @@ If you change code under `Packages/`, validate the affected package directly:
   - `swift test --parallel`
   - Danger
   - commit lint
-- `Format` workflow runs `make format` and may auto-commit formatting changes on PR branches.
+- `Format` workflow runs `just format` and may auto-commit formatting changes on PR branches.
 - Commit lint uses Conventional Commits and intentionally ignores bootstrap commit messages that start with `Initial plan`.
 - The PR validation workflow blocks blanket disable directives that affect all rules inside `Sources/` and `Tests/`, such as `swiftlint:disable all`, `swiftlint:disable:this all`, and `swiftlint:disable:next all`.
 - If the user asks about CI failures, inspect GitHub Actions runs first. Do not guess.
@@ -151,9 +151,9 @@ If you change code under `Packages/`, validate the affected package directly:
 ## Errors encountered during onboarding and how they were handled
 These were observed while onboarding the repo in the current sandbox and are useful context if you hit the same problems again:
 
-- `make lint` failed because `swiftlint` was not installed in the environment.
-  - Work-around: run `make setup` on a macOS machine with Homebrew, or install `swiftlint` manually before using the Makefile wrapper.
-- `make test-swift` failed because `xcbeautify` was not installed.
+- `just lint` failed because `swiftlint` was not installed in the environment.
+  - Work-around: run `just setup` on a macOS machine with Homebrew, or install `swiftlint` manually before using the justfile.
+- `just test-swift` failed because `xcbeautify` was not installed.
   - Work-around: install `xcbeautify`, or run the underlying command directly: `swift test --enable-experimental-prebuilts`.
 - Running `swift build` and `swift test` in parallel caused `Another instance of SwiftPM is already running`.
   - Work-around: run SwiftPM commands sequentially.

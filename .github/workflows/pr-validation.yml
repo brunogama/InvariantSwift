@@ -27,7 +27,7 @@ jobs:
           swift-format -i --configuration .swift-format --recursive \
             ./Package.swift ./Sources ./Tests
           if ! git diff --quiet; then
-            echo "::error::Code is not properly formatted. Run 'make format' locally."
+            echo "::error::Code is not properly formatted. Run 'just format' locally."
             exit 1
           fi
 

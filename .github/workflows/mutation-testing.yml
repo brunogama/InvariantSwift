@@ -55,7 +55,7 @@ jobs:
           swift-format lint --configuration .swift-format --recursive \
             ./Package.swift ./Sources ./Tests
           if [ $? -ne 0 ]; then
-            echo "❌ Code is not formatted. Run 'make format' to fix."
+            echo "❌ Code is not formatted. Run 'just format' to fix."
             exit 1
           fi
 

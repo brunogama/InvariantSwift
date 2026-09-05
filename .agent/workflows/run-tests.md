@@ -35,23 +35,22 @@ swift test --filter "$ARGUMENTS"
 ### Platform-Specific
 ```bash
 # macOS
-make test-macos
+just test-macos
 
 # iOS Simulator
-make test-ios
+just test-ios
 
 # Linux (Docker)
-make test-linux
+just test-linux
 
 # Beta SDK (SIGTRAP protected)
-make test-safe
-```
+just test-safe
 
 // turbo
 ### Coverage
 ```bash
 swift test --enable-code-coverage
-make coverage
+just coverage
 ```
 
 ## After Running

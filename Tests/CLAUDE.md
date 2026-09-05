@@ -42,7 +42,7 @@ Tests/
 
 ```bash
 swift test
-make test-swift
+just test-swift
 ```
 
 ### Filtered Tests
@@ -61,18 +61,18 @@ swift test --filter InvariantSwiftMacroTests
 ### Platform-Specific
 
 ```bash
-make test-macos    # Xcode macOS
-make test-ios      # iOS Simulator
-make test-tvos     # tvOS Simulator
-make test-linux    # Linux Docker
-make test-safe     # SIGTRAP-protected (beta SDK)
+just test-macos    # Xcode macOS
+just test-ios      # iOS Simulator
+just test-tvos     # tvOS Simulator
+just test-linux    # Linux Docker
+just test-safe     # SIGTRAP-protected (beta SDK)
 ```
 
 ### Coverage
 
 ```bash
 swift test --enable-code-coverage
-make coverage
+just coverage
 ```
 
 ---

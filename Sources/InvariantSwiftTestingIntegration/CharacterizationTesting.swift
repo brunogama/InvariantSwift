@@ -9,33 +9,41 @@ public enum CharacterizationMode: String, Codable, Sendable {
 
   /// Reads the mode from `INVARIANT_CHARACTERIZATION_MODE`.
   public static var fromEnvironment: Self {
-    let value = ProcessInfo.processInfo.environment["INVARIANT_CHARACTERIZATION_MODE"]
+    let value =
+      ProcessInfo.processInfo.environment["INVARIANT_CHARACTERIZATION_MODE"]
     return Self(rawValue: value ?? "verify") ?? .verify
   }
 }
 
 /// Configuration shared by characterization API and macro-generated tests.
-public struct CharacterizationConfiguration<Input: Codable & Sendable>: Sendable {
+public struct CharacterizationConfiguration<Input: Codable & Sendable>:
+  Sendable
+{
   public let name: String
   public let fixture: String
   public let inputs: [CharacterizationInput<Input>]
   public let mode: CharacterizationMode?
+  public let sourceFile: String
 
   public init(
     name: String,
     fixture: String,
     inputs: [CharacterizationInput<Input>],
-    mode: CharacterizationMode? = nil
+    mode: CharacterizationMode? = nil,
+    sourceFile: String = #filePath
   ) {
     self.name = name
     self.fixture = fixture
     self.inputs = inputs
     self.mode = mode
+    self.sourceFile = sourceFile
   }
 }
 
 /// An explicitly named input for a characterization case.
-public struct CharacterizationInput<Value: Codable & Sendable>: Codable, Sendable, Identifiable {
+public struct CharacterizationInput<Value: Codable & Sendable>:
+  Codable, Sendable, Identifiable
+{
   public let id: String
   public let value: Value
 
@@ -66,7 +74,9 @@ public struct CharacterizationError: Codable, Sendable, Equatable, Error {
 }
 
 /// The recorded result for one characterization case.
-public enum CharacterizationOutcome<Value: Codable & Sendable>: Codable, Sendable {
+public enum CharacterizationOutcome<Value: Codable & Sendable>:
+  Codable, Sendable
+{
   case returned(Value)
   case threw(CharacterizationError)
 
@@ -88,7 +98,9 @@ public enum CharacterizationOutcome<Value: Codable & Sendable>: Codable, Sendabl
       self = .returned(try container.decode(Value.self, forKey: .value))
 
     case .threw:
-      self = .threw(try container.decode(CharacterizationError.self, forKey: .error))
+      self = .threw(
+        try container.decode(CharacterizationError.self, forKey: .error)
+      )
     }
   }
 
@@ -107,14 +119,19 @@ public enum CharacterizationOutcome<Value: Codable & Sendable>: Codable, Sendabl
 }
 
 /// One replayable characterization snapshot.
-public struct CharacterizationCase<Input: Codable & Sendable, Value: Codable & Sendable>:
-  Codable, Sendable
-{
+public struct CharacterizationCase<
+  Input: Codable & Sendable,
+  Value: Codable & Sendable
+>: Codable, Sendable {
   public let id: String
   public let input: Input
   public let expected: CharacterizationOutcome<Value>
 
-  public init(id: String, input: Input, expected: CharacterizationOutcome<Value>) {
+  public init(
+    id: String,
+    input: Input,
+    expected: CharacterizationOutcome<Value>
+  ) {
     self.id = id
     self.input = input
     self.expected = expected
@@ -150,7 +167,9 @@ public struct CharacterizationReport: Sendable {
 }
 
 /// Errors raised before characterization can compare snapshots.
-public enum CharacterizationTestingError: Error, Sendable, CustomStringConvertible {
+public enum CharacterizationTestingError: Error, Sendable,
+  CustomStringConvertible
+{
   case fixtureMissing(String)
   case invalidCaseID(String)
   case duplicateCaseID(String)
@@ -181,7 +200,8 @@ public enum CharacterizationTestRuntime {
     name: String,
     fixture: String,
     inputs: C,
-    operation: @escaping @Sendable (Input) async throws -> Output
+    operation: @escaping @Sendable (Input) async throws -> Output,
+    sourceFile: String = #filePath
   ) async throws -> CharacterizationReport
   where
     C: Collection & Sendable,
@@ -193,7 +213,8 @@ public enum CharacterizationTestRuntime {
       CharacterizationConfiguration(
         name: name,
         fixture: fixture,
-        inputs: Array(inputs)
+        inputs: Array(inputs),
+        sourceFile: sourceFile
       ),
       operation: operation
     )
@@ -222,7 +243,11 @@ public func characterize<Input, Output, Observation>(
   observeError: (@Sendable (any Error) throws -> CharacterizationError)? = nil,
   operation: @escaping @Sendable (Input) async throws -> Output
 ) async throws -> CharacterizationReport
-where Input: Codable & Sendable, Output: Sendable, Observation: Codable & Sendable {
+where
+  Input: Codable & Sendable,
+  Output: Sendable,
+  Observation: Codable & Sendable
+{
   let request = CharacterizationExecutionRequest(
     configuration: configuration,
     observe: observe,

@@ -11,7 +11,7 @@ Work is **not done** unless all items below are true:
 1. **Formatting applied** using the repo formatter (Swift: `swift-format` with the repo `.swift-format`).
 2. **Lint clean**: run SwiftLint in *fix* mode, then in *strict* mode, on the changed files.
 3. **Zero warnings / zero errors** when building with warnings treated as errors (Swift: `swift build -Xswiftc -warnings-as-errors`).
-4. **Tests pass** (Swift packages: `swift test`).
+4. **Tests pass** (Swift packages: `swift test | xcbeautify --preserve-unbeautified -q`) will run all tests and report results via `xcbeautify` it will only ouputs stderr warnings or errors.
 5. **Coverage gate passes** when the repo enforces it (do not lower thresholds or bypass checks).
 6. **No bypasses**: never use `--no-verify`, never disable hooks, never “temporarily” commit broken code.
 
@@ -141,6 +141,6 @@ This file is intentionally project-agnostic.
 
 Repository-specific details belong in:
 
-- `.swiftlint.yml`, `.swift-format`, CI, `Makefile`, and per-module READMEs.
+- `.swiftlint.yml`, `.swift-format`, CI, `justfile`, and per-module READMEs.
 
 When this document conflicts with repo tooling, **repo tooling wins**.

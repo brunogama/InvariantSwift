@@ -43,13 +43,42 @@ public struct CharacterizationTestMacro: PeerMacro {
     providingPeersOf declaration: some DeclSyntaxProtocol,
     in context: some MacroExpansionContext
   ) throws -> [DeclSyntax] {
-    guard let function = declaration.as(FunctionDeclSyntax.self) else {
-      context.diagnose(
-        Diagnostic(node: node, message: CharacterizationTestDiagnostic.mustBeFunction)
-      )
+    guard let function = validFunction(declaration, node: node, in: context),
+      let parameter = validParameter(of: function, in: context)
+    else {
       return []
     }
 
+    let plan = try ExpansionPlan(
+      function: function,
+      parameter: parameter,
+      node: node,
+      context: context
+    )
+    return [DeclSyntax(stringLiteral: plan.generatedSource)]
+  }
+
+  private static func validFunction(
+    _ declaration: some DeclSyntaxProtocol,
+    node: AttributeSyntax,
+    in context: some MacroExpansionContext
+  ) -> FunctionDeclSyntax? {
+    guard let function = declaration.as(FunctionDeclSyntax.self) else {
+      context.diagnose(
+        Diagnostic(
+          node: node,
+          message: CharacterizationTestDiagnostic.mustBeFunction
+        )
+      )
+      return nil
+    }
+    return function
+  }
+
+  private static func validParameter(
+    of function: FunctionDeclSyntax,
+    in context: some MacroExpansionContext
+  ) -> FunctionParameterSyntax? {
     let parameters = function.signature.parameterClause.parameters
     guard parameters.count == 1, let parameter = parameters.first else {
       context.diagnose(
@@ -58,45 +87,78 @@ public struct CharacterizationTestMacro: PeerMacro {
           message: CharacterizationTestDiagnostic.requiresOneInputParameter
         )
       )
-      return []
+      return nil
     }
+    return parameter
+  }
+}
 
-    guard let arguments = node.arguments?.as(LabeledExprListSyntax.self),
-      let fixture = expression(named: "fixture", in: arguments),
-      let inputs = expression(named: "inputs", in: arguments)
+/// The resolved pieces required to render one generated test peer.
+private struct ExpansionPlan {
+  let functionName: String
+  let wrapperName: String
+  let fixture: String
+  let inputs: String
+  let sourceFile: String
+  let callPrefix: String
+  let argument: String
+
+  init(
+    function: FunctionDeclSyntax,
+    parameter: FunctionParameterSyntax,
+    node: AttributeSyntax,
+    context: some MacroExpansionContext
+  ) throws {
+    let arguments = try Self.labeledArguments(of: node)
+    fixture = try Self.requiredExpression(named: "fixture", in: arguments)
+    inputs = try Self.requiredExpression(named: "inputs", in: arguments)
+    functionName = function.name.text
+    wrapperName = Self.uniqueWrapperName(for: function, in: context)
+    sourceFile = Self.sourceFileExpression(of: node, in: context)
+    callPrefix = Self.callPrefix(for: function)
+    argument = Self.callArgument(for: parameter)
+  }
+
+  var generatedSource: String {
+    """
+    private enum \(wrapperName) {
+      @Test("\(functionName) characterization")
+      static func run() async throws {
+        _ = try await InvariantSwiftTesting.CharacterizationTestRuntime.run(
+          name: "\(functionName)",
+          fixture: \(fixture),
+          inputs: \(inputs),
+          operation: { input in \(callPrefix)\(functionName)(\(argument)) },
+          sourceFile: \(sourceFile)
+        )
+      }
+    }
+    """
+  }
+
+  private static func labeledArguments(
+    of node: AttributeSyntax
+  ) throws -> LabeledExprListSyntax {
+    guard let arguments = node.arguments?.as(LabeledExprListSyntax.self) else {
+      throw CharacterizationTestMacroError.message(
+        "@CharacterizationTest requires fixture and inputs"
+      )
+    }
+    return arguments
+  }
+
+  private static func requiredExpression(
+    named name: String,
+    in arguments: LabeledExprListSyntax
+  ) throws -> String {
+    guard
+      let argument = arguments.first(where: { $0.label?.text == name })
     else {
       throw CharacterizationTestMacroError.message(
         "@CharacterizationTest requires fixture and inputs"
       )
     }
-
-    let functionName = function.name.text
-    let wrapperName = uniqueWrapperName(for: function, in: context)
-    let inputName = parameter.secondName?.text ?? parameter.firstName.text
-    let argument =
-      parameter.firstName.text == "_"
-      ? inputName
-      : "\(parameter.firstName.text): \(inputName)"
-    let effects = function.signature.effectSpecifiers
-    let callPrefix = [
-      effects?.asyncSpecifier != nil ? "await " : "",
-      effects?.throwsClause != nil ? "try " : "",
-    ].joined()
-
-    let generated = """
-      private enum \(wrapperName) {
-        @Test("\(functionName) characterization")
-        static func run() async throws {
-          _ = try await InvariantSwiftTesting.CharacterizationTestRuntime.run(
-            name: "\(functionName)",
-            fixture: \(fixture),
-            inputs: \(inputs),
-            operation: { input in \(callPrefix)\(functionName)(\(argument)) }
-          )
-        }
-      }
-      """
-    return [DeclSyntax(stringLiteral: generated)]
+    return argument.expression.description
   }
 
   private static func uniqueWrapperName(
@@ -116,10 +178,32 @@ public struct CharacterizationTestMacro: PeerMacro {
     ).text
   }
 
-  private static func expression(
-    named name: String,
-    in arguments: LabeledExprListSyntax
-  ) -> String? {
-    arguments.first { $0.label?.text == name }?.expression.description
+  private static func sourceFileExpression(
+    of node: AttributeSyntax,
+    in context: some MacroExpansionContext
+  ) -> String {
+    let location = context.location(
+      of: node,
+      at: .afterLeadingTrivia,
+      filePathMode: .filePath
+    )
+    return location?.file.description ?? "#filePath"
+  }
+
+  private static func callPrefix(for function: FunctionDeclSyntax) -> String {
+    let effects = function.signature.effectSpecifiers
+    return [
+      effects?.asyncSpecifier != nil ? "await " : "",
+      effects?.throwsClause != nil ? "try " : "",
+    ].joined()
+  }
+
+  private static func callArgument(
+    for parameter: FunctionParameterSyntax
+  ) -> String {
+    let inputName = parameter.secondName?.text ?? parameter.firstName.text
+    return parameter.firstName.text == "_"
+      ? inputName
+      : "\(parameter.firstName.text): \(inputName)"
   }
 }
