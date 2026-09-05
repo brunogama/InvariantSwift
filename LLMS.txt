@@ -53,4 +53,3 @@ InvariantSwift is a Swift property-based testing workspace. The repository is or
 - Prefer the sub-package manifests to understand module boundaries.
 - The root package intentionally acts as an umbrella and keeps some utility targets and integration tests at the top level.
 - SwiftSyntax-dependent code lives in `Packages/InvariantSwiftMacros`; the core runtime is isolated in `Packages/InvariantSwiftCore`.
-- Store transient agent context, logs, and task state under `.llm/{DIR}/` rather than `.context/`.
