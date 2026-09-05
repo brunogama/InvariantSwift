@@ -6,8 +6,9 @@ labels: ["bug", "needs-triage"]
 body:
   - type: markdown
     attributes:
-      value: |
-        Thank you for reporting a bug! Please fill out this form to help us understand and fix the issue.
+      value: >-
+        Thank you for reporting a bug! Please fill out this form to help us
+        understand and fix the issue.
 
   - type: textarea
     id: description
@@ -57,7 +58,7 @@ body:
       render: swift
       placeholder: |
         import FunctionalTesting
-        
+
         // Your code here
     validations:
       required: false
@@ -71,7 +72,7 @@ body:
         - macOS
         - iOS
         - tvOS
-        - watchOS  
+        - watchOS
         - Linux
         - Multiple platforms
     validations:

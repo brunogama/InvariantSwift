@@ -8,8 +8,12 @@ body:
     attributes:
       value: |
         Have a question about FunctionalTesting? We're here to help!
-        
-        **Before asking**: Please check our [documentation](https://your-org.github.io/FunctionalTesting/) and [existing discussions](https://github.com/your-org/FunctionalTesting/discussions) first.
+
+        **Before asking**: Please check our
+        [documentation](https://your-org.github.io/FunctionalTesting/) and
+        [discussions][repo-discussions] first.
+
+        [repo-discussions]: https://github.com/brunogama/InvariantSwift/discussions
 
   - type: textarea
     id: question
@@ -40,7 +44,7 @@ body:
       render: swift
       placeholder: |
         import FunctionalTesting
-        
+
         // Your code here
     validations:
       required: false
