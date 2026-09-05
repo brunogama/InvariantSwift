@@ -22,15 +22,21 @@ if [[ -z "${OUTPUT_PATH:-}" ]]; then
   exit 1
 fi
 
-# Resolve a relative path under the project root and reject path traversal.
-_ROOT="$(pwd)"
+# Canonicalize the project and output parent before accepting the destination.
+_ROOT="$(pwd -P)"
 case "$OUTPUT_PATH" in
   /* | . | .. | ../* | */.. | */../*)
-    echo "error: OUTPUT_PATH must resolve to a subdirectory of the project (got: '${OUTPUT_PATH}')" >&2
+    echo "error: OUTPUT_PATH must resolve to a project subdirectory (got: '${OUTPUT_PATH}')" >&2
     exit 1
     ;;
 esac
-_RESOLVED="$_ROOT/$OUTPUT_PATH"
+mkdir -p "$(dirname "$OUTPUT_PATH")"
+_PARENT="$(cd "$(dirname "$OUTPUT_PATH")" && pwd -P)"
+_RESOLVED="$_PARENT/$(basename "$OUTPUT_PATH")"
+if [[ "$_RESOLVED" != "$_ROOT"/* ]]; then
+  echo "error: OUTPUT_PATH resolves outside the project (got: '${_RESOLVED}')" >&2
+  exit 1
+fi
 
 rm -rf "$_RESOLVED"
 

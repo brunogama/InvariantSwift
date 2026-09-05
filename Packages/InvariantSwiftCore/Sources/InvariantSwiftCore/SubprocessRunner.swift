@@ -44,6 +44,9 @@ enum SubprocessRunner {
     process.standardOutput = pipe
     process.standardError = pipe
 
+    pipe.fileHandleForReading.readabilityHandler = { handle in
+      _ = handle.availableData
+    }
     do {
       try process.run()
     } catch {
@@ -51,8 +54,10 @@ enum SubprocessRunner {
     }
 
     if let timedOut = await waitForExit(of: process, timeout: timeout) {
+      pipe.fileHandleForReading.readabilityHandler = nil
       return timedOut
     }
+    pipe.fileHandleForReading.readabilityHandler = nil
 
     return terminationResult(of: process)
   }

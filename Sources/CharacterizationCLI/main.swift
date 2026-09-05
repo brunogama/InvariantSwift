@@ -15,6 +15,13 @@ struct CharacterizationCLI {
       exit(2)
     }
 
+    if let targetIndex = arguments.firstIndex(of: "--target"),
+      targetIndex + 1 >= arguments.count || arguments[targetIndex + 1].hasPrefix("--")
+    {
+      write("--target requires a name.")
+      exit(2)
+    }
+
     let testArguments = swiftTestArguments(from: Array(arguments.dropFirst()))
     var environment = ProcessInfo.processInfo.environment
     environment["INVARIANT_CHARACTERIZATION_MODE"] = mode

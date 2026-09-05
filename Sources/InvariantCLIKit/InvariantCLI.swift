@@ -95,7 +95,7 @@ public struct InvariantCLI: Sendable {
     writeOutput("   • Max Shrinks: \(options.maxShrinks)")
     writeOutput("   • Timeout: \(options.timeout)s")
     writeOutput("   • Verbose: \(options.verbose)")
-    writeOutput("✅ PASSED (\(options.iterations) iterations)")
+    writeOutput("Configuration accepted; no property target was specified.")
     guard let reportPath = options.reportPath else { return 0 }
     return writeText(
       "FuncTest Report\nPassed: 1\nFailed: 0\n",

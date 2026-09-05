@@ -43,7 +43,7 @@ test-swift:
     swift test --enable-experimental-prebuilts | xcbeautify --preserve-unbeautified -q
 
 # Run all non-Linux test suites.
-test-all: test-swift test-macos test-ios test-tvos
+test-all: test-swift test-macos test-ios test-tvos test-watchos
 
 # Test with SIGTRAP crash protection.
 test-safe:
@@ -102,12 +102,14 @@ docs:
 docs-all:
     #!/usr/bin/env bash
     set -euo pipefail
-    rm -rf ./docs
+    output_path=".build/docc-site"
+    rm -rf "$output_path"
+    mkdir -p "$(dirname "$output_path")"
     if command -v docc >/dev/null 2>&1; then
-        docc convert Sources/InvariantSwiftTestingIntegration/InvariantSwiftTesting.docc --output-path ./docs --hosting-base-path InvariantSwift --transform-for-static-hosting
+        docc convert Sources/InvariantSwiftTestingIntegration/InvariantSwiftTesting.docc --output-path "$output_path" --hosting-base-path InvariantSwift --transform-for-static-hosting
     else
         xcodebuild docbuild -scheme InvariantSwift -derivedDataPath .build/docc-build
-        cp -r .build/docc-build/Build/Products/Release/InvariantSwiftTesting.doccarchive ./docs
+        cp -r .build/docc-build/Build/Products/Release/InvariantSwiftTesting.doccarchive "$output_path"
     fi
 
 # Run SwiftLint in strict mode.

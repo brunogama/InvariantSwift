@@ -5,12 +5,15 @@ import SwiftSyntaxMacros
 
 private enum CharacterizationTestDiagnostic: String, DiagnosticMessage {
   case mustBeFunction
+  case mustBeFileScope
   case requiresOneInputParameter
-
   var message: String {
     switch self {
     case .mustBeFunction:
       return "@CharacterizationTest can only annotate a function"
+
+    case .mustBeFileScope:
+      return "@CharacterizationTest can only annotate a file-scope function"
 
     case .requiresOneInputParameter:
       return "@CharacterizationTest requires one input parameter"
@@ -69,6 +72,12 @@ public struct CharacterizationTestMacro: PeerMacro {
           node: node,
           message: CharacterizationTestDiagnostic.mustBeFunction
         )
+      )
+      return nil
+    }
+    guard context.lexicalContext.isEmpty else {
+      context.diagnose(
+        Diagnostic(node: node, message: CharacterizationTestDiagnostic.mustBeFileScope)
       )
       return nil
     }
@@ -193,17 +202,16 @@ private struct ExpansionPlan {
   private static func callPrefix(for function: FunctionDeclSyntax) -> String {
     let effects = function.signature.effectSpecifiers
     return [
-      effects?.asyncSpecifier != nil ? "await " : "",
       effects?.throwsClause != nil ? "try " : "",
+      effects?.asyncSpecifier != nil ? "await " : "",
     ].joined()
   }
 
   private static func callArgument(
     for parameter: FunctionParameterSyntax
   ) -> String {
-    let inputName = parameter.secondName?.text ?? parameter.firstName.text
-    return parameter.firstName.text == "_"
-      ? inputName
-      : "\(parameter.firstName.text): \(inputName)"
+    parameter.firstName.text == "_"
+      ? "input"
+      : "\(parameter.firstName.text): input"
   }
 }

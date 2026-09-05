@@ -21,7 +21,8 @@ extension PropertyConfig {
   ) -> PropertyConfig {
     PropertyConfig(
       iterations: iterations,
-      maxShrinks: maxShrinks
+      maxShrinks: maxShrinks,
+      timeout: timeout
     )
   }
 }

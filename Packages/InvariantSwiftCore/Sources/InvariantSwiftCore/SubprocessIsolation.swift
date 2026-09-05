@@ -217,7 +217,7 @@ extension SubprocessPropertyExecutor {
 
   private func parseExit(status: Int32, outputPipe: Pipe) -> ExecutionResult {
     if status != 0 {
-      return .failed(reason: "Exit code \(status)")
+      return .spawnError("Helper exited with code \(status)")
     }
 
     let responseData = outputPipe.fileHandleForReading.readDataToEndOfFile()

@@ -22,14 +22,22 @@ enum PropertyTestHelper {
   /// Reads the 4-byte big-endian length prefix and the framed payload.
   private static func readFramedRequestData() -> Data {
     let stdin = FileHandle.standardInput
-    let lengthData = stdin.readData(ofLength: 4)
-    guard lengthData.count == 4 else {
-      exit(1)  // Exit code 1: incomplete length header
-    }
+    let lengthData = readExactly(4, from: stdin)
     let length = UInt32(
-      bigEndian: lengthData.withUnsafeBytes { $0.load(as: UInt32.self) }
+      bigEndian: lengthData.withUnsafeBytes { $0.loadUnaligned(as: UInt32.self) }
     )
-    return stdin.readData(ofLength: Int(length))
+    return readExactly(Int(length), from: stdin)
+  }
+
+  private static func readExactly(_ count: Int, from input: FileHandle) -> Data {
+    var data = Data()
+    data.reserveCapacity(count)
+    while data.count < count {
+      let chunk = input.readData(ofLength: count - data.count)
+      guard !chunk.isEmpty else { exit(1) }
+      data.append(chunk)
+    }
+    return data
   }
 
   private static func decodeRequest(

@@ -82,8 +82,12 @@ struct ReportRenderer: Sendable {
   private func renderCSV(_ report: Report) -> String {
     """
     timestamp,total_tests,passed_tests,failed_tests,duration,coverage,success_rate
-    \(timestamp(report.timestamp)),\(report.totalTests),\(report.passedTests),\(report.failedTests),\(report.duration),\(report.coverage),\(report.successRate)
+    \(csvField(timestamp(report.timestamp))),\(report.totalTests),\(report.passedTests),\(report.failedTests),\(report.duration),\(report.coverage),\(report.successRate)
     """ + "\n"
+  }
+
+  private func csvField(_ value: String) -> String {
+    "\"\(value.replacingOccurrences(of: "\"", with: "\"\""))\""
   }
 
   private func timestamp(_ date: Date) -> String {
