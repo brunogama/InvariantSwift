@@ -114,7 +114,7 @@ private struct PointFreeJSONSnapshotAdapter<Value: Encodable> {
   }
 
   func difference(expected: Value, actual: Value) -> String? {
-    strategy.diffing.diffV2(snapshot(expected), snapshot(actual))?.0
+    strategy.diffing.diff(snapshot(expected), snapshot(actual))?.0
   }
 
   private func snapshot(_ value: Value) -> String {
@@ -169,7 +169,7 @@ where Input: Codable & Sendable, Observation: Codable & Sendable {
       of: testCase,
       as: Snapshotting<CharacterizationCase<Input, Observation>, String>.json,
       named: testCase.id,
-      record: plan.mode == .record ? .all : .never,
+      record: plan.mode == .record,
       snapshotDirectory: plan.snapshotDirectory.path,
       testName: plan.testName
     )

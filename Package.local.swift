@@ -27,7 +27,7 @@ let packageDependencies: [Package.Dependency] = [
   .package(url: "https://github.com/swiftlang/swift-syntax", from: "602.0.0"),
   .package(url: "https://github.com/google/swift-benchmark", from: "0.1.2"),
   .package(url: "https://github.com/brunogama/MacroTemplateKit.git", exact: "0.0.6"),
-  .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", from: "1.19.4"),
+  .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", exact: "1.18.9"),
 ]
 
 // MARK: - Products
