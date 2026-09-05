@@ -7,18 +7,10 @@ default_stages: [pre-commit]
 repos:
   - repo: local
     hooks:
-      - id: swift-beautifier
-        name: ✨ Formatting Swift code...
-        entry: swift-format -i --configuration .swift-format
-        language: system
-        files: \.swift$
-        exclude: ^Packages/InvariantSwiftMacros/Tests/InvariantSwiftMacroTests/Resources/
-        pass_filenames: true
-
-      - id: swift-sheriff
-        name: 🤠 Linting Swift code...
-        entry: bash -c 'swiftlint lint --fix "$@" && swiftlint lint --strict "$@"' --
-        language: system
+      - id: format-and-stage
+        name: ✨ Format and stage Swift files...
+        entry: Tools/format-and-stage.sh
+        language: script
         files: \.swift$
         exclude: ^Packages/InvariantSwiftMacros/Tests/InvariantSwiftMacroTests/Resources/
         pass_filenames: true
