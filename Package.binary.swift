@@ -34,6 +34,7 @@ let packageProducts: [Product] = [
 // SnapshotTesting supplies characterization storage and diffing.
 let packageDependencies: [Package.Dependency] = [
   .package(url: "https://github.com/swiftlang/swift-syntax", from: "602.0.0"),
+  .package(url: "https://github.com/google/swift-benchmark", from: "0.1.2"),
   .package(url: "https://github.com/brunogama/MacroTemplateKit.git", exact: "0.0.6"),
   .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", exact: "1.18.9"),
 ]
@@ -184,6 +185,16 @@ let utilityTargets: [Target] = [
     path: "Sources/InvariantCLI",
     swiftSettings: commonSwiftSettings
   ),
+  .executableTarget(
+    name: "Benchmarks",
+    dependencies: [
+      "InvariantSwiftCore",
+      "InvariantSwift",
+      .product(name: "Benchmark", package: "swift-benchmark"),
+    ],
+    path: "Benchmarks",
+    swiftSettings: commonSwiftSettings
+  ),
 ]
 
 // MARK: - Plugins
@@ -221,6 +232,24 @@ let pluginTargets: [Target] = [
 // MARK: - Tests
 
 let testTargets: [Target] = [
+  .testTarget(
+    name: "PluginIntegrationTests",
+    dependencies: ["invariant-cli"],
+    path: "Tests/PluginIntegrationTests",
+    exclude: [
+      "Fixtures/AdapterProbe/Package.swift",
+      "Fixtures/PluginClient/Package.swift",
+    ],
+    resources: [.copy("Fixtures")],
+    swiftSettings: commonSwiftSettings
+  ),
+  .testTarget(
+    name: "InvariantCLITests",
+    dependencies: ["InvariantCLIKit", "invariant-cli"],
+    path: "Tests/InvariantCLITests",
+    resources: [.copy("Fixtures")],
+    swiftSettings: commonSwiftSettings
+  ),
   .testTarget(
     name: "InvariantSwiftCoreTests",
     dependencies: ["InvariantSwiftCore"],

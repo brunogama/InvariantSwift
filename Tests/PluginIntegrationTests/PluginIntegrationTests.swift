@@ -23,6 +23,28 @@ struct PluginIntegrationTests {
   }
 
 
+  @Test("Binary manifest mirrors source development targets and fixture resources")
+  func binaryManifestDevelopmentParity() throws {
+    let source = try String(
+      contentsOfFile: packageRoot.appendingPathComponent("Package.swift").path
+    )
+    let binary = try String(
+      contentsOfFile: packageRoot.appendingPathComponent("Package.binary.swift").path
+    )
+    for declaration in [
+      "swift-benchmark", "name: \"Benchmarks\"", "name: \"PluginIntegrationTests\"",
+      "name: \"InvariantCLITests\"",
+    ] {
+      #expect(source.contains(declaration))
+      #expect(binary.contains(declaration))
+    }
+    let fixtures = ".copy(\"Fixtures\")"
+    #expect(
+      binary.components(separatedBy: fixtures).count
+        == source.components(separatedBy: fixtures).count
+    )
+  }
+
   @Test("Adapters inherit process streams, environment, and package root")
   func adapterSourceContract() throws {
     let sources = [

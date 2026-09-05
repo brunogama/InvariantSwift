@@ -3,8 +3,9 @@ import PackageDescription
 
 let package = Package(
   name: "PluginClient",
+  platforms: [.macOS(.v14)],
   dependencies: [
-    .package(path: "__INVARIANT_PACKAGE_PATH__")
+    .package(name: "InvariantSwift", path: "__INVARIANT_PACKAGE_PATH__")
   ],
   targets: [
     .executableTarget(

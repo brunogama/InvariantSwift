@@ -160,7 +160,7 @@ public struct InvariantCLI: Sendable {
 
   private func characterize(_ options: CharacterizeOptions) async -> Int32 {
     var arguments = [
-      "test", "--disable-sandbox", "--scratch-path", ".build/invariant-characterization",
+      "swift", "test", "--disable-sandbox", "--scratch-path", ".build/invariant-characterization",
     ]
     if let target = options.target {
       arguments += ["--filter", target]
@@ -169,7 +169,7 @@ public struct InvariantCLI: Sendable {
     var childEnvironment = environment
     childEnvironment["INVARIANT_CHARACTERIZATION_MODE"] = options.mode.rawValue
     let request = ProcessRequest(
-      executable: "/usr/bin/swift",
+      executable: "/usr/bin/env",
       arguments: arguments,
       currentDirectory: currentDirectory,
       environment: childEnvironment

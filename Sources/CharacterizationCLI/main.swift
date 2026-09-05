@@ -27,8 +27,8 @@ struct CharacterizationCLI {
     environment["INVARIANT_CHARACTERIZATION_MODE"] = mode
 
     let process = Process()
-    process.executableURL = URL(fileURLWithPath: "/usr/bin/swift")
-    process.arguments = ["test"] + testArguments
+    process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+    process.arguments = ["swift", "test"] + testArguments
     process.currentDirectoryURL = URL(
       fileURLWithPath: FileManager.default.currentDirectoryPath
     )

@@ -164,17 +164,19 @@ private func verifySnapshots<Input, Observation>(
   _ plan: SnapshotVerificationPlan<Input, Observation>
 ) -> [CharacterizationDifference]
 where Input: Codable & Sendable, Observation: Codable & Sendable {
-  plan.cases.compactMap { testCase in
-    let failure = verifySnapshot(
-      of: testCase,
-      as: Snapshotting<CharacterizationCase<Input, Observation>, String>.json,
-      named: testCase.id,
-      record: plan.mode == .record,
-      snapshotDirectory: plan.snapshotDirectory.path,
-      testName: plan.testName
-    )
-    guard plan.mode == .verify, let failure else { return nil }
-    return CharacterizationDifference(caseID: testCase.id, message: failure)
+  withSnapshotTesting(record: plan.mode == .verify ? .never : .all) {
+    plan.cases.compactMap { testCase in
+      let failure = verifySnapshot(
+        of: testCase,
+        as: Snapshotting<CharacterizationCase<Input, Observation>, String>.json,
+        named: testCase.id,
+        record: nil,
+        snapshotDirectory: plan.snapshotDirectory.path,
+        testName: plan.testName
+      )
+      guard plan.mode == .verify, let failure else { return nil }
+      return CharacterizationDifference(caseID: testCase.id, message: failure)
+    }
   }
 }
 

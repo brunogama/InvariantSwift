@@ -135,10 +135,10 @@ struct InvariantCLITests {
 
     #expect(result.status == 73)
     let request = await runner.lastRequest
-    #expect(request?.executable == "/usr/bin/swift")
+    #expect(request?.executable == "/usr/bin/env")
     #expect(
       request?.arguments == [
-        "test", "--disable-sandbox", "--scratch-path", ".build/invariant-characterization",
+        "swift", "test", "--disable-sandbox", "--scratch-path", ".build/invariant-characterization",
         "--filter", "CharacterizationTests", "--parallel",
       ]
     )
