@@ -22,17 +22,25 @@ if [[ -z "${OUTPUT_PATH:-}" ]]; then
   exit 1
 fi
 
-# Resolve to an absolute path and verify it stays within the project root.
-# This guards against path traversal (e.g. DOCC_OUTPUT_PATH=../../etc).
-_ROOT="$(pwd)"
-_PARENT="$(cd "$(dirname "$OUTPUT_PATH")" 2>/dev/null && pwd)" || true
-_RESOLVED="${_PARENT:+$_PARENT/}$(basename "$OUTPUT_PATH")"
+# Resolve symlinks before verifying the path stays within the project root.
+# Python's realpath supports output directories that do not exist yet.
+_ROOT="$(pwd -P)"
+_RESOLVED="$(
+  python3 - "$OUTPUT_PATH" <<'PY'
+import os
+import sys
+
+print(os.path.realpath(sys.argv[1]))
+PY
+)"
 if [[ -z "$_RESOLVED" || "$_RESOLVED" == "/" ]]; then
-  echo "error: OUTPUT_PATH resolves to a dangerous path: '${_RESOLVED}'" >&2
+  echo "error: OUTPUT_PATH resolves to a dangerous path" >&2
+  echo "got: '${_RESOLVED}'" >&2
   exit 1
 fi
 if [[ "$_RESOLVED" != "$_ROOT"/* ]]; then
-  echo "error: OUTPUT_PATH must resolve to a subdirectory of the project (got: '${_RESOLVED}')" >&2
+  echo "error: OUTPUT_PATH must resolve to a project subdirectory" >&2
+  echo "got: '${_RESOLVED}'" >&2
   exit 1
 fi
 
@@ -55,4 +63,4 @@ fi
 xcrun docc process-archive transform-for-static-hosting \
   "$DOCC_ARCHIVE" \
   --hosting-base-path "$HOSTING_BASE_PATH" \
-  --output-path "$OUTPUT_PATH"
+  --output-path "$_RESOLVED"
