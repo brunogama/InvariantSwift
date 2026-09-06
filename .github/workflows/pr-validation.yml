@@ -123,7 +123,7 @@ jobs:
 
       - name: Install Danger
         run: |
-          brew trust danger/tap/danger-js
+          brew trust --tap danger/tap
           brew install danger/tap/danger-swift
 
       - name: Run Danger
