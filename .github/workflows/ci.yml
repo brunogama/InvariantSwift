@@ -26,11 +26,14 @@ jobs:
         run: sudo xcode-select -s /Applications/Xcode_16.4.app
       - name: Cache SwiftPM
         uses: actions/cache@v4
+        env:
+          SOURCE_HASH: >-
+            ${{ hashFiles('Packages/InvariantSwiftCore/**/*.swift') }}
         with:
           path: |
             ~/.swiftpm
             Packages/InvariantSwiftCore/.build
-          key: swiftpm-core-${{ runner.os }}-${{ hashFiles('Packages/InvariantSwiftCore/**/*.swift') }}
+          key: swiftpm-core-${{ runner.os }}-${{ env.SOURCE_HASH }}
           restore-keys: |
             swiftpm-core-${{ runner.os }}-
       - name: Build InvariantSwiftCore
@@ -52,18 +55,24 @@ jobs:
           key: swift-syntax-prebuilts-${{ runner.os }}
       - name: Cache SwiftPM
         uses: actions/cache@v4
+        env:
+          SOURCE_HASH: >-
+            ${{ hashFiles('Packages/InvariantSwiftMacros/**/*.swift') }}
         with:
           path: |
             ~/.swiftpm
             Packages/InvariantSwiftMacros/.build
-          key: swiftpm-macros-${{ runner.os }}-${{ hashFiles('Packages/InvariantSwiftMacros/**/*.swift') }}
+          key: swiftpm-macros-${{ runner.os }}-${{ env.SOURCE_HASH }}
           restore-keys: |
             swiftpm-macros-${{ runner.os }}-
       - name: Build InvariantSwiftMacros with Prebuilts
-        run: swift build --package-path Packages/InvariantSwiftMacros --enable-experimental-prebuilts
+        run: >-
+          swift build --package-path Packages/InvariantSwiftMacros
+          --enable-experimental-prebuilts
       # NOTE: Tests not migrated yet - uncomment when ready
       # - name: Test InvariantSwiftMacros
-      #   run: swift test --package-path Packages/InvariantSwiftMacros --enable-experimental-prebuilts
+      #   run: swift test --package-path Packages/InvariantSwiftMacros
+      #     --enable-experimental-prebuilts
 
   # MARK: - Linux Tests
   swift-test-linux:
@@ -111,7 +120,9 @@ jobs:
       - name: Build Full Package with Prebuilts
         run: swift build --enable-experimental-prebuilts
       - name: Run Integration Tests
-        run: swift test --filter CoverageIntegrationTests --enable-experimental-prebuilts || true
+        run: >-
+          swift test --filter CoverageIntegrationTests
+          --enable-experimental-prebuilts || true
 
   # MARK: - Xcode Platform Tests
   xcodebuild-latest:
@@ -130,27 +141,27 @@ jobs:
         uses: swift-actions/setup-swift@v3
         with:
           swift-version: '6.2.4'
-      - name: Export Swift toolchain for xcodebuild
-        run: |
-          SWIFT_TOOLCHAIN_PATH="$(swiftly use --print-location)"
-          TOOLCHAIN_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$SWIFT_TOOLCHAIN_PATH/Info.plist")"
-          echo "TOOLCHAINS=$TOOLCHAIN_ID" >> "$GITHUB_ENV"
-          echo "Using Swift toolchain: $TOOLCHAIN_ID"
       - name: Update xcbeautify
         run: brew update && brew upgrade xcbeautify
       - name: List available devices
         run: xcrun simctl list devices available
       - name: Cache derived data
         uses: actions/cache@v4
+        env:
+          CACHE_KEY: dd-${{ matrix.platform }}-${{ matrix.command }}
+          SOURCE_HASH: ${{ hashFiles('**/Sources/**/*.swift') }}
+          TEST_HASH: ${{ hashFiles('**/Tests/**/*.swift') }}
         with:
           path: |
             ~/.derivedData
-          key: |
-            deriveddata-xcodebuild-${{ matrix.platform }}-${{ matrix.xcode }}-${{ matrix.command }}-${{ hashFiles('**/Sources/**/*.swift', '**/Tests/**/*.swift') }}
+          key: >-
+            ${{ env.CACHE_KEY }}-${{ env.SOURCE_HASH }}-${{ env.TEST_HASH }}
           restore-keys: |
-            deriveddata-xcodebuild-${{ matrix.platform }}-${{ matrix.xcode }}-${{ matrix.command }}-
+            ${{ env.CACHE_KEY }}-
       - name: Set IgnoreFileSystemDeviceInodeChanges flag
-        run: defaults write com.apple.dt.XCBuild IgnoreFileSystemDeviceInodeChanges -bool YES
+        run: >-
+          defaults write com.apple.dt.XCBuild
+          IgnoreFileSystemDeviceInodeChanges -bool YES
       - name: Update mtime for incremental builds
         uses: chetan/git-restore-mtime-action@v2
       - name: Build and Test
@@ -161,24 +172,24 @@ jobs:
                 set -o pipefail
                 xcodebuild test \
                   -scheme InvariantSwift \
-                  -toolchain "$TOOLCHAINS" \
-                  -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=latest' \
+                  -destination \
+                  'platform=iOS Simulator,name=iPhone 16 Pro,OS=latest' \
                   | xcbeautify
                 ;;
               MACOS)
                 set -o pipefail
                 xcodebuild test \
                   -scheme InvariantSwift \
-                  -toolchain "$TOOLCHAINS" \
                   -destination 'platform=macOS' \
                   | xcbeautify
                 ;;
               TVOS)
                 set -o pipefail
+                destination='platform=tvOS Simulator,'
+                destination+='name=Apple TV 4K (3rd generation),OS=latest'
                 xcodebuild test \
                   -scheme InvariantSwift \
-                  -toolchain "$TOOLCHAINS" \
-                  -destination 'platform=tvOS Simulator,name=Apple TV 4K (3rd generation),OS=latest' \
+                  -destination "$destination" \
                   | xcbeautify
                 ;;
             esac
@@ -236,9 +247,14 @@ jobs:
         run: swift test --enable-code-coverage
       - name: Generate coverage report
         run: |
-          TEST_BINARY="$(find .build -path '*InvariantSwiftPackageTests.xctest/Contents/MacOS/InvariantSwiftPackageTests' -type f | head -1)"
+          TEST_BINARY_NAME=InvariantSwiftPackageTests
+          TEST_BUNDLE_PATH="*$TEST_BINARY_NAME.xctest"
+          TEST_BUNDLE_PATH+="/Contents/MacOS/$TEST_BINARY_NAME"
+          TEST_BINARY="$(
+            find .build -path "$TEST_BUNDLE_PATH" -type f | head -1
+          )"
           if [ -z "$TEST_BINARY" ]; then
-            echo "Unable to locate InvariantSwiftPackageTests binary for coverage export"
+            echo "Unable to locate package test binary for coverage export"
             exit 1
           fi
           xcrun llvm-cov export -format="lcov" \
