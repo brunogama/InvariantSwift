@@ -22,6 +22,7 @@ These checks are enforced by pre-commit hooks in many repos (format, lint strict
 ## 2) Treat lint rules as design constraints (budget-based coding)
 
 ### 2.1 Hard budgets (SwiftLint)
+
 When writing or extending code, stay comfortably under these limits. If you are trending toward a limit, **split before you cross it**.
 
 - **Line length**: 100 (warning/error)
@@ -33,10 +34,12 @@ When writing or extending code, stay comfortably under these limits. If you are 
 - **Nesting**: type level 2, function level 3
 
 Also respect SwiftLint custom rules such as:
+
 - Prefer `struct` over `class` when possible.
 - No `print(...)` in production sources (allowed in excluded paths only).
 
 ### 2.2 “Refactor triggers” (act early)
+
 Refactor **before** adding more code when any of these are true:
 
 - A function is likely to exceed ~50 lines (you are approaching the 60-line warning).
@@ -49,6 +52,7 @@ Refactor **before** adding more code when any of these are true:
 ## 3) Mandatory tactics to stay under budgets
 
 ### 3.1 Keep functions small and flat
+
 Preferred shape:
 
 - Early exits (`guard`) instead of deep nesting.
@@ -60,6 +64,7 @@ Preferred shape:
   - `parse/validate` (pure), `transform` (pure), `perform` (side effects), `persist` (I/O).
 
 ### 3.2 Reduce cyclomatic complexity (target ≤ 8)
+
 Use these patterns:
 
 - Replace long `if/else` chains with:
@@ -69,6 +74,7 @@ Use these patterns:
 - If a `switch` has many cases, create a per-case private function (or type) so the main function stays small.
 
 ### 3.3 Keep files/types small
+
 Default split rules:
 
 - **1 type per file** (exceptions: tiny internal helpers tightly coupled to the type).
@@ -79,6 +85,7 @@ Default split rules:
   - or separate collaborator types.
 
 ### 3.4 Parameter count control
+
 If a function wants >4 parameters:
 
 - Introduce a parameter object (`struct`) or a small domain type.
@@ -133,6 +140,7 @@ When producing code changes, the agent must also:
 This file is intentionally project-agnostic.
 
 Repository-specific details belong in:
+
 - `.swiftlint.yml`, `.swift-format`, CI, `Makefile`, and per-module READMEs.
 
 When this document conflicts with repo tooling, **repo tooling wins**.

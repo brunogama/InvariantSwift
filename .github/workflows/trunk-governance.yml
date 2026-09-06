@@ -1,0 +1,71 @@
+name: trunk-governance
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  change-budget:
+    name: change-budget
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Test change budget
+        run: bash scripts/change-budget.test.sh
+
+      - name: Test next version
+        run: bash Tools/release/next_version.test.sh
+
+      - name: Evaluate change budget
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          scripts/change-budget.sh --mode range \
+            --base "origin/${BASE_REF}" --head HEAD
+
+      - name: Evaluate main push budget
+        if: github.event_name == 'push'
+        env:
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+        run: |
+          if [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
+            scripts/change-budget.sh --mode head
+          else
+            scripts/change-budget.sh --mode range \
+              --base "$BEFORE" --head "$AFTER"
+          fi
+
+  governance-files:
+    name: governance-files
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Verify expected governance files exist
+        run: |
+          test -f AGENTS.md
+          test -f CLAUDE.md
+          test -f RULES.md
+          test -f WORKFLOW.md
+          test -f CONTRIBUTING.md
+          test -f RELEASING.md
+          test -f CHANGELOG.md
+          test -f scripts/change-budget.sh
+          test -f scripts/change-budget.test.sh
+          test -f Tools/release/next_version.test.sh
+          test -f skills/trunk-delivery-guard/SKILL.md

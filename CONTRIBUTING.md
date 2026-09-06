@@ -1,73 +1,92 @@
-# Contributing to FunctionalTesting
+# Contributing to InvariantSwift
 
-We love your input! We want to make contributing to FunctionalTesting as easy and transparent as possible, whether it's:
+We welcome contributions to InvariantSwift. This repository uses trunk-based development with `main` as the target branch.
 
-- Reporting a bug
-- Discussing the current state of the code
-- Submitting a fix
-- Proposing new features
-- Becoming a maintainer
+- Keep changes small and focused.
+- Prefer the smallest mergeable slice.
+- Use a short-lived branch and merge it back quickly.
+- Hide incomplete work behind a feature flag or inactive path.
+- Do not rely on long-lived feature or release branches.
 
 ## Development Process
 
-We use GitHub to host code, to track issues and feature requests, as well as accept pull requests.
+We use GitHub to host code, track issues and feature requests, and accept pull requests.
 
 ## Pull Request Process
 
-1. Fork the repo and create your branch from `main`.
-2. If you've added code that should be tested, add tests.
-3. If you've changed APIs, update the documentation.
-4. Ensure the test suite passes.
-5. Make sure your code lints.
-6. Issue that pull request!
+1. Fork the repository and create a short-lived branch from `main`.
+2. Make one focused logical change.
+3. Add tests for code changes and update documentation for API changes.
+4. Run the local validation commands.
+5. Open a small pull request against `main`.
 
 ## Development Setup
 
 ### Prerequisites
 
-- Swift 6.0+
-- Xcode 16.0+ (for iOS/macOS development)
-- SwiftLint for code formatting
+- Shared: Swift 6.2.4+
+- Linux: Ubuntu LTS
+- Apple platforms: Xcode 16.4+ on macOS 15.3+
 
 ### Getting Started
 
 1. **Clone the repository**
+
    ```bash
-   git clone https://github.com/your-org/FunctionalTesting.git
-   cd FunctionalTesting
+   git clone https://github.com/brunogama/InvariantSwift.git
+   cd InvariantSwift
    ```
 
-2. **Install dependencies**
+2. **Install tooling**
+
+   ```bash
+   make setup
+   ```
+
+3. **Resolve dependencies**
+
    ```bash
    swift package resolve
    ```
 
-3. **Run the tests**
+4. **Build and test**
+
    ```bash
+   swift build
    swift test
    ```
 
-4. **Run linting**
-   ```bash
-   swiftlint
-   ```
+## Local Validation
+
+Before opening a pull request, run the same gates CI runs:
+
+```bash
+make format
+make lint
+swift build -Xswiftc -warnings-as-errors
+swift test --parallel
+scripts/change-budget.sh --mode range --base origin/main --head HEAD
+```
 
 ## Code Style
 
 We follow the Google Swift Style Guide with some modifications:
 
 ### Formatting
+
 - Use 2 spaces for indentation
 - Line length limit: 100 characters
-- Use SwiftLint for automated formatting
+- Use swift-format for automated formatting and SwiftLint for linting
 
 ### Conventions
+
 - Use descriptive variable names
 - Prefer `let` over `var` when possible
 - Use guard statements for early returns
 - Document public APIs with triple-slash comments (`///`)
 
 ### Example
+
 ```swift
 /// Generates random integers within a specified range.
 ///
@@ -83,16 +102,19 @@ public static func int(in range: ClosedRange<Int>) -> Gen<Int> {
 ## Testing Guidelines
 
 ### Test Structure
+
 - Use Swift Testing framework for all tests
 - Follow the Arrange-Act-Assert pattern
 - Use descriptive test names that explain the behavior being tested
 
 ### Property Testing
+
 - Add property tests for new generators
 - Include edge cases and error scenarios
 - Aim for 99%+ code coverage
 
 ### Example Test
+
 ```swift
 @Test("Integer generator produces values in range")
 func testIntegerGeneratorRange() {
@@ -100,7 +122,7 @@ func testIntegerGeneratorRange() {
   let property = Property(generator: Gen.int(in: range)) { value in
     range.contains(value)
   }
-  
+
   try checkProperty(property, config: PropertyConfig(iterations: 1000))
 }
 ```
@@ -108,16 +130,19 @@ func testIntegerGeneratorRange() {
 ## Documentation
 
 ### API Documentation
+
 - All public APIs must have documentation comments
 - Include usage examples for complex APIs
 - Document parameters, return values, and thrown errors
 
 ### README Updates
+
 - Update README.md for new features
 - Include code examples showing usage
 - Update feature lists and compatibility information
 
 ### Changelog
+
 - Add entries to CHANGELOG.md for all changes
 - Follow [Keep a Changelog](https://keepachangelog.com/) format
 - Categorize changes as Added, Changed, Deprecated, Removed, Fixed, or Security
@@ -125,57 +150,68 @@ func testIntegerGeneratorRange() {
 ## Submitting Changes
 
 ### Commit Messages
-Follow [Conventional Commits](https://www.conventionalcommits.org/):
 
+This repository enforces Conventional Commits plus repository-specific body fields:
+
+```text
+<type>(<scope>): <subject>
+
+Description:
+- Summary: <what changed>
+- Breaking Rule: yes|no
+- Breaking API Rule: yes|no
+- Breaking API Commit: yes|no
 ```
-type(scope): description
 
-[optional body]
+Rules:
 
-[optional footer]
-```
+- Keep the type and subject lowercase.
+- Do not end the subject with a period.
+- Keep the header and every body line at or below 100 characters.
+- Keep each commit atomic and scoped to one logical change.
+- Do not include AI agent `Co-authored-by:` trailers.
 
 Types:
+
 - `feat`: New feature
 - `fix`: Bug fix
 - `docs`: Documentation changes
-- `style`: Formatting, missing semi-colons, etc.
+- `style`: Formatting only
 - `refactor`: Code change that neither fixes a bug nor adds a feature
 - `perf`: Performance improvement
-- `test`: Adding missing tests
-- `chore`: Changes to build process, tools, etc.
+- `test`: Adding or fixing tests
+- `build`: Build system or dependency changes
+- `ci`: CI configuration
+- `chore`: Maintenance tasks
+- `revert`: Revert a previous change
 
 Examples:
-```
-feat(generators): add UUID generator
+
+```text
+feat(generators): add uuid generator
 fix(shrinking): handle empty arrays correctly
 docs(readme): update installation instructions
 ```
 
 ### Pull Request Guidelines
 
-1. **Branch Naming**: Use descriptive names like `feat/uuid-generator` or `fix/shrinking-bug`
-
-2. **PR Title**: Use conventional commit format
-
-3. **PR Description**: Include:
-   - What changes were made and why
-   - How to test the changes
-   - Any breaking changes
-   - Links to related issues
-
+1. **Branch Naming**: Use short names such as `feat/uuid-generator` or `fix/shrinking-bug`.
+2. **PR Title**: Use Conventional Commit format.
+3. **PR Description**: Explain what changed, why, how to test it, and any breaking changes.
 4. **Checklist**:
-   - [ ] Tests added/updated
-   - [ ] Documentation updated
-   - [ ] CHANGELOG.md updated
-   - [ ] All tests pass
-   - [ ] Code follows style guidelines
-   - [ ] No breaking changes (or clearly documented)
+   - [ ] Tests added or updated
+   - [ ] Documentation updated when needed
+   - [ ] CHANGELOG.md updated for user-facing changes
+   - [ ] All validation gates pass
+   - [ ] The change budget is acceptable
+   - [ ] Incomplete work is protected by a feature flag or not merged
 
 ## Issue Reporting
 
 ### Bug Reports
+
 Include:
+
 - Swift version
 - Platform (iOS, macOS, etc.) and version
 - Minimal code example that reproduces the issue
@@ -183,7 +219,9 @@ Include:
 - Stack trace or error messages
 
 ### Feature Requests
+
 Include:
+
 - Use case and motivation
 - Proposed API (if applicable)
 - Examples of how it would be used
@@ -192,18 +230,21 @@ Include:
 ## Architecture Guidelines
 
 ### Core Principles
+
 - **Composability**: New features should work well with existing ones
 - **Performance**: Maintain high performance standards
 - **Safety**: Prefer compile-time safety over runtime checks
 - **Simplicity**: APIs should be easy to understand and use
 
 ### Adding New Generators
+
 1. Implement the generator function
 2. Add comprehensive tests
 3. Update documentation
 4. Add usage examples
 
 ### Adding New Features
+
 1. Discuss in an issue first for large changes
 2. Consider backwards compatibility
 3. Add tests and documentation
@@ -218,33 +259,23 @@ Include:
 ## Platform Support
 
 Ensure new features work on all supported platforms:
-- iOS 16.0+
-- macOS 13.0+
-- tvOS 16.0+
-- watchOS 9.0+
+
+- iOS 17.0+
+- macOS 14.0+
+- tvOS 17.0+
+- watchOS 10.0+
 - Linux (Ubuntu LTS)
 
 ## Getting Help
 
-- **Discussions**: Use GitHub Discussions for questions and ideas
-- **Issues**: Use GitHub Issues for bugs and feature requests
-- **Discord**: Join our community Discord server (link in README)
-
-## Recognition
-
-Contributors will be:
-- Listed in the CHANGELOG.md for their contributions
-- Added to the README.md contributors section
-- Given credit in release notes for significant contributions
+- Questions: open a GitHub Discussion
+- Bugs: open a GitHub Issue
+- Security: contact maintainers privately
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the MIT License that covers the project. Feel free to contact the maintainers if that's a concern.
+By contributing, you agree that your contributions will be licensed under the MIT License.
 
 ## Code of Conduct
 
 This project and everyone participating in it is governed by our [Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code.
-
----
-
-Thank you for contributing to FunctionalTesting! 🎉

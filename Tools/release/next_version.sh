@@ -20,7 +20,11 @@ log_output="$(git log --format='%s%n%b' "${range}")"
 bump="patch"
 
 if grep -Eq '(^[^[:space:]]+(\([^)]+\))?!:)|BREAKING CHANGE:' <<<"${log_output}"; then
-  bump="major"
+  if [[ "${base_version%%.*}" == "0" ]]; then
+    bump="minor"
+  else
+    bump="major"
+  fi
 elif grep -Eq '^feat(\([^)]+\))?:' <<<"${log_output}"; then
   bump="minor"
 fi
