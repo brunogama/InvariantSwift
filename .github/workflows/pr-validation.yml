@@ -54,8 +54,7 @@ jobs:
 
       - name: Run SwiftLint Strict
         run: |
-          swiftlint lint --strict --reporter github-actions-logging Sources/ Tests/
-          if [ $? -ne 0 ]; then
+          if ! swiftlint lint --strict --reporter github-actions-logging Sources/ Tests/; then
             echo "::error::SwiftLint violations found. All issues must be fixed."
             exit 1
           fi
@@ -123,7 +122,9 @@ jobs:
         run: sudo xcode-select -s /Applications/Xcode_16.2.app
 
       - name: Install Danger
-        run: brew install danger/tap/danger-swift
+        run: |
+          brew trust danger/tap/danger-js
+          brew install danger/tap/danger-swift
 
       - name: Run Danger
         env:
