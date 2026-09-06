@@ -210,6 +210,14 @@ private func preparePluginTools(at directory: URL) throws {
 }
 
 private func fixtureCLIURL(at directory: URL) throws -> URL {
+  let build = try runProcess(
+    executable: URL(fileURLWithPath: "/usr/bin/env"),
+    arguments: ["swift", "build", "--product", "invariant-cli"],
+    at: directory
+  )
+  guard build.status == 0 else {
+    throw FixtureError.binPathFailed(build.stderr)
+  }
   let result = try runProcess(
     executable: URL(fileURLWithPath: "/usr/bin/env"),
     arguments: ["swift", "build", "--show-bin-path"],

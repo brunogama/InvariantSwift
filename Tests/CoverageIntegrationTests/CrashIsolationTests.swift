@@ -5,11 +5,9 @@ import InvariantSwiftCore
 
 /// Integration tests for crash isolation via IsolationStrategy.
 ///
-/// Note: `IsolatedPropertyRunner` uses the strategy pattern. The helper binary stub
-/// (`PropertyTestHelper`) always returns `passed: true` — it exists to demonstrate
-/// the subprocess crash-isolation architecture. Actual predicate execution and crash
-/// detection via signal happen when the child process genuinely crashes, which requires
-/// a real predicate runner (future work beyond Phase 13).
+/// The helper protocol remains covered separately, but full subprocess isolation
+/// stays disabled until the helper can execute predicate closures. Darwin runners
+/// use the closure-capable thread strategy in the meantime.
 @Suite("Crash Isolation Integration Tests")
 struct CrashIsolationIntegrationTests {
 
@@ -35,27 +33,18 @@ struct CrashIsolationIntegrationTests {
     }
   }
 
-  @Test("IsolatedPropertyRunner detects property failure without isolation")
+  @Test("IsolatedPropertyRunner detects a known property failure")
   func testPropertyFailureDetected() async throws {
-    // Tests the failure detection path end-to-end with auto-detected strategy.
-    // On macOS, uses PosixSpawnIsolation which always passes (helper stub).
-    // The predicate failure won't be detected via subprocess — but we verify
-    // the runner returns a non-crashed, non-error result.
-    let property = Property(generator: Gen<Int>.int(in: 1...10)) { _ in true }
+    let property = Property(generator: Gen<Int>.int(in: 1...10)) { _ in false }
     let runner = IsolatedPropertyRunner()
     let result = await runner.runProperty(
       property,
       config: PropertyConfig(iterations: 10)
     )
 
-    // The subprocess-based runner will return .success since the helper always passes.
-    switch result {
-    case .success(let iterations):
-      #expect(iterations == 10)
-
-    case .failure, .gaveUp, .crashed:
-      // Any of these are also acceptable depending on the strategy used.
-      #expect(Bool(true), "Non-success result is acceptable")
+    guard case .failure = result else {
+      Issue.record("Expected the failing predicate to produce a failure")
+      return
     }
   }
 

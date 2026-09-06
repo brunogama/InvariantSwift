@@ -30,11 +30,12 @@ public actor IsolatedPropertyRunner {
 
   private let standardRunner = PropertyRunner()
 
+  /// Creates an isolated property runner.
   public init() {
     // The runner needs no stored configuration beyond its defaults.
   }
 
-  /// Run a property test with crash isolation
+  /// Run a property test with crash isolation.
   ///
   /// Each iteration is executed with crash detection. If a crash occurs,
   /// the counterexample is captured and shrinking continues to find the
@@ -186,30 +187,40 @@ extension IsolatedPropertyRunner {
     )
   }
 
-  /// Execute a single test iteration with crash detection
+  /// Execute a single test iteration with crash detection.
   ///
-  /// On macOS with isolation enabled, uses subprocess execution for true
-  /// crash isolation. On other platforms, falls back to in-process execution.
+  /// Evaluates the predicate with the best closure-capable isolation strategy.
+  ///
+  /// Darwin uses thread isolation with signal detection. Unsupported platforms
+  /// use the factory's documented passthrough. Full subprocess isolation remains
+  /// unavailable until the helper can execute registered predicate closures.
   private func executeWithCrashDetection<T: Sendable>(
     property: Property<T>,
     value: T
   ) async -> TestOutcome {
-    #if os(macOS)
-    if let helperPath = IsolationStrategyFactory.discoverHelperPath() {
-      return await executeInSubprocess(
-        property: property,
-        value: value,
-        helperPath: URL(fileURLWithPath: helperPath)
-      )
-    }
-    #endif
+    let strategy = IsolationStrategyFactory.strategy(for: .threadBased)
+    let result = await strategy.execute { property.predicate(value) }
+    return outcome(from: result)
+  }
 
-    let passed = property.predicate(value)
-    return passed ? .success : .failure(reason: "Property returned false")
+  private func outcome(from result: IsolationResult) -> TestOutcome {
+    switch result {
+    case .success:
+      .success
+
+    case .failure(let reason):
+      .failure(reason: reason)
+
+    case .crashed(let signal, _, _, _):
+      .crashed(signal: signal)
+
+    case .timeout:
+      .failure(reason: "Timed out")
+    }
   }
 
   #if os(macOS)
-  /// Execute property test in subprocess for crash isolation
+  /// Execute property test in subprocess for crash isolation.
   private func executeInSubprocess<T: Sendable>(
     property: Property<T>,
     value: T,
@@ -273,7 +284,7 @@ extension IsolatedPropertyRunner {
   }
   #endif
 
-  /// Shrink a failing input with isolation
+  /// Shrink a failing input with isolation.
   private func shrinkWithIsolation<T: Sendable>(
     property: Property<T>,
     counterexample: T,
@@ -303,7 +314,7 @@ extension IsolatedPropertyRunner {
     return nil
   }
 
-  /// Shrink a crashing input with isolation
+  /// Shrink a crashing input with isolation.
   private func shrinkCrashingInput<T: Sendable>(
     property: Property<T>,
     counterexample: T,
