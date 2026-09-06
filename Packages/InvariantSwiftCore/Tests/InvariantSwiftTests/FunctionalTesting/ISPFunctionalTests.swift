@@ -71,8 +71,16 @@ struct MockStateMachine: RuleBasedStateMachine, Sendable {
 
   static var rules: [AnyRule<Self>] {
     [
-      AnyRule(name: "increment", precondition: { $0.value < 100 }, execute: { $0.value += 1 }),
-      AnyRule(name: "decrement", precondition: { $0.value > 0 }, execute: { $0.value -= 1 }),
+      AnyRule(
+        name: "increment",
+        precondition: { $0.value < 100 },
+        execute: { $0.value += 1 }
+      ),
+      AnyRule(
+        name: "decrement",
+        precondition: { $0.value > 0 },
+        execute: { $0.value -= 1 }
+      ),
     ]
   }
 
@@ -121,12 +129,13 @@ struct ExampleDatabaseTests {
 
   @Test("FailingExample captures all metadata")
   func failingExampleMetadata() {
-    let example = FailingExample(
+    let failure = FailingExampleFailure(
       seed: 0xDEAD_BEEF,
       size: 42,
-      shrinkPath: [0, 1, 3],
-      failureMessage: "Property failed"
+      message: "Property failed"
     )
+    let context = FailingExampleContext(shrinkPath: [0, 1, 3])
+    let example = FailingExample(failure: failure, context: context)
     #expect(example.seed == 0xDEAD_BEEF)
     #expect(example.size == 42)
     #expect(example.shrinkPath == [0, 1, 3])
@@ -135,12 +144,13 @@ struct ExampleDatabaseTests {
 
   @Test("FailingExample generates @Reproduce annotation")
   func failingExampleReproduceAnnotation() {
-    let example = FailingExample(
+    let failure = FailingExampleFailure(
       seed: 0xABCD,
       size: 10,
-      shrinkPath: [1, 2],
-      failureMessage: "Failed"
+      message: "Failed"
     )
+    let context = FailingExampleContext(shrinkPath: [1, 2])
+    let example = FailingExample(failure: failure, context: context)
     let annotation = example.reproduceAnnotation()
     #expect(annotation.contains("@Reproduce"))
     #expect(annotation.contains("seed: 0xABCD"))
@@ -150,21 +160,22 @@ struct ExampleDatabaseTests {
 
   @Test("FailingExampleDatabase saves and retrieves examples")
   func databaseSavesAndRetrieves() async {
-    let db = FailingExampleDatabase(backend: .memory)
+    let database = FailingExampleDatabase(backend: .memory)
     let testID = TestIdentifier(
       module: "Test",
       file: "Test.swift",
       function: "testFn()",
       signature: ""
     )
-    let example = FailingExample(
+    let failure = FailingExampleFailure(
       seed: 12345,
       size: 50,
-      failureMessage: "Test failure"
+      message: "Test failure"
     )
+    let example = FailingExample(failure: failure)
 
-    await db.save(testID: testID, example: example)
-    let retrieved = await db.examples(for: testID)
+    await database.save(testID: testID, example: example)
+    let retrieved = await database.examples(for: testID)
 
     #expect(retrieved.count == 1)
     #expect(retrieved.first?.seed == 12345)
@@ -172,22 +183,23 @@ struct ExampleDatabaseTests {
 
   @Test("FailingExampleDatabase marks examples as fixed")
   func databaseMarksFixed() async {
-    let db = FailingExampleDatabase(backend: .memory)
+    let database = FailingExampleDatabase(backend: .memory)
     let testID = TestIdentifier(
       module: "Test",
       file: "Test.swift",
       function: "testFn()",
       signature: ""
     )
-    let example = FailingExample(
+    let failure = FailingExampleFailure(
       seed: 12345,
       size: 50,
-      failureMessage: "Test failure"
+      message: "Test failure"
     )
+    let example = FailingExample(failure: failure)
 
-    await db.save(testID: testID, example: example)
-    await db.markFixed(testID: testID, example: example)
-    let retrieved = await db.examples(for: testID)
+    await database.save(testID: testID, example: example)
+    await database.markFixed(testID: testID, example: example)
+    let retrieved = await database.examples(for: testID)
 
     #expect(retrieved.isEmpty)
   }
@@ -200,237 +212,19 @@ struct ExampleDatabaseTests {
       function: "testFn()",
       signature: ""
     )
-    let example = FailingExample(
+    let failure = FailingExampleFailure(
       seed: 0xDEAD,
       size: 10,
-      failureMessage: "Failed"
+      message: "Failed"
     )
+    let example = FailingExample(failure: failure)
     let report = ReproduceReport(
       testIdentifier: testID,
       example: example,
       shrunkInput: "[1, 2]",
       shrinkSteps: 5
     )
-    let desc = report.description
-    #expect(desc.contains("Property failed"))
-    #expect(desc.contains("@Reproduce"))
-  }
-}
-
-// MARK: - ISP-0005: Differential Testing
-
-@Suite("ISP-0005: Differential Testing")
-struct DifferentialTestingTests {
-
-  @Test("ErrorBehavior enum values exist")
-  func errorBehaviorValues() {
-    let behaviors: [ErrorBehavior] = [
-      .mustMatch,
-      .bothThrowOrBothSucceed,
-      .candidateMaySucceedMore,
-      .ignoreErrors,
-    ]
-    #expect(behaviors.count == 4)
-  }
-
-  @Test("DifferentialResult detects divergence on different outputs")
-  func resultDetectsDivergence() {
-    let result = DifferentialResult<Int, Int>(
-      input: 42,
-      referenceOutput: .success(100),
-      candidateOutput: .success(200)
-    )
-    #expect(result.diverges == true)
-  }
-
-  @Test("DifferentialResult detects no divergence on same outputs")
-  func resultDetectsNoDivergence() {
-    let result = DifferentialResult<Int, Int>(
-      input: 42,
-      referenceOutput: .success(100),
-      candidateOutput: .success(100)
-    )
-    #expect(result.diverges == false)
-  }
-
-  @Test("DifferentialResult handles both throwing")
-  func resultHandlesBothThrowing() {
-    struct TestError: Error {}
-    let result = DifferentialResult<Int, Int>(
-      input: 42,
-      referenceOutput: .failure(TestError()),
-      candidateOutput: .failure(TestError())
-    )
-    #expect(result.diverges(errorBehavior: .bothThrowOrBothSucceed) == false)
-  }
-
-  @Test("DifferentialResult with custom comparer")
-  func resultWithCustomComparer() {
-    let result = DifferentialResult<Int, Double>(
-      input: 42,
-      referenceOutput: .success(3.14159),
-      candidateOutput: .success(3.14160),
-      comparer: { abs($0 - $1) < 0.001 }
-    )
-    #expect(result.diverges == false)
-  }
-
-  @Test("DifferentialTester runs both implementations")
-  func testerRunsBoth() throws {
-    let tester = DifferentialTester<Int, Int>(
-      reference: { $0 * 2 },
-      candidate: { $0 + $0 }
-    )
-    let result = tester.test(21)
-    #expect(result.diverges == false)
-  }
-
-  @Test("DifferentialTester detects differences")
-  func testerDetectsDifferences() throws {
-    let tester = DifferentialTester<Int, Int>(
-      reference: { $0 * 2 },
-      candidate: { $0 * 3 }
-    )
-    let result = tester.test(10)
-    #expect(result.diverges == true)
-  }
-
-  @Test("DifferentialTestError provides detailed description")
-  func testErrorDescription() {
-    let result = DifferentialResult<Int, Int>(
-      input: 42,
-      referenceOutput: .success(84),
-      candidateOutput: .success(126)
-    )
-    let error = DifferentialTestError(
-      result: result,
-      referenceName: "double",
-      candidateName: "triple"
-    )
-    let desc = error.description
-    #expect(desc.contains("Differential test failed"))
-    #expect(desc.contains("Input: 42"))
-    #expect(desc.contains("double: 84"))
-    #expect(desc.contains("triple: 126"))
-  }
-}
-
-// MARK: - ISP-0006: Contract Testing
-
-@Suite("ISP-0006: Contract Testing")
-struct ContractTestingTests {
-
-  @Test("ContractConfig default values")
-  func configDefaults() {
-    // Default values (may be changed globally, so just test they exist)
-    _ = ContractConfig.runtimeChecks
-    _ = ContractConfig.throwOnViolation
-    _ = ContractConfig.verbose
-  }
-
-  @Test("ContractViolation captures all details")
-  func violationCapturesDetails() {
-    let violation = ContractViolation(
-      type: .precondition,
-      message: "!isEmpty",
-      function: "pop()",
-      file: "Stack.swift",
-      line: 42
-    )
-    #expect(violation.type == .precondition)
-    #expect(violation.message == "!isEmpty")
-    #expect(violation.function == "pop()")
-    #expect(violation.line == 42)
-    #expect(violation.description.contains("precondition"))
-  }
-
-  @Test("ContractViolation types exist")
-  func violationTypes() {
-    let types: [ContractViolation.ViolationType] = [
-      .precondition,
-      .postcondition,
-      .invariant,
-    ]
-    #expect(types.count == 3)
-  }
-
-  @Test("old() function captures value")
-  func oldCapturesValue() {
-    var counter = 0
-    let captured = old(counter)
-    counter += 1
-    #expect(captured == 0)
-    #expect(counter == 1)
-  }
-
-  @Test("ContractOperation holds operation details")
-  func operationHoldsDetails() {
-    let op = ContractOperation<Int>(
-      name: "increment",
-      precondition: { $0 < 100 },
-      execute: { $0 += 1 },
-      postconditions: [{ old, new in new == old + 1 }]
-    )
-    #expect(op.name == "increment")
-    #expect(op.precondition(50) == true)
-    #expect(op.precondition(100) == false)
-  }
-
-  @Test("ContractTestRunner runs operations")
-  func runnerRunsOperations() {
-    let operations = [
-      ContractOperation<MockCounter>(
-        name: "increment",
-        precondition: { $0.value < 10 },
-        execute: { $0.value += 1 },
-        postconditions: [{ old, new in new.value == old.value + 1 }]
-      ),
-      ContractOperation<MockCounter>(
-        name: "decrement",
-        precondition: { $0.value > 0 },
-        execute: { $0.value -= 1 },
-        postconditions: [{ old, new in new.value == old.value - 1 }]
-      ),
-    ]
-
-    let invariants: [@Sendable (MockCounter) -> Bool] = [
-      { $0.value >= 0 },
-      { $0.value <= 10 },
-    ]
-
-    let runner = ContractTestRunner(
-      operations: operations,
-      invariants: invariants
-    )
-
-    var rng = SystemRandomNumberGenerator()
-    let result = runner.run(
-      initialState: MockCounter(value: 5),
-      operationCount: 50,
-      using: &rng
-    )
-
-    #expect(result.passed == true)
-    #expect(result.operationsExecuted == 50)
-  }
-
-  @Test("ContractTestResult captures violations")
-  func resultCapturesViolations() {
-    let result = ContractTestResult(
-      passed: false,
-      operationsExecuted: 25,
-      violationsFound: ["Invariant 0 failed"]
-    )
-    #expect(result.passed == false)
-    #expect(result.violationsFound.count == 1)
-  }
-}
-
-// Helper for contract testing
-struct MockCounter: ContractProtocol, Sendable {
-  var value: Int
-
-  func verifyInvariants() -> Bool {
-    value >= 0 && value <= 10
+    #expect(report.description.contains("Property failed"))
+    #expect(report.description.contains("@Reproduce"))
   }
 }

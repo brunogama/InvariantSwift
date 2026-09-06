@@ -1,382 +1,284 @@
 import Foundation
 
-// MARK: - Isolated Property Result
+/// Failure details from an isolated property run.
+public struct IsolatedPropertyFailure<Value: Sendable>: Sendable {
+  public let counterexample: Value
+  public let shrunk: Value
+  public let context: IsolatedPropertyFailureContext
 
-/// Result of a property test run with crash isolation
-/// Extends PropertyResult with crash information
-public enum IsolatedPropertyResult<T: Sendable>: Sendable {
-  /// All iterations passed successfully
+  public init(
+    counterexample: Value,
+    shrunk: Value,
+    context: IsolatedPropertyFailureContext
+  ) {
+    self.counterexample = counterexample
+    self.shrunk = shrunk
+    self.context = context
+  }
+}
+
+/// Execution metadata associated with an isolated property failure.
+public struct IsolatedPropertyFailureContext: Sendable {
+  public let seed: Seed
+  public let iterations: Int
+  public let reason: String
+
+  public init(seed: Seed, iterations: Int, reason: String) {
+    self.seed = seed
+    self.iterations = iterations
+    self.reason = reason
+  }
+}
+
+/// Result of a property test run with crash isolation.
+public enum IsolatedPropertyResult<Value: Sendable>: Sendable {
+  /// All iterations passed successfully.
   case success(iterations: Int)
 
-  // swiftlint:disable:next orphaned_doc_comment
-  /// Property found a failing input
-  // swiftlint:disable:next enum_case_associated_values_count
-  case failure(counterexample: T, seed: Seed, shrunk: T, iterations: Int, reason: String)
+  /// The property found a failing input.
+  case failure(IsolatedPropertyFailure<Value>)
 
-  /// Property execution crashed (fatalError, precondition failure, etc.)
-  case crashed(signal: Int32, counterexample: T, shrunk: T, iterations: Int)
+  /// Property execution crashed.
+  case crashed(
+    signal: Int32,
+    counterexample: Value,
+    shrunk: Value,
+    iterations: Int
+  )
 
-  /// Gave up after too many discards
+  /// The run gave up after too many discards.
   case gaveUp(discards: Int)
 }
 
-// MARK: - Subprocess Runner
+private struct IsolationRunState {
+  var seed: Seed
+  var discards = 0
 
-/// Low-level subprocess execution with crash detection
-struct SubprocessRunner {
-
-  /// Result of subprocess execution
-  enum SubprocessResult {
-    case success
-    case failure(reason: String)
-    case crashed(signal: Int32)
-    case timeout
+  mutating func advance() {
+    seed = seed.next().next
   }
+}
 
-  /// Execute a closure in current process with signal handling
-  /// For true crash isolation, we'd need posix_spawn, but this provides
-  /// a foundation that can be extended.
-  static func execute(
-    timeout: TimeInterval = 5.0,
-    body: @escaping () throws -> Bool
-  ) -> SubprocessResult {
-    do {
-      let result = try body()
-      return result ? .success : .failure(reason: "Property returned false")
-    } catch {
-      return .failure(reason: error.localizedDescription)
-    }
-  }
+private struct IsolationIteration<Value: Sendable> {
+  let property: Property<Value>
+  let config: PropertyConfig
+  let index: Int
+}
 
-  /// Execute property test in isolated subprocess
-  /// Uses Process to spawn a child that runs the test
-  static func executeIsolated(
-    executablePath: String,
-    arguments: [String],
-    timeout: TimeInterval = 5.0
-  ) async -> SubprocessResult {
-    let process = Process()
-    process.executableURL = URL(fileURLWithPath: executablePath)
-    process.arguments = arguments
+private struct IsolationEvaluation<Value: Sendable> {
+  let outcome: IsolationTestOutcome
+  let value: Value
+}
 
-    // Capture output for debugging
-    let pipe = Pipe()
-    process.standardOutput = pipe
-    process.standardError = pipe
+private struct IsolationShrinkRequest<Value: Sendable> {
+  let property: Property<Value>
+  let candidate: Value
+  let config: PropertyConfig
+  let expectation: IsolationShrinkExpectation
+}
 
-    do {
-      try process.run()
-    } catch {
-      return .failure(reason: "Failed to spawn subprocess: \(error)")
-    }
+enum IsolationTestOutcome {
+  case success
+  case failure(reason: String)
+  case crashed(signal: Int32)
+  case discarded
+}
 
-    // Wait with timeout
-    let startTime = Date()
-    while process.isRunning {
-      if Date().timeIntervalSince(startTime) > timeout {
-        process.terminate()
-        return .timeout
-      }
-      try? await Task.sleep(nanoseconds: 10_000_000)  // 10ms
-    }
+private enum IsolationShrinkExpectation {
+  case failure
+  case crash
 
-    process.waitUntilExit()
+  func matches(_ outcome: IsolationTestOutcome) -> Bool {
+    switch (self, outcome) {
+    case (.failure, .failure), (.crash, .crashed):
+      return true
 
-    let status = process.terminationStatus
-    let reason = process.terminationReason
-
-    switch reason {
-    case .exit:
-      return status == 0 ? .success : .failure(reason: "Exit code \(status)")
-
-    case .uncaughtSignal:
-      return .crashed(signal: status)
-
-    @unknown default:
-      return .failure(reason: "Unknown termination reason")
+    default:
+      return false
     }
   }
 }
 
-// MARK: - Isolated Property Runner
-
-// swiftlint:disable:next orphaned_doc_comment
-/// Property runner with crash isolation using subprocess execution
-///
-/// Unlike the standard `PropertyRunner`, this runner can detect and handle
-/// crashes (fatalError, preconditionFailure, assertion failures) without
-/// killing the test process.
-///
-/// **Usage:**
-/// ```swift
-/// let result = await IsolatedPropertyRunner().runProperty(property) { value in
-///   riskyOperation(value) // May crash
-///   return true
-/// }
-///
-/// switch result {
-/// case .success:
-// swiftlint:disable:next no_print
-///   print("All iterations passed")
-/// case .crashed(let signal, let counterexample, let shrunk, _):
-// swiftlint:disable:next no_print
-///   print("Crashed with signal \(signal) on: \(shrunk)")
-/// }
-/// ```
-///
-/// **Performance:**
-/// Subprocess isolation adds ~1-5ms overhead per iteration.
-/// Use `PropertyRunner` for non-crashing code paths.
+/// Property runner with subprocess crash isolation.
 public actor IsolatedPropertyRunner {
+  public init() {
+    _ = Self.self
+  }
 
-  private let standardRunner = PropertyRunner()
-
-  public init() {}
-
-  /// Run a property test with crash isolation
-  ///
-  /// Each iteration is executed with crash detection. If a crash occurs,
-  /// the counterexample is captured and shrinking continues to find the
-  /// minimal crashing input.
-  ///
-  /// - Parameters:
-  ///   - property: The property to test
-  ///   - config: Configuration for the test run
-  ///
-  /// - Returns: An `IsolatedPropertyResult` indicating success, failure, or crash
-  public func runProperty<T: Sendable>(
-    _ property: Property<T>,
+  /// Runs a property test with crash isolation.
+  public func runProperty<Value: Sendable>(
+    _ property: Property<Value>,
     config: PropertyConfig = .default
-  ) async -> IsolatedPropertyResult<T> {
-
-    var currentSeed = config.seed ?? Seed.random
-    var discards = 0
-    let maxDiscards = config.maxDiscarded
-
-    for iteration in 0..<config.iterations {
-      // Generate test value
-      var rng: any RandomNumberGenerator = SeedBasedRandomNumberGenerator(seed: currentSeed)
-      let size = Size(value: min(iteration + 1, 100))
-      let value = property.generator.generate(&rng, size)
-
-      // Execute with crash detection
-      let testResult = await executeWithCrashDetection(property: property, value: value)
-
-      switch testResult {
-      case .success:
-        // Property passed, continue to next iteration
-        currentSeed = currentSeed.next().next
-        continue
-
-      case .failure(let reason):
-        // Property failed, attempt shrinking
-        let shrunk = await shrinkWithIsolation(
-          property: property,
-          counterexample: value,
-          config: config
-        )
-        return .failure(
-          counterexample: value,
-          seed: currentSeed,
-          shrunk: shrunk ?? value,
-          iterations: iteration + 1,
-          reason: reason
-        )
-
-      case .crashed(let signal):
-        // Crash detected! Attempt to shrink
-        let shrunk = await shrinkCrashingInput(
-          property: property,
-          counterexample: value,
-          config: config
-        )
-        return .crashed(
-          signal: signal,
-          counterexample: value,
-          shrunk: shrunk ?? value,
-          iterations: iteration + 1
-        )
-
-      case .discarded:
-        discards += 1
-        if discards >= maxDiscards {
-          return .gaveUp(discards: discards)
-        }
-        currentSeed = currentSeed.next().next
-        continue
+  ) async -> IsolatedPropertyResult<Value> {
+    var state = IsolationRunState(seed: config.seed ?? .random)
+    for index in 0..<config.iterations {
+      let iteration = IsolationIteration(
+        property: property,
+        config: config,
+        index: index
+      )
+      if let result = await run(iteration, state: &state) {
+        return result
       }
     }
-
     return .success(iterations: config.iterations)
   }
-
-  // MARK: - Private Helpers
-
-  private enum TestOutcome {
-    case success
-    case failure(reason: String)
-    case crashed(signal: Int32)
-    case discarded
-  }
-
-  /// Execute a single test iteration with crash detection
-  ///
-  /// On macOS with isolation enabled, uses subprocess execution for true crash isolation.
-  /// On other platforms, falls back to in-process execution.
-  private func executeWithCrashDetection<T: Sendable>(
-    property: Property<T>,
-    value: T
-  ) async -> TestOutcome {
-    #if os(macOS)
-    if let helperPath = findHelperExecutable() {
-      return await executeInSubprocess(property: property, value: value, helperPath: helperPath)
-    }
-    #endif
-
-    let passed = property.predicate(value)
-    return passed ? .success : .failure(reason: "Property returned false")
-  }
-
-  #if os(macOS)
-  /// Find the property test helper executable
-  ///
-  /// Searches in common locations for the helper binary
-  private func findHelperExecutable() -> URL? {
-    let candidates = [
-      Bundle.main.bundleURL.appendingPathComponent("Contents/MacOS/PropertyTestHelper"),
-      Bundle.main.bundleURL.appendingPathComponent("PropertyTestHelper"),
-      URL(fileURLWithPath: ".build/debug/PropertyTestHelper"),
-      URL(fileURLWithPath: ".build/release/PropertyTestHelper"),
-    ]
-
-    for candidate in candidates where FileManager.default.isExecutableFile(atPath: candidate.path) {
-      return candidate
-    }
-
-    return nil
-  }
-
-  /// Execute property test in subprocess for crash isolation
-  private func executeInSubprocess<T: Sendable>(
-    property: Property<T>,
-    value: T,
-    helperPath: URL
-  ) async -> TestOutcome {
-    do {
-      let encoder = JSONEncoder()
-      let testInputData = try encoder.encode(AnyCodable(value))
-
-      let request = PropertyEvaluationRequest(
-        testId: UUID(),
-        seed: 0,
-        size: 0,
-        testInput: testInputData,
-        generatorType: String(describing: T.self)
-      )
-
-      let executor = SubprocessPropertyExecutor(
-        helperExecutablePath: helperPath,
-        timeout: 5.0
-      )
-
-      let result = await executor.execute(request: request)
-
-      switch result {
-      case .passed:
-        return .success
-
-      case .failed(let reason):
-        return .failure(reason: reason)
-
-      case .crashed(let signal, _):
-        return .crashed(signal: signal)
-
-      case .timedOut:
-        return .failure(reason: "Timed out")
-
-      case .spawnError(let error):
-        return .failure(reason: "Spawn error: \(error)")
-      }
-    } catch {
-      return .failure(reason: "Serialization error: \(error)")
-    }
-  }
-  #endif
-
-  /// Shrink a failing input with isolation
-  private func shrinkWithIsolation<T: Sendable>(
-    property: Property<T>,
-    counterexample: T,
-    config: PropertyConfig
-  ) async -> T? {
-    let shrinkCandidates = property.generator.shrink.shrink(counterexample)
-
-    for candidate in shrinkCandidates.prefix(config.maxShrinks) {
-      let result = await executeWithCrashDetection(property: property, value: candidate)
-
-      if case .failure = result {
-        // Found a smaller failing input, continue shrinking from here
-        if let smaller = await shrinkWithIsolation(
-          property: property,
-          counterexample: candidate,
-          config: config
-        ) {
-          return smaller
-        }
-        return candidate
-      }
-    }
-
-    return nil
-  }
-
-  /// Shrink a crashing input with isolation
-  private func shrinkCrashingInput<T: Sendable>(
-    property: Property<T>,
-    counterexample: T,
-    config: PropertyConfig
-  ) async -> T? {
-    let shrinkCandidates = property.generator.shrink.shrink(counterexample)
-
-    for candidate in shrinkCandidates.prefix(config.maxShrinks) {
-      let result = await executeWithCrashDetection(property: property, value: candidate)
-
-      if case .crashed = result {
-        // Found a smaller crashing input, continue shrinking from here
-        if let smaller = await shrinkCrashingInput(
-          property: property,
-          counterexample: candidate,
-          config: config
-        ) {
-          return smaller
-        }
-        return candidate
-      }
-    }
-
-    return nil
-  }
 }
 
-// MARK: - PropertyConfig Extension
+extension IsolatedPropertyRunner {
+  private func run<Value: Sendable>(
+    _ iteration: IsolationIteration<Value>,
+    state: inout IsolationRunState
+  ) async -> IsolatedPropertyResult<Value>? {
+    let value = generateValue(for: iteration, seed: state.seed)
+    let outcome = await executeWithCrashDetection(
+      property: iteration.property,
+      value: value
+    )
+    let evaluation = IsolationEvaluation(outcome: outcome, value: value)
+    return await resolve(evaluation, iteration: iteration, state: &state)
+  }
+
+  private func generateValue<Value: Sendable>(
+    for iteration: IsolationIteration<Value>,
+    seed: Seed
+  ) -> Value {
+    var generator: any RandomNumberGenerator =
+      SeedBasedRandomNumberGenerator(seed: seed)
+    let size = Size(value: min(iteration.index + 1, 100))
+    return iteration.property.generator.generate(&generator, size)
+  }
+
+  private func resolve<Value: Sendable>(
+    _ evaluation: IsolationEvaluation<Value>,
+    iteration: IsolationIteration<Value>,
+    state: inout IsolationRunState
+  ) async -> IsolatedPropertyResult<Value>? {
+    switch evaluation.outcome {
+    case .success:
+      state.advance()
+      return nil
+
+    case .failure:
+      return await failureResult(evaluation, iteration, state)
+
+    case .crashed(let signal):
+      return await crashResult(evaluation.value, signal, iteration)
+
+    case .discarded:
+      return discardResult(iteration.config, state: &state)
+    }
+  }
+
+  private func failureResult<Value: Sendable>(
+    _ evaluation: IsolationEvaluation<Value>,
+    _ iteration: IsolationIteration<Value>,
+    _ state: IsolationRunState
+  ) async -> IsolatedPropertyResult<Value> {
+    guard case .failure(let reason) = evaluation.outcome else {
+      return .success(iterations: iteration.index)
+    }
+    let request = IsolationShrinkRequest(
+      property: iteration.property,
+      candidate: evaluation.value,
+      config: iteration.config,
+      expectation: .failure
+    )
+    let context = IsolatedPropertyFailureContext(
+      seed: state.seed,
+      iterations: iteration.index + 1,
+      reason: reason
+    )
+    let failure = IsolatedPropertyFailure(
+      counterexample: evaluation.value,
+      shrunk: await shrink(request) ?? evaluation.value,
+      context: context
+    )
+    return .failure(failure)
+  }
+
+  private func crashResult<Value: Sendable>(
+    _ value: Value,
+    _ signal: Int32,
+    _ iteration: IsolationIteration<Value>
+  ) async -> IsolatedPropertyResult<Value> {
+    let request = IsolationShrinkRequest(
+      property: iteration.property,
+      candidate: value,
+      config: iteration.config,
+      expectation: .crash
+    )
+    return .crashed(
+      signal: signal,
+      counterexample: value,
+      shrunk: await shrink(request) ?? value,
+      iterations: iteration.index + 1
+    )
+  }
+
+  private func discardResult<Value: Sendable>(
+    _ config: PropertyConfig,
+    state: inout IsolationRunState
+  ) -> IsolatedPropertyResult<Value>? {
+    state.discards += 1
+    guard state.discards < config.maxDiscarded else {
+      return .gaveUp(discards: state.discards)
+    }
+    state.advance()
+    return nil
+  }
+
+  private func shrink<Value: Sendable>(
+    _ request: IsolationShrinkRequest<Value>
+  ) async -> Value? {
+    let candidates = request.property.generator.shrink.shrink(request.candidate)
+    for candidate in candidates.prefix(request.config.maxShrinks) {
+      let outcome = await executeWithCrashDetection(
+        property: request.property,
+        value: candidate
+      )
+      guard request.expectation.matches(outcome) else { continue }
+      let next = IsolationShrinkRequest(
+        property: request.property,
+        candidate: candidate,
+        config: request.config,
+        expectation: request.expectation
+      )
+      return await shrink(next) ?? candidate
+    }
+    return nil
+  }
+
+  private func executeWithCrashDetection<Value: Sendable>(
+    property: Property<Value>,
+    value: Value
+  ) async -> IsolationTestOutcome {
+    #if os(macOS)
+    guard let helperPath = findHelperExecutable() else {
+      return property.predicate(value)
+        ? .success : .failure(reason: "Property returned false")
+    }
+    return await executeInSubprocess(
+      property: property,
+      value: value,
+      helperPath: helperPath
+    )
+    #else
+    return .failure(reason: SubprocessRunner.unsupportedPlatformReason)
+    #endif
+  }
+
+}
 
 extension PropertyConfig {
-  /// Create a configuration for isolated (crash-resistant) testing
-  ///
-  /// Use this when testing code that might crash (fatalError, precondition, etc.)
-  ///
-  /// - Parameters:
-  ///   - iterations: Number of test iterations
-  ///   - maxShrinks: Maximum shrink attempts per failure
-  ///   - timeout: Timeout per iteration in seconds
-  ///
-  /// - Returns: A PropertyConfig suitable for isolated testing
+  /// Creates a configuration for isolated crash-resistant testing.
   public static func isolated(
     iterations: Int = 100,
     maxShrinks: Int = 50,
     timeout: TimeInterval = 5.0
   ) -> PropertyConfig {
-    PropertyConfig(
+    _ = timeout
+    return PropertyConfig(
       iterations: iterations,
       maxShrinks: maxShrinks
     )

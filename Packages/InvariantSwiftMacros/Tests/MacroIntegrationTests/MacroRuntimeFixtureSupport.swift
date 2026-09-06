@@ -129,7 +129,7 @@ enum MacroRuntimeFixtureSupport {
         name: "MacroRuntimeFixture",
         platforms: [.macOS(.v14)],
         dependencies: [
-          .package(path: "\(repoRoot)")
+          .package(name: "InvariantSwift", path: "\(repoRoot)")
         ],
         targets: [
           .testTarget(
