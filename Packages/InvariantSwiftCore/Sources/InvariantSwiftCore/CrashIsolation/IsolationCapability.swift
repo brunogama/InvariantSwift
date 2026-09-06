@@ -1,4 +1,6 @@
+#if canImport(Darwin)
 import Darwin
+#endif
 
 // MARK: - IsolationCapability
 
@@ -61,6 +63,8 @@ public enum IsolationCapability: Sendable, CustomStringConvertible {
   public static func detect() -> Self {
     #if os(macOS)
     return .fullSubprocess
+    #elseif os(tvOS) || os(watchOS)
+    return .threadBased
     #elseif canImport(Darwin)
     return probeSubprocessAvailability() ? .fullSubprocess : .threadBased
     #else
@@ -75,6 +79,7 @@ public enum IsolationCapability: Sendable, CustomStringConvertible {
     static let value = detect()
   }
 
+  #if canImport(Darwin) && !os(tvOS) && !os(watchOS)
   /// Attempts to spawn `/usr/bin/true` via `posix_spawn` to determine whether
   /// subprocess creation is permitted by the sandbox.
   ///
@@ -112,4 +117,5 @@ public enum IsolationCapability: Sendable, CustomStringConvertible {
     let exitCode = (status >> 8) & 0xff
     return exitCode == 0
   }
+  #endif
 }

@@ -347,6 +347,7 @@ public actor LLVMCoverageRunner {
   }
 
   /// Execute shell command and return output
+  #if os(macOS)
   private func executeCommand(_ command: [String]) async throws -> String {
     let process = Process()
     process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
@@ -376,7 +377,13 @@ public actor LLVMCoverageRunner {
     let data = pipe.fileHandleForReading.readDataToEndOfFile()
     return String(data: data, encoding: .utf8) ?? ""
   }
-
+  #else
+  private func executeCommand(_: [String]) async throws -> String {
+    throw CoverageError.infrastructureUnavailable(
+      "LLVM coverage commands are unsupported on this platform"
+    )
+  }
+  #endif
   private func syntheticFallbackReason(for error: Error) -> String? {
     guard let coverageError = error as? CoverageError else {
       return nil
