@@ -130,12 +130,6 @@ jobs:
         uses: swift-actions/setup-swift@v3
         with:
           swift-version: '6.2.4'
-      - name: Export Swift toolchain for xcodebuild
-        run: |
-          SWIFT_TOOLCHAIN_PATH="$(swiftly use --print-location)"
-          TOOLCHAIN_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$SWIFT_TOOLCHAIN_PATH/Info.plist")"
-          echo "TOOLCHAINS=$TOOLCHAIN_ID" >> "$GITHUB_ENV"
-          echo "Using Swift toolchain: $TOOLCHAIN_ID"
       - name: Update xcbeautify
         run: brew update && brew upgrade xcbeautify
       - name: List available devices
@@ -161,7 +155,6 @@ jobs:
                 set -o pipefail
                 xcodebuild test \
                   -scheme InvariantSwift \
-                  -toolchain "$TOOLCHAINS" \
                   -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=latest' \
                   | xcbeautify
                 ;;
@@ -169,7 +162,6 @@ jobs:
                 set -o pipefail
                 xcodebuild test \
                   -scheme InvariantSwift \
-                  -toolchain "$TOOLCHAINS" \
                   -destination 'platform=macOS' \
                   | xcbeautify
                 ;;
@@ -177,7 +169,6 @@ jobs:
                 set -o pipefail
                 xcodebuild test \
                   -scheme InvariantSwift \
-                  -toolchain "$TOOLCHAINS" \
                   -destination 'platform=tvOS Simulator,name=Apple TV 4K (3rd generation),OS=latest' \
                   | xcbeautify
                 ;;
