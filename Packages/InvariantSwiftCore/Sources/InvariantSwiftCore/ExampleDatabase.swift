@@ -1,233 +1,175 @@
-/// FailingExampleDatabase - Persistent storage for failing test examples
+/// Persistent storage for failing test examples.
 ///
 /// Part of ISP-0004: Example Database and Reproducible Failures
 
 import Foundation
 
-// MARK: - Failing Example Database
+/// Global configuration for the failing example database.
+public enum FailingExampleConfig {
+  public static let maxExamplesPerTest = 100
+  public static let autoSave = true
+  public static let checkSavedFirst = true
+  public static let maxAge: TimeInterval? = 30 * 24 * 60 * 60
+
+  public static var isEnabled: Bool {
+    ProcessInfo.processInfo.environment["INVARIANT_EXAMPLES_DISABLED"] == nil
+  }
+
+  public static var customPath: URL? {
+    ProcessInfo.processInfo.environment["INVARIANT_EXAMPLES_PATH"]
+      .map(URL.init(fileURLWithPath:))
+  }
+
+  public static var shouldClearOnStart: Bool {
+    ProcessInfo.processInfo.environment["INVARIANT_CLEAR_EXAMPLES"] != nil
+  }
+
+  public static var isDebugMode: Bool {
+    ProcessInfo.processInfo.environment["INVARIANT_DEBUG"] != nil
+  }
+}
+
+extension URL {
+  /// Default location for persisted failing examples.
+  public static var defaultFailingExampleURL: URL {
+    #if os(macOS)
+    let baseURL = FileManager.default.homeDirectoryForCurrentUser
+    #else
+    let baseURL =
+      FileManager.default.urls(
+        for: .documentDirectory,
+        in: .userDomainMask
+      ).first ?? FileManager.default.temporaryDirectory
+    #endif
+    return
+      baseURL
+      .appendingPathComponent(".invariant")
+      .appendingPathComponent("examples")
+  }
+}
 
 /// Persistent storage for failing test examples.
-///
-/// Automatically saves failing test cases and replays them on subsequent runs
-/// to ensure regressions are caught immediately.
-///
-/// **Usage:**
-/// ```swift
-/// // Save a failing example
-/// await FailingExampleDatabase.shared.save(testID: id, example: failure)
-///
-/// // Check saved examples first
-/// let saved = await FailingExampleDatabase.shared.examples(for: id)
-/// for example in saved {
-///     if testStillFails(example) { /* report */ }
-///     else { await FailingExampleDatabase.shared.markFixed(testID: id, example: example) }
-/// }
-/// ```
 public actor FailingExampleDatabase {
-
-  /// Shared instance using default configuration
+  /// Shared instance using default configuration.
   public static let shared = FailingExampleDatabase()
 
-  /// Storage backend
-  public let backend: Backend
-
-  /// In-memory cache of examples
-  private var cache: [String: [FailingExample]] = [:]
-
-  /// Whether cache is dirty and needs flush
-  private var isDirty = false
-
-  // MARK: - Backend
-
-  /// Storage backend options
+  /// Storage backend options.
   public enum Backend: Sendable {
-    /// JSON files in a directory (git-friendly)
+    /// JSON files in a directory.
     case directory(URL)
 
-    /// In-memory only (for testing)
+    /// In-memory storage for testing.
     case memory
 
-    /// Disabled
+    /// Disabled storage.
     case none
 
-    /// Default backend
+    /// Default storage backend.
     public static var `default`: Backend {
-      if !FailingExampleConfig.isEnabled {
-        return .none
-      }
-      if let customPath = FailingExampleConfig.customPath {
-        return .directory(customPath)
+      guard FailingExampleConfig.isEnabled else { return .none }
+      if let path = FailingExampleConfig.customPath {
+        return .directory(path)
       }
       return .directory(.defaultFailingExampleURL)
     }
   }
 
-  // MARK: - Initialization
+  /// Storage backend.
+  public let backend: Backend
+
+  private var cache: [String: [FailingExample]] = [:]
+  private var isDirty = false
 
   public init(backend: Backend = .default) {
     self.backend = backend
   }
 
-  // MARK: - Public API
-
-  /// Save a failing example for a test
+  /// Saves a failing example for a test.
   public func save(testID: TestIdentifier, example: FailingExample) async {
-    guard case .directory = backend else {
-      if case .memory = backend {
-        var examples = cache[testID.storageKey] ?? []
-        examples.append(example)
-        cache[testID.storageKey] = examples
-      }
+    if case .memory = backend {
+      append(example, for: testID)
       return
     }
+    guard case .directory = backend else { return }
 
-    var examples = cache[testID.storageKey] ?? []
-    examples.append(example)
-
-    // Enforce max limit
-    let maxExamples = FailingExampleConfig.maxExamplesPerTest
-    if examples.count > maxExamples {
-      examples = Array(examples.suffix(maxExamples))
-    }
-
-    cache[testID.storageKey] = examples
+    append(example, for: testID)
+    limitExamples(for: testID)
     isDirty = true
-
-    // Write to disk
     await flush(testID: testID)
   }
 
-  /// Retrieve all known failing examples for a test
+  /// Retrieves all known failing examples for a test.
   public func examples(for testID: TestIdentifier) async -> [FailingExample] {
-    // Check cache first
     if let cached = cache[testID.storageKey] {
       return cached
     }
+    guard case .directory(let baseURL) = backend else { return [] }
 
-    // Load from disk
-    guard case .directory(let url) = backend else {
-      return []
-    }
-
-    let examples = loadFromDisk(testID: testID, baseURL: url)
+    let examples = FailingExampleDiskStore.load(testID: testID, from: baseURL)
     cache[testID.storageKey] = examples
     return examples
   }
 
-  /// Mark an example as fixed (remove from database)
-  public func markFixed(testID: TestIdentifier, example: FailingExample) async {
+  /// Removes a fixed example from the database.
+  public func markFixed(
+    testID: TestIdentifier,
+    example: FailingExample
+  ) async {
     var examples = cache[testID.storageKey] ?? []
     examples.removeAll { $0.id == example.id }
     cache[testID.storageKey] = examples
     isDirty = true
-
     await flush(testID: testID)
   }
 
-  /// Clear all examples for a test
+  /// Clears all examples for a test.
   public func clear(testID: TestIdentifier) async {
     cache[testID.storageKey] = []
     isDirty = true
+    guard case .directory(let baseURL) = backend else { return }
 
-    guard case .directory(let url) = backend else { return }
-
-    let testDir = url.appendingPathComponent(testID.directoryName)
-    try? FileManager.default.removeItem(at: testDir)
+    let testDirectory = baseURL.appendingPathComponent(testID.directoryName)
+    try? FileManager.default.removeItem(at: testDirectory)
   }
 
-  /// Clear entire database
+  /// Clears the entire database.
   public func clearAll() async {
     cache = [:]
+    guard case .directory(let baseURL) = backend else { return }
 
-    guard case .directory(let url) = backend else { return }
-
-    try? FileManager.default.removeItem(at: url)
-    try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+    try? FileManager.default.removeItem(at: baseURL)
+    try? FileManager.default.createDirectory(
+      at: baseURL,
+      withIntermediateDirectories: true
+    )
   }
 
-  /// Get statistics about the database
+  /// Returns statistics about the database.
   public func statistics() -> FailingExampleStatistics {
-    let totalExamples = cache.values.reduce(0) { $0 + $1.count }
+    let exampleCount = cache.values.reduce(0) { $0 + $1.count }
     return FailingExampleStatistics(
       testCount: cache.count,
-      exampleCount: totalExamples,
+      exampleCount: exampleCount,
       backend: backendDescription
     )
   }
 
-  // MARK: - Private Methods
+  private func append(_ example: FailingExample, for testID: TestIdentifier) {
+    cache[testID.storageKey, default: []].append(example)
+  }
+
+  private func limitExamples(for testID: TestIdentifier) {
+    let examples = cache[testID.storageKey] ?? []
+    let limit = FailingExampleConfig.maxExamplesPerTest
+    guard examples.count > limit else { return }
+    cache[testID.storageKey] = Array(examples.suffix(limit))
+  }
 
   private func flush(testID: TestIdentifier) async {
     guard case .directory(let baseURL) = backend else { return }
-
     let examples = cache[testID.storageKey] ?? []
-    let testDir = baseURL.appendingPathComponent(testID.directoryName)
-
-    // Ensure directory exists
-    try? FileManager.default.createDirectory(at: testDir, withIntermediateDirectories: true)
-
-    // Remove existing files
-    let existingFiles = try? FileManager.default.contentsOfDirectory(
-      at: testDir,
-      includingPropertiesForKeys: nil
-    )
-    for file in existingFiles ?? [] {
-      try? FileManager.default.removeItem(at: file)
-    }
-
-    // Write each example
-    let encoder = JSONEncoder()
-    encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-    encoder.dateEncodingStrategy = .iso8601
-
-    for (index, example) in examples.enumerated() {
-      let filename = String(format: "example_%03d.json", index + 1)
-      let fileURL = testDir.appendingPathComponent(filename)
-
-      if let data = try? encoder.encode(example) {
-        try? data.write(to: fileURL)
-      }
-    }
-
+    FailingExampleDiskStore.write(examples, testID: testID, to: baseURL)
     isDirty = false
-  }
-
-  private func loadFromDisk(testID: TestIdentifier, baseURL: URL) -> [FailingExample] {
-    let testDir = baseURL.appendingPathComponent(testID.directoryName)
-
-    guard
-      let files = try? FileManager.default.contentsOfDirectory(
-        at: testDir,
-        includingPropertiesForKeys: nil
-      )
-    else {
-      return []
-    }
-
-    let decoder = JSONDecoder()
-    decoder.dateDecodingStrategy = .iso8601
-
-    var examples: [FailingExample] = []
-    let maxAge = FailingExampleConfig.maxAge
-
-    for file in files.sorted(by: { $0.lastPathComponent < $1.lastPathComponent }) {
-      guard file.pathExtension == "json" else { continue }
-      guard let data = try? Data(contentsOf: file) else { continue }
-      guard let example = try? decoder.decode(FailingExample.self, from: data) else { continue }
-
-      // Check age
-      if let maxAge = maxAge {
-        let age = Date().timeIntervalSince(example.timestamp)
-        if age > maxAge {
-          try? FileManager.default.removeItem(at: file)
-          continue
-        }
-      }
-
-      examples.append(example)
-    }
-
-    return examples
   }
 
   private var backendDescription: String {
@@ -244,60 +186,109 @@ public actor FailingExampleDatabase {
   }
 }
 
-// MARK: - Statistics
+private struct FailingExampleDiskEntry {
+  let example: FailingExample
+  let index: Int
+  let directory: URL
+}
 
-/// Statistics about the example database
+enum FailingExampleDiskStore {
+  static func write(
+    _ examples: [FailingExample],
+    testID: TestIdentifier,
+    to baseURL: URL
+  ) {
+    let directory = baseURL.appendingPathComponent(testID.directoryName)
+    prepare(directory)
+    let encoder = makeEncoder()
+    for (index, example) in examples.enumerated() {
+      let entry = FailingExampleDiskEntry(
+        example: example,
+        index: index,
+        directory: directory
+      )
+      write(entry, encoder: encoder)
+    }
+  }
+
+  static func load(
+    testID: TestIdentifier,
+    from baseURL: URL
+  ) -> [FailingExample] {
+    let directory = baseURL.appendingPathComponent(testID.directoryName)
+    let decoder = makeDecoder()
+    return contents(of: directory).compactMap { load($0, decoder: decoder) }
+  }
+
+  private static func prepare(_ directory: URL) {
+    try? FileManager.default.createDirectory(
+      at: directory,
+      withIntermediateDirectories: true
+    )
+    for file in contents(of: directory) {
+      try? FileManager.default.removeItem(at: file)
+    }
+  }
+
+  private static func contents(of directory: URL) -> [URL] {
+    let files = try? FileManager.default.contentsOfDirectory(
+      at: directory,
+      includingPropertiesForKeys: nil
+    )
+    return files?.sorted {
+      $0.lastPathComponent < $1.lastPathComponent
+    } ?? []
+  }
+
+  private static func write(
+    _ entry: FailingExampleDiskEntry,
+    encoder: JSONEncoder
+  ) {
+    guard let data = try? encoder.encode(entry.example) else { return }
+    let name = String(format: "example_%03d.json", entry.index + 1)
+    try? data.write(to: entry.directory.appendingPathComponent(name))
+  }
+
+  private static func load(
+    _ file: URL,
+    decoder: JSONDecoder
+  ) -> FailingExample? {
+    guard file.pathExtension == "json" else { return nil }
+    guard let data = try? Data(contentsOf: file) else { return nil }
+    guard
+      let example = try? decoder.decode(FailingExample.self, from: data)
+    else {
+      return nil
+    }
+    guard isCurrent(example) else {
+      try? FileManager.default.removeItem(at: file)
+      return nil
+    }
+    return example
+  }
+
+  private static func isCurrent(_ example: FailingExample) -> Bool {
+    guard let maxAge = FailingExampleConfig.maxAge else { return true }
+    return Date().timeIntervalSince(example.timestamp) <= maxAge
+  }
+
+  private static func makeEncoder() -> JSONEncoder {
+    let encoder = JSONEncoder()
+    encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+    encoder.dateEncodingStrategy = .iso8601
+    return encoder
+  }
+
+  private static func makeDecoder() -> JSONDecoder {
+    let decoder = JSONDecoder()
+    decoder.dateDecodingStrategy = .iso8601
+    return decoder
+  }
+}
+
+/// Statistics about the example database.
 public struct FailingExampleStatistics: Sendable {
   public let testCount: Int
   public let exampleCount: Int
   public let backend: String
-}
-
-// MARK: - Convenience Extension
-
-extension FailingExampleDatabase {
-  /// Save a failure with all metadata
-  public func saveFailure(
-    testID: TestIdentifier,
-    seed: UInt64,
-    size: Int,
-    shrinkPath: [Int]? = nil,
-    input: (any Codable & Sendable)? = nil,
-    inputDescription: String? = nil,
-    failureMessage: String
-  ) async {
-    let serializedInput: Data?
-    if let input = input {
-      serializedInput = try? JSONEncoder().encode(AnyEncodable(input))
-    } else {
-      serializedInput = nil
-    }
-
-    let example = FailingExample(
-      seed: seed,
-      size: size,
-      shrinkPath: shrinkPath,
-      serializedInput: serializedInput,
-      inputDescription: inputDescription,
-      failureMessage: failureMessage
-    )
-
-    await save(testID: testID, example: example)
-  }
-}
-
-// MARK: - Type Erasure for Encoding
-
-private struct AnyEncodable: Encodable {
-  private let encode: (Encoder) throws -> Void
-
-  init<T: Encodable>(_ value: T) {
-    self.encode = { encoder in
-      try value.encode(to: encoder)
-    }
-  }
-
-  func encode(to encoder: Encoder) throws {
-    try encode(encoder)
-  }
 }
