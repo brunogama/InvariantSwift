@@ -34,7 +34,12 @@ struct PropertyEvaluationResponse: Codable, Sendable {
   /// Execution time in seconds
   let duration: TimeInterval
 
-  init(testId: UUID, passed: Bool, failureReason: String? = nil, duration: TimeInterval) {
+  init(
+    testId: UUID,
+    passed: Bool,
+    duration: TimeInterval,
+    failureReason: String? = nil
+  ) {
     self.testId = testId
     self.passed = passed
     self.failureReason = failureReason
@@ -86,22 +91,20 @@ struct SubprocessPropertyExecutor {
   ///
   /// - Returns: The execution result (passed, failed, crashed, or error)
   func execute(request: PropertyEvaluationRequest) async -> ExecutionResult {
-    let process = Process()
-    process.executableURL = helperExecutablePath
-
+    let process = makeProcess()
     let pipes = setupPipes(for: process)
 
     guard let requestData = encodeRequest(request) else {
       return .spawnError("Failed to encode request")
     }
 
-    do {
-      try process.run()
-    } catch {
-      return .spawnError("Failed to spawn subprocess: \(error)")
-    }
+    if let launchError = launch(process) { return launchError }
 
-    if let writeError = writeRequest(requestData, to: pipes.input, process: process) {
+    if let writeError = writeRequest(
+      requestData,
+      to: pipes.input,
+      process: process
+    ) {
       return writeError
     }
 
@@ -110,6 +113,23 @@ struct SubprocessPropertyExecutor {
     }
 
     return parseProcessResult(process: process, outputPipe: pipes.output)
+  }
+}
+
+extension SubprocessPropertyExecutor {
+  private func makeProcess() -> Process {
+    let process = Process()
+    process.executableURL = helperExecutablePath
+    return process
+  }
+
+  private func launch(_ process: Process) -> ExecutionResult? {
+    do {
+      try process.run()
+      return nil
+    } catch {
+      return .spawnError("Failed to spawn subprocess: \(error)")
+    }
   }
 
   private struct ProcessPipes {
@@ -134,10 +154,15 @@ struct SubprocessPropertyExecutor {
     try? JSONEncoder().encode(request)
   }
 
-  private func writeRequest(_ data: Data, to pipe: Pipe, process: Process) -> ExecutionResult? {
+  private func writeRequest(
+    _ data: Data,
+    to pipe: Pipe,
+    process: Process
+  ) -> ExecutionResult? {
     do {
       var length = UInt32(data.count).bigEndian
-      try pipe.fileHandleForWriting.write(contentsOf: Data(bytes: &length, count: 4))
+      let lengthData = Data(bytes: &length, count: 4)
+      try pipe.fileHandleForWriting.write(contentsOf: lengthData)
       try pipe.fileHandleForWriting.write(contentsOf: data)
       try pipe.fileHandleForWriting.close()
       return nil
@@ -165,32 +190,111 @@ struct SubprocessPropertyExecutor {
     return nil
   }
 
-  private func parseProcessResult(process: Process, outputPipe: Pipe) -> ExecutionResult {
+  private func parseProcessResult(
+    process: Process,
+    outputPipe: Pipe
+  ) -> ExecutionResult {
     switch process.terminationReason {
     case .exit:
-      if process.terminationStatus != 0 {
-        return .failed(reason: "Exit code \(process.terminationStatus)")
-      }
-
-      let responseData = outputPipe.fileHandleForReading.readDataToEndOfFile()
-      guard
-        let response = try? JSONDecoder().decode(
-          PropertyEvaluationResponse.self,
-          from: responseData
-        )
-      else {
-        return .spawnError("Failed to decode response")
-      }
-
-      return response.passed ? .passed : .failed(reason: response.failureReason ?? "Unknown")
+      return parseExit(process: process, outputPipe: outputPipe)
 
     case .uncaughtSignal:
-      return .crashed(signal: process.terminationStatus, reason: .uncaughtSignal)
+      return .crashed(
+        signal: process.terminationStatus,
+        reason: .uncaughtSignal
+      )
 
     @unknown default:
       return .spawnError("Unknown termination reason")
     }
   }
+
+  private func parseExit(
+    process: Process,
+    outputPipe: Pipe
+  ) -> ExecutionResult {
+    guard process.terminationStatus == 0 else {
+      return .failed(reason: "Exit code \(process.terminationStatus)")
+    }
+    let data = outputPipe.fileHandleForReading.readDataToEndOfFile()
+    guard
+      let response = try? JSONDecoder().decode(
+        PropertyEvaluationResponse.self,
+        from: data
+      )
+    else {
+      return .spawnError("Failed to decode response")
+    }
+    guard response.passed else {
+      return .failed(reason: response.failureReason ?? "Unknown")
+    }
+    return .passed
+  }
 }
 
+extension IsolatedPropertyRunner {
+  func findHelperExecutable() -> URL? {
+    let candidates = [
+      Bundle.main.bundleURL
+        .appendingPathComponent("Contents/MacOS/PropertyTestHelper"),
+      Bundle.main.bundleURL.appendingPathComponent("PropertyTestHelper"),
+      URL(fileURLWithPath: ".build/debug/PropertyTestHelper"),
+      URL(fileURLWithPath: ".build/release/PropertyTestHelper"),
+    ]
+    return candidates.first {
+      FileManager.default.isExecutableFile(atPath: $0.path)
+    }
+  }
+
+  func executeInSubprocess<Value: Sendable>(
+    property: Property<Value>,
+    value: Value,
+    helperPath: URL
+  ) async -> IsolationTestOutcome {
+    do {
+      let request = try makeEvaluationRequest(value)
+      let executor = SubprocessPropertyExecutor(
+        helperExecutablePath: helperPath,
+        timeout: 5.0
+      )
+      return mapSubprocessResult(await executor.execute(request: request))
+    } catch {
+      return .failure(reason: "Serialization error: \(error)")
+    }
+  }
+
+  private func makeEvaluationRequest<Value>(
+    _ value: Value
+  ) throws -> PropertyEvaluationRequest {
+    let data = try JSONEncoder().encode(AnyCodable(value))
+    return PropertyEvaluationRequest(
+      testId: UUID(),
+      seed: 0,
+      size: 0,
+      testInput: data,
+      generatorType: String(describing: Value.self)
+    )
+  }
+
+  private func mapSubprocessResult(
+    _ result: SubprocessPropertyExecutor.ExecutionResult
+  ) -> IsolationTestOutcome {
+    switch result {
+    case .passed:
+      return .success
+
+    case .failed(let reason):
+      return .failure(reason: reason)
+
+    case .crashed(let signal, _):
+      return .crashed(signal: signal)
+
+    case .timedOut:
+      return .failure(reason: "Timed out")
+
+    case .spawnError(let error):
+      return .failure(reason: "Spawn error: \(error)")
+    }
+  }
+}
 #endif  // os(macOS)
