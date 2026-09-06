@@ -57,4 +57,14 @@ assert_budget yellow-max 25 800 yellow 0
 assert_budget red-by-files 26 800 red 1
 assert_budget red-by-lines 25 801 red 1
 
+for option in --mode --base --head; do
+  if output=$("$SCRIPT" "$option" 2>&1); then
+    fail "$option without a value unexpectedly succeeded"
+  else
+    actual_exit=$?
+  fi
+  [[ $actual_exit -eq 2 && $output == *"Usage:"* ]] ||
+    fail "$option without a value did not print usage and exit 2: $output"
+done
+
 echo "change-budget boundary tests passed"

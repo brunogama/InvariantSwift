@@ -28,7 +28,7 @@ Do not let incomplete or oversized work reach trunk without explicit approval an
 ### 1) Trunk is the source of truth
 
 - Assume `main` is the trunk unless the repo defines another branch explicitly.
-- Work from trunk on a very short-lived branch and merge it back as soon as checks pass.
+- Work from trunk on a short-lived branch; merge only with explicit user approval after checks pass.
 - Never propose long-lived feature branches, `develop`, `release/*`, or branch pyramids unless the user explicitly overrides policy.
 
 ### 2) Small-batch delivery is mandatory

@@ -13,7 +13,8 @@ For day-to-day repository operating behavior, follow `AGENTS.md`.
 - Every release must correspond to intentional, validated code.
 - Do not release from a dirty worktree.
 - Do not release if formatter, lint, build, tests, or coverage gates fail.
-- Do not publish a release unless the user explicitly asked.
+- Manual releases, including `workflow_dispatch`, require explicit user approval.
+- Push-triggered releases are approved automation unless `[skip release]` suppresses them.
 - Once a version has been released, its contents must not be modified.
 - Any post-release change requires a new version.
 - Release from validated `main`, not from a long-lived release branch.
@@ -40,7 +41,8 @@ This repository supports automatic release tagging from `main`.
 - The release workflow computes the next version from conventional commits since the latest `v*.*.*` tag.
 - `feat:` commits bump `MINOR`.
 - `fix:`, `docs:`, `ci:`, `chore:`, and similar non-breaking commits bump `PATCH`.
-- Commits with `!` in the type scope or a `BREAKING CHANGE:` footer bump `MAJOR`.
+- Breaking commits bump `MINOR` before `v1.0.0`.
+- The same commits bump `MAJOR` from `v1.0.0` onward.
 - If no prior release tag exists, the first automated release starts at `v0.1.0`.
 - Pushing `[skip release]` in the head commit message suppresses the automated tag for that push.
 
