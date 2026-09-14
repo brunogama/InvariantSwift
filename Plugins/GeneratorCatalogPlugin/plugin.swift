@@ -11,7 +11,9 @@ struct GeneratorCatalogPlugin: CommandPlugin {
     process.arguments = ["generators"] + arguments
     process.currentDirectoryURL = context.package.directoryURL
     process.environment = ProcessInfo.processInfo.environment
-    process.standardInput = FileHandle.standardInput
+    // stdin is detached: the tool reads no input, and sharing the parent's
+    // descriptor lets the child block on a terminal read forever.
+    process.standardInput = FileHandle.nullDevice
     process.standardOutput = FileHandle.standardOutput
     process.standardError = FileHandle.standardError
 

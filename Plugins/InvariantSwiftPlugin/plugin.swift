@@ -11,7 +11,9 @@ struct InvariantSwiftPlugin: CommandPlugin {
     process.executableURL = tool.url
     process.arguments = arguments
     process.currentDirectoryURL = packageDirectory
-    process.standardInput = FileHandle.standardInput
+    // stdin is detached: the tool reads no input, and sharing the parent's
+    // descriptor lets the child block on a terminal read forever.
+    process.standardInput = FileHandle.nullDevice
     process.standardOutput = FileHandle.standardOutput
     process.standardError = FileHandle.standardError
 
