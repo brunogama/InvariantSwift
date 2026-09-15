@@ -4,7 +4,16 @@ import Foundation
 public struct SMTSolverConfig: Sendable {
   public let solverPath: String
   public let timeout: Duration
+
+  /// Peak memory the solver may use, in megabytes.
+  ///
+  /// Honoured by `z3` only. Other solvers have no portable equivalent and
+  /// ignore this value.
   public let memoryLimit: Int?
+
+  /// Seed for the solver's internal randomness, for reproducible models.
+  ///
+  /// Honoured by `z3` and the `cvc` family.
   public let randomSeed: UInt32?
 
   public init(
@@ -36,17 +45,22 @@ public actor SMTSolver {
   public func solve(_ constraint: SMTConstraint) async -> SMTResult {
     solveCount += 1
     do {
-      let output = try await execute(
+      let output = try await executeSolver(
         input: constraint.toSMTLIB2(),
         config: config
       )
       return parse(output)
+    } catch SMTSolverError.timeout {
+      return .timeout
     } catch {
       return .error("Solver execution failed: \(error)")
     }
   }
 
   /// Checks satisfiability without retrieving a model.
+  ///
+  /// Returns `false` for an unsatisfiable constraint *and* for a solver
+  /// failure. Use ``solve(_:)`` when those outcomes must be distinguished.
   public func checkSat(_ constraint: SMTConstraint) async -> Bool {
     guard case .satisfiable = await solve(constraint) else { return false }
     return true
@@ -57,20 +71,28 @@ public actor SMTSolver {
     _ constraint: SMTConstraint,
     maxSolutions: Int = 10
   ) async -> [SMTResult] {
+    guard maxSolutions > 0 else { return [] }
     var solutions: [SMTResult] = []
     var current = constraint
     for _ in 0..<maxSolutions {
       let result = await solve(current)
       switch result {
-      case .satisfiable(let model):
+      case .satisfiable(let model) where !model.isEmpty:
         solutions.append(result)
         current = current.blocking(model)
+
+      case .satisfiable:
+        // An empty model cannot be blocked, so continuing would return the
+        // same solution for every remaining iteration.
+        solutions.append(result)
+        return solutions
 
       case .unsatisfiable:
         return solutions
 
       default:
         solutions.append(result)
+        return solutions
       }
     }
     return solutions
@@ -92,7 +114,9 @@ public actor SMTSolver {
     }
     switch status {
     case "sat":
-      return parseModel(Array(lines.dropFirst()))
+      return .satisfiable(
+        SMTModelParser.parseModel(lines.dropFirst().joined(separator: "\n"))
+      )
 
     case "unsat":
       return .unsatisfiable
@@ -100,39 +124,12 @@ public actor SMTSolver {
     case "unknown":
       return .unknown
 
+    case "timeout":
+      return .timeout
+
     default:
       return .error("Unexpected output: \(status)")
     }
-  }
-
-  private func parseModel(_ lines: [String]) -> SMTResult {
-    var model: [String: SMTValue] = [:]
-    for line in lines {
-      let definition = line.trimmingCharacters(in: .whitespaces)
-      guard definition.hasPrefix("(define-fun ") else { continue }
-      guard let binding = parseDefinition(definition) else { continue }
-      model[binding.name] = binding.value
-    }
-    return .satisfiable(model)
-  }
-
-  private func parseDefinition(_ line: String) -> SMTBinding? {
-    let components = line.components(separatedBy: " ")
-    guard components.count >= 5, components[0] == "(define-fun" else {
-      return nil
-    }
-    let value = components[components.count - 1]
-      .replacingOccurrences(of: ")", with: "")
-    guard let parsedValue = parseValue(value) else { return nil }
-    return SMTBinding(name: components[1], value: parsedValue)
-  }
-
-  private func parseValue(_ value: String) -> SMTValue? {
-    if value == "true" { return .bool(true) }
-    if value == "false" { return .bool(false) }
-    if let integer = Int(value) { return .int(integer) }
-    if let real = Double(value) { return .real(real) }
-    return nil
   }
 }
 
@@ -157,12 +154,7 @@ public enum SMTSolverError: Error, Sendable {
   case unsupportedOperation(String)
 }
 
-private struct SMTBinding {
-  let name: String
-  let value: SMTValue
-}
-
-private extension SMTConstraint {
+extension SMTConstraint {
   func blocking(_ model: [String: SMTValue]) -> SMTConstraint {
     let equalities = model.map { name, value in
       SMTExpression.unary(
@@ -182,78 +174,3 @@ private extension SMTConstraint {
     )
   }
 }
-
-private func execute(
-  input: String,
-  config: SMTSolverConfig
-) async throws -> String {
-  #if os(macOS)
-  let execution = makeExecution(config: config)
-  try execution.process.run()
-  try write(input, to: execution.input)
-  let timeoutTask = timeout(execution.process, after: config.timeout)
-  execution.process.waitUntilExit()
-  timeoutTask.cancel()
-  return try read(execution)
-  #else
-  throw SMTSolverError.unsupportedOperation(
-    "SMT solver execution is unavailable on this platform"
-  )
-  #endif
-}
-
-#if os(macOS)
-private struct SMTExecution {
-  let process: Process
-  let input: Pipe
-  let output: Pipe
-  let error: Pipe
-}
-
-private func makeExecution(config: SMTSolverConfig) -> SMTExecution {
-  let execution = SMTExecution(
-    process: Process(),
-    input: Pipe(),
-    output: Pipe(),
-    error: Pipe()
-  )
-  execution.process.executableURL = URL(fileURLWithPath: config.solverPath)
-  execution.process.arguments = ["-in"]
-  execution.process.standardInput = execution.input
-  execution.process.standardOutput = execution.output
-  execution.process.standardError = execution.error
-  return execution
-}
-
-private func write(_ input: String, to pipe: Pipe) throws {
-  guard let data = input.data(using: .utf8) else {
-    throw SMTSolverError.invalidInput("Input is not valid UTF-8")
-  }
-  pipe.fileHandleForWriting.write(data)
-  pipe.fileHandleForWriting.closeFile()
-}
-
-private func timeout(
-  _ process: Process,
-  after duration: Duration
-) -> Task<Void, Error> {
-  Task {
-    try await Task.sleep(for: duration)
-    guard process.isRunning else { return }
-    process.terminate()
-  }
-}
-
-private func read(_ execution: SMTExecution) throws -> String {
-  guard execution.process.terminationReason != .uncaughtSignal else {
-    throw SMTSolverError.timeout
-  }
-  let output = execution.output.fileHandleForReading.readDataToEndOfFile()
-  guard execution.process.terminationStatus != 0 else {
-    return String(data: output, encoding: .utf8) ?? ""
-  }
-  let error = execution.error.fileHandleForReading.readDataToEndOfFile()
-  let message = String(data: error, encoding: .utf8) ?? "Unknown error"
-  throw SMTSolverError.solverError(message)
-}
-#endif

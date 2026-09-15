@@ -13,14 +13,51 @@ public struct PythagoreanTriple: Sendable {
 
 /// Examples of SMT-assisted property-test generators.
 public enum SMTExamples {
-  /// Generates integers that satisfy a simplified prime constraint.
+  /// The inclusive range ``primeNumberConstraints()`` draws from.
+  public static let primeRange = 2...1000
+
+  /// Generates prime integers in ``primeRange``.
+  ///
+  /// Primality is encoded without quantifiers: every composite value in the
+  /// range has a prime factor no larger than the square root of the upper
+  /// bound, so excluding those divisors is exact here. A value may equal one
+  /// of the divisors, which is why each clause admits that case.
   public static func primeNumberConstraints() -> SMTGenerator<Int> {
     SMTGenerator<Int>.integerInRange(
-      2...1000,
+      primeRange,
       additionalConstraints: { expression in
-        .binary(.greaterThan, expression, .constant(.int(1)))
+        conjoin(primalityConstraints(for: expression))
       }
     )
+  }
+
+  private static func primalityConstraints(
+    for expression: SMTExpression
+  ) -> [SMTExpression] {
+    smallPrimes(upTo: primeRange.upperBound).map { divisor in
+      .binary(
+        .or,
+        .binary(.equals, expression, .constant(.int(divisor))),
+        .binary(
+          .notEquals,
+          .binary(.modulo, expression, .constant(.int(divisor))),
+          .constant(.int(0))
+        )
+      )
+    }
+  }
+
+  /// Every prime no larger than the square root of `bound`.
+  ///
+  /// Trial division by these is sufficient to decide primality up to `bound`.
+  private static func smallPrimes(upTo bound: Int) -> [Int] {
+    var primes: [Int] = []
+    var candidate = 2
+    while candidate * candidate <= bound {
+      if primes.allSatisfy({ candidate % $0 != 0 }) { primes.append(candidate) }
+      candidate += 1
+    }
+    return primes
   }
 
   /// Generates positive integer Pythagorean triples.

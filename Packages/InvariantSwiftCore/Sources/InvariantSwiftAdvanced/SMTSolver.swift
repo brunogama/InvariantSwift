@@ -58,7 +58,7 @@ public indirect enum SMTExpression: Sendable, CustomStringConvertible {
 }
 
 /// A typed SMT value.
-public enum SMTValue: Sendable, CustomStringConvertible {
+public enum SMTValue: Sendable, Equatable, CustomStringConvertible {
   case bool(Bool)
   case int(Int)
   case real(Double)
@@ -81,7 +81,7 @@ public enum SMTValue: Sendable, CustomStringConvertible {
       return "\"\(value)\""
 
     case .bitVector(let value, let width):
-      return "#b\(String(value, radix: 2).leftPadded(to: width))"
+      return "#b\(String(value.truncated(to: width), radix: 2).leftPadded(to: width))"
 
     case .array(let elements):
       return "(\(elements.smtDescriptions))"
@@ -229,5 +229,17 @@ private extension String {
     let count = length - self.count
     guard count > 0 else { return self }
     return String(repeating: "0", count: count) + self
+  }
+}
+
+private extension UInt64 {
+  /// Keeps only the low `width` bits.
+  ///
+  /// A literal wider than its declared sort is rejected by every solver, so a
+  /// value that overflows the sort is truncated rather than emitted verbatim.
+  func truncated(to width: Int) -> Self {
+    guard width > 0 else { return 0 }
+    guard width < Self.bitWidth else { return self }
+    return self & ((1 << Self(width)) - 1)
   }
 }
