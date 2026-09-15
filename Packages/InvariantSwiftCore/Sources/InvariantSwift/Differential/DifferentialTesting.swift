@@ -66,11 +66,13 @@ public struct DifferentialResult<Input: Sendable, Output: Sendable>: Sendable {
       // Fall back to Equatable if Output conforms
       return !areEqual(ref, cand)
 
-    case (.failure, .failure):
+    case (.failure(let ref), .failure(let cand)):
       switch errorBehavior {
       case .mustMatch:
-        // TODO: Compare error types
-        return false
+        // mustMatch requires the same error, not merely that both threw.
+        // Errors are not generally Equatable, so the dynamic type is the
+        // strongest comparison available here.
+        return type(of: ref) != type(of: cand)
 
       case .bothThrowOrBothSucceed, .candidateMaySucceedMore, .ignoreErrors:
         return false

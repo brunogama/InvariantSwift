@@ -47,6 +47,29 @@ struct DifferentialTestingTests {
     #expect(result.diverges(errorBehavior: behavior) == false)
   }
 
+  @Test("mustMatch diverges when the two errors have different types")
+  func mustMatchDistinguishesErrorTypes() {
+    struct ReferenceError: Error {}
+    struct CandidateError: Error {}
+    let result = DifferentialResult<Int, Int>(
+      input: 42,
+      referenceOutput: .failure(ReferenceError()),
+      candidateOutput: .failure(CandidateError())
+    )
+    #expect(result.diverges(errorBehavior: .mustMatch) == true)
+  }
+
+  @Test("mustMatch does not diverge when both errors have the same type")
+  func mustMatchAcceptsMatchingErrorTypes() {
+    struct TestError: Error {}
+    let result = DifferentialResult<Int, Int>(
+      input: 42,
+      referenceOutput: .failure(TestError()),
+      candidateOutput: .failure(TestError())
+    )
+    #expect(result.diverges(errorBehavior: .mustMatch) == false)
+  }
+
   @Test("DifferentialResult with custom comparer")
   func resultWithCustomComparer() {
     let result = DifferentialResult<Int, Double>(

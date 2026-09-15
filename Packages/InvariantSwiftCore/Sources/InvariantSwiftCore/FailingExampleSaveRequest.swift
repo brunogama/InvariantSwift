@@ -48,7 +48,16 @@ extension FailingExampleDatabase {
 
   private func serialize(_ input: (any Codable & Sendable)?) -> Data? {
     guard let input else { return nil }
-    return try? JSONEncoder().encode(AnyEncodable(input))
+    do {
+      return try JSONEncoder().encode(AnyEncodable(input))
+    } catch {
+      // Without this the nil result is indistinguishable from "no input
+      // was supplied", which hides an unencodable input entirely.
+      FailingExampleDiagnostics.report(
+        "Failed to serialize failing input: \(error)"
+      )
+      return nil
+    }
   }
 }
 

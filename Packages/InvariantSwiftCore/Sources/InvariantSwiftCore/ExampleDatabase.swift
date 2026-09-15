@@ -199,15 +199,60 @@ enum FailingExampleDiskStore {
     to baseURL: URL
   ) {
     let directory = baseURL.appendingPathComponent(testID.directoryName)
-    prepare(directory)
+    guard let staging = makeStagingDirectory(in: baseURL) else {
+      FailingExampleDiagnostics.report(
+        "Could not create a staging directory under \(baseURL.path)"
+      )
+      return
+    }
+    defer { try? FileManager.default.removeItem(at: staging) }
     let encoder = makeEncoder()
     for (index, example) in examples.enumerated() {
       let entry = FailingExampleDiskEntry(
         example: example,
         index: index,
-        directory: directory
+        directory: staging
       )
-      write(entry, encoder: encoder)
+      guard write(entry, encoder: encoder) else { return }
+    }
+    commit(staging, to: directory)
+  }
+
+  /// Creates a staging directory beside the destination.
+  ///
+  /// It must share a volume with the destination for the swap to be atomic.
+  private static func makeStagingDirectory(in baseURL: URL) -> URL? {
+    let staging = baseURL.appendingPathComponent(
+      ".staging-\(UUID().uuidString)"
+    )
+    do {
+      try FileManager.default.createDirectory(
+        at: staging,
+        withIntermediateDirectories: true
+      )
+      return staging
+    } catch {
+      return nil
+    }
+  }
+
+  /// Swaps `staging` into place, leaving the previous set intact on failure.
+  private static func commit(_ staging: URL, to directory: URL) {
+    let manager = FileManager.default
+    do {
+      try manager.createDirectory(
+        at: directory.deletingLastPathComponent(),
+        withIntermediateDirectories: true
+      )
+      if manager.fileExists(atPath: directory.path) {
+        _ = try manager.replaceItemAt(directory, withItemAt: staging)
+      } else {
+        try manager.moveItem(at: staging, to: directory)
+      }
+    } catch {
+      FailingExampleDiagnostics.report(
+        "Could not publish examples to \(directory.path): \(error)"
+      )
     }
   }
 
@@ -220,16 +265,6 @@ enum FailingExampleDiskStore {
     return contents(of: directory).compactMap { load($0, decoder: decoder) }
   }
 
-  private static func prepare(_ directory: URL) {
-    try? FileManager.default.createDirectory(
-      at: directory,
-      withIntermediateDirectories: true
-    )
-    for file in contents(of: directory) {
-      try? FileManager.default.removeItem(at: file)
-    }
-  }
-
   private static func contents(of directory: URL) -> [URL] {
     let files = try? FileManager.default.contentsOfDirectory(
       at: directory,
@@ -240,13 +275,20 @@ enum FailingExampleDiskStore {
     } ?? []
   }
 
+  /// Writes one example, reporting whether the staged set is still complete.
   private static func write(
     _ entry: FailingExampleDiskEntry,
     encoder: JSONEncoder
-  ) {
-    guard let data = try? encoder.encode(entry.example) else { return }
+  ) -> Bool {
     let name = String(format: "example_%03d.json", entry.index + 1)
-    try? data.write(to: entry.directory.appendingPathComponent(name))
+    do {
+      let data = try encoder.encode(entry.example)
+      try data.write(to: entry.directory.appendingPathComponent(name))
+      return true
+    } catch {
+      FailingExampleDiagnostics.report("Could not write \(name): \(error)")
+      return false
+    }
   }
 
   private static func load(
