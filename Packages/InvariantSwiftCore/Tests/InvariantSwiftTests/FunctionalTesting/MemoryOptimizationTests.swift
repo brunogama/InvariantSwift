@@ -151,8 +151,11 @@ struct MemoryOptimizationTests {
   func testMemoryUsageStability() async throws {
     // Given: High iteration property test
     let property = Property(
-      generator: Gen<Int>.int,
-      predicate: { $0 * $0 >= 0 }  // Always true (perfect squares are non-negative)
+      // Bounded: squaring an unbounded Int overflows, and Gen<Int>.int emits
+      // Int.min and Int.max as edge cases. This test measures memory stability,
+      // not integer arithmetic.
+      generator: Gen<Int>.int(in: -1_000_000...1_000_000),
+      predicate: { $0 * $0 >= 0 }  // Always true within this range
     )
 
     // When: Running many iterations
@@ -186,7 +189,7 @@ struct MemoryOptimizationTests {
         predicate: { value in value >= 0 }
       )
     }
-    
+
     // When: Running properties concurrently
     await withTaskGroup(of: Bool.self) { group in
       for property in properties {
@@ -196,7 +199,7 @@ struct MemoryOptimizationTests {
           return result.isSuccess
         }
       }
-    
+
       // Then: All should succeed without memory issues
       for await success in group {
         #expect(success)
@@ -238,18 +241,18 @@ struct MemoryOptimizationTests {
   @Test("Optimized test method produces identical results to original predicate")
   func testFunctionalEquivalence() async throws {
     let testValues = [1, 5, 10, -3, 0, 100, -50]
-  
+
     // Given: Property with test method optimization
     let property = Property(
       generator: Gen.pure(0),  // Generator not used in this test
       predicate: { value in value > 0 && value % 2 == 0 }
     )
-  
+
     // When: Testing with both approaches
     for testValue in testValues {
       let testResult = property.test(testValue)
       let predicateResult = property.predicate(testValue)
-  
+
       // Then: Results should be identical
       #expect(
         testResult == predicateResult,
@@ -271,20 +274,20 @@ struct MemoryOptimizationTests {
       generator: Gen<Int>.int,
       predicate: { $0 > 0 }
     )
-  
+
     let budget = CoverageBudget(
       uncoveredSymbols: ["testFunction"],
       coverageMap: ["testFunction": 0.5],
       totalFunctions: 2,
       coveredFunctions: 1
     )
-  
+
     // When: Creating coverage-guided property
     let guidedProperty = property.withCoverageGuidance(budget: budget)
-  
+
     // Then: Should maintain sendable constraints
     let result = await PropertyChecker.checkAsync(guidedProperty)
-  
+
     // Coverage guidance may affect results, but shouldn't break sendable constraints
     #expect(result.isSuccess || result.isFailure)  // Just verify it completes
   }

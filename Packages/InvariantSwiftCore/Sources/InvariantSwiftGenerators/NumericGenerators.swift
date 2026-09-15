@@ -24,7 +24,10 @@ extension Gen where T == Int8 {
         var shrunk: [Int8] = []
 
         if n != 0 { shrunk.append(0) }
-        if abs(n) > 1 {
+        // `magnitude`, not `abs`: abs(T.min) overflows and traps, and the
+        // generator emits T.min as an edge case, so shrinking a failure found
+        // at T.min would crash the whole test process.
+        if n.magnitude > 1 {
           let half = n / 2
           if half != n && half != 0 { shrunk.append(half) }
         }
@@ -55,7 +58,10 @@ extension Gen where T == Int16 {
         var shrunk: [Int16] = []
 
         if n != 0 { shrunk.append(0) }
-        if abs(n) > 1 {
+        // `magnitude`, not `abs`: abs(T.min) overflows and traps, and the
+        // generator emits T.min as an edge case, so shrinking a failure found
+        // at T.min would crash the whole test process.
+        if n.magnitude > 1 {
           let half = n / 2
           if half != n && half != 0 { shrunk.append(half) }
         }
@@ -86,7 +92,10 @@ extension Gen where T == Int32 {
         var shrunk: [Int32] = []
 
         if n != 0 { shrunk.append(0) }
-        if abs(n) > 1 {
+        // `magnitude`, not `abs`: abs(T.min) overflows and traps, and the
+        // generator emits T.min as an edge case, so shrinking a failure found
+        // at T.min would crash the whole test process.
+        if n.magnitude > 1 {
           let half = n / 2
           if half != n && half != 0 { shrunk.append(half) }
         }
@@ -117,7 +126,10 @@ extension Gen where T == Int64 {
         var shrunk: [Int64] = []
 
         if n != 0 { shrunk.append(0) }
-        if abs(n) > 1 {
+        // `magnitude`, not `abs`: abs(T.min) overflows and traps, and the
+        // generator emits T.min as an edge case, so shrinking a failure found
+        // at T.min would crash the whole test process.
+        if n.magnitude > 1 {
           let half = n / 2
           if half != n && half != 0 { shrunk.append(half) }
         }

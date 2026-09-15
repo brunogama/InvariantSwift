@@ -87,7 +87,8 @@ struct GeneratorTestHelpersTests {
   @Test("Constraint check with valid generator")
   func testConstraintCheckPasses() {
     let positiveGen = Gen<Int> { rng, size in
-      Int.random(in: 1...size.value, using: &rng)
+      // `1...0` is an invalid range and traps when size is 0.
+      Int.random(in: 1...max(1, size.value), using: &rng)
     }
 
     let (passed, failing) = GeneratorTestHelpers.checkConstraint(

@@ -253,7 +253,9 @@ struct GeneratorCoreTests {
   func nestedGeneratorComposition() async {
     let property = Property<String>(
       generator: Gen<Int>.int
-        .map { $0 * 2 }
+        // Wrapping: this test is about generator composition, and Gen<Int>.int
+        // emits Int.max, where a checked doubling traps.
+        .map { $0 &* 2 }
         .map { String($0) }
         .flatMap { s in Gen.pure("Value: \(s)") }
     ) { result in

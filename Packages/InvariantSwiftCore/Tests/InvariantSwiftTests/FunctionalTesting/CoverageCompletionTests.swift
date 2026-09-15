@@ -145,8 +145,11 @@ struct CoverageCompletionTests {
     let debugProperty1 = Property<Int>(generator: Gen<Int>.int) { value in
       // Property that exercises internal validation logic
       if value == Int.min {
-        // This path might trigger debug assertions
-        return value > Int.min
+        // This path might trigger debug assertions. It must still hold:
+        // the expectation below asserts the run succeeds, and Gen<Int>.int
+        // emits Int.min as an edge case, so `value > Int.min` made this
+        // property fail every run.
+        return value >= Int.min
       }
       return true
     }

@@ -64,8 +64,11 @@ extension Gen where T == Int {
           shrunk.append(0)
         }
 
-        // Shrink by halving (preserving sign)
-        if abs(n) > 1 {
+        // Shrink by halving (preserving sign).
+        // `magnitude`, not `abs`: abs(Int.min) overflows and traps, and the
+        // generator emits Int.min as an edge case, so shrinking a failure
+        // found at Int.min would crash the whole test process.
+        if n.magnitude > 1 {
           let half = n / 2
           if half != n && half != 0 {
             shrunk.append(half)
@@ -432,7 +435,7 @@ extension Gen where T == String {
           encoding: .ascii
         ) ?? ""
       },
-      shrink: Gen.string.shrink  // Reuse string shrinking
+      shrink: Self.string.shrink  // Reuse string shrinking
     )
   }
 }

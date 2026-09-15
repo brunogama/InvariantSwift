@@ -251,7 +251,9 @@ struct RecursiveShrinkingTests {
 
     // Generator for nested data
     let nestedGen = Gen<NestedData> { rng, size in
-      let arrayCount = Int.random(in: 1...size.value, using: &rng)
+      // Shrinking generates at size 0, where `1...0` is an invalid range
+      // and traps.
+      let arrayCount = Int.random(in: 1...max(1, size.value), using: &rng)
       let arrays = (0..<arrayCount).map { _ in
         Gen<[Int]>.array(Gen<Int>.int(in: 1...10)).generate(&rng, size)
       }

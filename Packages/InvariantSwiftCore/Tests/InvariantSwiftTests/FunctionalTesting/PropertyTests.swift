@@ -236,9 +236,11 @@ struct PropertyTests {
 
   @Test("Property.implies convenience method")
   func propertyImpliesConvenienceMethod() async {
-    // If x > 0, then x * 2 > 0
+    // If x > 0, then x * 2 > 0.
+    // Bounded: the claim is false for Int as a whole, since Int.max * 2
+    // overflows, and Gen<Int>.int emits Int.max as an edge case.
     let property = Property.implies(
-      Gen<Int>.int,
+      Gen<Int>.int(in: -1_000_000...1_000_000),
       assumption: { $0 > 0 },
       conclusion: { $0 * 2 > 0 }
     )
@@ -273,6 +275,7 @@ struct PropertyTests {
 
     switch result {
     case .success: break  // Should succeed because implication with false assumption is always true
+
     case .failure(let counterexample, _, _, _, _):
       Issue.record("Vacuous implication should not fail with: \(counterexample)")
 
@@ -320,6 +323,7 @@ struct PropertyTests {
 
     switch result {
     case .success: break  // Should succeed because prop2 is always true
+
     case .failure(let counterexample, _, _, _, _):
       Issue.record("Property or combinator failed with: \(counterexample)")
 

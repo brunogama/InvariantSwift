@@ -15,7 +15,9 @@ struct DogfoodingTests {
     let property = Property<Int>(generator: Gen<Int>.int(in: 1...100)) { value in
       // swiftlint:disable:next array_init - intentionally testing map with identity
       let identityGen = Gen<Int>.int(in: 1...100).map { $0 }
-      let seed = Seed(value: UInt64(value.hashValue &+ 12345))
+      // bitPattern, not a converting initialiser: hashValue is frequently
+      // negative and UInt64(negative) traps.
+      let seed = Seed(value: UInt64(bitPattern: Int64(value.hashValue &+ 12345)))
       let size = Size(value: 10)
 
       let original = Gen<Int>.int(in: 1...100).sample(size: size, seed: seed)
@@ -32,6 +34,7 @@ struct DogfoodingTests {
     switch result {
     case .success:
       break  // Expected
+
     case .failure(let counterexample, _, _, _, _):
       Issue.record("Identity law violated with seed derived from: \(counterexample)")
 
@@ -217,6 +220,7 @@ struct DogfoodingTests {
     switch result {
     case .success:
       break  // Both properties should always pass
+
     case .failure(let counterexample, _, _, _, _):
       Issue.record("Combined property failed unexpectedly: \(counterexample)")
 

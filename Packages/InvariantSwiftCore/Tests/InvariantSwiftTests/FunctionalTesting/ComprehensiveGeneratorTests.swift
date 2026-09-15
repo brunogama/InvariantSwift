@@ -117,7 +117,9 @@ struct ComprehensiveGeneratorTests {
       // Verify arrays are generated (basic functionality)
       #expect(generatedArrays.count == 20)
       for array in generatedArrays {
-        #expect(array.isEmpty)
+        // The length generator draws from 1...10, so an empty array would
+        // mean the length was ignored.
+        #expect((1...10).contains(array.count))
       }
     }
   }
@@ -206,12 +208,12 @@ struct ComprehensiveGeneratorTests {
       /*
       let largeCollection = Array(1...20)
       let transform: (Int) -> Gen<Int> = { value in Gen<Int>.pure(value) }
-      
+
       let traverseGen = Gen<Int>.traverse(largeCollection, transform)
-      
+
       var rng: any RandomNumberGenerator = SystemRandomNumberGenerator()
       let size = Size(value: 100)
-      
+
       let result = traverseGen.generate(&rng, size)
       #expect(result.count == largeCollection.count)
       #expect(result == largeCollection)
@@ -939,7 +941,15 @@ struct ComprehensiveGeneratorTests {
     /// **Coverage**: Performance characteristics of sequence generation
     @Test("Large sequence generation performance")
     func testLargeSequencePerformance() async throws {
-      let largeSequenceGen = Gen<[Int]>.array(Gen<Int>.int(in: 1...1000))
+      // A fixed count, so this measures generation of a genuinely large
+      // sequence. Gen.array draws its own length from the size and can
+      // legitimately return an empty array, which is neither large nor a
+      // stable thing to assert on.
+      let elementCount = 10_000
+      let largeSequenceGen = Gen.sequence(
+        elementGen: Gen<Int>.int(in: 1...1000),
+        count: elementCount
+      )
 
       var rng: any RandomNumberGenerator = SystemRandomNumberGenerator()
       let size = Size(value: 10)
@@ -950,7 +960,7 @@ struct ComprehensiveGeneratorTests {
 
       let duration = endTime - startTime
 
-      #expect(!result.isEmpty)  // Should generate non-empty array
+      #expect(result.count == elementCount)
       #expect(duration < .seconds(1))  // Should complete quickly
     }
 
