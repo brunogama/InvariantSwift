@@ -304,8 +304,11 @@ public struct Shrink<T>: @unchecked Sendable {
     candidates.append([])
 
     // 2. Delta debugging: remove chunks of decreasing size (N/2, N/4, N/8, ...)
+    // Stops at 2: a chunk of one is a single-element removal, which step 3
+    // already produces. Going to 1 here emitted every one of them twice, so
+    // the runner re-tested each identical candidate.
     var chunkSize = array.count / 2
-    while chunkSize >= 1 {
+    while chunkSize >= 2 {
       // Generate all arrays with one chunk of this size removed
       var offset = 0
       while offset + chunkSize <= array.count {

@@ -227,8 +227,10 @@ struct PropertyCombinatorOperatorTests {
     let genD = Gen<Int> { rng, _ in Int.random(in: -5...5, using: &rng) }
     let gen = genN.zip(genD)
 
+    // Integer division truncates, so (n / d) * d == n only when d divides n.
+    // The division identity that does hold adds the remainder back.
     let divProp = Property(generator: gen) { n, d in
-      (n / d) * d == n
+      (n / d) * d + (n % d) == n
     }
     .implies { _, d in d != 0 }
 
