@@ -27,8 +27,8 @@ For repository operating behavior during implementation, follow `AGENTS.md`.
 ## Branching
 
 - Direct commits to `main` and `dev` are blocked by the repository's `branch-guardian` pre-commit hook.
-- Always use a short-lived branch for changes and open a pull request against `main`.
-- Keep branches focused on one small logical slice and merge them back as soon as checks pass.
+- Use a short-lived branch; open a pull request only when the user explicitly asks.
+- Keep branches focused; merge them only when the user explicitly asks and checks pass.
 - Do not create long-lived feature branches, `develop`, integration branches, or release branches.
 
 Recommended patterns:

@@ -24,9 +24,9 @@ We use GitHub to host code, track issues and feature requests, and accept pull r
 
 ### Prerequisites
 
-- Swift 6.2.4+
-- Xcode 16.4+
-- macOS 14+
+- Shared: Swift 6.2.4+
+- Linux: Ubuntu LTS
+- Apple platforms: Xcode 16.4+ on macOS 15.3+
 
 ### Getting Started
 

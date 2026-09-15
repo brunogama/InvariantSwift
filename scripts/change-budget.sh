@@ -28,14 +28,17 @@ USAGE
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --mode)
+      [[ $# -ge 2 ]] || { usage >&2; exit 2; }
       MODE="$2"
       shift 2
       ;;
     --base)
+      [[ $# -ge 2 ]] || { usage >&2; exit 2; }
       BASE="$2"
       shift 2
       ;;
     --head)
+      [[ $# -ge 2 ]] || { usage >&2; exit 2; }
       HEAD_REF="$2"
       shift 2
       ;;
