@@ -48,6 +48,31 @@ If this file conflicts with repository tooling or explicit user instructions, th
 - Do not bypass hooks, checks, or validation steps.
 - Never use `--no-verify`.
 
+### Non-negotiable build gates
+
+These apply to every package in the workspace, including the nested packages
+under `Packages/`, and to test targets as well as sources.
+
+- **The build must compile.** Never hand over, commit, or describe as complete a
+  change that does not build. This includes test targets: a suite that fails to
+  compile is a broken build, not a known limitation.
+- **Zero warnings.** `swift build -Xswiftc -warnings-as-errors --build-tests`
+  must be clean for the root package and for each package under `Packages/`.
+  Fix the cause; do not silence it.
+- **Swift 6 language mode with strict concurrency.** Manifests declare
+  `swift-tools-version: 6.0` or later, which enables strict concurrency
+  checking. Do not lower the language mode, add `-strict-concurrency=minimal`,
+  or reach for `@unchecked Sendable`, `nonisolated(unsafe)`, or
+  `@preconcurrency` to quiet a diagnostic unless the unsafety is genuinely
+  unavoidable and a comment states why it is sound.
+- **Work is committed.** A change is not delivered while it sits uncommitted in
+  the working tree. Commit the verified result, with explicit paths, once the
+  gates above pass.
+
+A reviewer finding, a PR description, or a task is only closed when these gates
+hold. If a gate cannot be met, say so explicitly and name the blocker rather
+than recording it as an accepted limitation.
+
 ## Commits
 
 - Never commit unless the user explicitly asks.

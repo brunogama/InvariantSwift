@@ -72,7 +72,7 @@ func testRegressionReplay() async throws {
   let result = await runner.runProperty(property, config: config)
 
   switch result {
-  case .failure(_, _, let shrunk, _, let seed):
+  case .failure(_, _, _, _, let seed):
     #expect(seed.rawValue == 999)
 
   case .success, .gaveUp:

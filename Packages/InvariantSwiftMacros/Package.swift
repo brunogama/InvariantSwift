@@ -100,15 +100,8 @@ let package = Package(
       resources: [.copy("Resources")],
       swiftSettings: commonSwiftSettings
     ),
-    .testTarget(
-      name: "MacroIntegrationTests",
-      dependencies: [
-        "InvariantSwiftMacroAPI",
-        .product(name: "InvariantSwift", package: "InvariantSwiftCore"),
-        .product(name: "InvariantSwiftAdvanced", package: "InvariantSwiftCore"),
-      ],
-      path: "Tests/MacroIntegrationTests",
-      swiftSettings: commonSwiftSettings
-    ),
+    // MacroIntegrationTests is declared by the root package, not here.
+    // The suite exercises GhostwriterLib and GhostwriterCLI, which are root
+    // targets, so a second declaration in this package cannot resolve them.
   ]
 )

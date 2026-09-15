@@ -19,8 +19,7 @@ struct TimeoutMacroTests {
 
   /// Parse source and extract function declaration
   private func parseFunctionDecl(_ source: String) -> FunctionDeclSyntax? {
-    // swiftlint:disable:next force_try
-    let parsed = try! Parser.parse(source: source)
+    let parsed = Parser.parse(source: source)
     return parsed.statements.first?.item.as(FunctionDeclSyntax.self)
   }
 
@@ -125,11 +124,6 @@ struct TimeoutMacroTests {
 
   @Test("@Timeout + @PropertyTest generates withPropertyTimeout wrapper")
   func propertyMacroIntegratesTimeout() {
-    let testMacros: [String: Macro.Type] = [
-      "PropertyTest": PropertyMacro.self,
-      "Timeout": TimeoutMacro.self,
-    ]
-
     let source = """
       @Timeout(seconds: 5.0)
       @PropertyTest

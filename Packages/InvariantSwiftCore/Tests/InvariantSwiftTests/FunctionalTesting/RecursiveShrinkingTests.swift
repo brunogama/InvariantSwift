@@ -325,7 +325,7 @@ struct RecursiveShrinkingTests {
     /// where shrinking can happen at any level of the recursion.
 
     // Simple recursive tree structure
-    indirect enum Tree: Equatable {
+    indirect enum Tree: Equatable, Sendable {
       case leaf(Int)
       case node(Self, Self)
 
