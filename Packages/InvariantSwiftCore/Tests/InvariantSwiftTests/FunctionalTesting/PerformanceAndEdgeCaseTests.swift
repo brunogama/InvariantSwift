@@ -361,8 +361,11 @@ struct PerformanceAndEdgeCaseTests {
     // execution, and a predicate that fails for almost every generated string
     // would make the success count below meaningless.
     let property = Property<String>(generator: Gen<String>.string) { str in
-      // Simulate some work
-      str.isEmpty
+      // Simulate some work. This holds for every string: the test asserts
+      // that most runs succeed, so the predicate must not be the thing that
+      // fails. (Written as hasPrefix rather than a count comparison, which
+      // SwiftLint's empty_count autocorrect rewrites back to isEmpty.)
+      str.hasPrefix(str)
     }
 
     let taskCount = 20
