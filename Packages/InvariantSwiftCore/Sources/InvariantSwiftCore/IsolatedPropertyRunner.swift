@@ -155,10 +155,12 @@ extension IsolatedPropertyRunner {
     on candidate: Candidate<T>,
     in context: IterationContext<T>
   ) async -> IsolatedPropertyResult<T> {
+    var budget = context.config.maxShrinks
     let shrunk = await shrinkWithIsolation(
       property: context.property,
       counterexample: candidate.value,
-      config: context.config
+      config: context.config,
+      budget: &budget
     )
     return .failure(
       counterexample: candidate.value,
@@ -174,10 +176,12 @@ extension IsolatedPropertyRunner {
     on candidate: Candidate<T>,
     in context: IterationContext<T>
   ) async -> IsolatedPropertyResult<T> {
+    var budget = context.config.maxShrinks
     let shrunk = await shrinkCrashingInput(
       property: context.property,
       counterexample: candidate.value,
-      config: context.config
+      config: context.config,
+      budget: &budget
     )
     return .crashed(
       signal: signal,
@@ -285,14 +289,22 @@ extension IsolatedPropertyRunner {
   #endif
 
   /// Shrink a failing input with isolation.
+  ///
+  /// `budget` is the number of candidate evaluations left for the whole
+  /// shrink, not for one level. Re-applying `maxShrinks` at every recursion
+  /// level let a single failure evaluate far more candidates than configured,
+  /// and each evaluation can start an isolated run.
   private func shrinkWithIsolation<T: Sendable>(
     property: Property<T>,
     counterexample: T,
-    config: PropertyConfig
+    config: PropertyConfig,
+    budget: inout Int
   ) async -> T? {
     let shrinkCandidates = property.generator.shrink.shrink(counterexample)
 
-    for candidate in shrinkCandidates.prefix(config.maxShrinks) {
+    for candidate in shrinkCandidates {
+      guard budget > 0 else { return nil }
+      budget -= 1
       let result = await executeWithCrashDetection(
         property: property,
         value: candidate
@@ -303,7 +315,8 @@ extension IsolatedPropertyRunner {
         if let smaller = await shrinkWithIsolation(
           property: property,
           counterexample: candidate,
-          config: config
+          config: config,
+          budget: &budget
         ) {
           return smaller
         }
@@ -315,14 +328,20 @@ extension IsolatedPropertyRunner {
   }
 
   /// Shrink a crashing input with isolation.
+  ///
+  /// `budget` is shared across the whole shrink, for the reason given on
+  /// ``shrinkWithIsolation(property:counterexample:config:budget:)``.
   private func shrinkCrashingInput<T: Sendable>(
     property: Property<T>,
     counterexample: T,
-    config: PropertyConfig
+    config: PropertyConfig,
+    budget: inout Int
   ) async -> T? {
     let shrinkCandidates = property.generator.shrink.shrink(counterexample)
 
-    for candidate in shrinkCandidates.prefix(config.maxShrinks) {
+    for candidate in shrinkCandidates {
+      guard budget > 0 else { return nil }
+      budget -= 1
       let result = await executeWithCrashDetection(
         property: property,
         value: candidate
@@ -333,7 +352,8 @@ extension IsolatedPropertyRunner {
         if let smaller = await shrinkCrashingInput(
           property: property,
           counterexample: candidate,
-          config: config
+          config: config,
+          budget: &budget
         ) {
           return smaller
         }

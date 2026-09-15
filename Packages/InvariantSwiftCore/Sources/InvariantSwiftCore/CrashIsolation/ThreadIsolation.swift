@@ -11,7 +11,7 @@ import Darwin
 
 /// An isolation strategy that runs each test iteration on a dedicated thread.
 ///
-/// A `@convention(c)` signal handler for SIGABRT/SIGSEGV/SIGILL/SIGBUS is installed
+/// A `@convention(c)` signal handler for crash signals is installed
 /// on the child thread. If the test body causes a crash the handler writes the signal
 /// number to a pre-allocated pipe (async-signal-safe per POSIX) and calls `pthread_exit`
 /// to terminate only the child thread. On normal exit the thread writes a negative
@@ -87,7 +87,7 @@ private func crashSignalHandler(_ sig: Int32) {
 /// All code in this enum is called from a DispatchQueue worker and may block freely.
 private enum ThreadedRunner {
 
-  private static let crashSignals: [Int32] = [SIGABRT, SIGSEGV, SIGILL, SIGBUS]
+  private static let crashSignals: [Int32] = [SIGABRT, SIGBUS, SIGILL, SIGSEGV, SIGTRAP]
 
   /// Runs `body` on a new Foundation.Thread with async-signal-safe crash detection.
   ///

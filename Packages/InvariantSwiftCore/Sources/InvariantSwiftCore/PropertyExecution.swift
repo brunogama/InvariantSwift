@@ -1,10 +1,15 @@
-import Foundation
+import OSLog
 
 /// Helper functions for property test execution phases.
 ///
 /// These functions extract common patterns from PropertyRunner to reduce complexity
 /// and improve testability. Each phase is isolated with clear inputs and outputs.
 enum PropertyExecution {
+  private static let logger = Logger(
+    subsystem: "InvariantSwift",
+    category: "PropertyExecution"
+  )
+
   // MARK: - Result Types
 
   /// Result of replaying saved failing examples.
@@ -51,8 +56,7 @@ enum PropertyExecution {
   /// Log replay verbose message.
   static func logReplayVerbose(_ message: String, verbose: Bool) {
     guard verbose else { return }
-    // swiftlint:disable:next no_print
-    print(message)
+    logger.info("\(message, privacy: .public)")
   }
 
   // MARK: - Phase 3: Save Failing Example
@@ -62,34 +66,34 @@ enum PropertyExecution {
     from result: PropertyResult<T>,
     config: PropertyConfig
   ) -> FailingExample? {
-    guard case .failure(_, _, let shrunk, let reason, let failSeed) = result else {
+    guard
+      case .failure(_, _, let shrunk, let reason, let failSeed) = result
+    else {
       return nil
     }
 
-    return FailingExample(
+    let failure = FailingExampleFailure(
       seed: failSeed.rawValue,
       size: config.iterations,
-      shrinkPath: nil,
-      serializedInput: nil,
-      inputDescription: String(describing: shrunk),
-      failureMessage: reason.description
+      message: reason.description
     )
+    let context = FailingExampleContext(
+      inputDescription: String(describing: shrunk)
+    )
+    return FailingExample(failure: failure, context: context)
   }
 
   /// Log save verbose message.
   static func logSaveVerbose(verbose: Bool) {
     guard verbose else { return }
-    // swiftlint:disable:next no_print
-    print("[Regression] Saved failing example to database")
+    logger.info("[Regression] Saved failing example to database")
   }
 
   // MARK: - Discard Ratio Logging
 
   /// Log discard ratio warning message if needed.
   static func logDiscardWarning(_ message: String, config: PropertyConfig) {
-    if config.verbose || config.verbosity == .verbose {
-      // swiftlint:disable:next no_print
-      print(message)
-    }
+    guard config.verbose || config.verbosity == .verbose else { return }
+    logger.warning("\(message, privacy: .public)")
   }
 }

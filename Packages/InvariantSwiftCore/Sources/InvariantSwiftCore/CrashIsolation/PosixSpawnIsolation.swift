@@ -4,7 +4,7 @@
 import Foundation
 import Dispatch
 
-#if canImport(Darwin)
+#if canImport(Darwin) && !os(tvOS) && !os(watchOS)
 import Darwin
 
 // MARK: - PosixSpawnIsolation
@@ -21,7 +21,7 @@ import Darwin
 /// subprocess path is the internal `executeViaSubprocess(request:)` entry point
 /// used by the isolation runner.
 ///
-/// **Platform:** macOS and iOS Simulator (any Darwin where `posix_spawn` is permitted).
+/// **Platform:** macOS, iOS, and Mac Catalyst where `posix_spawn` is permitted.
 public struct PosixSpawnIsolation: IsolationStrategy, Sendable {
 
   // MARK: Properties

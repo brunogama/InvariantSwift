@@ -9,6 +9,11 @@ concurrency:
   group: pr-${{ github.head_ref }}
   cancel-in-progress: true
 
+# Read-only by default: every job below only needs to read the repository.
+# danger-check raises its own scope for the checks it posts.
+permissions:
+  contents: read
+
 jobs:
   # Strict format check - MUST pass
   format-check:

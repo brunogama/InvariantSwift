@@ -69,7 +69,16 @@ func recordAttachment(
   #if compiler(>=6.2)
   Testing.Attachment.record(value, named: name, sourceLocation: location)
   #else
-  _ = (value, name, location)
+  // Attachments need Swift 6.2. Dropping the payload on older toolchains
+  // leaves a failure with no diagnostic context at all, so it goes to
+  // standard error instead of nowhere.
+  let header =
+    "[InvariantSwift] attachment '\(name)' "
+    + "(\(location.fileName):\(location.line)); "
+    + "Swift 6.2 is required to attach it to the test report.\n"
+  if let data = (header + value).data(using: .utf8) {
+    try? FileHandle.standardError.write(contentsOf: data)
+  }
   #endif
 }
 

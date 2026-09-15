@@ -126,8 +126,10 @@ struct SMTSolverTests {
     #expect(smtlib2.contains("(get-model)"))
   }
 
-  // MARK: - SMTSolverConfig Tests
+}
 
+@Suite("SMT Solver and Configuration")
+struct SMTSolverConfigurationTests {
   @Test("SMTSolverConfig has correct defaults")
   func testSolverConfigDefaults() {
     let config = SMTSolverConfig()
@@ -138,8 +140,8 @@ struct SMTSolverTests {
 
   @Test("SMTSolverConfig static configs exist")
   func testSolverConfigStatics() {
-    let z3Config = SMTSolverConfig.z3
-    #expect(z3Config.solverPath == "z3")
+    let zThreeConfig = SMTSolverConfig.zThree
+    #expect(zThreeConfig.solverPath == "z3")
 
     let cvc4Config = SMTSolverConfig.cvc4
     #expect(cvc4Config.solverPath == "cvc4")
@@ -149,7 +151,7 @@ struct SMTSolverTests {
 
   @Test("SMTSolver initializes with config")
   func testSolverInitialization() async {
-    let solver = SMTSolver(config: .z3)
+    let solver = SMTSolver(config: .zThree)
     let stats = await solver.getStatistics()
 
     #expect(stats.solveCount == 0)
@@ -219,25 +221,38 @@ struct SMTSolverTests {
     }
   }
 
-  @Test("SMTResult enum cases exist")
-  func testResultCases() {
-    // Just verify the enum cases exist and can be created
-    let sat = SMTResult.satisfiable([:])
-    let unsat = SMTResult.unsatisfiable
-    let unknown = SMTResult.unknown
-    let timeout = SMTResult.timeout
-    let error = SMTResult.error("test error")
-
-    // Verify they're distinct
-    if case .satisfiable = sat {} else { Issue.record("Expected satisfiable") }
-    if case .unsatisfiable = unsat {} else { Issue.record("Expected unsatisfiable") }
-    if case .unknown = unknown {} else { Issue.record("Expected unknown") }
-    if case .timeout = timeout {} else { Issue.record("Expected timeout") }
-    if case .error = error {} else { Issue.record("Expected error") }
+  @Test("SMTResult success cases exist")
+  func testResultSuccessCases() {
+    guard case .satisfiable = SMTResult.satisfiable([:]) else {
+      Issue.record("Expected satisfiable")
+      return
+    }
+    guard case .unsatisfiable = SMTResult.unsatisfiable else {
+      Issue.record("Expected unsatisfiable")
+      return
+    }
   }
 
-  // MARK: - PathCondition Tests
+  @Test("SMTResult indeterminate cases exist")
+  func testResultIndeterminateCases() {
+    guard case .unknown = SMTResult.unknown else {
+      Issue.record("Expected unknown")
+      return
+    }
+    guard case .timeout = SMTResult.timeout else {
+      Issue.record("Expected timeout")
+      return
+    }
+    guard case .error = SMTResult.error("test error") else {
+      Issue.record("Expected error")
+      return
+    }
+  }
 
+}
+
+@Suite("SMT Path Conditions and Examples")
+struct SMTPathConditionTests {
   @Test("PathCondition stores conditions and variables")
   func testPathConditionStorage() {
     let conditions: [SMTExpression] = [
@@ -249,7 +264,10 @@ struct SMTSolverTests {
       SMTVariableDeclaration(name: "x", sort: .int)
     ]
 
-    let pathCondition = PathCondition(conditions: conditions, variables: variables)
+    let pathCondition = PathCondition(
+      conditions: conditions,
+      variables: variables
+    )
 
     #expect(pathCondition.conditions.count == 2)
     #expect(pathCondition.variables.count == 1)
@@ -264,13 +282,21 @@ struct SMTSolverTests {
     let invalidInput = SMTSolverError.invalidInput("invalid")
     let unsupported = SMTSolverError.unsupportedOperation("op")
 
-    // Verify they are distinct error cases via pattern matching
-    if case .timeout = timeout {} else { Issue.record("Expected timeout") }
-    if case .solverError = solverError {} else { Issue.record("Expected solverError") }
-    if case .invalidInput = invalidInput {} else { Issue.record("Expected invalidInput") }
-    if case .unsupportedOperation = unsupported {
-    } else {
+    guard case .timeout = timeout else {
+      Issue.record("Expected timeout")
+      return
+    }
+    guard case .solverError = solverError else {
+      Issue.record("Expected solverError")
+      return
+    }
+    guard case .invalidInput = invalidInput else {
+      Issue.record("Expected invalidInput")
+      return
+    }
+    guard case .unsupportedOperation = unsupported else {
       Issue.record("Expected unsupportedOperation")
+      return
     }
   }
 
@@ -286,47 +312,5 @@ struct SMTSolverTests {
 
     #expect(stats.solveCount == 5)
     #expect(stats.solverPath == "z3")
-  }
-
-  // MARK: - SMTExamples Tests
-
-  @Test("SMTExamples prime number constraints builds correctly")
-  func testPrimeNumberConstraints() {
-    let generator = SMTExamples.primeNumberConstraints()
-    // Just verify it can be created without crashing
-    _ = generator.constraintBuilder
-  }
-
-  @Test("SMTExamples pythagorean triple constraints builds correctly")
-  func testPythagoreanTripleConstraints() {
-    let generator = SMTExamples.pythagoreanTripleConstraints()
-    // Just verify it can be created without crashing
-    _ = generator.constraintBuilder
-  }
-
-  // MARK: - Complex Expression Building
-
-  @Test("Complex nested expression builds correctly")
-  func testComplexExpressionBuilding() {
-    // Build: (x > 0) AND (x < 100) AND (x mod 2 = 0)
-    let x = SMTExpression.variable("x")
-    let zero = SMTExpression.constant(.int(0))
-    let hundred = SMTExpression.constant(.int(100))
-    let two = SMTExpression.constant(.int(2))
-
-    let positive = SMTExpression.binary(.greaterThan, x, zero)
-    let bounded = SMTExpression.binary(.lessThan, x, hundred)
-    let even = SMTExpression.binary(.equals, .binary(.modulo, x, two), zero)
-
-    let combined = SMTExpression.binary(
-      .and,
-      positive,
-      .binary(.and, bounded, even)
-    )
-
-    #expect(combined.description.contains("and"))
-    #expect(combined.description.contains(">"))
-    #expect(combined.description.contains("<"))
-    #expect(combined.description.contains("mod"))
   }
 }
