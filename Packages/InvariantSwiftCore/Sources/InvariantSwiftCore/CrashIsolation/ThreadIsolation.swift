@@ -113,15 +113,18 @@ private enum ThreadedRunner {
     // Publish write FD before launching the thread.
     gOutcomePipeWriteFD = writeFD
 
+    // Dispositions are process-wide and this run is serialized, so they are
+    // installed and restored here rather than on the worker. The crash path
+    // leaves the worker through pthread_exit, which skipped any restore the
+    // worker owned: the handler stayed installed against a pipe this method
+    // had already closed, so the next unrelated SIGTRAP in the process wrote
+    // to a dead descriptor and killed whichever thread received it.
+    let prevHandlers = UnsafeMutablePointer<sigaction>.allocate(capacity: crashSignals.count)
+    defer { prevHandlers.deallocate() }
+    installCrashHandlers(saving: prevHandlers)
+
     let thread = Thread {
-      let prevHandlers = UnsafeMutablePointer<sigaction>.allocate(capacity: crashSignals.count)
-      defer { prevHandlers.deallocate() }
-      installCrashHandlers(saving: prevHandlers)
-
       let passed = body()
-
-      // Normal exit: restore handlers, then write the final pass/fail sentinel.
-      restoreCrashHandlers(from: prevHandlers)
       var sentinel = passed ? kPassedExitSentinel : kFailedExitSentinel
       _ = Darwin.write(writeFD, &sentinel, MemoryLayout<Int32>.size)
     }
@@ -131,9 +134,12 @@ private enum ThreadedRunner {
     var outcome: Int32 = 0
     _ = Darwin.read(readFD, &outcome, MemoryLayout<Int32>.size)
 
+    // Restore before invalidating the pipe: once the handler is gone no later
+    // signal can reach it, so no ordering window remains.
+    restoreCrashHandlers(from: prevHandlers)
+    gOutcomePipeWriteFD = -1
     Darwin.close(readFD)
     Darwin.close(writeFD)
-    gOutcomePipeWriteFD = -1
 
     switch outcome {
     case kPassedExitSentinel:

@@ -94,6 +94,13 @@ let package = Package(
       name: "InvariantSwiftMacroTests",
       dependencies: [
         "InvariantSwiftMacros",
+        // The suites import InvariantSwiftCore directly; without this the
+        // target only built when a sibling target had already produced the
+        // module into the same build directory.
+        .product(name: "InvariantSwiftCore", package: "InvariantSwiftCore"),
+        .product(name: "SwiftParser", package: "swift-syntax"),
+        .product(name: "SwiftSyntaxBuilder", package: "swift-syntax"),
+        .product(name: "SwiftSyntaxMacroExpansion", package: "swift-syntax"),
         .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
       ],
       path: "Tests/InvariantSwiftMacroTests",
