@@ -65,7 +65,7 @@ struct ErrorPathCoverageTests {
     // Test suchThat with condition that can never be satisfied
     let impossibleGen = Gen<Int>.int(in: 1...10).tryGenerate(where: { _ in false })
     let property = Property<Int>(generator: impossibleGen) { _ in true }
-    
+
     let result = runPropertySynchronously(
       property,
       config: PropertyConfig(
@@ -73,14 +73,14 @@ struct ErrorPathCoverageTests {
         maxDiscarded: 20
       )
     )
-    
+
     switch result {
     case .gaveUp(let discarded, _):
       #expect(discarded >= 20, "Should discard at least maxDiscarded attempts")
-    
+
     case .success:
       Issue.record("Impossible suchThat should not succeed")
-    
+
     case .failure:
       Issue.record("Impossible suchThat should give up, not fail")
     }
@@ -97,7 +97,7 @@ struct ErrorPathCoverageTests {
     let property = Property<Int>(generator: rareGen) { value in
       value == 7777
     }
-    
+
     let result = runPropertySynchronously(
       property,
       config: PropertyConfig(
@@ -105,14 +105,14 @@ struct ErrorPathCoverageTests {
         maxDiscarded: 50
       )
     )
-    
+
     switch result {
     case .success:
       #expect(Bool(true), "Rare condition found successfully")
-    
+
     case .gaveUp(let discarded, _):
       #expect(discarded > 0, "Should discard many attempts for rare condition")
-    
+
     case .failure:
       Issue.record("Rare condition should either succeed or give up")
     }
@@ -129,11 +129,15 @@ struct ErrorPathCoverageTests {
         // Simulate potential overflow or extreme conditions
         let base = Int.random(in: Int.min / 2...Int.max / 2, using: &rng)
         let multiplier = size.value > 1000 ? Int.max / 1000 : size.value
-        return base * multiplier
+        // Wrapping is deliberate: this generator exists to produce extreme
+        // values, and a checked multiply traps instead of returning one.
+        return base &* multiplier
       },
       shrink: Shrink { value in
         if value == 0 { return [] }
-        if abs(value) > 1_000_000 {
+        // magnitude, not abs: abs(Int.min) overflows and traps, and this
+        // generator reaches Int.min.
+        if value.magnitude > 1_000_000 {
           // Very aggressive shrinking for extreme values
           return [value / 2, value / 10, 0, 1, -1]
         }
