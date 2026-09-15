@@ -54,7 +54,9 @@ struct PluginIntegrationTests {
       #expect(contents.contains("context.tool(named: \"invariant-cli\")"))
       #expect(contents.contains("process.currentDirectoryURL = "))
       #expect(contents.contains("process.environment = "))
-      #expect(contents.contains("process.standardInput = FileHandle.standardInput"))
+      // stdin is detached: no tool these adapters spawn reads input, and
+      // sharing the parent's descriptor lets a child block on a terminal read.
+      #expect(contents.contains("process.standardInput = FileHandle.nullDevice"))
       #expect(contents.contains("process.standardOutput = FileHandle.standardOutput"))
       #expect(contents.contains("process.standardError = FileHandle.standardError"))
       #expect(!contents.contains("print("))
