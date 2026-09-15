@@ -41,6 +41,11 @@ import Testing
 ///   - detectFlakiness: Enable flaky test detection mode (default: false)
 ///   - runs: Number of runs for flake detection (default: 100)
 ///   - failOnFlaky: Fail test if flakiness detected (default: false)
+///   - serialized: Accepted for source compatibility and has no effect. The
+///     generated test is a single non-parameterized function, and Swift
+///     Testing's `.serialized` only orders a suite's tests or a parameterized
+///     test's cases. To run a suite's tests one at a time, annotate the suite
+///     itself with `@Suite(.serialized)`.
 @attached(peer, names: suffixed(_PropertyTest))
 public macro Property(
   iterations: Int = 100,
@@ -64,6 +69,11 @@ public macro Property(
 /// test with generated inputs, shrinking, replay support, and forwarded traits.
 /// The optional leading name argument is preserved for compatibility with the
 /// existing runtime-facing API surface.
+///   - serialized: Accepted for source compatibility and has no effect. The
+///     generated test is a single non-parameterized function, and Swift
+///     Testing's `.serialized` only orders a suite's tests or a parameterized
+///     test's cases. To run a suite's tests one at a time, annotate the suite
+///     itself with `@Suite(.serialized)`.
 @attached(peer, names: suffixed(_PropertyTest))
 public macro PropertyTest(
   _ name: String? = nil,
@@ -129,6 +139,11 @@ public macro PropertyTest(
 ///
 /// - See Also: ``Scheduler``, ``InterleavingPath``, ``Property``
 @available(macOS 15.0, iOS 18.0, tvOS 18.0, watchOS 11.0, *)
+///   - serialized: Accepted for source compatibility and has no effect. The
+///     generated test is a single non-parameterized function, and Swift
+///     Testing's `.serialized` only orders a suite's tests or a parameterized
+///     test's cases. To run a suite's tests one at a time, annotate the suite
+///     itself with `@Suite(.serialized)`.
 @attached(peer, names: suffixed(_AsyncPropertyTest))
 public macro AsyncPropertyTest(
   scheduler: Scheduler.Strategy = .random(seed: nil),

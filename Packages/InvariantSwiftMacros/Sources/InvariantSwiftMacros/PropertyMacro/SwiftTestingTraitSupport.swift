@@ -158,9 +158,12 @@ enum SwiftTestingTraitBuilder {
       expressions.append(makeDisabledTraitExpr(disabledReason))
     }
 
-    if request.traits.serialized {
-      expressions.append(makeSerializedExpr())
-    }
+    // `.serialized` is deliberately not emitted. Every test this macro
+    // generates is a non-parameterized `run()`, and Swift Testing warns that
+    // the trait has no effect on such a function. Emitting it produced a
+    // warning in every build that used `serialized:` while doing nothing.
+    // Parallelism is a property of the enclosing suite: annotate it with
+    // `@Suite(.serialized)` to run its tests one at a time.
 
     if let timeLimit = request.traits.timeLimit {
       expressions.append(makeTimeLimitExpr(timeLimit))
@@ -276,15 +279,6 @@ enum SwiftTestingTraitBuilder {
           LabeledExprSyntax(expression: commentExpr)
         ]),
         rightParen: .rightParenToken()
-      )
-    )
-  }
-
-  /// Builds `.serialized`.
-  private static func makeSerializedExpr() -> ExprSyntax {
-    ExprSyntax(
-      MemberAccessExprSyntax(
-        declName: DeclReferenceExprSyntax(baseName: .identifier("serialized"))
       )
     )
   }

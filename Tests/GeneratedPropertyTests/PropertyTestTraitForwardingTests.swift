@@ -31,8 +31,11 @@ struct PropertyTestTraitForwardingTests {
       #expect(currentTest.tags.contains(.forwardedPropertyTrait))
       #expect(currentTest.associatedBugs.contains(Bug.bug(id: "PBT-123")))
       #expect(currentTest.timeLimit != nil)
-      #expect(currentTest.traits.contains { $0 is ParallelizationTrait })
       #expect(currentTest.traits.contains { $0 is InvariantSwiftPropertyExecutionTrait })
+      // `serialized:` is accepted but not forwarded: `.serialized` has no
+      // effect on a non-parameterized test function, and emitting it warned
+      // on every build. Suite-level ordering is the caller's to set.
+      #expect(!currentTest.traits.contains { $0 is ParallelizationTrait })
     }
   }
 }
