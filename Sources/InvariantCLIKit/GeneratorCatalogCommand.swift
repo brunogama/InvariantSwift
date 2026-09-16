@@ -2,58 +2,44 @@ import Foundation
 
 struct GeneratorCatalogCommand {
   let output: any CLIOutput
+  let currentDirectory: String
 
-  func run(_ action: GeneratorAction) {
+  func run(_ action: GeneratorAction) -> Int32 {
     switch action {
     case .interactive:
-      interactive()
+      return interactive()
 
     case .list:
       output.writeStandardOutput(list())
+      return 0
 
     case .search(let query):
       output.writeStandardOutput(search(query))
+      return 0
 
     case .category(let category):
       output.writeStandardOutput(categoryList(category))
+      return 0
 
     case .sample(let identifier):
       output.writeStandardOutput(sample(identifier))
+      return 0
+
+    case .saveFilter(let name, let query):
+      return saveFilter(name: name, query: query)
+
+    case .filters:
+      return listFilters()
+
+    case .filter(let name):
+      return searchFilter(name)
+
+    case .deleteFilter(let name):
+      return deleteFilter(name)
 
     case .help:
       output.writeStandardOutput(Self.help)
-    }
-  }
-
-  private func interactive() {
-    output.writeStandardOutput(Self.interactiveIntroduction)
-    while let line = readLine() {
-      let parts = line.split(separator: " ", maxSplits: 1).map(String.init)
-      guard let command = parts.first else { continue }
-      let value = parts.count == 2 ? parts[1] : ""
-      switch command.lowercased() {
-      case "list":
-        output.writeStandardOutput(list())
-
-      case "search":
-        output.writeStandardOutput(search(value))
-
-      case "category":
-        output.writeStandardOutput(categoryList(value))
-
-      case "sample":
-        output.writeStandardOutput(sample(value))
-
-      case "help":
-        output.writeStandardOutput(Self.help)
-
-      case "quit", "exit", "q":
-        output.writeStandardOutput("Goodbye!\n")
-        return
-
-      default:
-        output.writeStandardOutput("Unknown command. Type 'help' for options.\n")
-      }
+      return 0
     }
   }
 
@@ -70,7 +56,7 @@ struct GeneratorCatalogCommand {
     return lines.joined(separator: "\n") + "\n"
   }
 
-  private func search(_ query: String) -> String {
+  func search(_ query: String) -> String {
     let lowercased = query.lowercased()
     let matches = Self.catalog.filter {
       $0.name.lowercased().contains(lowercased)
@@ -349,21 +335,4 @@ private extension GeneratorCatalogCommand {
       example: "let gen = Gen<CGFloat>.cgFloat"
     ),
   ]
-
-  static let interactiveIntroduction = """
-    InvariantSwift Generator Catalog Browser
-    Use list, category, search, sample, help, or quit.
-    """ + "\n"
-
-  static let help = """
-    Generator Catalog Browser
-
-    OPTIONS:
-        --interactive, -i    Launch interactive browser (default)
-        --list               List all available generators
-        --search <query>     Search generators by name or description
-        --category <name>    List generators in a category
-        --sample <id>        Generate sample values
-        --help, -h           Show this help
-    """ + "\n"
 }

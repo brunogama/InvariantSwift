@@ -74,12 +74,38 @@ struct InvariantCLITests {
       ["unknown"], ["run", "--iterations"], ["run", "--iterations", "nope"],
       ["report", "--format", "xml"], ["characterize", "--record", "--verify"],
       ["characterize", "--target"], ["generators", "--search"],
+      ["generators", "--save-filter"], ["generators", "--save-filter", "name"],
+      ["generators", "--save-filter", "two words", "query"],
+      ["generators", "--save-filter", "name", "   "],
+      ["generators", "--filter"], ["generators", "--filter", "two words"],
+      ["generators", "--delete-filter"], ["generators", "--filters", "extra"],
     ] {
       let result = await CLIHarness().run(arguments)
       #expect(result.status == 2)
       #expect(result.stdout.isEmpty)
       #expect(result.stderr.contains("error:"))
     }
+  }
+
+  @Test("Saved filter parser keeps multiword queries and requires one name")
+  func savedFilterParsing() {
+    #expect(
+      InvariantCommandParser.parse([
+        "generators", "--save-filter", "numbers", "random", "integers",
+      ]).command == .generators(.saveFilter(name: "numbers", query: "random integers"))
+    )
+    #expect(
+      InvariantCommandParser.parse(["generators", "--filter", "numbers"]).command
+        == .generators(.filter("numbers"))
+    )
+    #expect(
+      InvariantCommandParser.parse(["generators", "--save-filter", "numbers", "  integer  "])
+        .command == .generators(.saveFilter(name: "numbers", query: "integer"))
+    )
+    #expect(
+      InvariantCommandParser.parse(["generators", "--delete-filter", "numbers"]).command
+        == .generators(.deleteFilter("numbers"))
+    )
   }
 
   @Test("Safe legacy unknown options warn for the compatibility window")

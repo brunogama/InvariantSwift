@@ -147,11 +147,30 @@ enum InvariantCommandParser {
     case "--sample":
       return requiredGeneratorValue(arguments, action: GeneratorAction.sample)
 
+    case "--save-filter", "--filters", "--filter", "--delete-filter":
+      return parseGeneratorFilter(arguments)
+
     case "--help", "-h":
       return ParseResult(command: .generators(.help))
 
     default:
       return unknown(first)
+    }
+  }
+
+  private static func parseGeneratorFilter(_ arguments: [String]) -> ParseResult {
+    switch arguments[0] {
+    case "--save-filter":
+      return parseSaveFilter(arguments)
+
+    case "--filters":
+      return noExtras(Array(arguments.dropFirst()), command: .generators(.filters))
+
+    case "--filter":
+      return requiredFilterName(arguments, action: GeneratorAction.filter)
+
+    default:
+      return requiredFilterName(arguments, action: GeneratorAction.deleteFilter)
     }
   }
 
@@ -185,6 +204,31 @@ enum InvariantCommandParser {
     guard arguments.count >= 2 else { return missingValue(arguments[0]) }
     guard arguments.count == 2 else { return failure("too many generator arguments") }
     return ParseResult(command: .generators(action(arguments[1])))
+  }
+
+  private static func parseSaveFilter(_ arguments: [String]) -> ParseResult {
+    guard arguments.count >= 2 else { return missingValue("--save-filter") }
+    guard validFilterName(arguments[1]) else { return invalidValue("--save-filter") }
+    let rawQuery = arguments.dropFirst(2).joined(separator: " ")
+    let query = rawQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !query.isEmpty else {
+      return missingValue("--save-filter query")
+    }
+    return ParseResult(command: .generators(.saveFilter(name: arguments[1], query: query)))
+  }
+
+  private static func requiredFilterName(
+    _ arguments: [String],
+    action: (String) -> GeneratorAction
+  ) -> ParseResult {
+    guard arguments.count >= 2 else { return missingValue(arguments[0]) }
+    guard arguments.count == 2 else { return failure("too many generator arguments") }
+    guard validFilterName(arguments[1]) else { return invalidValue(arguments[0]) }
+    return ParseResult(command: .generators(action(arguments[1])))
+  }
+
+  private static func validFilterName(_ name: String) -> Bool {
+    !name.isEmpty && !name.contains(where: \.isWhitespace)
   }
 
   private static func noExtras(_ extras: [String], command: InvariantCommand) -> ParseResult {

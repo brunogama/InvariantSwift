@@ -71,8 +71,7 @@ public struct InvariantCLI: Sendable {
       return await ghostwrite(options)
 
     case .generators(let action):
-      GeneratorCatalogCommand(output: output).run(action)
-      return 0
+      return GeneratorCatalogCommand(output: output, currentDirectory: currentDirectory).run(action)
 
     case .interactive:
       return interactive()

@@ -160,6 +160,10 @@ enum GeneratorAction: Equatable, Sendable {
   case search(String)
   case category(String)
   case sample(String)
+  case saveFilter(name: String, query: String)
+  case filters
+  case filter(String)
+  case deleteFilter(String)
   case help
 }
 
