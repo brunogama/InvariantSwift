@@ -80,6 +80,14 @@ hooks = [
     language = "system",
     files = '^(Makefile|.*\.mk)$',
     pass_filenames = true
+  },
+  {
+    id = "justfile-check",
+    name = "Checking Just recipes and failure propagation",
+    entry = "bash scripts/justfile.test.sh",
+    language = "system",
+    files = '^(justfile|scripts/justfile\.test\.sh)$',
+    pass_filenames = false
   }
 ]
 

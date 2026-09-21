@@ -46,7 +46,8 @@ We use GitHub to host code, track issues and feature requests, and accept pull r
 2. **Install tooling**
 
    ```bash
-   make setup
+   brew install just
+   just setup
    ```
 
 3. **Resolve dependencies**
@@ -69,8 +70,8 @@ We use GitHub to host code, track issues and feature requests, and accept pull r
 Before opening a pull request, run the same gates CI runs:
 
 ```bash
-make format
-make lint
+just format
+just lint
 swift build -Xswiftc -warnings-as-errors
 swift test --parallel
 scripts/change-budget.sh --mode range --base origin/main --head HEAD

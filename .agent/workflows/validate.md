@@ -22,12 +22,13 @@ swiftlint lint --strict
 
 ### 3. Check Formatting
 ```bash
-swift-format lint --configuration .swift-format --recursive ./Sources ./Tests 2>&1 | head -20 || echo "Some files need formatting - run: make format"
+just format-check
 ```
 
 ### 4. Run All Tests
 ```bash
-swift test 2>&1 | xcbeautify || swift test 2>&1 | tail -50
+set -o pipefail
+swift test 2>&1 | xcbeautify --preserve-unbeautified -q
 ```
 
 ### 5. Summary
@@ -37,10 +38,14 @@ Report:
 - Formatting issues
 - Test results (pass/fail count)
 
+---
+
 ## Quick Alternative
 ```bash
-make validate
+just validate
 ```
+
+---
 
 ## Definition of Done
 
@@ -48,6 +53,6 @@ Before creating a PR, ensure:
 1. ✅ `swift build -Xswiftc -warnings-as-errors` passes
 2. ✅ `swift test` passes all tests
 3. ✅ `swiftlint lint --strict` reports zero violations
-4. ✅ Code is formatted: `make format`
+4. ✅ Code is formatted: `just format`
 5. ✅ Documentation updated for API changes
-6. ✅ CHANGELOG.md updated (if user-facing change)
+6. User-facing changes described for generated release notes
