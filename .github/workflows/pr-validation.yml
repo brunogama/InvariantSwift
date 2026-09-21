@@ -2,8 +2,7 @@ name: PR Validation
 
 on:
   pull_request:
-    branches: [main]
-    types: [opened, synchronize, reopened]
+    types: [opened, synchronize, reopened, ready_for_review, edited]
 
 concurrency:
   group: pr-${{ github.head_ref }}
@@ -54,8 +53,7 @@ jobs:
 
       - name: Run SwiftLint Strict
         run: |
-          swiftlint lint --strict --reporter github-actions-logging Sources/ Tests/
-          if [ $? -ne 0 ]; then
+          if ! swiftlint lint --strict --reporter github-actions-logging Sources/ Tests/; then
             echo "::error::SwiftLint violations found. All issues must be fixed."
             exit 1
           fi
