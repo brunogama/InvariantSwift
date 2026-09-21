@@ -123,7 +123,10 @@ jobs:
       - name: Install Danger
         # Pinned to 3.22.1: the 3.23.0 bottle is missing libDanger.dylib,
         # causing "Could not find a libDanger to link against" at runtime.
-        run: brew install https://raw.githubusercontent.com/danger/homebrew-tap/5e30e8102a960b552040b0e83d4a24aa18489893/Formula/danger-swift.rb
+        run: |
+          brew tap danger/tap
+          git -C "$(brew --repository danger/tap)" checkout 5e30e8102a960b552040b0e83d4a24aa18489893
+          brew install danger/tap/danger-swift
 
       - name: Run Danger
         env:
