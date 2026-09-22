@@ -303,6 +303,7 @@ public actor SMTSolver {
 
       case .unsatisfiable:
         break  // No more solutions
+
       default:
         solutions.append(result)
       }
@@ -312,6 +313,7 @@ public actor SMTSolver {
   }
 
   private func executeSolver(input: String) async throws -> String {
+    #if os(macOS) || os(Linux)
     let process = Process()
     process.executableURL = URL(fileURLWithPath: config.solverPath)
     process.arguments = ["-in"]
@@ -355,6 +357,11 @@ public actor SMTSolver {
     }
 
     return String(data: outputData, encoding: .utf8) ?? ""
+    #else
+    // The SMT backend shells out to an external solver binary, and iOS, tvOS
+    // and watchOS do not permit spawning child processes.
+    throw SMTSolverError.unsupportedOperation("SMT solving is only available on macOS")
+    #endif
   }
 
   private func parseOutput(_ output: String) -> SMTResult {

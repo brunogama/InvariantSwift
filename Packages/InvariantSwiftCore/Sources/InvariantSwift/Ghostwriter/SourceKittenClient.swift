@@ -88,7 +88,8 @@ public actor SourceKittenClient {
   // MARK: - Command Execution
 
   private func runCommand(_ args: [String]) async -> (status: Int32, output: String?) {
-    await withCheckedContinuation { continuation in
+    #if os(macOS) || os(Linux)
+    return await withCheckedContinuation { continuation in
       let process = Process()
       let pipe = Pipe()
 
@@ -109,6 +110,12 @@ public actor SourceKittenClient {
         continuation.resume(returning: (-1, nil))
       }
     }
+    #else
+    // iOS, tvOS and watchOS do not permit spawning child processes, so
+    // Process is unavailable there. Report the same result as a failed launch,
+    // which makes isAvailable() report the tool as missing.
+    return (-1, nil)
+    #endif
   }
 }
 

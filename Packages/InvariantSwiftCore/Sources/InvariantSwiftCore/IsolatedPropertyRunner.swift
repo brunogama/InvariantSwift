@@ -48,8 +48,12 @@ struct SubprocessRunner {
     }
   }
 
+  #if os(macOS)
   /// Execute property test in isolated subprocess
   /// Uses Process to spawn a child that runs the test
+  ///
+  /// macOS-only: Process is unavailable on iOS, tvOS and watchOS, which do
+  /// not permit spawning child processes.
   static func executeIsolated(
     executablePath: String,
     arguments: [String],
@@ -96,6 +100,7 @@ struct SubprocessRunner {
       return .failure(reason: "Unknown termination reason")
     }
   }
+  #endif  // os(macOS)
 }
 
 // MARK: - Isolated Property Runner

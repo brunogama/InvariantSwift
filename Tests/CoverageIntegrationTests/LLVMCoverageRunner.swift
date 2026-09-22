@@ -348,6 +348,7 @@ public actor LLVMCoverageRunner {
 
   /// Execute shell command and return output
   private func executeCommand(_ command: [String]) async throws -> String {
+    #if os(macOS) || os(Linux)
     let process = Process()
     process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
     process.arguments = command
@@ -375,6 +376,13 @@ public actor LLVMCoverageRunner {
 
     let data = pipe.fileHandleForReading.readDataToEndOfFile()
     return String(data: data, encoding: .utf8) ?? ""
+    #else
+    // llvm-cov runs on the host, and iOS, tvOS and watchOS cannot spawn
+    // processes. Report it as unavailable so the synthetic report is used.
+    throw CoverageError.infrastructureUnavailable(
+      "Coverage tooling requires a platform that can spawn processes"
+    )
+    #endif
   }
 
   private func syntheticFallbackReason(for error: Error) -> String? {
