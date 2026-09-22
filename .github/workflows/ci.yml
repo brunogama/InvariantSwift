@@ -77,8 +77,18 @@ jobs:
       image: swift:6.2-jammy
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Install SQLite headers
+        # The CSQLite system-library target resolves sqlite3 through
+        # pkg-config; the swift image ships neither the headers nor pkg-config.
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends libsqlite3-dev pkg-config
       - name: Test on Linux
-        run: swift test | xcbeautify || true
+        # Plain `swift test`. This used to be `swift test | xcbeautify || true`:
+        # xcbeautify is not installed in this image, so the pipe failed on
+        # every run, and `|| true` then reported success regardless. The job
+        # stayed green through a hard compile error on Linux.
+        run: swift test
 
   macro-golden-tests:
     name: Macro Golden Tests
