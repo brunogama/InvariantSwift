@@ -157,6 +157,23 @@ jobs:
         run: defaults write com.apple.dt.XCBuild IgnoreFileSystemDeviceInodeChanges -bool YES
       - name: Update mtime for incremental builds
         uses: chetan/git-restore-mtime-action@v2
+      - name: Resolve Package Dependencies
+        if: matrix.command == 'test'
+        run: |
+          # xcodebuild's automatic package resolution invokes the swift
+          # driver of whatever toolchain is passed via -toolchain, and
+          # that invocation fails with "unable to execute command:
+          # <unknown>" (exit 74) against the swiftly-provisioned 6.2.4
+          # toolchain - a swift-actions/setup-swift / xcodebuild
+          # incompatibility that plain `swift build`/`swift test` do not
+          # hit. Resolution itself doesn't need the pinned toolchain, so
+          # resolve here with Xcode's default toolchain, then skip
+          # automatic resolution in the actual build/test invocation.
+          set -o pipefail
+          xcodebuild -resolvePackageDependencies \
+            -scheme InvariantSwift \
+            -clonedSourcePackagesDirPath .build/xcode-source-packages \
+            | xcbeautify
       - name: Build and Test
         run: |
           if [ "${{ matrix.command }}" = "test" ]; then
@@ -166,6 +183,8 @@ jobs:
                 xcodebuild test \
                   -scheme InvariantSwift \
                   -toolchain "$TOOLCHAINS" \
+                  -disableAutomaticPackageResolution \
+                  -clonedSourcePackagesDirPath .build/xcode-source-packages \
                   -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=latest' \
                   | xcbeautify
                 ;;
@@ -174,6 +193,8 @@ jobs:
                 xcodebuild test \
                   -scheme InvariantSwift \
                   -toolchain "$TOOLCHAINS" \
+                  -disableAutomaticPackageResolution \
+                  -clonedSourcePackagesDirPath .build/xcode-source-packages \
                   -destination 'platform=macOS' \
                   | xcbeautify
                 ;;
@@ -182,6 +203,8 @@ jobs:
                 xcodebuild test \
                   -scheme InvariantSwift \
                   -toolchain "$TOOLCHAINS" \
+                  -disableAutomaticPackageResolution \
+                  -clonedSourcePackagesDirPath .build/xcode-source-packages \
                   -destination 'platform=tvOS Simulator,name=Apple TV 4K (3rd generation),OS=latest' \
                   | xcbeautify
                 ;;
