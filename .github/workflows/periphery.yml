@@ -32,7 +32,7 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       # Xcode 26 bundles Swift 6.2, the minimum for the Testing.Attachment
       # API used by InvariantSwiftTestingIntegration. Use Xcode's own
@@ -42,7 +42,7 @@ jobs:
       # `swift -version` with a sanitized environment, so the proxy cannot
       # locate its config and traps.
       - name: Setup Xcode 26.3
-        uses: maxim-lobanov/setup-xcode@v1
+        uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1
         with:
           xcode-version: '26.3'
 
@@ -61,7 +61,7 @@ jobs:
 
       - name: Create or Update Issue on Failure
         if: failure()
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
