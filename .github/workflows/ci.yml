@@ -137,6 +137,16 @@ jobs:
       - name: Export Swift toolchain for xcodebuild
         run: |
           SWIFT_TOOLCHAIN_PATH="$(swiftly use --print-location)"
+          # The toolchain swiftly installs is downloaded over the network
+          # rather than provisioned through the App Store/Xcode install
+          # flow, so its binaries can retain the com.apple.quarantine
+          # xattr. xcodebuild's sandboxed SwiftPM manifest execution
+          # refuses to spawn a quarantined driver when resolving package
+          # dependencies via -toolchain, failing with the generic
+          # "unable to execute command: <unknown>" (exit 74). Clearing
+          # the attribute is what actually installing via Xcode/Installer
+          # would have done.
+          xattr -dr com.apple.quarantine "$SWIFT_TOOLCHAIN_PATH"
           TOOLCHAIN_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$SWIFT_TOOLCHAIN_PATH/Info.plist")"
           echo "TOOLCHAINS=$TOOLCHAIN_ID" >> "$GITHUB_ENV"
           echo "Using Swift toolchain: $TOOLCHAIN_ID"
@@ -157,23 +167,6 @@ jobs:
         run: defaults write com.apple.dt.XCBuild IgnoreFileSystemDeviceInodeChanges -bool YES
       - name: Update mtime for incremental builds
         uses: chetan/git-restore-mtime-action@v2
-      - name: Resolve Package Dependencies
-        if: matrix.command == 'test'
-        run: |
-          # xcodebuild's automatic package resolution invokes the swift
-          # driver of whatever toolchain is passed via -toolchain, and
-          # that invocation fails with "unable to execute command:
-          # <unknown>" (exit 74) against the swiftly-provisioned 6.2.4
-          # toolchain - a swift-actions/setup-swift / xcodebuild
-          # incompatibility that plain `swift build`/`swift test` do not
-          # hit. Resolution itself doesn't need the pinned toolchain, so
-          # resolve here with Xcode's default toolchain, then skip
-          # automatic resolution in the actual build/test invocation.
-          set -o pipefail
-          xcodebuild -resolvePackageDependencies \
-            -scheme InvariantSwift \
-            -clonedSourcePackagesDirPath .build/xcode-source-packages \
-            | xcbeautify
       - name: Build and Test
         run: |
           if [ "${{ matrix.command }}" = "test" ]; then
@@ -183,8 +176,6 @@ jobs:
                 xcodebuild test \
                   -scheme InvariantSwift \
                   -toolchain "$TOOLCHAINS" \
-                  -disableAutomaticPackageResolution \
-                  -clonedSourcePackagesDirPath .build/xcode-source-packages \
                   -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=latest' \
                   | xcbeautify
                 ;;
@@ -193,8 +184,6 @@ jobs:
                 xcodebuild test \
                   -scheme InvariantSwift \
                   -toolchain "$TOOLCHAINS" \
-                  -disableAutomaticPackageResolution \
-                  -clonedSourcePackagesDirPath .build/xcode-source-packages \
                   -destination 'platform=macOS' \
                   | xcbeautify
                 ;;
@@ -203,8 +192,6 @@ jobs:
                 xcodebuild test \
                   -scheme InvariantSwift \
                   -toolchain "$TOOLCHAINS" \
-                  -disableAutomaticPackageResolution \
-                  -clonedSourcePackagesDirPath .build/xcode-source-packages \
                   -destination 'platform=tvOS Simulator,name=Apple TV 4K (3rd generation),OS=latest' \
                   | xcbeautify
                 ;;
