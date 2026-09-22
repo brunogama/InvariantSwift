@@ -83,14 +83,23 @@ jobs:
           echo "Release notes preview:"
           cat release-notes.md
 
+      - name: Update version references
+        if: steps.version.outputs.should_release == 'true'
+        run: |
+          set -euo pipefail
+          # Keep documented install snippets pinned to the release just computed.
+          sed -i -E \
+            's#(InvariantSwift", from: ")[0-9]+\.[0-9]+\.[0-9]+(")#\1${{ steps.version.outputs.version }}\2#g' \
+            README.md
+
       - name: Commit updated changelog
         if: steps.version.outputs.should_release == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add CHANGELOG.md
+          git add CHANGELOG.md README.md
           git diff --cached --quiet && echo "No changelog changes to commit" && exit 0
-          git commit -m "docs: update changelog for ${{ steps.version.outputs.tag }} [skip release]"
+          git commit -m "docs: update changelog and version refs for ${{ steps.version.outputs.tag }} [skip release]"
           push_output="$(git push 2>&1)" && echo "${push_output}" || {
             echo "${push_output}"
             if echo "${push_output}" | grep -qE 'GH006|protected branch'; then
