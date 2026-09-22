@@ -323,7 +323,7 @@ struct CoverageGuidedTests {
       predicate: { array in
         // Property: sum of array should be within reasonable bounds
         let sum = array.reduce(0, +)
-        return abs(sum) <= array.count * 10
+        return sum.magnitude <= UInt(array.count * 10)
       }
     )
 

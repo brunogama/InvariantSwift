@@ -156,8 +156,10 @@ struct MetaPropertyTests {
       switch (result1, result2) {
       case (.success(let it1), .success(let it2)):
         return it1 == it2  // Same iteration count
+
       case (.failure, .failure), (.gaveUp, .gaveUp):
         return true  // Both failed consistently
+
       default:
         return false  // Inconsistent results
       }
@@ -362,7 +364,7 @@ struct MetaPropertyTests {
       let biasedGen = Gen<Int>.int.biased(by: budget, strategy: .frequency)
       let biasedValue = biasedGen.sample(
         size: Size(value: 10),
-        seed: Seed(value: UInt64(abs(value)))
+        seed: Seed(value: UInt64(value.magnitude))
       )
 
       // The biased generator should still produce valid integers

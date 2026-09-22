@@ -77,7 +77,7 @@ struct RecursiveShrinkingTests {
           shrunk.count <= testArray.count
             && shrunk.allSatisfy { element in
               // For numeric shrinking, elements should be smaller or equal
-              testArray.contains { $0 >= abs(element) }
+              element != Int.min && testArray.contains { $0 >= abs(element) }
             }
         }
       }
@@ -251,7 +251,8 @@ struct RecursiveShrinkingTests {
 
     // Generator for nested data
     let nestedGen = Gen<NestedData> { rng, size in
-      let arrayCount = Int.random(in: 1...size.value, using: &rng)
+      // The runner generates at size 0 while shrinking; 1...0 is an invalid range.
+      let arrayCount = Int.random(in: 1...max(1, size.value), using: &rng)
       let arrays = (0..<arrayCount).map { _ in
         Gen<[Int]>.array(Gen<Int>.int(in: 1...10)).generate(&rng, size)
       }
@@ -693,22 +694,53 @@ func stringShrinkTreeChunkStrategy() {
   #expect(hasChunkRemovals, "Should include chunk-based removals")
 }
 
+/// The tree's length-preserving children, which are the character simplifications.
+private func characterSimplifications(of string: String) -> [String] {
+  stringShrinkTree(string).children
+    .map(\.value)
+    .filter { $0.count == string.count && $0 != string }
+}
+
+/// Follows character simplification to its fixed point.
+///
+/// One character is simplified per level, so a fully simplified string sits
+/// `count` levels down and the level below it is exponentially wide. This walks
+/// the single path instead of traversing, which is also how the shrink search
+/// reaches it.
+private func fullySimplified(_ start: String) -> String {
+  var current = start
+  // Each character needs at most two steps: uppercase to lowercase, then to 'a'.
+  for _ in 0...(start.count * 2) {
+    guard let next = characterSimplifications(of: current).first else { break }
+    current = next
+  }
+  return current
+}
+
 @Test("StringShrinkTree character simplification works")
 func stringShrinkTreeCharacterSimplification() {
-  // Test uppercase to lowercase
-  let upperTree = stringShrinkTree("HELLO")
-  let upperCandidates = upperTree.breadthFirst()
-  #expect(upperCandidates.contains("hello"), "Should simplify uppercase to lowercase")
+  // One step simplifies one character, leftmost first.
+  #expect(
+    characterSimplifications(of: "HELLO").contains("hELLO"),
+    "Should simplify uppercase to lowercase"
+  )
+  #expect(
+    characterSimplifications(of: "abc123").contains("abc023"),
+    "Should simplify digits to 0"
+  )
+  #expect(
+    characterSimplifications(of: "Xyz").contains("Xaz"),
+    "Should simplify letters to 'a'"
+  )
 
-  // Test digits to 0
-  let digitTree = stringShrinkTree("abc123")
-  let digitCandidates = digitTree.breadthFirst()
-  #expect(digitCandidates.contains("abc000"), "Should simplify digits to 0")
+  // Repeating it reaches the minimal string of the same length: letters become
+  // 'a' (via lowercase) and digits become '0'.
+  #expect(fullySimplified("HELLO") == "aaaaa")
+  #expect(fullySimplified("abc123") == "aaa000")
+  #expect(fullySimplified("Xyz") == "aaa")
 
-  // Test letters to 'a'
-  let mixedTree = stringShrinkTree("Xyz")
-  let mixedCandidates = mixedTree.breadthFirst()
-  #expect(mixedCandidates.contains("aaa"), "Should simplify letters to 'a'")
+  // Already minimal, so nothing left to simplify.
+  #expect(characterSimplifications(of: "aaa000").isEmpty)
 }
 
 /// **References**:

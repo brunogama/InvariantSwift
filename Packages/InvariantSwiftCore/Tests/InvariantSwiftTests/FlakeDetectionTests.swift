@@ -218,7 +218,9 @@ struct FlakeDetectionTests {
       property,
       config: PropertyConfig(iterations: 5),
       flakeConfig: FlakeDetectionConfig(runs: 30),
-      testId: "statistics-test"
+      // Unique per run: the hunter persists history by testId, so a fixed id
+      // would count executions from every earlier run as well.
+      testId: "statistics-test-\(UUID().uuidString)"
     )
 
     // FlakeHunter should have recorded statistics

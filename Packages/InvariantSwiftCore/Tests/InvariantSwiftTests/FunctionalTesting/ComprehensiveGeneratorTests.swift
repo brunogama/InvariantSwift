@@ -114,10 +114,12 @@ struct ComprehensiveGeneratorTests {
         generatedArrays.append(arrayGen.generate(&rng, largeSize))
       }
 
-      // Verify arrays are generated (basic functionality)
+      // The length generator draws from 1...10, so every array is non-empty,
+      // bounded by that length, and filled from the element generator's range.
       #expect(generatedArrays.count == 20)
       for array in generatedArrays {
-        #expect(array.isEmpty)
+        #expect(!array.isEmpty && array.count <= 10)
+        #expect(array.allSatisfy { (1...1000).contains($0) })
       }
     }
   }
@@ -206,12 +208,12 @@ struct ComprehensiveGeneratorTests {
       /*
       let largeCollection = Array(1...20)
       let transform: (Int) -> Gen<Int> = { value in Gen<Int>.pure(value) }
-      
+
       let traverseGen = Gen<Int>.traverse(largeCollection, transform)
-      
+
       var rng: any RandomNumberGenerator = SystemRandomNumberGenerator()
       let size = Size(value: 100)
-      
+
       let result = traverseGen.generate(&rng, size)
       #expect(result.count == largeCollection.count)
       #expect(result == largeCollection)
@@ -659,7 +661,10 @@ struct ComprehensiveGeneratorTests {
     /// **Coverage**: zip3 shrink implementation
     @Test("Zip3 shrinking affects all components")
     func testZip3Shrinking() async throws {
-      let intGen = Gen<Int>.int(in: 10...20)
+      // Lower bound above 10 so the int component always has a shrink toward
+      // it; at exactly the bound, with a false Bool and a pure String, the
+      // tuple would have nothing to shrink and the expectations below fail.
+      let intGen = Gen<Int>.int(in: 11...20)
       let stringGen = Gen<String>.pure("original")
       let boolGen = Gen<Bool>.bool()
 

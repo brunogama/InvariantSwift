@@ -28,6 +28,7 @@ struct DogfoodPropertyTests {
     switch result {
     case .success:
       break  // Test passed
+
     case .failure(let counterexample, let iterations, let shrunk, _, _):
       Issue.record(
         "Functor identity law failed: \(counterexample) shrunk to \(shrunk) after \(iterations) iterations"
@@ -202,7 +203,7 @@ struct DogfoodPropertyTests {
 
       // Verify shrinking moved towards zero
       #expect(
-        abs(shrunk) <= abs(original),
+        shrunk.magnitude <= original.magnitude,
         "Shrunk value \(shrunk) should be closer to zero than original \(original)"
       )
 
