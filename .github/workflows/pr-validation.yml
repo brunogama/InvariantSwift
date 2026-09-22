@@ -2,7 +2,11 @@ name: PR Validation
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review, edited]
+    # No `edited`: it fires when a pull request's title or body changes, which
+    # leaves the tree untouched but re-runs the whole macOS matrix and cancels
+    # the in-flight run for the same commit. `synchronize` already covers new
+    # commits.
+    types: [opened, synchronize, reopened, ready_for_review]
 
 concurrency:
   group: pr-${{ github.head_ref }}
