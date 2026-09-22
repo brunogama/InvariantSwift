@@ -325,7 +325,9 @@ struct RecursiveShrinkingTests {
     /// where shrinking can happen at any level of the recursion.
 
     // Simple recursive tree structure
-    indirect enum Tree: Equatable {
+    // Gen<T> requires T: Sendable. Swift 6.2 inferred it for this local enum;
+    // 6.3 does not, so state it.
+    indirect enum Tree: Equatable, Sendable {
       case leaf(Int)
       case node(Self, Self)
 
