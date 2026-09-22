@@ -48,16 +48,10 @@ jobs:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
-      - name: Install swift-format
-        run: brew install swift-format
+      - name: Install formatting tools
+        run: brew install just swift-format
       - name: Check formatting
-        run: |
-          swift-format lint --configuration .swift-format --recursive \
-            ./Package.swift ./Sources ./Tests
-          if [ $? -ne 0 ]; then
-            echo "❌ Code is not formatted. Run 'make format' to fix."
-            exit 1
-          fi
+        run: just format-check
 
   test:
     name: Tests
@@ -108,7 +102,7 @@ jobs:
           CHANGED_FILES=$(git diff --name-only HEAD~1...HEAD | \
             grep -E '^Sources/.*\.swift$' | \
             tr '\n' ',' | sed 's/,$//')
-          echo "files=$CHANGED_FILES" >> $GITHUB_OUTPUT
+          echo "files=$CHANGED_FILES" >> "$GITHUB_OUTPUT"
           echo "Changed source files: $CHANGED_FILES"
 
       - name: Cache derived data
@@ -173,7 +167,7 @@ jobs:
           # Extract mutation score
           if [ -f muter-results.json ]; then
             SCORE=$(jq -r '.globalMutationScore // 0' muter-results.json)
-            echo "score=$SCORE" >> $GITHUB_OUTPUT
+            echo "score=$SCORE" >> "$GITHUB_OUTPUT"
             echo "Mutation Score: $SCORE%"
           fi
         continue-on-error: true
@@ -194,7 +188,7 @@ jobs:
           # Extract mutation score
           if [ -f muter-results.json ]; then
             SCORE=$(jq -r '.globalMutationScore // 0' muter-results.json)
-            echo "score=$SCORE" >> $GITHUB_OUTPUT
+            echo "score=$SCORE" >> "$GITHUB_OUTPUT"
             echo "Mutation Score: $SCORE%"
           fi
         continue-on-error: true
