@@ -1,7 +1,10 @@
 import Foundation
 import Testing
 
-@Suite("Property Macro Integration Tests")
+// Serialized: each test builds and runs a whole fixture package with a nested
+// `swift test`, which compiles swift-syntax. Three of those at once exceed
+// the memory of a 7 GB CI runner and the compiler gets killed with SIGKILL.
+@Suite("Property Macro Integration Tests", .serialized)
 struct PropertyMacroIntegrationTests {
   @Test("external packages can compile and run property test macros")
   func externalPackagesCanCompileAndRunPropertyTestMacros() throws {

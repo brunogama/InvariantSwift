@@ -142,7 +142,10 @@ enum MacroRuntimeFixtureSupport {
         name: "MacroRuntimeFixture",
         platforms: [.macOS(.v14)],
         dependencies: [
-          .package(path: "\(repoRoot.path)"),
+          // `name:` pins the package name the targets below refer to. Without
+          // it SwiftPM derives the name from the directory, which is only
+          // "InvariantSwift" when the checkout happens to be called that.
+          .package(name: "InvariantSwift", path: "\(repoRoot.path)"),
       \(checkoutOverrides)  ],
         targets: [
           .testTarget(

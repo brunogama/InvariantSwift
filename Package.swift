@@ -67,9 +67,20 @@ let coreTargets: [Target] = [
     path: "Packages/InvariantSwiftCore/Sources/InvariantSwiftGenerators",
     swiftSettings: commonSwiftSettings
   ),
+  // SQLite for Linux, where the SDK has no SQLite3 module. Apple platforms
+  // import the system module directly, so the dependency is Linux-only.
+  .systemLibrary(
+    name: "CSQLite",
+    path: "Packages/InvariantSwiftCore/Sources/CSQLite",
+    pkgConfig: "sqlite3",
+    providers: [.apt(["libsqlite3-dev"]), .brew(["sqlite3"])]
+  ),
   .target(
     name: "InvariantSwiftExecution",
-    dependencies: ["InvariantSwiftCore"],
+    dependencies: [
+      "InvariantSwiftCore",
+      .target(name: "CSQLite", condition: .when(platforms: [.linux])),
+    ],
     path: "Packages/InvariantSwiftCore/Sources/InvariantSwiftExecution",
     swiftSettings: commonSwiftSettings
   ),

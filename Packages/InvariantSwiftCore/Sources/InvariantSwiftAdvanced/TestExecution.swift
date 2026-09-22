@@ -141,12 +141,20 @@ public struct ExecutionEnvironment: Codable, Sendable {
 
 extension ProcessInfo {
   var machineString: String {
+    #if canImport(Darwin)
     var size = 0
     sysctlbyname("hw.machine", nil, &size, nil, 0)
     var machine = [CChar](repeating: 0, count: size)
     sysctlbyname("hw.machine", &machine, &size, nil, 0)
     let truncated = machine.prefix { $0 != 0 }
-    // swiftlint:disable:next optional_data_string_conversion
-    return String(decoding: truncated.map { UInt8(bitPattern: $0) }, as: UTF8.self)
+    return String(bytes: truncated.map { UInt8(bitPattern: $0) }, encoding: .utf8) ?? ""
+    #else
+    // sysctl is Darwin-only; uname(2) reports the same hardware identifier.
+    var info = utsname()
+    uname(&info)
+    return withUnsafeBytes(of: &info.machine) { bytes in
+      String(bytes: bytes.prefix { $0 != 0 }, encoding: .utf8) ?? ""
+    }
+    #endif
   }
 }
