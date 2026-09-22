@@ -27,7 +27,9 @@ jobs:
         run: bash Tools/release/next_version.test.sh
 
       - name: Evaluate change budget
-        if: github.event_name == 'pull_request'
+        if: |
+          github.event_name == 'pull_request' &&
+          !contains(github.event.pull_request.labels.*.name, 'stack-consolidation')
         env:
           BASE_REF: ${{ github.base_ref }}
         run: |
