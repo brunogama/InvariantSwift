@@ -61,6 +61,10 @@ public enum IsolationCapability: Sendable, CustomStringConvertible {
   public static func detect() -> Self {
     #if os(macOS)
     return .fullSubprocess
+    #elseif os(tvOS) || os(watchOS)
+    // posix_spawn is unavailable in these SDKs, so the probe cannot even be
+    // compiled; thread isolation is the best tier these platforms can offer.
+    return .threadBased
     #elseif canImport(Darwin)
     return probeSubprocessAvailability() ? .fullSubprocess : .threadBased
     #else
@@ -79,6 +83,7 @@ public enum IsolationCapability: Sendable, CustomStringConvertible {
   /// subprocess creation is permitted by the sandbox.
   ///
   /// - Returns: `true` if `posix_spawn` succeeds, `false` on permission error.
+  #if canImport(Darwin) && !os(tvOS) && !os(watchOS)
   private static func probeSubprocessAvailability() -> Bool {
     // Build argv: ["/usr/bin/true", nil]
     let path = "/usr/bin/true"
@@ -112,4 +117,5 @@ public enum IsolationCapability: Sendable, CustomStringConvertible {
     let exitCode = (status >> 8) & 0xff
     return exitCode == 0
   }
+  #endif  // canImport(Darwin) && !os(tvOS) && !os(watchOS)
 }
