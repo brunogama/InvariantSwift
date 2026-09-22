@@ -24,13 +24,14 @@ fi
 
 # Resolve to an absolute path and verify it stays within the project root.
 # This guards against path traversal (e.g. DOCC_OUTPUT_PATH=../../etc).
+# The parent directory may not exist yet on a fresh checkout (e.g.
+# ".build/docc-site" before any build has run), so create it before
+# resolving via cd - otherwise cd fails silently and the guard would
+# reject a perfectly legitimate nested path.
 _ROOT="$(pwd)"
-_PARENT="$(cd "$(dirname "$OUTPUT_PATH")" 2>/dev/null && pwd)" || true
-_RESOLVED="${_PARENT:+$_PARENT/}$(basename "$OUTPUT_PATH")"
-if [[ -z "$_RESOLVED" || "$_RESOLVED" == "/" ]]; then
-  echo "error: OUTPUT_PATH resolves to a dangerous path: '${_RESOLVED}'" >&2
-  exit 1
-fi
+mkdir -p -- "$(dirname "$OUTPUT_PATH")"
+_PARENT="$(cd "$(dirname "$OUTPUT_PATH")" && pwd)"
+_RESOLVED="$_PARENT/$(basename "$OUTPUT_PATH")"
 if [[ "$_RESOLVED" != "$_ROOT"/* ]]; then
   echo "error: OUTPUT_PATH must resolve to a subdirectory of the project (got: '${_RESOLVED}')" >&2
   exit 1
