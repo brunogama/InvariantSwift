@@ -34,6 +34,7 @@ jobs:
   build-docc-site:
     name: Build DocC Site
     runs-on: macos-15
+    timeout-minutes: 30
 
     steps:
       - name: Checkout

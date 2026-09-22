@@ -18,6 +18,7 @@ jobs:
   build-core:
     name: Build Core (No SwiftSyntax)
     runs-on: macos-15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - name: Select Xcode 16.4
@@ -39,6 +40,7 @@ jobs:
   build-macros:
     name: Build Macros (SwiftSyntax)
     runs-on: macos-15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - name: Select Xcode 16.4
@@ -67,6 +69,7 @@ jobs:
   swift-test-linux:
     name: swift test (Linux)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     container:
       image: swift:6.2-jammy
     steps:
@@ -77,6 +80,7 @@ jobs:
   macro-golden-tests:
     name: Macro Golden Tests
     runs-on: macos-15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - name: Select Xcode 16.4
@@ -92,6 +96,7 @@ jobs:
   integration:
     name: Integration Tests
     runs-on: macos-15
+    timeout-minutes: 30
     needs: [build-core, build-macros]
     steps:
       - uses: actions/checkout@v4
@@ -115,6 +120,7 @@ jobs:
   xcodebuild-latest:
     name: xcodebuild (16.4)
     runs-on: macos-15
+    timeout-minutes: 45
     strategy:
       matrix:
         command: [test, '']
@@ -187,6 +193,7 @@ jobs:
   lint:
     name: SwiftLint
     runs-on: macos-15
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - name: Install SwiftLint
@@ -197,6 +204,7 @@ jobs:
   format-check:
     name: swift-format
     runs-on: macos-15
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - name: Install swift-format
@@ -222,12 +230,22 @@ jobs:
   coverage:
     name: Code Coverage
     runs-on: macos-15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - name: Setup Swift
         uses: swift-actions/setup-swift@v3
         with:
           swift-version: '6.2.4'
+      - name: Cache SwiftPM
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.swiftpm
+            .build
+          key: swiftpm-coverage-${{ runner.os }}-${{ hashFiles('**/Sources/**/*.swift', '**/Tests/**/*.swift') }}
+          restore-keys: |
+            swiftpm-coverage-${{ runner.os }}-
       - name: Swift Version
         run: swift --version
       - name: Run tests with coverage

@@ -13,6 +13,7 @@ jobs:
   format-check:
     name: Format Check
     runs-on: macos-14
+    timeout-minutes: 10
 
     steps:
       - name: Checkout
@@ -34,6 +35,7 @@ jobs:
   lint-check:
     name: SwiftLint Strict
     runs-on: macos-14
+    timeout-minutes: 10
 
     steps:
       - name: Checkout
@@ -62,6 +64,7 @@ jobs:
   build-check:
     name: Build (Warnings = Errors)
     runs-on: macos-15
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
@@ -75,6 +78,16 @@ jobs:
         with:
           swift-version: '6.2.4'
 
+      - name: Cache SwiftPM
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.swiftpm
+            .build
+          key: swiftpm-pr-validation-${{ runner.os }}-${{ hashFiles('**/Sources/**/*.swift', '**/Tests/**/*.swift', 'Package.resolved') }}
+          restore-keys: |
+            swiftpm-pr-validation-${{ runner.os }}-
+
       - name: Swift Version
         run: swift --version
 
@@ -85,6 +98,7 @@ jobs:
   test-check:
     name: Tests
     runs-on: macos-15
+    timeout-minutes: 30
     needs: build-check
 
     steps:
@@ -99,6 +113,16 @@ jobs:
         with:
           swift-version: '6.2.4'
 
+      - name: Cache SwiftPM
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.swiftpm
+            .build
+          key: swiftpm-pr-validation-${{ runner.os }}-${{ hashFiles('**/Sources/**/*.swift', '**/Tests/**/*.swift', 'Package.resolved') }}
+          restore-keys: |
+            swiftpm-pr-validation-${{ runner.os }}-
+
       - name: Swift Version
         run: swift --version
 
@@ -109,6 +133,7 @@ jobs:
   danger-check:
     name: Danger
     runs-on: macos-14
+    timeout-minutes: 10
     needs: [format-check, lint-check]
 
     steps:
@@ -139,6 +164,7 @@ jobs:
   pr-ready:
     name: PR Ready
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     needs: [format-check, lint-check, build-check, test-check, danger-check]
     if: always()
 
