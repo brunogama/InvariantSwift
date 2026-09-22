@@ -186,11 +186,6 @@ extension Lens {
   ///   assert(newPerson.age == 31)
   ///   ```
   ///
-  /// - See Also: ``over(_:)``
-  public func set(_ newValue: Value, _ root: Root) -> Root {
-    set(newValue, root)
-  }
-
   /// Extract the focused value from the root structure.
   ///
   /// This is a convenience method for the ``get`` property, providing an alternative name
