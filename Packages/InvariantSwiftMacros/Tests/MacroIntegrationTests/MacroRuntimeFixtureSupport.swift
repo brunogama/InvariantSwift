@@ -119,7 +119,20 @@ enum MacroRuntimeFixtureSupport {
   }
 
   private static func packageManifest() throws -> String {
-    let repoRoot = try repositoryRoot().path
+    let repoRoot = try repositoryRoot()
+
+    // The fixture resolves in its own scratch directory, so on its own it would
+    // re-fetch every transitive dependency of the repository (swift-syntax and
+    // friends) from the network or the SwiftPM cache, and a stale cache has
+    // failed resolution on CI. The parent `swift test` has already checked those
+    // dependencies out at exactly the versions it resolved, and a root package
+    // may override a transitive dependency by declaring a path dependency with
+    // the same identity, so point the fixture at those checkouts. When there are
+    // none (a build that did not go through SwiftPM), resolution proceeds as
+    // before.
+    let checkoutOverrides = checkedOutDependencies(under: repoRoot)
+      .map { "    .package(path: \"\($0.path)\"),\n" }
+      .joined()
 
     return """
       // swift-tools-version: 6.2
@@ -129,8 +142,8 @@ enum MacroRuntimeFixtureSupport {
         name: "MacroRuntimeFixture",
         platforms: [.macOS(.v14)],
         dependencies: [
-          .package(path: "\(repoRoot)")
-        ],
+          .package(path: "\(repoRoot.path)"),
+      \(checkoutOverrides)  ],
         targets: [
           .testTarget(
             name: "FixtureTests",
@@ -143,6 +156,29 @@ enum MacroRuntimeFixtureSupport {
         ]
       )
       """
+  }
+
+  /// The dependency checkouts the parent SwiftPM build has already fetched.
+  ///
+  /// SwiftPM derives a path dependency's identity from the directory name,
+  /// which for a checkout is the repository name, so each of these matches the
+  /// identity of the URL dependency it overrides.
+  private static func checkedOutDependencies(under repoRoot: URL) -> [URL] {
+    let checkouts = repoRoot.appendingPathComponent(".build/checkouts")
+    let fileManager = FileManager.default
+    guard
+      let entries = try? fileManager.contentsOfDirectory(
+        at: checkouts,
+        includingPropertiesForKeys: [.isDirectoryKey]
+      )
+    else {
+      return []
+    }
+
+    return
+      entries
+      .filter { fileManager.fileExists(atPath: $0.appendingPathComponent("Package.swift").path) }
+      .sorted { $0.lastPathComponent < $1.lastPathComponent }
   }
 
   private static func repositoryRoot() throws -> URL {
