@@ -889,7 +889,7 @@ extension Gen {
     Gen<ArraySlice<Element>>(
       generate: { rng, size in
         // First generate a base array
-        let array = Gen.array(elementGen).generate(&rng, size)
+        let array = Self.array(elementGen).generate(&rng, size)
 
         if array.isEmpty {
           return ArraySlice(array)
@@ -903,7 +903,7 @@ extension Gen {
       },
       shrink: Shrink { slice in
         let array = Array(slice)
-        let arrayShrinks = Gen.array(elementGen).shrink.shrink(array)
+        let arrayShrinks = Self.array(elementGen).shrink.shrink(array)
         return arrayShrinks.map { ArraySlice($0) }
       }
     )
@@ -912,9 +912,18 @@ extension Gen {
 
 // MARK: - Utility Extensions
 
-private extension Array where Element: Hashable {
+extension Array where Element: Hashable {
+  /// Removes duplicates while keeping the first occurrence of each element.
+  ///
+  /// Order matters here: shrinkers build their candidate lists most-aggressive
+  /// first, and the shrink search walks them in order. `Array(Set(self))`
+  /// discarded that order, and because Set iteration depends on per-process
+  /// hash seeding it discarded it differently on every run, so the same seed
+  /// could shrink to a different counterexample and a recorded shrink path
+  /// could fail to replay.
   func removingDuplicates() -> [Element] {
-    Array(Set(self))
+    var seen = Set<Element>()
+    return filter { seen.insert($0).inserted }
   }
 }
 

@@ -204,7 +204,7 @@ extension Gen where T == DirectedGraph {
           shrunk.append(DirectedGraph(vertices: graph.vertices, edges: treeEdges))
         }
 
-        return Array(Set(shrunk))  // Remove duplicates
+        return shrunk.removingDuplicates()  // Remove duplicates
       }
     )
   }
@@ -592,7 +592,7 @@ extension Gen where T == JSONSchema {
           )
         }
 
-        return Array(Set(shrunk))
+        return shrunk.removingDuplicates()
       }
     )
   }
@@ -805,7 +805,7 @@ extension Gen where T == DatabaseRecord {
           )
         }
 
-        return Array(Set(shrunk))
+        return shrunk.removingDuplicates()
       }
     )
   }
@@ -1010,9 +1010,26 @@ extension Gen where T == HTTPRequest {
           )
         }
 
-        return Array(Set(shrunk))
+        return shrunk.removingDuplicates()
       }
     )
+  }
+}
+
+// MARK: - Utility Extensions
+
+private extension Array where Element: Hashable {
+  /// Removes duplicates while keeping the first occurrence of each element.
+  ///
+  /// Order matters here: shrinkers build their candidate lists most-aggressive
+  /// first, and the shrink search walks them in order. `Array(Set(self))`
+  /// discarded that order, and because Set iteration depends on per-process
+  /// hash seeding it discarded it differently on every run, so the same seed
+  /// could shrink to a different counterexample and a recorded shrink path
+  /// could fail to replay.
+  func removingDuplicates() -> [Element] {
+    var seen = Set<Element>()
+    return filter { seen.insert($0).inserted }
   }
   // swiftlint:disable:next file_length
 }

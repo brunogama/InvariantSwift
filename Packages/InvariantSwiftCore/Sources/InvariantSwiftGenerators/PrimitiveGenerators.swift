@@ -662,8 +662,5 @@ extension Gen where T == Character {
 
 // MARK: - Utility Extensions
 
-private extension Array where Element: Hashable {
-  func removingDuplicates() -> [Element] {
-    Array(Set(self))
-  }
-}
+// `removingDuplicates()` lives in CollectionGenerators.swift and is shared
+// across this module.

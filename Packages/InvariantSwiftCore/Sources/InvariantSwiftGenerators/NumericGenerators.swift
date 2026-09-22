@@ -32,7 +32,7 @@ extension Gen where T == Int8 {
         }
         if n > 0 { shrunk.append(n - 1) } else if n < 0 { shrunk.append(n + 1) }
 
-        return Array(Set(shrunk))
+        return shrunk.removingDuplicates()
       }
     )
   }
@@ -65,7 +65,7 @@ extension Gen where T == Int16 {
         }
         if n > 0 { shrunk.append(n - 1) } else if n < 0 { shrunk.append(n + 1) }
 
-        return Array(Set(shrunk))
+        return shrunk.removingDuplicates()
       }
     )
   }
@@ -98,7 +98,7 @@ extension Gen where T == Int32 {
         }
         if n > 0 { shrunk.append(n - 1) } else if n < 0 { shrunk.append(n + 1) }
 
-        return Array(Set(shrunk))
+        return shrunk.removingDuplicates()
       }
     )
   }
@@ -131,7 +131,7 @@ extension Gen where T == Int64 {
         }
         if n > 0 { shrunk.append(n - 1) } else if n < 0 { shrunk.append(n + 1) }
 
-        return Array(Set(shrunk))
+        return shrunk.removingDuplicates()
       }
     )
   }
@@ -164,7 +164,7 @@ extension Gen where T == UInt {
         }
         if n > 0 { shrunk.append(n - 1) }
 
-        return Array(Set(shrunk))
+        return shrunk.removingDuplicates()
       }
     )
   }
@@ -195,7 +195,7 @@ extension Gen where T == UInt8 {
         }
         if n > 0 { shrunk.append(n - 1) }
 
-        return Array(Set(shrunk))
+        return shrunk.removingDuplicates()
       }
     )
   }
@@ -226,7 +226,7 @@ extension Gen where T == UInt16 {
         }
         if n > 0 { shrunk.append(n - 1) }
 
-        return Array(Set(shrunk))
+        return shrunk.removingDuplicates()
       }
     )
   }
@@ -257,7 +257,7 @@ extension Gen where T == UInt32 {
         }
         if n > 0 { shrunk.append(n - 1) }
 
-        return Array(Set(shrunk))
+        return shrunk.removingDuplicates()
       }
     )
   }
@@ -288,7 +288,7 @@ extension Gen where T == UInt64 {
         }
         if n > 0 { shrunk.append(n - 1) }
 
-        return Array(Set(shrunk))
+        return shrunk.removingDuplicates()
       }
     )
   }
@@ -350,7 +350,7 @@ extension Gen where T == Float {
 
         if f > 1.0 { shrunk.append(1.0) } else if f < -1.0 { shrunk.append(-1.0) }
 
-        return Array(Set(shrunk))
+        return shrunk.removingDuplicates()
       }
     )
   }
@@ -394,7 +394,7 @@ extension Gen where T == Double {
 
         if d > 1.0 { shrunk.append(1.0) } else if d < -1.0 { shrunk.append(-1.0) }
 
-        return Array(Set(shrunk))
+        return shrunk.removingDuplicates()
       }
     )
   }
@@ -436,7 +436,7 @@ extension Gen where T == Float16 {
 
         if f > 1.0 { shrunk.append(1.0) } else if f < -1.0 { shrunk.append(-1.0) }
 
-        return Array(Set(shrunk))
+        return shrunk.removingDuplicates()
       }
     )
   }
@@ -479,7 +479,7 @@ extension Gen where T == CGFloat {
 
         if f > 1.0 { shrunk.append(1.0) } else if f < -1.0 { shrunk.append(-1.0) }
 
-        return Array(Set(shrunk))
+        return shrunk.removingDuplicates()
       }
     )
   }
@@ -546,7 +546,7 @@ extension Gen where T == Decimal {
 
         if decimal > 1 { shrunk.append(1) } else if decimal < -1 { shrunk.append(-1) }
 
-        return Array(Set(shrunk))
+        return shrunk.removingDuplicates()
       }
     )
   }
@@ -584,7 +584,7 @@ extension Gen {
           }
         }
 
-        return Array(Set(shrunk))  // Use Set directly since BinaryInteger is Hashable
+        return shrunk.removingDuplicates()  // Use Set directly since BinaryInteger is Hashable
       }
     )
   }
@@ -624,7 +624,7 @@ extension Gen {
 
         if f > one { shrunk.append(one) } else if f < minusOne { shrunk.append(minusOne) }
 
-        return Array(Set(shrunk))  // Use Set directly for deduplication
+        return shrunk.removingDuplicates()  // Use Set directly for deduplication
       }
     )
   }

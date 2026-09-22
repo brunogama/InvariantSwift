@@ -44,17 +44,30 @@ struct SignedIntegerShrinkTests {
     #expect(shrunk.contains(Int64.min / 2))
   }
 
-  @Test("Shrinking Int.min repeatedly reaches zero without trapping")
+  @Test("Halving walk from Int.min reaches zero without trapping")
   func intMinShrinksAllTheWayDown() {
-    // The shrinker drives a search loop, so it is applied to its own output
-    // until a minimum is reached; that walk must stay total.
+    // The shrink search applies the shrinker to its own output, so every value
+    // along the walk must be one the shrinker survives, not just Int.min.
+    // Follow the halving candidate: it is the one that actually converges.
     var current = Int.min
     var steps = 0
-    while current != 0, steps < 100 {
-      guard let next = Gen<Int>.int.shrink.shrink(current).last else { break }
+    while current != 0, steps < 200 {
+      let candidates = Gen<Int>.int.shrink.shrink(current)
+      guard let next = candidates.count > 1 ? candidates[1] : candidates.first else { break }
       current = next
       steps += 1
     }
-    #expect(steps < 100)
+    #expect(current == 0)
+    #expect(steps < 200)
+  }
+
+  @Test("Shrink candidates are ordered most aggressive first, deterministically")
+  func shrinkCandidateOrderIsStable() {
+    // Shrinkers deduplicate their candidates, and that must keep the order
+    // they were built in: the shrink search walks them in order, and a
+    // recorded shrink path only replays if the order is reproducible.
+    let shrunk = Gen<Int>.int.shrink.shrink(-4096)
+    #expect(shrunk.first == 0)
+    #expect(shrunk == Gen<Int>.int.shrink.shrink(-4096))
   }
 }
