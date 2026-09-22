@@ -130,10 +130,10 @@ public func runPropertyWithFlakeDetection<T: Sendable>(
     // TODO: PropertyConfig.seed is immutable - need API redesign
     // Cannot set seed per run without mutable seed field
 
-    let startTime = CFAbsoluteTimeGetCurrent()
+    let startTime = Date().timeIntervalSinceReferenceDate
     let runner = PropertyRunner()
     let result = await runner.runProperty(property, config: config)
-    _ = CFAbsoluteTimeGetCurrent() - startTime
+    _ = Date().timeIntervalSinceReferenceDate - startTime
 
     // Record execution
     // TODO: Restore after PropertyResult.toTestResult made public

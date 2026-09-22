@@ -207,7 +207,9 @@ struct MetamorphicTests {
       )
     ]
 
-    let property = Gen<Int>.int.metamorphic(
+    // Bounded on purpose: Gen<Int>.int emits Int.max and Int.min as edge
+    // cases, and `$0 * 2` or `$0 + 1` on those traps with arithmetic overflow.
+    let property = Gen<Int>.int(in: -1_000_000...1_000_000).metamorphic(
       function: { $0 * 2 },
       relations: relations
     )

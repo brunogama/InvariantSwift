@@ -1008,7 +1008,10 @@ private extension Array where Element == Double {
   }
 }
 
+// Linux has no `os` module; Logging.swift supplies a matching Logger there.
+#if canImport(os)
 import os
+#endif
 
 // swiftlint:disable:next file_length
 private let logger = Logger(subsystem: "InvariantSwift", category: "Coverage")

@@ -274,21 +274,21 @@ extension ParallelShrinker {
     predicate: @escaping @Sendable (T) async -> Bool
   ) async -> ShrinkBenchmark<T> {
     // Sequential search
-    let sequentialStart = CFAbsoluteTimeGetCurrent()
+    let sequentialStart = Date().timeIntervalSinceReferenceDate
     let sequentialResult = await tree.findMinimalAsync(
       budget: config.budget,
       satisfying: predicate
     )
-    let sequentialTime = CFAbsoluteTimeGetCurrent() - sequentialStart
+    let sequentialTime = Date().timeIntervalSinceReferenceDate - sequentialStart
 
     // Parallel search
-    let parallelStart = CFAbsoluteTimeGetCurrent()
+    let parallelStart = Date().timeIntervalSinceReferenceDate
     let parallelResult = await tree.findMinimalParallel(
       budget: config.budget,
       workers: config.workers,
       satisfying: predicate
     )
-    let parallelTime = CFAbsoluteTimeGetCurrent() - parallelStart
+    let parallelTime = Date().timeIntervalSinceReferenceDate - parallelStart
 
     return ShrinkBenchmark(
       sequentialResult: sequentialResult,

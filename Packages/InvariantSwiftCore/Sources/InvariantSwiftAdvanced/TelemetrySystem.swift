@@ -1,7 +1,10 @@
 import InvariantSwiftCore
 import Foundation
 import Dispatch
+// Linux has no `os` module; Logging.swift supplies a matching Logger there.
+#if canImport(os)
 import os
+#endif
 
 // MARK: - Observability and Telemetry Infrastructure
 

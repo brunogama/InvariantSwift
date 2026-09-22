@@ -1,4 +1,8 @@
+// Only CGFloat is needed. Apple platforms define it in CoreGraphics; Linux
+// Foundation defines it itself and has no CoreGraphics module.
+#if canImport(CoreGraphics)
 import CoreGraphics
+#endif
 import Foundation
 import InvariantSwiftCore
 
@@ -503,31 +507,27 @@ extension Gen where T == Decimal {
           }
         }
 
-        // Create decimal from components
+        // Create decimal from components: a random sign, a random exponent
+        // across the representable range, and a random mantissa of 1 to 8
+        // 16-bit words, which is exactly how the type stores its significand.
         let isNegative = Bool.random(using: &rng)
         let exponent = Int8.random(in: -128...127, using: &rng)
-        let length = UInt32.random(in: 1...8, using: &rng)  // Max 8 significand parts
+        let wordCount = Int.random(in: 1...8, using: &rng)
+        let words = (0..<wordCount).map { _ in UInt16.random(in: 0...UInt16.max, using: &rng) }
 
-        // swiftlint:disable:next large_tuple
-        var mantissa: (UInt16, UInt16, UInt16, UInt16, UInt16, UInt16, UInt16, UInt16) = (
-          0, 0, 0, 0, 0, 0, 0, 0
-        )
-
-        // Generate random mantissa components
-        withUnsafeMutableBytes(of: &mantissa) { buffer in
-          let uint16Buffer = buffer.bindMemory(to: UInt16.self)
-          for i in 0..<Int(length) {
-            uint16Buffer[i] = UInt16.random(in: 0...UInt16.max, using: &rng)
-          }
+        // Assemble the significand most significant word first. Every value
+        // built this way fits the 128-bit mantissa, so the arithmetic is exact.
+        // Built through public API rather than the storage initializer, which
+        // Foundation on Linux does not offer.
+        var significand = Decimal(0)
+        for word in words.reversed() {
+          significand = significand * 65_536 + Decimal(word)
         }
 
         return Decimal(
-          _exponent: Int32(exponent),
-          _length: length,
-          _isNegative: isNegative ? 1 : 0,
-          _isCompact: 1,
-          _reserved: 0,
-          _mantissa: mantissa
+          sign: isNegative ? .minus : .plus,
+          exponent: Int(exponent),
+          significand: significand
         )
       },
       shrink: Shrink { decimal in

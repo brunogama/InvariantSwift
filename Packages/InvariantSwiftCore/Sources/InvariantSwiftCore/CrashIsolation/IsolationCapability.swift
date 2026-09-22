@@ -1,4 +1,9 @@
+// Darwin backs only the posix_spawn probe below, which is itself compiled out
+// where the SDK lacks posix_spawn. On Linux the `#else` branch of detect()
+// is the whole story, so the import must not be unconditional there.
+#if canImport(Darwin)
 import Darwin
+#endif
 
 // MARK: - IsolationCapability
 

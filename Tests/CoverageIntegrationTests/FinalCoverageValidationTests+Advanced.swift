@@ -129,12 +129,12 @@ extension FinalCoverageValidationTests {
   private func verifyRunnerPerformance() {
     for iterations in [100, 500, 1_000] {
       let property = Property<Int>(generator: Gen<Int>.int) { _ in true }
-      let start = CFAbsoluteTimeGetCurrent()
+      let start = Date().timeIntervalSinceReferenceDate
       let result = runPropertySynchronously(
         property,
         config: PropertyConfig(iterations: iterations)
       )
-      let duration = CFAbsoluteTimeGetCurrent() - start
+      let duration = Date().timeIntervalSinceReferenceDate - start
 
       if case .success(let completedIterations) = result {
         #expect(completedIterations == iterations)
@@ -216,17 +216,17 @@ extension FinalCoverageValidationTests {
     rng: inout any RandomNumberGenerator,
     size: Size,
     generator: Gen<T>
-  ) -> CFAbsoluteTime {
-    let start = CFAbsoluteTimeGetCurrent()
+  ) -> TimeInterval {
+    let start = Date().timeIntervalSinceReferenceDate
     for _ in 0..<count {
       _ = generator.generate(&rng, size)
     }
-    return CFAbsoluteTimeGetCurrent() - start
+    return Date().timeIntervalSinceReferenceDate - start
   }
 
-  private func measureShrink(_ operation: () -> Void) -> CFAbsoluteTime {
-    let start = CFAbsoluteTimeGetCurrent()
+  private func measureShrink(_ operation: () -> Void) -> TimeInterval {
+    let start = Date().timeIntervalSinceReferenceDate
     operation()
-    return CFAbsoluteTimeGetCurrent() - start
+    return Date().timeIntervalSinceReferenceDate - start
   }
 }

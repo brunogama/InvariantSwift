@@ -50,13 +50,13 @@ public struct ProgressReporter: Sendable {
   private let minIterations: Int
 
   /// Time of last progress report.
-  private var lastReportTime: CFAbsoluteTime
+  private var lastReportTime: TimeInterval
 
   /// Iteration number of last progress report.
   private var lastReportedIteration: Int
 
   /// Start time of test execution.
-  private let startTime: CFAbsoluteTime
+  private let startTime: TimeInterval
 
   /// Creates a new progress reporter.
   ///
@@ -65,7 +65,7 @@ public struct ProgressReporter: Sendable {
   ///   - interval: Reporting interval configuration
   public init(totalIterations: Int, interval: ProgressInterval) {
     self.totalIterations = totalIterations
-    self.startTime = CFAbsoluteTimeGetCurrent()
+    self.startTime = Date().timeIntervalSinceReferenceDate
     self.lastReportTime = self.startTime
     self.lastReportedIteration = 0
 
@@ -91,7 +91,7 @@ public struct ProgressReporter: Sendable {
   ///
   /// - Parameter current: Current iteration number (1-indexed)
   public mutating func recordIteration(_ current: Int) {
-    let now = CFAbsoluteTimeGetCurrent()
+    let now = Date().timeIntervalSinceReferenceDate
     let timeSinceLastReport = now - lastReportTime
     let iterationsSinceLastReport = current - lastReportedIteration
 
