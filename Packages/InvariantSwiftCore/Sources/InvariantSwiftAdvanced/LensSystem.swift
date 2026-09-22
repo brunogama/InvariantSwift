@@ -165,27 +165,6 @@ extension Lens {
     }
   }
 
-  /// Update the focused value to a new value in the root structure.
-  ///
-  /// Creates a new root structure with only the focused field changed to the new value.
-  /// This is an ergonomic method-style wrapper around the underlying ``set`` function.
-  ///
-  /// - Parameters:
-  ///   - newValue: The new value to assign to the focused field
-  ///   - root: The root structure to update (not modified; a new structure is returned)
-  ///
-  /// - Returns: A new root structure with the focused field set to `newValue` and all
-  ///   other fields unchanged.
-  ///
-  /// - Complexity: O(1) function overhead; actual complexity depends on structure copying.
-  ///
-  /// - Example:
-  ///   ```swift
-  ///   let oldPerson = Person(age: 30)
-  ///   let newPerson = ageLens.set(31, oldPerson)
-  ///   assert(newPerson.age == 31)
-  ///   ```
-  ///
   /// Extract the focused value from the root structure.
   ///
   /// This is a convenience method for the ``get`` property, providing an alternative name

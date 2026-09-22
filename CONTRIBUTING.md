@@ -46,8 +46,12 @@ We use GitHub to host code, track issues and feature requests, and accept pull r
 2. **Install tooling**
 
    ```bash
+   # macOS
    brew install just
    just setup
+
+   # Linux
+   curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to ~/.local/bin
    ```
 
 3. **Resolve dependencies**

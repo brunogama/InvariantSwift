@@ -187,7 +187,7 @@ Examples:
 - `v2.3.1`
 
 Tags created by the release workflow must also use this format.
-Tags are created automatically by `release-on-merge` when a pull request merges to `main`.
+Tags are created automatically by `release-on-merge` on eligible pushes to `main`, including pull request merges and permitted direct pushes.
 Include `[skip release]` in the merge commit message to suppress an automated release.
 Do not create or push tags manually unless automation is bypassed and the user has asked.
 

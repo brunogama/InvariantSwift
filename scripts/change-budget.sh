@@ -68,7 +68,12 @@ case "$MODE" in
     DIFF_ARGS=(--cached)
     ;;
   head)
-    DIFF_ARGS=(HEAD~1 HEAD)
+    if git rev-parse --verify --quiet HEAD~1 >/dev/null; then
+      DIFF_ARGS=(HEAD~1 HEAD)
+    else
+      # HEAD is the root commit; diff against git's empty tree.
+      DIFF_ARGS=("$(git hash-object -t tree /dev/null)" HEAD)
+    fi
     ;;
   range)
     if [[ -z "$BASE" || -z "$HEAD_REF" ]]; then

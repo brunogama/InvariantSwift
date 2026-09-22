@@ -71,7 +71,6 @@ just test-safe     # SIGTRAP-protected (beta SDK)
 ### Coverage
 
 ```bash
-swift test --enable-code-coverage
 just coverage
 ```
 

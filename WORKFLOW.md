@@ -106,7 +106,7 @@ When reviewing a change, check at minimum:
 - Keep each commit to one logical change.
 - Stage files explicitly by path.
 - Verify staged content with `git status` and `git diff --cached` before committing.
-- Run `scripts/change-budget.sh` before proposing or creating a commit.
+- Run `scripts/change-budget.sh` before proposing or creating a commit or a pull request.
 - Reference the issue in the commit message when applicable using:
   - `fixes #<number>`
   - `closes #<number>`

@@ -137,10 +137,15 @@ benchmark:
 benchmark-json:
     swift run -c release Benchmarks --format json
 
-# Generate an LCOV coverage report.
+# Generate an LCOV coverage report. macOS-only: relies on xcrun llvm-cov and
+# the .xctest bundle layout that SwiftPM produces on Apple platforms.
 coverage:
     #!/usr/bin/env bash
     set -euo pipefail
+    if [[ "$(uname -s)" != "Darwin" ]]; then
+        echo "coverage is macOS-only (requires xcrun llvm-cov)." >&2
+        exit 1
+    fi
     swift test --enable-code-coverage
     test_binary="$(find .build -path '*InvariantSwiftPackageTests.xctest/Contents/MacOS/InvariantSwiftPackageTests' -type f | head -1)"
     test -n "$test_binary"

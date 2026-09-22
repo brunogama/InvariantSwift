@@ -53,7 +53,6 @@ just test-safe
 // turbo
 ### Coverage
 ```bash
-swift test --enable-code-coverage
 just coverage
 ```
 
