@@ -4,7 +4,6 @@
 //   Packages/InvariantSwiftCore   (core + generators + execution + advanced + domain)
 //   Packages/InvariantSwiftMacros (macros + ghostwriter)
 // The root package exports these libraries directly, similar to swift-syntax.
-// swiftlint:disable all
 import PackageDescription
 import CompilerPluginSupport
 
@@ -274,6 +273,10 @@ let testTargets: [Target] = [
       "InvariantSwiftAdvanced",
       "InvariantSwiftTesting",
       "InvariantSwiftMacroAPI",
+      // Xcode links the macro implementation's testable variant into test
+      // bundles that reach it only transitively, but without linking that
+      // macro's own dependencies (swiftlang/swift-package-manager#10224).
+      "InvariantSwiftExpansionSupport",
     ],
     path: "Tests/GeneratedPropertyTests",
     swiftSettings: commonSwiftSettings
@@ -298,6 +301,8 @@ let testTargets: [Target] = [
       "InvariantSwiftAdvanced",
       "InvariantSwiftTesting",
       "InvariantSwiftMacroAPI",
+      // See GeneratedPropertyTests: swiftlang/swift-package-manager#10224.
+      "InvariantSwiftExpansionSupport",
     ],
     path: "Tests/SmokeTests",
     swiftSettings: commonSwiftSettings
