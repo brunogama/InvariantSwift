@@ -138,13 +138,6 @@ jobs:
         run: |
           SWIFT_TOOLCHAIN_PATH="$(swiftly use --print-location)"
           TOOLCHAIN_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$SWIFT_TOOLCHAIN_PATH/Info.plist")"
-          # xcodebuild -toolchain <id> only resolves toolchains by scanning
-          # ~/Library/Developer/Toolchains/*.xctoolchain. swiftly installs
-          # into an isolated temp directory that Xcode never scans, so
-          # without this symlink xcodebuild fails package resolution with
-          # "unable to execute command: <unknown>" (exit 74).
-          mkdir -p "$HOME/Library/Developer/Toolchains"
-          ln -sfn "$SWIFT_TOOLCHAIN_PATH" "$HOME/Library/Developer/Toolchains/swift-${{ matrix.xcode }}.xctoolchain"
           echo "TOOLCHAINS=$TOOLCHAIN_ID" >> "$GITHUB_ENV"
           echo "Using Swift toolchain: $TOOLCHAIN_ID"
       - name: Update xcbeautify
