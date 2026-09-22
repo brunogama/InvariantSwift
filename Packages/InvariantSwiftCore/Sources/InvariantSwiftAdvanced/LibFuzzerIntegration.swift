@@ -42,6 +42,9 @@ public struct FuzzDataProvider: Sendable {
   /// Total bytes available
   public var totalBytes: Int { data.count }
 
+  /// Every byte the provider was created with, consumed or not.
+  public var allBytes: [UInt8] { data }
+
   /// Remaining bytes available
   public var remainingBytes: Int { max(0, data.count - position) }
 
@@ -385,24 +388,54 @@ public struct FuzzDataProvider: Sendable {
 public struct FuzzableRNG: RandomNumberGenerator, Sendable {
   private var provider: FuzzDataProvider
 
+  /// SplitMix64 state used once the fuzz data runs out.
+  private var continuation: UInt64
+
   /// Creates a fuzzable RNG from a data provider
   public init(provider: FuzzDataProvider) {
     self.provider = provider
+    self.continuation = Self.seed(from: provider)
   }
 
   /// Creates a fuzzable RNG from raw bytes
   public init(data: [UInt8]) {
-    self.provider = FuzzDataProvider(data: data)
+    self.init(provider: FuzzDataProvider(data: data))
   }
 
   /// Generate next random UInt64
+  ///
+  /// Fuzz data is consumed first, eight bytes at a time. Past the end of the
+  /// data this continues with a PRNG seeded from that same data rather than
+  /// with the provider's zero padding: `next(upperBound:)` in the standard
+  /// library rejection-samples, and a stream of zeros is rejected every time,
+  /// so `randomElement` on a five-element array never returned. Seeding from
+  /// the input keeps a given input mapped to a single generated value.
   public mutating func next() -> UInt64 {
-    provider.consumeUInt64()
+    guard provider.remainingBytes >= 8 else { return nextFromContinuation() }
+    return provider.consumeUInt64()
   }
 
   /// Remaining bytes in underlying provider
   public var remainingBytes: Int {
     provider.remainingBytes
+  }
+
+  /// SplitMix64, which has no bad states and so cannot starve a rejection loop.
+  private mutating func nextFromContinuation() -> UInt64 {
+    continuation &+= 0x9E37_79B9_7F4A_7C15
+    var z = continuation
+    z = (z ^ (z >> 30)) &* 0xBF58_476D_1CE4_E5B9
+    z = (z ^ (z >> 27)) &* 0x94D0_49BB_1331_11EB
+    return z ^ (z >> 31)
+  }
+
+  /// Folds the whole input into a seed, so different inputs continue differently.
+  private static func seed(from provider: FuzzDataProvider) -> UInt64 {
+    var hash: UInt64 = 0xCBF2_9CE4_8422_2325
+    for byte in provider.allBytes {
+      hash = (hash ^ UInt64(byte)) &* 0x0000_0100_0000_01B3
+    }
+    return hash
   }
 }
 

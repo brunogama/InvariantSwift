@@ -762,7 +762,7 @@ extension PropertyRunner {
     }
 
     // Run the property test
-    let result = runProperty(property, config: config)
+    let result = await runProperty(property, config: config)
 
     let endTime = Date()
     let duration = endTime.timeIntervalSince(startTime)

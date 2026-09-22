@@ -123,6 +123,8 @@ public func runPropertyWithFlakeDetection<T: Sendable>(
   var passes = 0
   var failures = 0
   var failingSeeds: [UInt64] = []
+  // The environment does not change between runs; capture it once.
+  let environment = ExecutionEnvironment()
 
   // Run the test multiple times with different seeds
   for i in 0..<flakeConfig.runs {
@@ -133,21 +135,32 @@ public func runPropertyWithFlakeDetection<T: Sendable>(
     let startTime = Date().timeIntervalSinceReferenceDate
     let runner = PropertyRunner()
     let result = await runner.runProperty(property, config: config)
-    _ = Date().timeIntervalSinceReferenceDate - startTime
+    let duration = Date().timeIntervalSinceReferenceDate - startTime
 
-    // Record execution
-    // TODO: Restore after PropertyResult.toTestResult made public
-    // let execution = TestExecution(...)
-    // await hunter.recordExecution(execution)
-
+    let outcome: TestResult
     switch result {
     case .success:
       passes += 1
+      outcome = .passed
 
     case .failure, .gaveUp:
       failures += 1
       failingSeeds.append(seed)
+      outcome = .failed
     }
+
+    // Every run feeds the hunter's history; without this, getStatistics
+    // below has nothing to summarise and the result carries no statistics.
+    await hunter.recordExecution(
+      TestExecution(
+        testId: testId,
+        result: outcome,
+        duration: duration,
+        environment: environment,
+        seed: seed,
+        iterations: config.iterations
+      )
+    )
   }
 
   // Get statistics from FlakeHunter
@@ -158,17 +171,11 @@ public func runPropertyWithFlakeDetection<T: Sendable>(
   let flakinessScore = Double(min(passes, failures)) / Double(flakeConfig.runs)
   let isFlaky = flakinessScore > flakeConfig.flakinessThreshold
 
-  // Determine recommendation
-  let recommendation: FlakeRecommendation
-  if failures == 0 {
-    recommendation = .stable
-  } else if failures == flakeConfig.runs {
-    recommendation = .fix
-  } else if flakinessScore > 0.1 {
-    recommendation = .quarantine
-  } else {
-    recommendation = .investigate
-  }
+  let recommendation = flakeRecommendation(
+    failures: failures,
+    runs: flakeConfig.runs,
+    flakinessScore: flakinessScore
+  )
 
   return FlakeDetectionResult(
     totalRuns: flakeConfig.runs,
@@ -180,4 +187,19 @@ public func runPropertyWithFlakeDetection<T: Sendable>(
     recommendation: recommendation,
     statistics: statistics
   )
+}
+
+/// Recommended action for a run's outcome mix.
+private func flakeRecommendation(
+  failures: Int,
+  runs: Int,
+  flakinessScore: Double
+) -> FlakeRecommendation {
+  if failures == 0 {
+    return .stable
+  }
+  if failures == runs {
+    return .fix
+  }
+  return flakinessScore > 0.1 ? .quarantine : .investigate
 }

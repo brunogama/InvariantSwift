@@ -38,7 +38,7 @@ extension PropertyRunner {
     coverageConfig: CoverageConfig = .default
   ) async -> (PropertyResult<T>, CoverageReport) {
     // Run the property test normally
-    let result = runProperty(property, config: config)
+    let result = await runProperty(property, config: config)
 
     // Create coverage report
     // For now, stub implementation that reports zero coverage
@@ -101,7 +101,7 @@ extension PropertyRunner {
     // 3. Run property with biased generator
     // 4. Record execution results in collector
     // For now, run normally
-    let result = runProperty(property, config: config)
+    let result = await runProperty(property, config: config)
 
     // Get final coverage state
     let finalBudget = await collector.currentBudget()

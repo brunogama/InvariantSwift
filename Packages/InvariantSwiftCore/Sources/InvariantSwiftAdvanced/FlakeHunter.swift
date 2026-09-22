@@ -319,12 +319,14 @@ public actor FlakeHunter {
 
     if FileManager.default.fileExists(atPath: executionHistoryURL.path) {
       let data = try Data(contentsOf: executionHistoryURL)
-      executionHistory = try JSONDecoder().decode([String: [TestExecution]].self, from: data)
+      executionHistory = try persistedDataDecoder()
+        .decode([String: [TestExecution]].self, from: data)
     }
 
     if FileManager.default.fileExists(atPath: quarantineURL.path) {
       let data = try Data(contentsOf: quarantineURL)
-      quarantinedTests = try JSONDecoder().decode([String: QuarantineRecord].self, from: data)
+      quarantinedTests = try persistedDataDecoder()
+        .decode([String: QuarantineRecord].self, from: data)
     }
   }
 
@@ -357,5 +359,18 @@ extension PropertyResult {
     case .gaveUp:
       return .skipped
     }
+  }
+}
+
+// MARK: - Persistence Codec
+
+@available(macOS 13.0, iOS 16.0, tvOS 16.0, watchOS 9.0, *)
+extension FlakeHunter {
+  /// Decoder matching `persistData()`, which writes dates as ISO 8601. A default
+  /// decoder expects a Double and fails on every file the hunter has written.
+  fileprivate func persistedDataDecoder() -> JSONDecoder {
+    let decoder = JSONDecoder()
+    decoder.dateDecodingStrategy = .iso8601
+    return decoder
   }
 }

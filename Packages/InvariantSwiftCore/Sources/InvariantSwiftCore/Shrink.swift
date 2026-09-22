@@ -303,9 +303,11 @@ public struct Shrink<T>: @unchecked Sendable {
     // 1. Try empty first (most aggressive)
     candidates.append([])
 
-    // 2. Delta debugging: remove chunks of decreasing size (N/2, N/4, N/8, ...)
+    // 2. Delta debugging: remove chunks of decreasing size (N/2, N/4, N/8, ...).
+    // Stops above size 1: single-element removals are step 3's job, and
+    // producing them here as well doubled every array's candidate list.
     var chunkSize = array.count / 2
-    while chunkSize >= 1 {
+    while chunkSize >= 2 {
       // Generate all arrays with one chunk of this size removed
       var offset = 0
       while offset + chunkSize <= array.count {
@@ -319,11 +321,14 @@ public struct Shrink<T>: @unchecked Sendable {
       chunkSize /= 2
     }
 
-    // 3. Remove individual elements (most fine-grained)
+    // 3. Remove individual elements (most fine-grained). A one-element array
+    // shrinks to [], which step 1 already offered.
     for i in 0..<array.count {
       var shrunk = array
       shrunk.remove(at: i)
-      candidates.append(shrunk)
+      if !shrunk.isEmpty {
+        candidates.append(shrunk)
+      }
     }
 
     return candidates
@@ -457,8 +462,12 @@ public struct Shrink<T>: @unchecked Sendable {
   /// - Returns: Shrink strategy for strings
   public static var string: Shrink<String> {
     Shrink<String> { string in
-      let tree = stringShrinkTree(string)
-      return Array(tree.breadthFirst().dropFirst())  // Drop the root (original string)
+      // The tree's immediate children, not a traversal of it. A `Shrink` returns
+      // one step of candidates and the shrink search recurses on its own; this
+      // used to flatten the whole tree with `breadthFirst()`, which for any
+      // string beyond a few characters is exponentially many nodes, so shrinking
+      // a failing string property never returned.
+      stringShrinkTree(string).children.map(\.value)
     }
   }
 

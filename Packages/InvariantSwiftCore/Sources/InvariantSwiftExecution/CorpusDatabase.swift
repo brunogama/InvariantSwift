@@ -748,7 +748,7 @@ extension PropertyRunner {
     }
 
     // Run normal property test
-    let result = runProperty(property, config: config)
+    let result = await runProperty(property, config: config)
 
     // Store interesting results
     switch result {

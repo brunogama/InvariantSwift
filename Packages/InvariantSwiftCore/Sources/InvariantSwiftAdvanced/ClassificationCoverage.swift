@@ -969,7 +969,7 @@ extension PropertyRunner {
   where T: Sendable {
 
     // Run the property test
-    let result = runProperty(property, config: config)
+    let result = await runProperty(property, config: config)
 
     // Record coverage observation based on result
     let testResult: ClassificationCoverageSystem.CoverageObservation.TestResult =
