@@ -1,4 +1,6 @@
 import XCTest
+import SwiftParser
+import SwiftSyntaxMacroExpansion
 import SwiftSyntaxMacros
 import SwiftSyntaxMacrosTestSupport
 import Foundation
@@ -130,6 +132,11 @@ final class MacroGoldenTests: XCTestCase {
     let sourceContent = try String(contentsOf: sourceURL, encoding: .utf8)
     let goldenContent = try String(contentsOf: goldenURL, encoding: .utf8)
 
+    if ProcessInfo.processInfo.environment["INVARIANTSWIFT_RECORD_GOLDEN"] == "1" {
+      try record(expansionOf: sourceContent, macro: macro, testCase: testCase, file: file)
+      return
+    }
+
     // Perform expansion assertion
     assertMacroExpansion(
       sourceContent,
@@ -138,5 +145,55 @@ final class MacroGoldenTests: XCTestCase {
       file: file,
       line: line
     )
+  }
+
+  /// Expands `source` and writes the result over the checked-in golden file.
+  ///
+  /// Run `INVARIANTSWIFT_RECORD_GOLDEN=1 swift test --package-path Packages/InvariantSwiftMacros
+  /// --filter MacroGoldenTests` after deliberately changing a macro's output, then read the
+  /// diff before committing it. Without this the goldens can only be edited by hand, which is
+  /// how they came to disagree with every expansion they describe.
+  ///
+  /// The expansion below is the one `assertMacroExpansion` performs, so what is recorded is
+  /// what the assertion will compare against.
+  private func record(
+    expansionOf source: String,
+    macro: String,
+    testCase: String,
+    file: StaticString
+  ) throws {
+    let parsed = Parser.parse(source: source)
+    let context = BasicMacroExpansionContext(
+      sourceFiles: [parsed: .init(moduleName: "TestModule", fullFilePath: "test.swift")]
+    )
+    let expanded = parsed.expand(
+      macroSpecs: testMacros.mapValues { MacroSpec(type: $0) },
+      contextGenerator: { syntax in
+        BasicMacroExpansionContext(
+          sharingWith: context,
+          lexicalContext: syntax.allMacroLexicalContexts()
+        )
+      },
+      indentationWidth: .spaces(4)
+    )
+
+    // Bundle.module points at the copy inside the build products, so derive the
+    // source path from this file's location instead.
+    let destination = URL(fileURLWithPath: "\(file)")
+      .deletingLastPathComponent()
+      .appendingPathComponent("Resources/Golden/\(macro)/\(testCase).golden.swift")
+
+    let text = expanded.description.drop(while: \.isNewline)
+    try (String(text).trimmingTrailingNewlines() + "\n")
+      .write(to: destination, atomically: true, encoding: .utf8)
+    print("recorded golden: \(destination.path)")
+  }
+}
+
+extension String {
+  fileprivate func trimmingTrailingNewlines() -> String {
+    var copy = self
+    while copy.last?.isNewline == true { copy.removeLast() }
+    return copy
   }
 }

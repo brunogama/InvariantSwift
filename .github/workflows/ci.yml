@@ -43,7 +43,10 @@ jobs:
   build-macros:
     name: Build Macros (SwiftSyntax)
     runs-on: macos-15
-    timeout-minutes: 20
+    # Raised from 20 with the test step below: four of these tests generate a package
+    # and run `swift test` inside it, which took 78s of the 83s total on 14 cores and
+    # will take considerably longer on a runner with three.
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Select Xcode 16.4
@@ -64,9 +67,8 @@ jobs:
             swiftpm-macros-${{ runner.os }}-
       - name: Build InvariantSwiftMacros with Prebuilts
         run: swift build --package-path Packages/InvariantSwiftMacros --enable-experimental-prebuilts
-      # NOTE: Tests not migrated yet - uncomment when ready
-      # - name: Test InvariantSwiftMacros
-      #   run: swift test --package-path Packages/InvariantSwiftMacros --enable-experimental-prebuilts
+      - name: Test InvariantSwiftMacros
+        run: swift test --package-path Packages/InvariantSwiftMacros --enable-experimental-prebuilts
 
   # MARK: - Linux Tests
   swift-test-linux:
@@ -103,7 +105,11 @@ jobs:
         with:
           swift-version: '6.2.4'
       - name: Run Macro Golden Tests
-        run: swift test --filter MacroGoldenTests
+        # The golden tests live in the macros package, and the root package does not
+        # declare a target for them, so without --package-path this matched nothing:
+        # `swift test --filter MacroGoldenTests` printed "No matching test cases were
+        # run", exited 0, and this job was green while running no tests at all.
+        run: swift test --package-path Packages/InvariantSwiftMacros --filter MacroGoldenTests
 
   # MARK: - Integration Tests (after sub-packages build)
   integration:
