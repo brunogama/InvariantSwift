@@ -184,6 +184,7 @@ public enum PreemptionStrategy: Sendable {
 
     case (.custom, .custom):
       return false  // Cannot compare closures
+
     default:
       return false
     }

@@ -61,8 +61,10 @@ jobs:
           echo "No blanket disable directives found."
 
       - name: Run SwiftLint Strict
+        # Packages/ too: it holds most of the library, and leaving it out meant
+        # nothing under it was ever strict-linted.
         run: |
-          if ! swiftlint lint --strict --reporter github-actions-logging Sources/ Tests/; then
+          if ! swiftlint lint --strict --reporter github-actions-logging Sources/ Tests/ Packages/; then
             echo "::error::SwiftLint violations found. All issues must be fixed."
             exit 1
           fi

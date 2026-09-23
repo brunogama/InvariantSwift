@@ -25,10 +25,13 @@ public struct TestUtilities {
     switch (result, expectation) {
     case (.success, .success):
       break  // Expected
+
     case (.failure, .failure):
       break  // Expected
+
     case (.gaveUp, .gaveUp):
       break  // Expected
+
     case (.success, .failure):
       Issue.record("Expected failure but got success")
 
@@ -67,10 +70,13 @@ public struct TestUtilities {
     switch (result, expectation) {
     case (.success, .success):
       break  // Expected
+
     case (.failure, .failure):
       break  // Expected
+
     case (.gaveUp, .gaveUp):
       break  // Expected
+
     default:
       Issue.record("Async property expectation not met: got \(result), expected \(expectation)")
     }

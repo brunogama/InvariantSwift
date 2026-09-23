@@ -82,6 +82,7 @@ public enum OptionalGen {
         switch optional {
         case .none:
           return []  // nil is already minimal
+
         case .some(let value):
           // Shrink to nil first, then shrink the wrapped value
           let nilShrink: [T?] = [nil]

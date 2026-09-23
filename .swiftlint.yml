@@ -7,6 +7,7 @@ included:
 - Sources
 - Benchmarks
 - Tests
+- Packages  # The sub-packages hold most of the library; test trees inside carry their own configs
 
 # Paths to exclude
 excluded:
@@ -15,6 +16,15 @@ excluded:
 - Package.swift
 - Tools
 - ${PWD}/.build
+# `.build` above only matches the one at the root. The sub-packages build into
+# their own, holding dependency checkouts and generated sources that are not ours
+# to lint, so each is named here.
+- Packages/InvariantSwiftCore/.build
+- Packages/InvariantSwiftCore/.swiftpm
+- Packages/InvariantSwiftMacros/.build
+- Packages/InvariantSwiftMacros/.swiftpm
+- Packages/InvariantSwiftCore/Package.swift
+- Packages/InvariantSwiftMacros/Package.swift
 - Sources/InvariantSwiftMacros/RuleBasedTestMacro  # AST builders are inherently verbose
 - Sources/FuncTestCLI  # CLI tools use print statements
 - Sources/GhostwriterCLI  # CLI tools use print statements
@@ -89,7 +99,7 @@ opt_in_rules:
 - implicit_getter
 # REMOVED: number_separator - conflicts with swift-format number formatting
 - object_literal
-- operator_whitespace
+- function_name_whitespace  # Renamed from operator_whitespace, which SwiftLint is removing
 - prefer_self_in_static_references
 # - sorted_imports  # Disabled to prevent conflict with SwiftFormat
 # - trailing_comma  # Disabled to prevent conflict with SwiftFormat

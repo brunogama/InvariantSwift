@@ -29,6 +29,7 @@ struct ShrinkHintsTests {
     switch target {
     case .zero:
       break  // Success
+
     default:
       Issue.record("Expected .zero case")
     }
@@ -41,6 +42,7 @@ struct ShrinkHintsTests {
     switch target {
     case .empty:
       break  // Success
+
     default:
       Issue.record("Expected .empty case")
     }
@@ -71,6 +73,7 @@ struct ShrinkHintsTests {
     switch hint.target {
     case .zero:
       break  // Success
+
     default:
       Issue.record("Expected .zero target")
     }
@@ -83,6 +86,7 @@ struct ShrinkHintsTests {
     switch hint.target {
     case .empty:
       break  // Success
+
     default:
       Issue.record("Expected .empty target")
     }

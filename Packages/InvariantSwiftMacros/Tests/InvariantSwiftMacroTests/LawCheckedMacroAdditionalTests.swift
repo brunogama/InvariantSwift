@@ -10,8 +10,6 @@ final class LawCheckedMacroAdditionalTests: XCTestCase {
     "LawChecked": LawCheckedMacro.self
   ]
 
-  // swiftlint:disable line_length
-  // swiftlint:disable:next function_body_length
   func testMultipleLawsExpansion() {
     assertMacroExpansion(
       """
@@ -160,7 +158,6 @@ final class LawCheckedMacroAdditionalTests: XCTestCase {
       macros: testMacros
     )
   }
-  // swiftlint:enable line_length
 
   func testConfigurationParameters() {
     assertMacroExpansion(

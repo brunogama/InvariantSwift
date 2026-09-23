@@ -259,7 +259,7 @@ extension RunReport {
     config: PropertyConfig,
     shrinkTrace: [ShrinkStep]? = nil
   ) -> RunReport {
-    var baseReport = RunReport.from(
+    var baseReport = Self.from(
       result.result,
       propertyName: propertyName,
       durationMs: durationMs,

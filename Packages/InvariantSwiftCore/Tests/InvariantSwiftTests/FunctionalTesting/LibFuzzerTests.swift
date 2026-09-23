@@ -184,6 +184,7 @@ struct LibFuzzerTests {
     switch result {
     case .pass:
       break  // Expected
+
     default:
       Issue.record("Expected pass")
     }

@@ -256,6 +256,7 @@ private struct TypeVisitor {
         case .open: return .open
         default: continue
         }
+
       default: continue
       }
     }

@@ -6,6 +6,6 @@ import SwiftSyntax
 extension TypeSyntax {
   /// Returns self for compatibility with code using .asType
   public var asType: TypeSyntax? {
-    return self
+    self
   }
 }
