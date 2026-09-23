@@ -104,8 +104,7 @@ struct InvariantMiningOptimizationTests {
 
     // Generate large number of traces with few unique properties
     var traces: [ExecutionTrace] = []
-    let numTraces = 1000  // Large number of traces
-    let numProperties = 3  // Small number of unique properties
+    let numTraces = 1000  // Large number of traces, against three unique properties
 
     for i in 0..<numTraces {
       let properties: [String: Double] = [
@@ -126,34 +125,28 @@ struct InvariantMiningOptimizationTests {
       traces.append(trace)
     }
 
-    // Measure memory before mining
-    let beforeMemory = getApproximateMemoryUsage()
-
     // Add traces and mine invariants
     await engine.addTraces(traces)
     let invariants = await engine.mineInvariants()
 
-    // Measure memory after mining
-    let afterMemory = getApproximateMemoryUsage()
-    let memoryIncrease = afterMemory - beforeMemory
-
-    // Verify reasonable memory usage (should be bounded by properties, not traces)
-    // Bound is generous to account for OS allocation variability in parallel test runs.
-    // The key invariant is that memory scales with numProperties, not numTraces.
-    let expectedMaxMemory = numProperties * 5000 + 5_000_000  // Upper bound for CI/Test (5MB)
+    // What bounds the engine's memory is that it does not retain every trace:
+    // `addTraces` trims down to `sampleSize` once the backlog passes twice that.
+    // This used to be asserted by differencing the process's resident size,
+    // which measures everything else running in the process too, so it failed
+    // on allocator noise rather than on the engine retaining traces.
+    let stats = await engine.getStatistics()
     #expect(
-      memoryIncrease < expectedMaxMemory,
-      "Memory increase (\(memoryIncrease)) should be bounded by properties, not traces"
+      stats.totalTraces <= config.sampleSize * 2,
+      """
+      Engine retained \(stats.totalTraces) of \(numTraces) traces; \
+      retention should be bounded by sampleSize (\(config.sampleSize)), not trace count
+      """
     )
+    #expect(stats.totalTraces < numTraces, "Engine should not retain every trace")
 
     // Verify we discovered invariants
     #expect(!invariants.isEmpty, "Should discover invariants")
     #expect(invariants.count <= config.maxInvariants, "Should respect max invariants limit")
-
-    print(
-      "Memory increase: \(memoryIncrease) bytes for \(numTraces) traces with \(numProperties) properties"
-    )
-    print("Discovered \(invariants.count) invariants")
   }
 
   /// **Test Streaming vs Batch Performance**
@@ -294,22 +287,6 @@ struct InvariantMiningOptimizationTests {
     }
   }
 
-  // MARK: - Helper Functions
-
-  /// Approximate memory usage measurement
-  private func getApproximateMemoryUsage() -> Int {
-    var info = task_vm_info_data_t()
-    var count = mach_msg_type_number_t(MemoryLayout<task_vm_info_data_t>.size) / 4
-
-    let kr: kern_return_t = withUnsafeMutablePointer(to: &info) {
-      $0.withMemoryRebound(to: integer_t.self, capacity: 1) {
-        task_info(mach_task_self_, task_flavor_t(TASK_VM_INFO), $0, &count)
-      }
-    }
-
-    guard kr == KERN_SUCCESS else { return 0 }
-    return Int(info.resident_size)
-  }
 }
 
 // MARK: - Mock Types for Testing

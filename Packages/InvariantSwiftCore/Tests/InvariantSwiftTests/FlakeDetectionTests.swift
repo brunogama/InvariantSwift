@@ -175,15 +175,17 @@ struct FlakeDetectionTests {
       (n % 2) != 0
     }
 
+    // One iteration per run, so a run passes exactly when its single draw is odd:
+    // about half of them. At five iterations a run had to draw five odd values to
+    // pass, which is a 1-in-32 chance, and all 50 runs failing (leaving no passes
+    // for the assertion below) came up about a fifth of the time.
     let result = try await runPropertyWithFlakeDetection(
       property,
-      config: PropertyConfig(iterations: 5, seed: nil),
+      config: PropertyConfig(iterations: 1, seed: nil),
       flakeConfig: FlakeDetectionConfig(runs: 50, flakinessThreshold: 0.01),
       testId: "flaky-test"
     )
 
-    // With random seeds, we expect approximately 50% failures
-    // Verify we detected flakiness
     #expect(result.failures > 0)
     #expect(result.passes > 0)
     #expect(result.isFlaky == true)

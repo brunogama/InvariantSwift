@@ -65,7 +65,7 @@ struct ErrorPathCoverageTests {
     // Test suchThat with condition that can never be satisfied
     let impossibleGen = Gen<Int>.int(in: 1...10).tryGenerate(where: { _ in false })
     let property = Property<Int>(generator: impossibleGen) { _ in true }
-    
+
     let result = runPropertySynchronously(
       property,
       config: PropertyConfig(
@@ -73,14 +73,14 @@ struct ErrorPathCoverageTests {
         maxDiscarded: 20
       )
     )
-    
+
     switch result {
     case .gaveUp(let discarded, _):
       #expect(discarded >= 20, "Should discard at least maxDiscarded attempts")
-    
+
     case .success:
       Issue.record("Impossible suchThat should not succeed")
-    
+
     case .failure:
       Issue.record("Impossible suchThat should give up, not fail")
     }
@@ -97,7 +97,7 @@ struct ErrorPathCoverageTests {
     let property = Property<Int>(generator: rareGen) { value in
       value == 7777
     }
-    
+
     let result = runPropertySynchronously(
       property,
       config: PropertyConfig(
@@ -105,14 +105,14 @@ struct ErrorPathCoverageTests {
         maxDiscarded: 50
       )
     )
-    
+
     switch result {
     case .success:
       #expect(Bool(true), "Rare condition found successfully")
-    
+
     case .gaveUp(let discarded, _):
       #expect(discarded > 0, "Should discard many attempts for rare condition")
-    
+
     case .failure:
       Issue.record("Rare condition should either succeed or give up")
     }
@@ -126,14 +126,18 @@ struct ErrorPathCoverageTests {
     // Test property behavior when generator might throw (simulated via extreme conditions)
     let extremeGen = Gen<Int>(
       generate: { rng, size in
-        // Simulate potential overflow or extreme conditions
+        // Simulate potential overflow or extreme conditions. The multiply wraps
+        // rather than traps: `base` reaches Int.max / 2, so any multiplier above
+        // two overflows, and a plain `*` crashed the whole test process.
         let base = Int.random(in: Int.min / 2...Int.max / 2, using: &rng)
         let multiplier = size.value > 1000 ? Int.max / 1000 : size.value
-        return base * multiplier
+        return base &* multiplier
       },
       shrink: Shrink { value in
         if value == 0 { return [] }
-        if abs(value) > 1_000_000 {
+        // `magnitude`, not `abs`: wrapping above can land on Int.min, and
+        // abs(Int.min) is not representable in Int.
+        if value.magnitude > 1_000_000 {
           // Very aggressive shrinking for extreme values
           return [value / 2, value / 10, 0, 1, -1]
         }
@@ -143,7 +147,7 @@ struct ErrorPathCoverageTests {
 
     let property = Property<Int>(generator: extremeGen) { value in
       // Property that checks for reasonable bounds
-      abs(value) <= Int.max / 2
+      value.magnitude <= UInt(Int.max / 2)
     }
 
     let result = runPropertySynchronously(property, config: PropertyConfig(iterations: 50))
@@ -153,7 +157,9 @@ struct ErrorPathCoverageTests {
       #expect(Bool(true), "Extreme generator handled successfully")
 
     case .failure(let counterexample, _, let shrunk, _, _):
-      #expect(abs(shrunk) <= abs(counterexample), "Shrinking should reduce magnitude")
+      // The property fails for anything of magnitude above Int.max / 2, so Int.min
+      // reaches this branch, and abs(Int.min) is not representable in Int.
+      #expect(shrunk.magnitude <= counterexample.magnitude, "Shrinking should reduce magnitude")
 
     case .gaveUp:
       #expect(Bool(true), "Extreme generator may give up")

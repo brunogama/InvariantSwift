@@ -141,38 +141,53 @@ struct PropertyPerformanceTests {
   @Test("Concurrent performance - parallel property execution")
   @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
   func concurrentPerformanceParallelPropertyExecution() async {
+    // Enough iterations that one run takes long enough to time. At 100 the whole
+    // test finished in well under a millisecond, which is less than the cost of
+    // starting four tasks, so the comparison below measured only noise.
+    let iterationCount = 50_000
     let property = Property<Int>(generator: Gen<Int>.int) { _ in true }
-    let config = PropertyConfig(iterations: 100)
+    let config = PropertyConfig(iterations: iterationCount)
 
     let concurrentTasks = 4
-    let startTime = CFAbsoluteTimeGetCurrent()
 
-    // Execute multiple properties concurrently
-    await withTaskGroup(of: Void.self) { group in
-      for _ in 0..<concurrentTasks {
-        group.addTask {
-          let result = runPropertySynchronously(property, config: config)
+    let runOnce: @Sendable () -> Void = {
+      let result = runPropertySynchronously(property, config: config)
 
-          switch result {
-          case .success(let iterations):
-            #expect(iterations == 100, "Concurrent execution should complete all iterations")
+      switch result {
+      case .success(let iterations):
+        #expect(iterations == iterationCount, "Execution should complete all iterations")
 
-          default:
-            Issue.record("Concurrent property execution should succeed")
-          }
-        }
+      default:
+        Issue.record("Property execution should succeed")
       }
     }
 
-    let totalDuration = CFAbsoluteTimeGetCurrent() - startTime
+    // Warm up first, so one-time costs land outside both measurements.
+    runOnce()
 
-    // Concurrent execution should be more efficient than sequential
-    let sequentialEstimate = 0.1 * Double(concurrentTasks)  // Rough estimate
+    let sequentialStart = CFAbsoluteTimeGetCurrent()
+    for _ in 0..<concurrentTasks {
+      runOnce()
+    }
+    let sequentialDuration = CFAbsoluteTimeGetCurrent() - sequentialStart
+
+    let concurrentStart = CFAbsoluteTimeGetCurrent()
+    await withTaskGroup(of: Void.self) { group in
+      for _ in 0..<concurrentTasks {
+        group.addTask(operation: runOnce)
+      }
+    }
+    let concurrentDuration = CFAbsoluteTimeGetCurrent() - concurrentStart
+
+    // Against the sequential run measured here, not a constant. This used to
+    // compare wall-clock against a hardcoded 0.4s, so it failed whenever the
+    // machine was slow rather than when concurrency stopped paying off, which
+    // is what it claims to check. A shared CI runner took 1.7s and failed.
     #expect(
-      totalDuration < sequentialEstimate * 1.5,
+      concurrentDuration < sequentialDuration * 1.5,
       """
-      Concurrent execution should show some performance benefit: \
-      \(totalDuration)s vs ~\(sequentialEstimate)s sequential
+      Concurrent execution should not be slower than sequential: \
+      \(concurrentDuration)s concurrent vs \(sequentialDuration)s sequential
       """
     )
   }
