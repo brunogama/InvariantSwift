@@ -92,24 +92,9 @@ jobs:
         # stayed green through a hard compile error on Linux.
         run: swift test
 
-  macro-golden-tests:
-    name: Macro Golden Tests
-    runs-on: macos-15
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - name: Select Xcode 16.4
-        run: sudo xcode-select -s /Applications/Xcode_16.4.app
-      - name: Setup Swift 6.2.4
-        uses: swift-actions/setup-swift@364295d9c23900ce04d4e5cc708387921b4e50f9 # v3
-        with:
-          swift-version: '6.2.4'
-      - name: Run Macro Golden Tests
-        # The golden tests live in the macros package, and the root package does not
-        # declare a target for them, so without --package-path this matched nothing:
-        # `swift test --filter MacroGoldenTests` printed "No matching test cases were
-        # run", exited 0, and this job was green while running no tests at all.
-        run: swift test --package-path Packages/InvariantSwiftMacros --filter MacroGoldenTests
+  # The golden tests had a job of their own, which built the whole package to run
+  # eleven of them. `build-macros` above runs the macros package's entire suite,
+  # goldens included, so that job only paid for a second build of the same thing.
 
   # MARK: - Integration Tests (after sub-packages build)
   integration:
@@ -119,12 +104,12 @@ jobs:
     needs: [build-core, build-macros]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      # Xcode's toolchain, which is what build-core and build-macros use. This job also
+      # installed Swift 6.2.4 on top, leaving its toolchain decided by PATH order rather
+      # than stated anywhere. Those two jobs build the same sources on Xcode 16.4's
+      # Swift 6.1, so this one was not integrating what they had just built.
       - name: Select Xcode 16.4
         run: sudo xcode-select -s /Applications/Xcode_16.4.app
-      - name: Setup Swift 6.2.4
-        uses: swift-actions/setup-swift@364295d9c23900ce04d4e5cc708387921b4e50f9 # v3
-        with:
-          swift-version: '6.2.4'
       - name: Cache SwiftSyntax Prebuilts
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
@@ -133,7 +118,8 @@ jobs:
       - name: Build Full Package with Prebuilts
         run: swift build --enable-experimental-prebuilts
       - name: Run Integration Tests
-        run: swift test --filter CoverageIntegrationTests --enable-experimental-prebuilts || true
+        # This ended in `|| true`, so the job reported success whatever the tests did.
+        run: swift test --filter CoverageIntegrationTests --enable-experimental-prebuilts
 
   # MARK: - Xcode Platform Tests
   xcodebuild-latest:

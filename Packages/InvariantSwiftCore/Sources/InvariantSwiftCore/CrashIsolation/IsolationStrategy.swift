@@ -120,21 +120,27 @@ public enum IsolationStrategyFactory {
   static func discoverHelperPath() -> String? {
     let binaryName = "PropertyTestHelper"
 
-    var candidates: [String] = []
+    var candidates: [URL] = []
 
-    // Sibling of the current executable.
-    if let executablePath = ProcessInfo.processInfo.arguments.first {
-      let executableDir = (executablePath as NSString).deletingLastPathComponent
-      candidates.append((executableDir as NSString).appendingPathComponent(binaryName))
+    // Sibling of the current executable. `Bundle.main.executableURL` is already
+    // absolute and resolved; argv[0] is only a path when the process was launched
+    // by one, and is a bare name when it was found on PATH.
+    if let executableURL = Bundle.main.executableURL {
+      candidates.append(
+        executableURL.deletingLastPathComponent().appendingPathComponent(binaryName)
+      )
     }
 
-    // Relative SPM build directories (works when running from the package root).
-    candidates.append(".build/debug/\(binaryName)")
-    candidates.append(".build/release/\(binaryName)")
+    // SPM build directories, relative to wherever this is running. Resolved here
+    // rather than handed back as written: this function promises an absolute path,
+    // and a relative one would be read against the working directory of whoever
+    // later spawns it, which need not be the one it was found from.
+    let workingDirectory = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+    candidates.append(workingDirectory.appendingPathComponent(".build/debug/\(binaryName)"))
+    candidates.append(workingDirectory.appendingPathComponent(".build/release/\(binaryName)"))
 
-    return candidates.first {
-      FileManager.default.isExecutableFile(atPath: $0)
-    }
+    let match = candidates.first { FileManager.default.isExecutableFile(atPath: $0.path) }
+    return match?.standardizedFileURL.path
   }
 }
 
