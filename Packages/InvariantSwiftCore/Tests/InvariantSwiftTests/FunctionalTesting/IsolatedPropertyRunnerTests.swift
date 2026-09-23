@@ -205,6 +205,7 @@ struct IsolatedPropertyRunnerTests {
       // Shrunk value should be smaller or equal (closer to boundary)
       #expect(shrunk <= counterexample)
       #expect(shrunk >= 100)  // Still in original range
+
     default:
       Issue.record("Expected failure with shrinking")
     }

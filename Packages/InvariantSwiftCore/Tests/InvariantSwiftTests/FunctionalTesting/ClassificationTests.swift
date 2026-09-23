@@ -204,7 +204,7 @@ struct ClassificationTests {
   func classifyingPropertyWithCoverage() async {
     let property = ClassifyingProperty(generator: Gen<Int>.int(in: -100...100)) { n, ctx in
       // Track extremes coverage
-      ctx.cover("extremes", percentage: 1.0) { abs(n) > 90 }
+      ctx.cover("extremes", percentage: 1.0) { n.magnitude > 90 }
       return true
     }
 
@@ -225,7 +225,7 @@ struct ClassificationTests {
     // Property that checks for impossible coverage (100% extremes when range is wide)
     let property = ClassifyingProperty(generator: Gen<Int>.int(in: -1000...1000)) { n, ctx in
       // Require 100% extreme values - impossible with uniform distribution
-      ctx.cover("impossible", percentage: 100.0) { abs(n) > 999 }
+      ctx.cover("impossible", percentage: 100.0) { n.magnitude > 999 }
       return true
     }
 

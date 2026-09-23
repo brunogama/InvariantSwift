@@ -200,7 +200,7 @@ extension FailureReport {
     config: PropertyConfig
   ) -> ClassifyingFailureReport? {
     guard
-      let baseReport = FailureReport.from(
+      let baseReport = Self.from(
         result.result,
         propertyName: propertyName,
         config: config

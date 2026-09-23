@@ -2,8 +2,14 @@ name: PR Validation
 
 on:
   pull_request:
-    branches: [main]
-    types: [opened, synchronize, reopened]
+    # No `edited`: it fires when a pull request's title or body changes, which
+    # leaves the tree untouched but re-runs the whole macOS matrix and cancels
+    # the in-flight run for the same commit. `synchronize` already covers new
+    # commits.
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
 
 concurrency:
   group: pr-${{ github.head_ref }}
@@ -14,10 +20,11 @@ jobs:
   format-check:
     name: Format Check
     runs-on: macos-14
+    timeout-minutes: 10
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Install swift-format
         run: brew install swift-format
@@ -27,7 +34,7 @@ jobs:
           swift-format -i --configuration .swift-format --recursive \
             ./Package.swift ./Sources ./Tests
           if ! git diff --quiet; then
-            echo "::error::Code is not properly formatted. Run 'make format' locally."
+            echo "::error::Code is not properly formatted. Run 'just format' locally."
             exit 1
           fi
 
@@ -35,10 +42,11 @@ jobs:
   lint-check:
     name: SwiftLint Strict
     runs-on: macos-14
+    timeout-minutes: 10
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Install SwiftLint
         run: brew install swiftlint
@@ -53,9 +61,10 @@ jobs:
           echo "No blanket disable directives found."
 
       - name: Run SwiftLint Strict
+        # Packages/ too: it holds most of the library, and leaving it out meant
+        # nothing under it was ever strict-linted.
         run: |
-          swiftlint lint --strict --reporter github-actions-logging Sources/ Tests/
-          if [ $? -ne 0 ]; then
+          if ! swiftlint lint --strict --reporter github-actions-logging Sources/ Tests/ Packages/; then
             echo "::error::SwiftLint violations found. All issues must be fixed."
             exit 1
           fi
@@ -64,18 +73,29 @@ jobs:
   build-check:
     name: Build (Warnings = Errors)
     runs-on: macos-15
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Select Xcode 16.4
         run: sudo xcode-select -s /Applications/Xcode_16.4.app
 
       - name: Setup Swift 6.2.4
-        uses: swift-actions/setup-swift@v3
+        uses: swift-actions/setup-swift@364295d9c23900ce04d4e5cc708387921b4e50f9 # v3
         with:
           swift-version: '6.2.4'
+
+      - name: Cache SwiftPM
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            ~/.swiftpm
+            .build
+          key: swiftpm-pr-validation-${{ runner.os }}-${{ hashFiles('**/Sources/**/*.swift', '**/Tests/**/*.swift', 'Package.resolved') }}
+          restore-keys: |
+            swiftpm-pr-validation-${{ runner.os }}-
 
       - name: Swift Version
         run: swift --version
@@ -87,19 +107,30 @@ jobs:
   test-check:
     name: Tests
     runs-on: macos-15
+    timeout-minutes: 30
     needs: build-check
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Select Xcode 16.4
         run: sudo xcode-select -s /Applications/Xcode_16.4.app
 
       - name: Setup Swift 6.2.4
-        uses: swift-actions/setup-swift@v3
+        uses: swift-actions/setup-swift@364295d9c23900ce04d4e5cc708387921b4e50f9 # v3
         with:
           swift-version: '6.2.4'
+
+      - name: Cache SwiftPM
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            ~/.swiftpm
+            .build
+          key: swiftpm-pr-validation-${{ runner.os }}-${{ hashFiles('**/Sources/**/*.swift', '**/Tests/**/*.swift', 'Package.resolved') }}
+          restore-keys: |
+            swiftpm-pr-validation-${{ runner.os }}-
 
       - name: Swift Version
         run: swift --version
@@ -111,11 +142,18 @@ jobs:
   danger-check:
     name: Danger
     runs-on: macos-14
+    timeout-minutes: 10
     needs: [format-check, lint-check]
+    # Danger posts its report as a pull request comment, so this job needs more
+    # than the workflow's read-only default.
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
 
@@ -141,6 +179,7 @@ jobs:
   pr-ready:
     name: PR Ready
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     needs: [format-check, lint-check, build-check, test-check, danger-check]
     if: always()
 

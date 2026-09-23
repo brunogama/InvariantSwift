@@ -73,10 +73,16 @@ extension Gen {
         result.reserveCapacity(count)
 
         for _ in 0..<count {
+          // autoreleasepool belongs to the Objective-C runtime, which Linux
+          // does not have; without it the loop body simply runs directly.
+          #if canImport(ObjectiveC)
           autoreleasepool {
             let element = elementGen.generate(&rng, actualSize)
             result.append(element)
           }
+          #else
+          result.append(elementGen.generate(&rng, actualSize))
+          #endif
         }
 
         return result
@@ -417,10 +423,10 @@ extension BinaryTree where T: Sendable {
           recursiveGen
           // swiftlint:disable:next multiline_function_chains
         ).map { value, left, right in
-          BinaryTree.node(value, left, right)
+          Self.node(value, left, right)
         }
       },
-      baseCase: elementGen.map(BinaryTree.leaf),
+      baseCase: elementGen.map(Self.leaf),
       probability: 0.6
     )
   }

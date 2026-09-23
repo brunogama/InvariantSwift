@@ -114,10 +114,12 @@ struct ComprehensiveGeneratorTests {
         generatedArrays.append(arrayGen.generate(&rng, largeSize))
       }
 
-      // Verify arrays are generated (basic functionality)
+      // The length generator draws from 1...10, so every array is non-empty,
+      // bounded by that length, and filled from the element generator's range.
       #expect(generatedArrays.count == 20)
       for array in generatedArrays {
-        #expect(array.isEmpty)
+        #expect(!array.isEmpty && array.count <= 10)
+        #expect(array.allSatisfy { (1...1000).contains($0) })
       }
     }
   }
@@ -206,12 +208,12 @@ struct ComprehensiveGeneratorTests {
       /*
       let largeCollection = Array(1...20)
       let transform: (Int) -> Gen<Int> = { value in Gen<Int>.pure(value) }
-      
+
       let traverseGen = Gen<Int>.traverse(largeCollection, transform)
-      
+
       var rng: any RandomNumberGenerator = SystemRandomNumberGenerator()
       let size = Size(value: 100)
-      
+
       let result = traverseGen.generate(&rng, size)
       #expect(result.count == largeCollection.count)
       #expect(result == largeCollection)
@@ -659,24 +661,26 @@ struct ComprehensiveGeneratorTests {
     /// **Coverage**: zip3 shrink implementation
     @Test("Zip3 shrinking affects all components")
     func testZip3Shrinking() async throws {
-      let intGen = Gen<Int>.int(in: 10...20)
+      let intGen = Gen<Int>.int(in: 0...20)
       let stringGen = Gen<String>.pure("original")
       let boolGen = Gen<Bool>.bool()
 
       // swiftlint:disable:next large_tuple
       let zip3Gen = Gen<(Int, String, Bool)>.zip3(intGen, stringGen, boolGen)
 
-      var rng: any RandomNumberGenerator = SystemRandomNumberGenerator()
-      let size = Size(value: 10)
-
-      let original = zip3Gen.generate(&rng, size)
+      // A fixed tuple rather than a generated one. Bool shrinks only from true and
+      // a pure String never shrinks, so a generated tuple that drew the int
+      // generator's lower bound alongside false had nothing left to shrink, and
+      // the candidate list came back empty roughly one run in twenty.
+      let original = (20, "original", true)
       let shrinks = zip3Gen.shrink.shrink(original)
 
-      // Should have some shrinks (at least from int component)
       #expect(!shrinks.isEmpty)
 
-      // Verify shrinks maintain type structure - tuple components are strongly typed
-      #expect(!shrinks.isEmpty)
+      // Both shrinkable components are shrunk, and the pure one is left alone.
+      #expect(shrinks.contains { $0.0 != original.0 })
+      #expect(shrinks.contains { $0.2 != original.2 })
+      #expect(shrinks.allSatisfy { $0.1 == original.1 })
     }
   }
 
@@ -939,7 +943,14 @@ struct ComprehensiveGeneratorTests {
     /// **Coverage**: Performance characteristics of sequence generation
     @Test("Large sequence generation performance")
     func testLargeSequencePerformance() async throws {
-      let largeSequenceGen = Gen<[Int]>.array(Gen<Int>.int(in: 1...1000))
+      // An exact count, not `array`, whose length is drawn from 0...size: there an
+      // empty array is a legitimate draw, so `!result.isEmpty` failed about one run
+      // in ten, and a size of 10 was not a large sequence to begin with.
+      let elementCount = 10_000
+      let largeSequenceGen = Gen<Int>.sequence(
+        elementGen: Gen<Int>.int(in: 1...1000),
+        count: elementCount
+      )
 
       var rng: any RandomNumberGenerator = SystemRandomNumberGenerator()
       let size = Size(value: 10)
@@ -950,7 +961,8 @@ struct ComprehensiveGeneratorTests {
 
       let duration = endTime - startTime
 
-      #expect(!result.isEmpty)  // Should generate non-empty array
+      #expect(result.count == elementCount)
+      #expect(result.allSatisfy { (1...1000).contains($0) })
       #expect(duration < .seconds(1))  // Should complete quickly
     }
 
@@ -978,10 +990,10 @@ struct ComprehensiveGeneratorTests {
     func testShrinkingPerformance() async throws {
       let largeArrayGen = Gen<[Int]>.array(Gen<Int>.int(in: 1...100))
 
-      var rng: any RandomNumberGenerator = SystemRandomNumberGenerator()
-      let size = Size(value: 10)
-
-      let largeArray = largeArrayGen.generate(&rng, size)
+      // A fixed large input rather than a generated one. `array` draws its length
+      // from 0...size, so an empty array is a legitimate draw, and then there is
+      // nothing to shrink and the assertion below failed about one run in ten.
+      let largeArray = Array(1...100)
 
       let startTime = ContinuousClock.now
       let shrinks = largeArrayGen.shrink.shrink(largeArray)
@@ -989,7 +1001,7 @@ struct ComprehensiveGeneratorTests {
 
       let duration = endTime - startTime
 
-      #expect(!largeArray.isEmpty)  // Should generate non-empty array to test shrinking
+      #expect(!shrinks.isEmpty, "A non-empty array should have shrink candidates")
       #expect(duration < .seconds(1))  // Shrinking should be fast
 
       // Shrinks should be valid

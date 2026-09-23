@@ -1,5 +1,4 @@
 import Testing
-import Darwin
 import InvariantSwiftCore
 @testable import InvariantSwift
 

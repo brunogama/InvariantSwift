@@ -1,7 +1,14 @@
 import InvariantSwiftCore
 import Foundation
 import Dispatch
+// On Linux, URLSession and URLRequest live in FoundationNetworking.
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
+// Linux has no `os` module; Logging.swift supplies a matching Logger there.
+#if canImport(os)
 import os
+#endif
 
 // MARK: - Observability and Telemetry Infrastructure
 
@@ -755,7 +762,7 @@ extension PropertyRunner {
     }
 
     // Run the property test
-    let result = runProperty(property, config: config)
+    let result = await runProperty(property, config: config)
 
     let endTime = Date()
     let duration = endTime.timeIntervalSince(startTime)

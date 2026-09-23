@@ -11,7 +11,8 @@ struct PropertyTests {
 
   @Test("Property basic initialization")
   func propertyBasicInitialization() async {
-    let property = Property<Int>(generator: Gen<Int>.int) { $0 > -1_000_000 }
+    // Gen<Int>.int emits Int.min as an edge case, so the predicate must hold there too.
+    let property = Property<Int>(generator: Gen<Int>.int) { $0 >= Int.min }
     let result = await PropertyRunner().runProperty(
       property,
       config: PropertyConfig(iterations: 10)
@@ -217,7 +218,9 @@ struct PropertyTests {
 
   @Test("Property.check convenience method")
   func propertyCheckConvenienceMethod() async {
-    let property = Property.check(Gen<Int>.int) { $0 > Int.min }
+    // Gen<Int>.int emits Int.min itself, for which `> Int.min` is false; the
+    // library was right to report it. `>=` holds for every Int.
+    let property = Property.check(Gen<Int>.int) { $0 >= Int.min }
     let result = await PropertyRunner().runProperty(
       property,
       config: PropertyConfig(iterations: 30)
@@ -236,9 +239,10 @@ struct PropertyTests {
 
   @Test("Property.implies convenience method")
   func propertyImpliesConvenienceMethod() async {
-    // If x > 0, then x * 2 > 0
+    // If x > 0, then x * 2 > 0. Bounded: Gen<Int>.int emits Int.max as an edge
+    // case, for which `* 2` traps rather than disproving the implication.
     let property = Property.implies(
-      Gen<Int>.int,
+      Gen<Int>.int(in: -1_000_000...1_000_000),
       assumption: { $0 > 0 },
       conclusion: { $0 * 2 > 0 }
     )
@@ -273,6 +277,7 @@ struct PropertyTests {
 
     switch result {
     case .success: break  // Should succeed because implication with false assumption is always true
+
     case .failure(let counterexample, _, _, _, _):
       Issue.record("Vacuous implication should not fail with: \(counterexample)")
 
@@ -320,6 +325,7 @@ struct PropertyTests {
 
     switch result {
     case .success: break  // Should succeed because prop2 is always true
+
     case .failure(let counterexample, _, _, _, _):
       Issue.record("Property or combinator failed with: \(counterexample)")
 
@@ -332,7 +338,8 @@ struct PropertyTests {
 
   @Test("PropertyChecker synchronous check")
   func propertyCheckerSynchronousCheck() async {
-    let property = Property<Int>(generator: Gen<Int>.int) { $0 > Int.min }
+    // Gen<Int>.int emits Int.min itself; `>=` holds for every Int.
+    let property = Property<Int>(generator: Gen<Int>.int) { $0 >= Int.min }
     let result = runPropertySynchronously(property, config: PropertyConfig(iterations: 20))
 
     switch result {

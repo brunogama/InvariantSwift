@@ -138,42 +138,42 @@ struct PropertyPerformanceTests {
 
   // MARK: - Concurrent Performance Tests (Task 10)
 
-  @Test("Concurrent performance - parallel property execution")
+  /// Running properties from several tasks at once is safe: every execution
+  /// completes its full iteration count and none interfere.
+  ///
+  /// This does not assert that concurrency is faster, which is not a property of
+  /// the library. `runPropertySynchronously` blocks the thread it runs on, and
+  /// blocking inside task-group children starves Swift's cooperative pool, so
+  /// four concurrent runs measured 1.23s against 0.085s for the same four run
+  /// one after another on a CI runner. The original check compared wall-clock
+  /// against a hardcoded 0.4s, which failed on a slow machine instead.
+  @Test("Concurrent property execution is safe")
   @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
-  func concurrentPerformanceParallelPropertyExecution() async {
+  func concurrentPropertyExecutionIsSafe() async {
+    let iterationCount = 1000
     let property = Property<Int>(generator: Gen<Int>.int) { _ in true }
-    let config = PropertyConfig(iterations: 100)
+    let config = PropertyConfig(iterations: iterationCount)
 
     let concurrentTasks = 4
-    let startTime = CFAbsoluteTimeGetCurrent()
 
-    // Execute multiple properties concurrently
-    await withTaskGroup(of: Void.self) { group in
+    let completed = await withTaskGroup(of: Int.self) { group in
       for _ in 0..<concurrentTasks {
         group.addTask {
-          let result = runPropertySynchronously(property, config: config)
-
-          switch result {
-          case .success(let iterations):
-            #expect(iterations == 100, "Concurrent execution should complete all iterations")
-
-          default:
-            Issue.record("Concurrent property execution should succeed")
+          guard case .success(let iterations) = runPropertySynchronously(property, config: config)
+          else {
+            Issue.record("Property execution should succeed")
+            return 0
           }
+          return iterations
         }
       }
+      return await group.reduce(into: [Int]()) { $0.append($1) }
     }
 
-    let totalDuration = CFAbsoluteTimeGetCurrent() - startTime
-
-    // Concurrent execution should be more efficient than sequential
-    let sequentialEstimate = 0.1 * Double(concurrentTasks)  // Rough estimate
+    #expect(completed.count == concurrentTasks, "Every task should finish")
     #expect(
-      totalDuration < sequentialEstimate * 1.5,
-      """
-      Concurrent execution should show some performance benefit: \
-      \(totalDuration)s vs ~\(sequentialEstimate)s sequential
-      """
+      completed.allSatisfy { $0 == iterationCount },
+      "Every concurrent execution should complete all \(iterationCount) iterations, got \(completed)"
     )
   }
 

@@ -21,13 +21,25 @@ public struct CompileVerificationResult: Sendable {
 public struct CompileVerifier: Sendable {
   private let verbose: Bool
   private let baseDirectory: URL
+  private let moduleSearchPaths: [URL]
 
+  /// - Parameters:
+  ///   - verbose: Print progress while verifying.
+  ///   - baseDirectory: Where the temporary source file is written.
+  ///   - moduleSearchPaths: Directories to search for modules the code imports.
+  ///     Empty by default. This used to be a hardcoded `-I .build/debug`, relative
+  ///     to whatever directory the process happened to run in: inert where no such
+  ///     directory existed, and where one did, it offered swiftc a second copy of
+  ///     modules already loaded, so every snippet failed with "redefinition of
+  ///     module" no matter how valid it was.
   public init(
     verbose: Bool = false,
-    baseDirectory: URL = FileManager.default.temporaryDirectory
+    baseDirectory: URL = FileManager.default.temporaryDirectory,
+    moduleSearchPaths: [URL] = []
   ) {
     self.verbose = verbose
     self.baseDirectory = baseDirectory
+    self.moduleSearchPaths = moduleSearchPaths
   }
 
   /// Verify that generated code compiles
@@ -64,22 +76,31 @@ public struct CompileVerifier: Sendable {
       // Run swiftc -typecheck
       let process = Process()
       process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-      process.arguments = [
+      var arguments = [
         "swiftc",
         "-typecheck",
         tempFile.path,
-        "-I", ".build/debug",  // For module imports
-        "-sdk", sdkPath(),
       ]
+      for searchPath in moduleSearchPaths {
+        arguments += ["-I", searchPath.path]
+      }
+      // Only Apple toolchains select an SDK this way; elsewhere swiftc
+      // finds its own.
+      if let sdk = sdkPath() {
+        arguments += ["-sdk", sdk]
+      }
+      process.arguments = arguments
 
       let pipe = Pipe()
       process.standardError = pipe
       process.standardOutput = pipe
 
       try process.run()
+      // Drain before waiting: swiftc can emit more than one pipe buffer of
+      // diagnostics, and it cannot exit while blocked writing them.
+      let data = pipe.fileHandleForReading.readDataToEndOfFile()
       process.waitUntilExit()
 
-      let data = pipe.fileHandleForReading.readDataToEndOfFile()
       let output = String(data: data, encoding: .utf8) ?? ""
 
       if process.terminationStatus == 0 {
@@ -143,8 +164,13 @@ public struct CompileVerifier: Sendable {
     return errors
   }
 
-  /// Get SDK path for current platform
-  private func sdkPath() -> String {
+  /// The SDK path reported by xcrun, or nil where there is no xcrun.
+  ///
+  /// The launch failure must be handled before touching the pipe: if no child
+  /// was spawned, this process still holds the pipe's write end, and reading
+  /// the read end to EOF would block forever. That hung every test on Linux.
+  private func sdkPath() -> String? {
+    #if os(macOS)
     let process = Process()
     process.executableURL = URL(fileURLWithPath: "/usr/bin/xcrun")
     process.arguments = ["--show-sdk-path"]
@@ -152,11 +178,20 @@ public struct CompileVerifier: Sendable {
     let pipe = Pipe()
     process.standardOutput = pipe
 
-    try? process.run()
+    do {
+      try process.run()
+    } catch {
+      return nil
+    }
+    let data = pipe.fileHandleForReading.readDataToEndOfFile()
     process.waitUntilExit()
 
-    let data = pipe.fileHandleForReading.readDataToEndOfFile()
-    return String(data: data, encoding: .utf8)?
+    let path =
+      String(data: data, encoding: .utf8)?
       .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    return path.isEmpty ? nil : path
+    #else
+    return nil
+    #endif
   }
 }

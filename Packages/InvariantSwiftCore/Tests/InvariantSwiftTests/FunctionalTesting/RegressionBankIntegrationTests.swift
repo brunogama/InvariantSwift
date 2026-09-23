@@ -20,7 +20,10 @@ func testRegressionBankIntegration() async throws {
     propertyId: "testFailingProperty"
   )
 
-  let failingProperty = Property(generator: Gen<Int>.int) { n in
+  // A constant generator makes the failure certain. Drawing 42 from
+  // Gen<Int>.int within 100 iterations was luck, and the test is about the
+  // bank recording the failure, not about the odds of producing it.
+  let failingProperty = Property(generator: Gen<Int>.pure(42)) { n in
     n != 42
   }
 
@@ -64,7 +67,10 @@ func testRegressionReplay() async throws {
     propertyId: "testReplayProperty"
   )
 
-  let property = Property(generator: Gen<Int>.int) { n in
+  // A constant generator makes the replay fail for certain. With Gen<Int>.int
+  // the stored seed would have had to draw 42 on its own, which it does not, so
+  // the replay passed and the assertion below could never hold.
+  let property = Property(generator: Gen<Int>.pure(42)) { n in
     n != 42
   }
 
@@ -73,6 +79,7 @@ func testRegressionReplay() async throws {
 
   switch result {
   case .failure(_, _, let shrunk, _, let seed):
+    // The stored seed, not the runner's own: the regression ran first.
     #expect(seed.rawValue == 999)
 
   case .success, .gaveUp:

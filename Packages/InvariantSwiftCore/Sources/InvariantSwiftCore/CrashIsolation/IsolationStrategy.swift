@@ -85,7 +85,9 @@ public enum IsolationStrategyFactory {
   public static func strategy(for capability: IsolationCapability) -> any IsolationStrategy {
     switch capability {
     case .fullSubprocess:
-      #if canImport(Darwin)
+      // PosixSpawnIsolation does not exist on tvOS and watchOS, where the SDK
+      // marks posix_spawn unavailable. See PosixSpawnIsolation.swift.
+      #if canImport(Darwin) && !os(tvOS) && !os(watchOS)
       if let path = discoverHelperPath() {
         return PosixSpawnIsolation(helperPath: path, timeout: defaultTimeout)
       }

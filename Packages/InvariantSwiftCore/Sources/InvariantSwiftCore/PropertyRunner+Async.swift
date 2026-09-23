@@ -188,9 +188,9 @@ extension PropertyRunner {
       }
 
       // Run predicate with timeout using deadline check
-      let startTime = CFAbsoluteTimeGetCurrent()
+      let startTime = Date().timeIntervalSinceReferenceDate
       let passed = property.predicate(testCase)
-      let elapsed = CFAbsoluteTimeGetCurrent() - startTime
+      let elapsed = Date().timeIntervalSinceReferenceDate - startTime
 
       if elapsed > timeout {
         return .failure(

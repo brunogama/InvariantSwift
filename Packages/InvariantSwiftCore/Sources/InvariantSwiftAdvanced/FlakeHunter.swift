@@ -118,7 +118,7 @@ public actor FlakeHunter {
       withIntermediateDirectories: true
     )
 
-    try await loadPersistedData()
+    await loadPersistedData()
   }
 
   private static func defaultStorageURL() -> URL {
@@ -313,18 +313,28 @@ public actor FlakeHunter {
     try? await persistData()
   }
 
-  private func loadPersistedData() async throws {
+  /// Loads what a previous run persisted, treating anything unreadable as nothing.
+  ///
+  /// This is a record of past runs, not state the hunter needs to be correct, so a
+  /// file it cannot decode is the same to it as no file. It used to throw instead,
+  /// which failed whatever was constructing the hunter: a history truncated by a
+  /// concurrent write took down two tests that never touched flake detection.
+  private func loadPersistedData() async {
     let executionHistoryURL = storageURL.appendingPathComponent("execution_history.json")
     let quarantineURL = storageURL.appendingPathComponent("quarantine.json")
 
-    if FileManager.default.fileExists(atPath: executionHistoryURL.path) {
-      let data = try Data(contentsOf: executionHistoryURL)
-      executionHistory = try JSONDecoder().decode([String: [TestExecution]].self, from: data)
+    if let data = try? Data(contentsOf: executionHistoryURL),
+      let history = try? persistedDataDecoder()
+        .decode([String: [TestExecution]].self, from: data)
+    {
+      executionHistory = history
     }
 
-    if FileManager.default.fileExists(atPath: quarantineURL.path) {
-      let data = try Data(contentsOf: quarantineURL)
-      quarantinedTests = try JSONDecoder().decode([String: QuarantineRecord].self, from: data)
+    if let data = try? Data(contentsOf: quarantineURL),
+      let quarantined = try? persistedDataDecoder()
+        .decode([String: QuarantineRecord].self, from: data)
+    {
+      quarantinedTests = quarantined
     }
   }
 
@@ -333,13 +343,17 @@ public actor FlakeHunter {
     encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
     encoder.dateEncodingStrategy = .iso8601
 
+    // `.atomic`: the default storage is one directory shared by every hunter in the
+    // process, and a plain write leaves the file truncated for as long as it takes to
+    // finish. A hunter constructed on another task meanwhile read exactly that, and
+    // reported the JSON as corrupt.
     let executionHistoryURL = storageURL.appendingPathComponent("execution_history.json")
     let historyData = try encoder.encode(executionHistory)
-    try historyData.write(to: executionHistoryURL)
+    try historyData.write(to: executionHistoryURL, options: .atomic)
 
     let quarantineURL = storageURL.appendingPathComponent("quarantine.json")
     let quarantineData = try encoder.encode(quarantinedTests)
-    try quarantineData.write(to: quarantineURL)
+    try quarantineData.write(to: quarantineURL, options: .atomic)
   }
 }
 
@@ -357,5 +371,18 @@ extension PropertyResult {
     case .gaveUp:
       return .skipped
     }
+  }
+}
+
+// MARK: - Persistence Codec
+
+@available(macOS 13.0, iOS 16.0, tvOS 16.0, watchOS 9.0, *)
+extension FlakeHunter {
+  /// Decoder matching `persistData()`, which writes dates as ISO 8601. A default
+  /// decoder expects a Double and fails on every file the hunter has written.
+  fileprivate func persistedDataDecoder() -> JSONDecoder {
+    let decoder = JSONDecoder()
+    decoder.dateDecodingStrategy = .iso8601
+    return decoder
   }
 }

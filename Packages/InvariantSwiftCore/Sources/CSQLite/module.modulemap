@@ -1,0 +1,7 @@
+// SQLite for platforms whose SDK has no SQLite3 module. Apple SDKs ship
+// SQLite3 as a system module; Linux needs libsqlite3-dev and this map.
+module CSQLite [system] {
+  header "shim.h"
+  link "sqlite3"
+  export *
+}

@@ -16,7 +16,7 @@ jobs:
     name: Build macro (macOS)
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Build arm64
         run: |
@@ -28,7 +28,7 @@ jobs:
           swift build -c release --target $PRODUCT --triple x86_64-apple-macosx
           codesign --sign - --force .build/x86_64-apple-macosx/release/$PRODUCT
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: macos-binaries
           path: |
@@ -40,16 +40,16 @@ jobs:
     name: Build macro (Linux)
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: swift-actions/setup-swift@v2
+      - uses: swift-actions/setup-swift@7ca6abe6b3b0e8b5421b88be48feee39cbf52c6a # v2
         with:
           swift-version: '6.0'
 
       - name: Build Linux x86_64
         run: swift build -c release --target $PRODUCT
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: linux-binary
           path: .build/release/${{ env.PRODUCT }}
@@ -60,14 +60,14 @@ jobs:
     needs: [build-macro-macos, build-macro-linux]
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: macos-binaries
           path: artifacts/macos
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: linux-binary
           path: artifacts/linux
@@ -99,7 +99,7 @@ jobs:
           echo "checksum=$CHECKSUM" >> "$GITHUB_OUTPUT"
           echo "zip=$ZIP" >> "$GITHUB_OUTPUT"
 
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           files: ${{ steps.checksum.outputs.zip }}
         env:

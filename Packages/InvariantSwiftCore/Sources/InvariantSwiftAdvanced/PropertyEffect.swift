@@ -178,6 +178,7 @@ extension IsolationValidation: Equatable {
 
     case (.custom, .custom):
       return false  // Custom functions can't be compared for equality
+
     default:
       return false
     }

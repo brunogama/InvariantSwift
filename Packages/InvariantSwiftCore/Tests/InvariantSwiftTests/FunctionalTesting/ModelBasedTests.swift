@@ -79,6 +79,7 @@ struct ModelBasedTests {
     switch result {
     case .success:
       break  // Invariant held throughout testing
+
     case .failure(let trace, _, let shrunkTrace):
       // If it fails, it should be due to invariant violation
       Issue.record(
@@ -101,6 +102,7 @@ struct ModelBasedTests {
     switch result {
     case .success:
       break  // All tests respected stack size limits
+
     case .failure(let trace, _, let shrunkTrace):
       Issue.record(
         "Stack invariant violated by: \(trace.failedCommand as Any), minimal failing sequence has \(shrunkTrace.commands.count) commands"
@@ -237,6 +239,7 @@ struct ModelBasedTests {
         switch result {
         case .failure:
           break  // Expected
+
         default:
           Issue.record("Result \(index) should also be a failure")
         }
@@ -248,6 +251,7 @@ struct ModelBasedTests {
         switch result {
         case .gaveUp:
           break  // Expected
+
         default:
           Issue.record("Result \(index) should also give up")
         }
@@ -268,6 +272,7 @@ struct ModelBasedTests {
     switch result {
     case .success:
       break  // Integration successful
+
     case .failure(let counterexample, let iterations, let shrunk, _, _):
       Issue.record(
         """

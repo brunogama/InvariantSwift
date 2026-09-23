@@ -12,6 +12,30 @@ struct MacroRuntimeFixtureResult {
 }
 
 enum MacroRuntimeFixtureSupport {
+  /// Whether this toolchain's `swift test` accepts `--attachments-path`.
+  ///
+  /// Not every toolchain does: the CI runners' Swift 6.2.4 rejects it, and passing it
+  /// anyway makes the fixture exit 64 with "Unknown option '--attachments-path'", which
+  /// looks like the macro failing rather than the flag being absent. Asked of the
+  /// toolchain once rather than inferred from a version number.
+  static let supportsAttachmentsPath: Bool = {
+    let process = Process()
+    process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+    process.arguments = ["swift", "test", "--help"]
+    let pipe = Pipe()
+    process.standardOutput = pipe
+    process.standardError = pipe
+    do {
+      try process.run()
+    } catch {
+      return false
+    }
+    // Drain before waiting: --help outruns the pipe buffer on some toolchains.
+    let data = pipe.fileHandleForReading.readDataToEndOfFile()
+    process.waitUntilExit()
+    return String(data: data, encoding: .utf8)?.contains("--attachments-path") ?? false
+  }()
+
   static func makePackage(source: String) throws -> MacroRuntimeFixturePackage {
     let packageDirectory = try repositoryRoot()
       .appendingPathComponent(".build/macro-runtime-fixtures")
@@ -59,14 +83,16 @@ enum MacroRuntimeFixtureSupport {
     var environment = ProcessInfo.processInfo.environment
     environment["TMPDIR"] = package.temporaryDirectory.path + "/"
     process.environment = environment
-    process.arguments = [
+    var arguments = [
       "swift",
       "test",
       "--package-path",
       package.directory.path,
-      "--attachments-path",
-      package.attachmentsDirectory.path,
     ]
+    if supportsAttachmentsPath {
+      arguments += ["--attachments-path", package.attachmentsDirectory.path]
+    }
+    process.arguments = arguments
 
     let pipe = Pipe()
     process.standardOutput = pipe
@@ -119,18 +145,39 @@ enum MacroRuntimeFixtureSupport {
   }
 
   private static func packageManifest() throws -> String {
-    let repoRoot = try repositoryRoot().path
+    let repoRoot = try repositoryRoot()
 
+    // The fixture resolves in its own scratch directory, so on its own it would
+    // re-fetch every transitive dependency of the repository (swift-syntax and
+    // friends) from the network or the SwiftPM cache, and a stale cache has
+    // failed resolution on CI. The parent `swift test` has already checked those
+    // dependencies out at exactly the versions it resolved, and a root package
+    // may override a transitive dependency by declaring a path dependency with
+    // the same identity, so point the fixture at those checkouts. When there are
+    // none (a build that did not go through SwiftPM), resolution proceeds as
+    // before.
+    let checkoutOverrides = checkedOutDependencies(under: repoRoot)
+      .map { "    .package(path: \"\($0.path)\"),\n" }
+      .joined()
+
+    // 6.0, as every manifest in this repository declares, and nothing here needs
+    // more. A tools version is a floor on the toolchain that may build the package,
+    // so 6.2 meant the fixture refused to build wherever `swift` was older than
+    // that: on CI, where it is 6.1, every fixture failed with "is using Swift tools
+    // version 6.2.0 but the installed version is 6.1.0".
     return """
-      // swift-tools-version: 6.2
+      // swift-tools-version: 6.0
       import PackageDescription
 
       let package = Package(
         name: "MacroRuntimeFixture",
         platforms: [.macOS(.v14)],
         dependencies: [
-          .package(path: "\(repoRoot)")
-        ],
+          // `name:` pins the package name the targets below refer to. Without
+          // it SwiftPM derives the name from the directory, which is only
+          // "InvariantSwift" when the checkout happens to be called that.
+          .package(name: "InvariantSwift", path: "\(repoRoot.path)"),
+      \(checkoutOverrides)  ],
         targets: [
           .testTarget(
             name: "FixtureTests",
@@ -143,6 +190,29 @@ enum MacroRuntimeFixtureSupport {
         ]
       )
       """
+  }
+
+  /// The dependency checkouts the parent SwiftPM build has already fetched.
+  ///
+  /// SwiftPM derives a path dependency's identity from the directory name,
+  /// which for a checkout is the repository name, so each of these matches the
+  /// identity of the URL dependency it overrides.
+  private static func checkedOutDependencies(under repoRoot: URL) -> [URL] {
+    let checkouts = repoRoot.appendingPathComponent(".build/checkouts")
+    let fileManager = FileManager.default
+    guard
+      let entries = try? fileManager.contentsOfDirectory(
+        at: checkouts,
+        includingPropertiesForKeys: [.isDirectoryKey]
+      )
+    else {
+      return []
+    }
+
+    return
+      entries
+      .filter { fileManager.fileExists(atPath: $0.appendingPathComponent("Package.swift").path) }
+      .sorted { $0.lastPathComponent < $1.lastPathComponent }
   }
 
   private static func repositoryRoot() throws -> URL {

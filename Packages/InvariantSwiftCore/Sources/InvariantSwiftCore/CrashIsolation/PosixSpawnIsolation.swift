@@ -4,7 +4,10 @@
 import Foundation
 import Dispatch
 
-#if canImport(Darwin)
+// spawn.h declares posix_spawn as __API_UNAVAILABLE(watchos, tvos), so
+// canImport(Darwin) is too wide a guard: it admits tvOS and watchOS, where
+// every posix_spawn symbol used here fails to compile.
+#if canImport(Darwin) && !os(tvOS) && !os(watchOS)
 import Darwin
 
 // MARK: - PosixSpawnIsolation
@@ -379,4 +382,4 @@ public struct PosixSpawnIsolation: IsolationStrategy, Sendable {
   }
 }
 
-#endif  // canImport(Darwin)
+#endif  // canImport(Darwin) && !os(tvOS) && !os(watchOS)

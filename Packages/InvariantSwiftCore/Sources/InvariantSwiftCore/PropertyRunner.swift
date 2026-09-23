@@ -87,41 +87,32 @@ public actor PropertyRunner {
   public func runProperty<T>(
     _ property: Property<T>,
     config: PropertyConfig = .default
-  ) -> PropertyResult<T> {
-    // Check for FailingExampleDatabase first (newer API)
+  ) async -> PropertyResult<T> {
+    // The database-backed paths are async. This used to bridge them with a
+    // DispatchSemaphore: spawn a Task, then wait on the actor's own thread.
+    // A Task created inside an actor method inherits that actor, so it could
+    // not run until the method returned, and the method was waiting for it.
+    // Every call that took either branch deadlocked. Awaiting them directly
+    // is what the actor already asks of its callers.
     if let database = config.failingExampleDatabase,
       let testID = config.testIdentifier
     {
-      let semaphore = DispatchSemaphore(value: 0)
-      var result: PropertyResult<T>!
-      Task {
-        result = await runPropertyWithFailingExamples(
-          property,
-          config: config,
-          database: database,
-          testID: testID
-        )
-        semaphore.signal()
-      }
-      semaphore.wait()
-      return result
+      return await runPropertyWithFailingExamples(
+        property,
+        config: config,
+        database: database,
+        testID: testID
+      )
     }
 
     // Legacy RegressionBank path
     if let bank = config.regressionBank, let propertyId = config.propertyId {
-      let semaphore = DispatchSemaphore(value: 0)
-      var result: PropertyResult<T>!
-      Task {
-        result = await runPropertyWithRegressions(
-          property,
-          config: config,
-          bank: bank,
-          propertyId: propertyId
-        )
-        semaphore.signal()
-      }
-      semaphore.wait()
-      return result
+      return await runPropertyWithRegressions(
+        property,
+        config: config,
+        bank: bank,
+        propertyId: propertyId
+      )
     }
     return runPropertyCore(property, config: config)
   }
@@ -137,7 +128,10 @@ public actor PropertyRunner {
 
     for regressionSeed in seedsToReplay {
       let regressionRunner = PropertyRunner(seed: regressionSeed)
-      let regressionResult = await regressionRunner.runProperty(property, config: config)
+      // `runPropertyCore`, not `runProperty`: the config still names this bank,
+      // so going back through `runProperty` re-entered this method, replayed the
+      // same seeds and recursed until the process ran out of memory.
+      let regressionResult = await regressionRunner.runPropertyCore(property, config: config)
 
       switch regressionResult {
       case .failure:

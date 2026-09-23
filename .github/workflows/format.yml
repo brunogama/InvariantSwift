@@ -9,6 +9,9 @@ on:
       - '*'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 concurrency:
   group: format-${{ github.ref }}
   cancel-in-progress: true
@@ -18,13 +21,13 @@ jobs:
     name: swift-format
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Install swift-format
-        run: brew install swift-format
+      - name: Install formatting tools
+        run: brew install just swift-format swiftlint
       - name: Format code
-        run: make format
+        run: just format
       - name: Commit changes
         run: |
           git config --local user.email "action@github.com"

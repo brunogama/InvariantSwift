@@ -548,7 +548,7 @@ struct NumericGeneratorTests {
   func intShrinkingBehaviorValidation() async {
     let property = Property<Int>(generator: Gen<Int>.int) { value in
       // Property that should fail for most values to test shrinking
-      abs(value) < 5
+      value.magnitude < 5
     }
 
     let result = await PropertyRunner().runProperty(
@@ -559,7 +559,7 @@ struct NumericGeneratorTests {
     if case .failure(let counterexample, _, let shrunk, _, _) = result {
       // Verify that shrinking moves toward zero
       #expect(
-        abs(shrunk) <= abs(counterexample),
+        shrunk.magnitude <= counterexample.magnitude,
         "Shrunk value should be closer to zero: original \(counterexample), shrunk \(shrunk)"
       )
     } else {

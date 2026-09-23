@@ -36,8 +36,9 @@ jobs:
   lint:
     name: SwiftLint
     runs-on: macos-15
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Install SwiftLint
         run: brew install swiftlint
       - name: Lint
@@ -46,28 +47,24 @@ jobs:
   format-check:
     name: swift-format
     runs-on: macos-15
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - name: Install swift-format
-        run: brew install swift-format
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Install formatting tools
+        run: brew install just swift-format
       - name: Check formatting
-        run: |
-          swift-format lint --configuration .swift-format --recursive \
-            ./Package.swift ./Sources ./Tests
-          if [ $? -ne 0 ]; then
-            echo "❌ Code is not formatted. Run 'make format' to fix."
-            exit 1
-          fi
+        run: just format-check
 
   test:
     name: Tests
     runs-on: macos-15
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Select Xcode 16.4
         run: sudo xcode-select -s /Applications/Xcode_16.4.app
       - name: Cache derived data
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ~/.derivedData
           key: test-${{ hashFiles('**/Sources/**/*.swift', '**/Tests/**/*.swift') }}
@@ -86,7 +83,7 @@ jobs:
     timeout-minutes: 120  # Mutation testing can be lengthy
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0  # Full history for diff analysis
 
@@ -108,11 +105,11 @@ jobs:
           CHANGED_FILES=$(git diff --name-only HEAD~1...HEAD | \
             grep -E '^Sources/.*\.swift$' | \
             tr '\n' ',' | sed 's/,$//')
-          echo "files=$CHANGED_FILES" >> $GITHUB_OUTPUT
+          echo "files=$CHANGED_FILES" >> "$GITHUB_OUTPUT"
           echo "Changed source files: $CHANGED_FILES"
 
       - name: Cache derived data
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: |
             ~/.derivedData
@@ -173,7 +170,7 @@ jobs:
           # Extract mutation score
           if [ -f muter-results.json ]; then
             SCORE=$(jq -r '.globalMutationScore // 0' muter-results.json)
-            echo "score=$SCORE" >> $GITHUB_OUTPUT
+            echo "score=$SCORE" >> "$GITHUB_OUTPUT"
             echo "Mutation Score: $SCORE%"
           fi
         continue-on-error: true
@@ -194,13 +191,13 @@ jobs:
           # Extract mutation score
           if [ -f muter-results.json ]; then
             SCORE=$(jq -r '.globalMutationScore // 0' muter-results.json)
-            echo "score=$SCORE" >> $GITHUB_OUTPUT
+            echo "score=$SCORE" >> "$GITHUB_OUTPUT"
             echo "Mutation Score: $SCORE%"
           fi
         continue-on-error: true
 
       - name: Upload Mutation Report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: mutation-report
@@ -212,7 +209,7 @@ jobs:
 
       - name: Comment PR with Results
         if: github.event_name == 'pull_request' && (steps.muter-changed.outputs.score || steps.muter-full.outputs.score)
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           script: |
             const fs = require('fs');
@@ -285,7 +282,7 @@ jobs:
 
       - name: Create or Update Issue on Failure
         if: failure()
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |

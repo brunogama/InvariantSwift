@@ -4,7 +4,6 @@
 //   Packages/InvariantSwiftCore   (core + generators + execution + advanced + domain)
 //   Packages/InvariantSwiftMacros (macros + ghostwriter)
 // The root package exports these libraries directly, similar to swift-syntax.
-// swiftlint:disable all
 import PackageDescription
 import CompilerPluginSupport
 
@@ -68,9 +67,20 @@ let coreTargets: [Target] = [
     path: "Packages/InvariantSwiftCore/Sources/InvariantSwiftGenerators",
     swiftSettings: commonSwiftSettings
   ),
+  // SQLite for Linux, where the SDK has no SQLite3 module. Apple platforms
+  // import the system module directly, so the dependency is Linux-only.
+  .systemLibrary(
+    name: "CSQLite",
+    path: "Packages/InvariantSwiftCore/Sources/CSQLite",
+    pkgConfig: "sqlite3",
+    providers: [.apt(["libsqlite3-dev"]), .brew(["sqlite3"])]
+  ),
   .target(
     name: "InvariantSwiftExecution",
-    dependencies: ["InvariantSwiftCore"],
+    dependencies: [
+      "InvariantSwiftCore",
+      .target(name: "CSQLite", condition: .when(platforms: [.linux])),
+    ],
     path: "Packages/InvariantSwiftCore/Sources/InvariantSwiftExecution",
     swiftSettings: commonSwiftSettings
   ),
@@ -274,6 +284,10 @@ let testTargets: [Target] = [
       "InvariantSwiftAdvanced",
       "InvariantSwiftTesting",
       "InvariantSwiftMacroAPI",
+      // Xcode links the macro implementation's testable variant into test
+      // bundles that reach it only transitively, but without linking that
+      // macro's own dependencies (swiftlang/swift-package-manager#10224).
+      "InvariantSwiftExpansionSupport",
     ],
     path: "Tests/GeneratedPropertyTests",
     swiftSettings: commonSwiftSettings
@@ -298,6 +312,8 @@ let testTargets: [Target] = [
       "InvariantSwiftAdvanced",
       "InvariantSwiftTesting",
       "InvariantSwiftMacroAPI",
+      // See GeneratedPropertyTests: swiftlang/swift-package-manager#10224.
+      "InvariantSwiftExpansionSupport",
     ],
     path: "Tests/SmokeTests",
     swiftSettings: commonSwiftSettings

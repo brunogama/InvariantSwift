@@ -5,9 +5,10 @@ on:
     branches:
       - main
   pull_request:
-    branches:
-      - '*'
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -20,12 +21,13 @@ jobs:
   build-core:
     name: Build Core (No SwiftSyntax)
     runs-on: macos-15
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Select Xcode 16.4
         run: sudo xcode-select -s /Applications/Xcode_16.4.app
       - name: Cache SwiftPM
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: |
             ~/.swiftpm
@@ -41,17 +43,21 @@ jobs:
   build-macros:
     name: Build Macros (SwiftSyntax)
     runs-on: macos-15
+    # Raised from 20 with the test step below: four of these tests generate a package
+    # and run `swift test` inside it, which took 78s of the 83s total on 14 cores and
+    # will take considerably longer on a runner with three.
+    timeout-minutes: 35
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Select Xcode 16.4
         run: sudo xcode-select -s /Applications/Xcode_16.4.app
       - name: Cache SwiftSyntax Prebuilts
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ~/.swiftpm/swift-syntax-prebuilts
           key: swift-syntax-prebuilts-${{ runner.os }}
       - name: Cache SwiftPM
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: |
             ~/.swiftpm
@@ -61,50 +67,66 @@ jobs:
             swiftpm-macros-${{ runner.os }}-
       - name: Build InvariantSwiftMacros with Prebuilts
         run: swift build --package-path Packages/InvariantSwiftMacros --enable-experimental-prebuilts
-      # NOTE: Tests not migrated yet - uncomment when ready
-      # - name: Test InvariantSwiftMacros
-      #   run: swift test --package-path Packages/InvariantSwiftMacros --enable-experimental-prebuilts
+      - name: Test InvariantSwiftMacros
+        run: swift test --package-path Packages/InvariantSwiftMacros --enable-experimental-prebuilts
 
   # MARK: - Linux Tests
   swift-test-linux:
     name: swift test (Linux)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     container:
       image: swift:6.2-jammy
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Install SQLite headers
+        # The CSQLite system-library target resolves sqlite3 through
+        # pkg-config; the swift image ships neither the headers nor pkg-config.
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends libsqlite3-dev pkg-config
       - name: Test on Linux
-        run: swift test | xcbeautify || true
+        # Plain `swift test`. This used to be `swift test | xcbeautify || true`:
+        # xcbeautify is not installed in this image, so the pipe failed on
+        # every run, and `|| true` then reported success regardless. The job
+        # stayed green through a hard compile error on Linux.
+        run: swift test
 
   macro-golden-tests:
     name: Macro Golden Tests
     runs-on: macos-15
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Select Xcode 16.4
         run: sudo xcode-select -s /Applications/Xcode_16.4.app
       - name: Setup Swift 6.2.4
-        uses: swift-actions/setup-swift@v3
+        uses: swift-actions/setup-swift@364295d9c23900ce04d4e5cc708387921b4e50f9 # v3
         with:
           swift-version: '6.2.4'
       - name: Run Macro Golden Tests
-        run: swift test --filter MacroGoldenTests
+        # The golden tests live in the macros package, and the root package does not
+        # declare a target for them, so without --package-path this matched nothing:
+        # `swift test --filter MacroGoldenTests` printed "No matching test cases were
+        # run", exited 0, and this job was green while running no tests at all.
+        run: swift test --package-path Packages/InvariantSwiftMacros --filter MacroGoldenTests
 
   # MARK: - Integration Tests (after sub-packages build)
   integration:
     name: Integration Tests
     runs-on: macos-15
+    timeout-minutes: 30
     needs: [build-core, build-macros]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Select Xcode 16.4
         run: sudo xcode-select -s /Applications/Xcode_16.4.app
       - name: Setup Swift 6.2.4
-        uses: swift-actions/setup-swift@v3
+        uses: swift-actions/setup-swift@364295d9c23900ce04d4e5cc708387921b4e50f9 # v3
         with:
           swift-version: '6.2.4'
       - name: Cache SwiftSyntax Prebuilts
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ~/.swiftpm/swift-syntax-prebuilts
           key: swift-syntax-prebuilts-${{ runner.os }}
@@ -115,33 +137,31 @@ jobs:
 
   # MARK: - Xcode Platform Tests
   xcodebuild-latest:
-    name: xcodebuild (16.4)
+    name: xcodebuild (26.3)
     runs-on: macos-15
+    timeout-minutes: 45
     strategy:
       matrix:
         command: [test, '']
         platform: [IOS, MACOS, TVOS]
-        xcode: ['16.4']
+        xcode: ['26.3']
     steps:
-      - uses: actions/checkout@v4
-      - name: Select Xcode ${{ matrix.xcode }}
-        run: sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode }}.app
-      - name: Setup Swift 6.2.4
-        uses: swift-actions/setup-swift@v3
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      # Xcode 26 bundles Swift 6.2, the minimum for the Testing.Attachment
+      # API used by InvariantSwiftTestingIntegration. Use Xcode's own
+      # toolchain rather than pointing xcodebuild at a swiftly-provisioned
+      # one via -toolchain: that combination fails package resolution with
+      # "unable to execute command: <unknown>" (exit 74).
+      - name: Setup Xcode ${{ matrix.xcode }}
+        uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1
         with:
-          swift-version: '6.2.4'
-      - name: Export Swift toolchain for xcodebuild
-        run: |
-          SWIFT_TOOLCHAIN_PATH="$(swiftly use --print-location)"
-          TOOLCHAIN_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$SWIFT_TOOLCHAIN_PATH/Info.plist")"
-          echo "TOOLCHAINS=$TOOLCHAIN_ID" >> "$GITHUB_ENV"
-          echo "Using Swift toolchain: $TOOLCHAIN_ID"
+          xcode-version: ${{ matrix.xcode }}
       - name: Update xcbeautify
         run: brew update && brew upgrade xcbeautify
       - name: List available devices
         run: xcrun simctl list devices available
       - name: Cache derived data
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: |
             ~/.derivedData
@@ -152,7 +172,7 @@ jobs:
       - name: Set IgnoreFileSystemDeviceInodeChanges flag
         run: defaults write com.apple.dt.XCBuild IgnoreFileSystemDeviceInodeChanges -bool YES
       - name: Update mtime for incremental builds
-        uses: chetan/git-restore-mtime-action@v2
+        uses: chetan/git-restore-mtime-action@d186aca54f8760da4dec55313195e51ed3ebb0b3 # v2
       - name: Build and Test
         run: |
           if [ "${{ matrix.command }}" = "test" ]; then
@@ -161,7 +181,6 @@ jobs:
                 set -o pipefail
                 xcodebuild test \
                   -scheme InvariantSwift \
-                  -toolchain "$TOOLCHAINS" \
                   -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=latest' \
                   | xcbeautify
                 ;;
@@ -169,7 +188,6 @@ jobs:
                 set -o pipefail
                 xcodebuild test \
                   -scheme InvariantSwift \
-                  -toolchain "$TOOLCHAINS" \
                   -destination 'platform=macOS' \
                   | xcbeautify
                 ;;
@@ -177,7 +195,6 @@ jobs:
                 set -o pipefail
                 xcodebuild test \
                   -scheme InvariantSwift \
-                  -toolchain "$TOOLCHAINS" \
                   -destination 'platform=tvOS Simulator,name=Apple TV 4K (3rd generation),OS=latest' \
                   | xcbeautify
                 ;;
@@ -189,8 +206,9 @@ jobs:
   lint:
     name: SwiftLint
     runs-on: macos-15
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Install SwiftLint
         run: brew install swiftlint
       - name: Lint
@@ -199,8 +217,9 @@ jobs:
   format-check:
     name: swift-format
     runs-on: macos-15
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Install swift-format
         run: brew install swift-format
       - name: Check formatting
@@ -212,7 +231,7 @@ jobs:
             ./Package.swift ./Sources ./Tests
           # Check if any files were modified
           if ! git diff --quiet; then
-            echo "❌ Code is not formatted. Run 'make format' to fix."
+            echo "❌ Code is not formatted. Run 'just format' to fix."
             echo "Files that need formatting:"
             git diff --name-only
             git diff
@@ -224,12 +243,22 @@ jobs:
   coverage:
     name: Code Coverage
     runs-on: macos-15
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Setup Swift
-        uses: swift-actions/setup-swift@v3
+        uses: swift-actions/setup-swift@364295d9c23900ce04d4e5cc708387921b4e50f9 # v3
         with:
           swift-version: '6.2.4'
+      - name: Cache SwiftPM
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            ~/.swiftpm
+            .build
+          key: swiftpm-coverage-${{ runner.os }}-${{ hashFiles('**/Sources/**/*.swift', '**/Tests/**/*.swift') }}
+          restore-keys: |
+            swiftpm-coverage-${{ runner.os }}-
       - name: Swift Version
         run: swift --version
       - name: Run tests with coverage
@@ -245,7 +274,7 @@ jobs:
             "$TEST_BINARY" \
             -instr-profile .build/debug/codecov/default.profdata > coverage.lcov
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238 # v4
         with:
           file: ./coverage.lcov
           flags: unittests

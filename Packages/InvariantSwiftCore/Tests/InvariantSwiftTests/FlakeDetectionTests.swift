@@ -4,6 +4,17 @@ import Testing
 @testable import InvariantSwiftCore
 @testable import InvariantSwiftAdvanced
 
+/// A directory of this test's own for the hunter to persist into.
+///
+/// Without one every hunter shares a single directory under Application Support:
+/// tests running in parallel overwrite each other's history there, runs accumulate
+/// into it forever, and a file left truncated by one test failed another that had
+/// nothing to do with flake detection.
+private func isolatedStorage() -> URL {
+  FileManager.default.temporaryDirectory
+    .appendingPathComponent("flake-detection-tests-\(UUID().uuidString)")
+}
+
 @Suite("Flake Detection Tests")
 struct FlakeDetectionTests {
 
@@ -139,7 +150,7 @@ struct FlakeDetectionTests {
     let result = try await runPropertyWithFlakeDetection(
       property,
       config: PropertyConfig(iterations: 10),
-      flakeConfig: FlakeDetectionConfig(runs: 20),
+      flakeConfig: FlakeDetectionConfig(runs: 20, storageURL: isolatedStorage()),
       testId: "stable-test"
     )
 
@@ -157,7 +168,7 @@ struct FlakeDetectionTests {
     let result = try await runPropertyWithFlakeDetection(
       property,
       config: PropertyConfig(iterations: 10),
-      flakeConfig: FlakeDetectionConfig(runs: 20),
+      flakeConfig: FlakeDetectionConfig(runs: 20, storageURL: isolatedStorage()),
       testId: "failing-test"
     )
 
@@ -175,15 +186,21 @@ struct FlakeDetectionTests {
       (n % 2) != 0
     }
 
+    // One iteration per run, so a run passes exactly when its single draw is odd:
+    // about half of them. At five iterations a run had to draw five odd values to
+    // pass, which is a 1-in-32 chance, and all 50 runs failing (leaving no passes
+    // for the assertion below) came up about a fifth of the time.
     let result = try await runPropertyWithFlakeDetection(
       property,
-      config: PropertyConfig(iterations: 5, seed: nil),
-      flakeConfig: FlakeDetectionConfig(runs: 50, flakinessThreshold: 0.01),
+      config: PropertyConfig(iterations: 1, seed: nil),
+      flakeConfig: FlakeDetectionConfig(
+        runs: 50,
+        flakinessThreshold: 0.01,
+        storageURL: isolatedStorage()
+      ),
       testId: "flaky-test"
     )
 
-    // With random seeds, we expect approximately 50% failures
-    // Verify we detected flakiness
     #expect(result.failures > 0)
     #expect(result.passes > 0)
     #expect(result.isFlaky == true)
@@ -199,7 +216,7 @@ struct FlakeDetectionTests {
     let result = try await runPropertyWithFlakeDetection(
       property,
       config: PropertyConfig(iterations: 1),
-      flakeConfig: FlakeDetectionConfig(runs: 5, seeds: seeds),
+      flakeConfig: FlakeDetectionConfig(runs: 5, seeds: seeds, storageURL: isolatedStorage()),
       testId: "seed-tracking-test"
     )
 
@@ -217,8 +234,10 @@ struct FlakeDetectionTests {
     let result = try await runPropertyWithFlakeDetection(
       property,
       config: PropertyConfig(iterations: 5),
-      flakeConfig: FlakeDetectionConfig(runs: 30),
-      testId: "statistics-test"
+      flakeConfig: FlakeDetectionConfig(runs: 30, storageURL: isolatedStorage()),
+      // Unique per run: the hunter persists history by testId, so a fixed id
+      // would count executions from every earlier run as well.
+      testId: "statistics-test-\(UUID().uuidString)"
     )
 
     // FlakeHunter should have recorded statistics

@@ -42,6 +42,20 @@ struct FinalCoverageValidationTests {
   }
 
   func currentMemoryUsage() -> UInt64 {
+    #if !canImport(Darwin)
+    // Mach task_info is Darwin-only. On Linux the kernel reports the same
+    // figure as the VmRSS line of /proc/self/status, in kibibytes.
+    guard let status = try? String(contentsOfFile: "/proc/self/status", encoding: .utf8) else {
+      return 0
+    }
+    for line in status.split(separator: "\n") where line.hasPrefix("VmRSS:") {
+      let fields = line.split(whereSeparator: { $0 == " " || $0 == "\t" })
+      if fields.count >= 2, let kib = UInt64(fields[1]) {
+        return kib * 1024
+      }
+    }
+    return 0
+    #else
     var info = mach_task_basic_info()
     var count = mach_msg_type_number_t(MemoryLayout<mach_task_basic_info>.size) / 4
 
@@ -61,6 +75,7 @@ struct FinalCoverageValidationTests {
     }
 
     return info.resident_size
+    #endif
   }
 
   func requireMeasuredCoverage(

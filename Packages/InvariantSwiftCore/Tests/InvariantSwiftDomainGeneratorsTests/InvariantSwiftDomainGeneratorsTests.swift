@@ -3,7 +3,9 @@ import InvariantSwiftCore
 import InvariantSwift
 import InvariantSwiftDomainGenerators
 
-@Suite("Fakery Generators Tests")
+// Serialized: these tests set and reset the process-global FakeConfig, so run
+// in parallel one test's reset lands in the middle of another's sampling.
+@Suite("Fakery Generators Tests", .serialized)
 struct FakeryGeneratorsTests {
   // MARK: - Name Generators
 

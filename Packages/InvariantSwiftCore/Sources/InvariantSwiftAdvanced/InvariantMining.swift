@@ -248,6 +248,7 @@ public enum StateValue: Sendable, Hashable, CustomStringConvertible {
     case .dictionary(let dict):
       let pairs = dict.map { "\($0): \($1)" }.joined(separator: ", ")
       return "{\(pairs)}"
+
     case .null: return "null"
     }
   }

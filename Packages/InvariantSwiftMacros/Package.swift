@@ -75,6 +75,31 @@ let package = Package(
       swiftSettings: commonSwiftSettings
     ),
 
+    // MARK: - Ghostwriter (source generation from SwiftSyntax)
+    // These sources live in this package, but only the root package declared
+    // targets for them, so this package's own MacroIntegrationTests imported a
+    // module that did not exist here and the test suite could not build.
+    .target(
+      name: "GhostwriterLib",
+      dependencies: [
+        "InvariantSwiftExpansionSupport",
+        .product(name: "SwiftParser", package: "swift-syntax"),
+        .product(name: "SwiftSyntax", package: "swift-syntax"),
+      ],
+      path: "Sources/GhostwriterLib",
+      swiftSettings: commonSwiftSettings
+    ),
+    .executableTarget(
+      name: "GhostwriterCLI",
+      dependencies: [
+        "GhostwriterLib",
+        .product(name: "SwiftParser", package: "swift-syntax"),
+        .product(name: "SwiftSyntax", package: "swift-syntax"),
+      ],
+      path: "Sources/GhostwriterCLI",
+      swiftSettings: commonSwiftSettings
+    ),
+
     // MARK: - Layer 2: Macro API (Public Interface)
     // Client-facing API that re-exports macro declarations
     .target(
@@ -95,6 +120,9 @@ let package = Package(
       dependencies: [
         "InvariantSwiftMacros",
         .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
+        // For recording golden files: the same expansion assertMacroExpansion runs.
+        .product(name: "SwiftParser", package: "swift-syntax"),
+        .product(name: "SwiftSyntaxMacroExpansion", package: "swift-syntax"),
       ],
       path: "Tests/InvariantSwiftMacroTests",
       resources: [.copy("Resources")],
@@ -104,6 +132,11 @@ let package = Package(
       name: "MacroIntegrationTests",
       dependencies: [
         "InvariantSwiftMacroAPI",
+        // GhostwriterLib is imported by these tests; GhostwriterCLI is not, but
+        // one test runs the built binary and skips when it is absent, so the
+        // dependency is what makes that test actually run.
+        "GhostwriterLib",
+        "GhostwriterCLI",
         .product(name: "InvariantSwift", package: "InvariantSwiftCore"),
         .product(name: "InvariantSwiftAdvanced", package: "InvariantSwiftCore"),
       ],

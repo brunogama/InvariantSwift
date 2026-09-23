@@ -22,7 +22,20 @@
 
 import Foundation
 import InvariantSwiftCore
+
+// Apple SDKs provide SQLite3 as a system module. Linux does not, so the
+// CSQLite system-library target maps libsqlite3-dev to the same C API.
+#if canImport(SQLite3)
 import SQLite3
+#else
+import CSQLite
+#endif
+
+// SQLITE_TRANSIENT is a macro, so Swift cannot import it. Swift bridges a String
+// argument to a C string that lives only for the duration of the call, so a
+// bound text must be copied by SQLite (this destructor) rather than kept by
+// pointer (nil, i.e. SQLITE_STATIC), or sqlite3_step later reads freed memory.
+private let sqliteTransient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
 
 // MARK: - Core Types
 
@@ -325,23 +338,25 @@ public actor CorpusDatabase {
     let metadataData = try encoder.encode(entry.metadata)
     let discoveredString = ISO8601DateFormatter().string(from: entry.discovered)
 
-    sqlite3_bind_text(statement, 1, entry.id.uuidString, -1, nil)
-    sqlite3_bind_text(statement, 2, key.propertyHash, -1, nil)
-    sqlite3_bind_text(statement, 3, key.generatorFingerprint, -1, nil)
-    sqlite3_bind_text(statement, 4, key.inputTypeSignature, -1, nil)
+    sqlite3_bind_text(statement, 1, entry.id.uuidString, -1, sqliteTransient)
+    sqlite3_bind_text(statement, 2, key.propertyHash, -1, sqliteTransient)
+    sqlite3_bind_text(statement, 3, key.generatorFingerprint, -1, sqliteTransient)
+    sqlite3_bind_text(statement, 4, key.inputTypeSignature, -1, sqliteTransient)
     sqlite3_bind_int64(statement, 5, Int64(entry.seed))
-    sqlite3_bind_text(statement, 6, String(data: minimalData, encoding: .utf8), -1, nil)
+    sqlite3_bind_text(statement, 6, String(data: minimalData, encoding: .utf8), -1, sqliteTransient)
 
     if let originalData = originalData {
-      sqlite3_bind_text(statement, 7, String(data: originalData, encoding: .utf8), -1, nil)
+      let original = String(data: originalData, encoding: .utf8)
+      sqlite3_bind_text(statement, 7, original, -1, sqliteTransient)
     } else {
       sqlite3_bind_null(statement, 7)
     }
 
-    sqlite3_bind_text(statement, 8, discoveredString, -1, nil)
+    sqlite3_bind_text(statement, 8, discoveredString, -1, sqliteTransient)
     sqlite3_bind_int(statement, 9, Int32(entry.shrinkSteps))
-    sqlite3_bind_text(statement, 10, entry.classification.rawValue, -1, nil)
-    sqlite3_bind_text(statement, 11, String(data: metadataData, encoding: .utf8), -1, nil)
+    sqlite3_bind_text(statement, 10, entry.classification.rawValue, -1, sqliteTransient)
+    let metadata = String(data: metadataData, encoding: .utf8)
+    sqlite3_bind_text(statement, 11, metadata, -1, sqliteTransient)
     sqlite3_bind_double(statement, 12, entry.executionTime)
     sqlite3_bind_double(statement, 13, entry.priority)
 
@@ -394,7 +409,7 @@ public actor CorpusDatabase {
     for (index, param) in parameters.enumerated() {
       switch param {
       case let stringValue as String:
-        sqlite3_bind_text(statement, Int32(index + 1), stringValue, -1, nil)
+        sqlite3_bind_text(statement, Int32(index + 1), stringValue, -1, sqliteTransient)
 
       case let intValue as Int:
         sqlite3_bind_int(statement, Int32(index + 1), Int32(intValue))
@@ -481,9 +496,9 @@ public actor CorpusDatabase {
       throw CorpusDatabaseError.prepareFailed(String(cString: sqlite3_errmsg(db)))
     }
 
-    sqlite3_bind_text(statement, 1, key.propertyHash, -1, nil)
-    sqlite3_bind_text(statement, 2, key.generatorFingerprint, -1, nil)
-    sqlite3_bind_text(statement, 3, key.inputTypeSignature, -1, nil)
+    sqlite3_bind_text(statement, 1, key.propertyHash, -1, sqliteTransient)
+    sqlite3_bind_text(statement, 2, key.generatorFingerprint, -1, sqliteTransient)
+    sqlite3_bind_text(statement, 3, key.inputTypeSignature, -1, sqliteTransient)
 
     guard sqlite3_step(statement) == SQLITE_DONE else {
       throw CorpusDatabaseError.executionFailed(String(cString: sqlite3_errmsg(db)))
@@ -586,7 +601,7 @@ public actor CorpusDatabase {
     }
 
     for (index, param) in parameters.enumerated() {
-      sqlite3_bind_text(statement, Int32(index + 1), param, -1, nil)
+      sqlite3_bind_text(statement, Int32(index + 1), param, -1, sqliteTransient)
     }
 
     guard sqlite3_step(statement) == SQLITE_ROW else {
@@ -605,7 +620,7 @@ public actor CorpusDatabase {
     }
 
     for (index, param) in parameters.enumerated() {
-      sqlite3_bind_text(statement, Int32(index + 1), param, -1, nil)
+      sqlite3_bind_text(statement, Int32(index + 1), param, -1, sqliteTransient)
     }
 
     guard sqlite3_step(statement) == SQLITE_ROW else {
@@ -624,7 +639,7 @@ public actor CorpusDatabase {
     }
 
     for (index, param) in parameters.enumerated() {
-      sqlite3_bind_text(statement, Int32(index + 1), param, -1, nil)
+      sqlite3_bind_text(statement, Int32(index + 1), param, -1, sqliteTransient)
     }
 
     guard sqlite3_step(statement) == SQLITE_ROW,
@@ -733,7 +748,7 @@ extension PropertyRunner {
     }
 
     // Run normal property test
-    let result = runProperty(property, config: config)
+    let result = await runProperty(property, config: config)
 
     // Store interesting results
     switch result {

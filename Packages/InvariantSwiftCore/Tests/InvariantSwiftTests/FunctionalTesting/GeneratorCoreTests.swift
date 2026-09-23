@@ -251,8 +251,10 @@ struct GeneratorCoreTests {
 
   @Test("Nested Generator Composition")
   func nestedGeneratorComposition() async {
+    // Bounded: Gen<Int>.int emits Int.max and Int.min as edge cases, and the
+    // `$0 * 2` below traps on them. The test is about composition, not extremes.
     let property = Property<String>(
-      generator: Gen<Int>.int
+      generator: Gen<Int>.int(in: -1_000_000...1_000_000)
         .map { $0 * 2 }
         .map { String($0) }
         .flatMap { s in Gen.pure("Value: \(s)") }

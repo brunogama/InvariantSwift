@@ -171,7 +171,9 @@ public enum FailingExampleConfig {
 extension URL {
   /// Default location: ~/.invariant/examples/
   public static var defaultFailingExampleURL: URL {
-    let home = FileManager.default.homeDirectoryForCurrentUser
+    // NSHomeDirectory resolves on every supported platform; FileManager's
+    // homeDirectoryForCurrentUser is unavailable on iOS, tvOS and watchOS.
+    let home = URL(fileURLWithPath: NSHomeDirectory(), isDirectory: true)
     return home.appendingPathComponent(".invariant").appendingPathComponent("examples")
   }
 }

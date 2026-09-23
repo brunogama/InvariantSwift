@@ -109,6 +109,7 @@ struct RunFromTokenTests {
     case (.success(let i1), .success(let i2), .success(let i3)):
       #expect(i1 == i2)
       #expect(i2 == i3)
+
     case (
       .failure(let c1, let iter1, let s1, let r1, _),
       .failure(let c2, let iter2, let s2, let r2, _),
@@ -158,10 +159,13 @@ struct RunFromTokenTests {
     switch (result1, result2) {
     case (.success, .success):
       break  // Both succeed - OK
+
     case (.failure(_, let i1, _, _, _), .failure(_, let i2, _, _, _)):
       #expect(i1 == i2)  // Same iteration count
+
     case (.gaveUp, .gaveUp):
       break  // Both gave up - OK
+
     default:
       Issue.record("Replay should produce same result type")
     }

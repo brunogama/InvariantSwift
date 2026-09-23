@@ -357,9 +357,11 @@ struct PerformanceAndEdgeCaseTests {
   @Test("Edge case - Concurrent property execution with resource contention")
   func edgeCaseConcurrentPropertyExecutionResourceContention() async throws {
     // Test with many concurrent tasks to create resource contention
+    // The property must hold, or no run can count as a success: this test
+    // measures behaviour under contention, not the property's truth.
     let property = Property<String>(generator: Gen<String>.string) { str in
       // Simulate some work
-      str.isEmpty
+      String(str.reversed().reversed()) == str
     }
 
     let taskCount = 20

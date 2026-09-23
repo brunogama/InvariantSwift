@@ -54,11 +54,10 @@ swift test --filter InvariantSwiftMacroTests
 swift test --enable-code-coverage
 
 # Platform-specific
-make test-macos    # Xcode macOS
-make test-ios      # iOS Simulator
-make test-tvos     # tvOS Simulator
-make test-safe     # With SIGTRAP crash protection (beta SDK)
-```
+just test-macos    # Xcode macOS
+just test-ios      # iOS Simulator
+just test-tvos     # tvOS Simulator
+just test-safe     # With SIGTRAP crash protection (beta SDK)
 
 ---
 

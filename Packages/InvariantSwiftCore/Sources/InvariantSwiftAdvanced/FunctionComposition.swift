@@ -230,9 +230,9 @@ public func memoize<Input: Hashable, Output>(_ f: @escaping (Input) -> Output) -
 /// - Returns: Tuple of (result, execution_time_in_seconds)
 public func time<A, B>(_ f: @escaping (A) -> B) -> (A) -> (B, TimeInterval) {
   { a in
-    let startTime = CFAbsoluteTimeGetCurrent()
+    let startTime = Date().timeIntervalSinceReferenceDate
     let result = f(a)
-    let timeElapsed = CFAbsoluteTimeGetCurrent() - startTime
+    let timeElapsed = Date().timeIntervalSinceReferenceDate - startTime
     return (result, timeElapsed)
   }
 }
@@ -245,9 +245,9 @@ public func time<A, B>(_ f: @escaping (A) -> B) -> (A) -> (B, TimeInterval) {
 ///   - interval: Minimum time interval between calls
 /// - Returns: Throttled function
 public func throttle<A, B>(_ f: @escaping (A) -> B, interval: TimeInterval) -> (A) -> B? {
-  var lastCallTime: CFAbsoluteTime = 0
+  var lastCallTime: TimeInterval = 0
   return { a in
-    let currentTime = CFAbsoluteTimeGetCurrent()
+    let currentTime = Date().timeIntervalSinceReferenceDate
     guard currentTime - lastCallTime >= interval else {
       return nil
     }

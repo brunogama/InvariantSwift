@@ -78,7 +78,7 @@ extension ShrinkTree {
   public static func from(_ value: T, shrink: Shrink<T>) -> ShrinkTree<T> {
     ShrinkTree(value: value) {
       shrink.shrink(value).map { child in
-        ShrinkTree.from(child, shrink: shrink)
+        Self.from(child, shrink: shrink)
       }
     }
   }
@@ -191,14 +191,26 @@ extension ShrinkTree {
     )
   }
 
-  /// Breadth-first traversal of all values in the tree.
+  /// The number of nodes a traversal visits before it stops.
   ///
-  /// - Returns: Array of values in BFS order
-  public func breadthFirst() -> [T] {
+  /// Shrink trees are generated, not stored: a node's children are computed on
+  /// demand and every child has children of its own. For anything but a toy
+  /// tree the node count grows exponentially with depth, so an unbounded walk
+  /// does not finish and exhausts memory trying. Traversals therefore take a
+  /// node budget, and the default is a value a caller can afford to materialise.
+  public static var defaultTraversalLimit: Int { 10_000 }
+
+  /// Breadth-first traversal of the tree, shallowest values first.
+  ///
+  /// - Parameter maxNodes: Stop after visiting this many nodes. See
+  ///   ``defaultTraversalLimit`` for why a limit is required rather than optional.
+  /// - Returns: Array of values in BFS order, at most `maxNodes` of them.
+  public func breadthFirst(maxNodes: Int = ShrinkTree.defaultTraversalLimit) -> [T] {
+    guard maxNodes > 0 else { return [] }
     var result: [T] = []
     var queue: [ShrinkTree<T>] = [self]
 
-    while !queue.isEmpty {
+    while !queue.isEmpty, result.count < maxNodes {
       let current = queue.removeFirst()
       result.append(current.value)
       queue.append(contentsOf: current.children)
@@ -207,14 +219,21 @@ extension ShrinkTree {
     return result
   }
 
-  /// Depth-first traversal of all values in the tree.
+  /// Depth-first traversal of the tree.
   ///
-  /// - Returns: Array of values in DFS order
-  public func depthFirst() -> [T] {
-    var result: [T] = [value]
-    for child in children {
-      result.append(contentsOf: child.depthFirst())
+  /// - Parameter maxNodes: Stop after visiting this many nodes. See
+  ///   ``defaultTraversalLimit`` for why a limit is required rather than optional.
+  /// - Returns: Array of values in DFS order, at most `maxNodes` of them.
+  public func depthFirst(maxNodes: Int = ShrinkTree.defaultTraversalLimit) -> [T] {
+    guard maxNodes > 0 else { return [] }
+    var result: [T] = []
+    var stack: [ShrinkTree<T>] = [self]
+
+    while let current = stack.popLast(), result.count < maxNodes {
+      result.append(current.value)
+      stack.append(contentsOf: current.children.reversed())
     }
+
     return result
   }
 }

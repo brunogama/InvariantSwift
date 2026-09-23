@@ -387,6 +387,22 @@ public struct LabeledProperty<T: Sendable>: @unchecked Sendable {
 /// **Important**: This function is provided for compatibility with synchronous test contexts
 /// like performance benchmarks. For new code, prefer async/await patterns with `PropertyRunner`.
 ///
+/// **Do not call this from inside a `Task`.** It runs every iteration on the calling
+/// thread and never suspends, so a call made from structured concurrency holds one
+/// of Swift's cooperative threads until the whole property finishes. The pool has
+/// about one thread per core, so enough concurrent calls leave nothing to schedule
+/// the rest of the program on.
+///
+/// Measured on 14 cores, four concurrent calls of 50,000 iterations each: with a few
+/// cores free, the task group finished about four times faster than running them one
+/// after another. With every cooperative thread busy, the same task group did not
+/// finish at all inside 90 seconds, against 0.03 seconds of actual work. The same
+/// work on `Thread.detachNewThread` stayed fast throughout, because it does not take
+/// from the pool.
+///
+/// From async code, use ``PropertyRunner/runProperty(_:config:)``. If a synchronous
+/// run is unavoidable there, put it on a thread of its own rather than in a `Task`.
+///
 /// This creates a new runner, seeds it, and executes the property test synchronously.
 /// The result is guaranteed to be deterministic if a seed is provided.
 ///
