@@ -535,14 +535,20 @@ private func generateLawTests(
 
   var tests: [DeclSyntax] = []
 
-  // Generate tests for built-in laws
-  for law in config.laws {
+  // Generate tests for built-in laws.
+  //
+  // In declaration order, not `config.laws` order: that is a Set, and Set iteration
+  // depends on per-process hash seeding, so the same source expanded to differently
+  // ordered members from one compilation to the next.
+  for law in MathematicalLaw.allCases where config.laws.contains(law) {
     let lawTests = try generateLawTests(for: law, structure: structure, config: config)
     tests.append(contentsOf: lawTests)
   }
 
-  // Generate tests for custom laws
-  for (lawName, lawExpression) in config.customLaws {
+  // Generate tests for custom laws, by name: Dictionary iteration is unordered for
+  // the same reason, so without sorting the members came out in a different order
+  // each time as well.
+  for (lawName, lawExpression) in config.customLaws.sorted(by: { $0.key < $1.key }) {
     let customTest = try generateCustomLawTest(
       name: lawName,
       expression: lawExpression,
