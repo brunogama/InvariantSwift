@@ -160,8 +160,13 @@ enum MacroRuntimeFixtureSupport {
       .map { "    .package(path: \"\($0.path)\"),\n" }
       .joined()
 
+    // 6.0, as every manifest in this repository declares, and nothing here needs
+    // more. A tools version is a floor on the toolchain that may build the package,
+    // so 6.2 meant the fixture refused to build wherever `swift` was older than
+    // that: on CI, where it is 6.1, every fixture failed with "is using Swift tools
+    // version 6.2.0 but the installed version is 6.1.0".
     return """
-      // swift-tools-version: 6.2
+      // swift-tools-version: 6.0
       import PackageDescription
 
       let package = Package(
