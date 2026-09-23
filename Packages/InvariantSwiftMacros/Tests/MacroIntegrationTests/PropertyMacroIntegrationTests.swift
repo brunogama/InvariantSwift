@@ -17,7 +17,13 @@ struct PropertyMacroIntegrationTests {
     #expect(result.terminationStatus == 0, Comment(rawValue: result.output))
   }
 
-  @Test("failing property macros emit Swift Testing attachments")
+  // Only where the toolchain can write attachments out: without --attachments-path
+  // there is nowhere for the fixture to put them, so this would assert the absence
+  // of a feature rather than a defect.
+  @Test(
+    "failing property macros emit Swift Testing attachments",
+    .enabled(if: MacroRuntimeFixtureSupport.supportsAttachmentsPath)
+  )
   func failingPropertyMacrosEmitSwiftTestingAttachments() throws {
     let package = try MacroRuntimeFixtureSupport.makePackage(
       source: failingPropertyMacroFixtureSource()

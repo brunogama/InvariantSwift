@@ -21,13 +21,25 @@ public struct CompileVerificationResult: Sendable {
 public struct CompileVerifier: Sendable {
   private let verbose: Bool
   private let baseDirectory: URL
+  private let moduleSearchPaths: [URL]
 
+  /// - Parameters:
+  ///   - verbose: Print progress while verifying.
+  ///   - baseDirectory: Where the temporary source file is written.
+  ///   - moduleSearchPaths: Directories to search for modules the code imports.
+  ///     Empty by default. This used to be a hardcoded `-I .build/debug`, relative
+  ///     to whatever directory the process happened to run in: inert where no such
+  ///     directory existed, and where one did, it offered swiftc a second copy of
+  ///     modules already loaded, so every snippet failed with "redefinition of
+  ///     module" no matter how valid it was.
   public init(
     verbose: Bool = false,
-    baseDirectory: URL = FileManager.default.temporaryDirectory
+    baseDirectory: URL = FileManager.default.temporaryDirectory,
+    moduleSearchPaths: [URL] = []
   ) {
     self.verbose = verbose
     self.baseDirectory = baseDirectory
+    self.moduleSearchPaths = moduleSearchPaths
   }
 
   /// Verify that generated code compiles
@@ -68,8 +80,10 @@ public struct CompileVerifier: Sendable {
         "swiftc",
         "-typecheck",
         tempFile.path,
-        "-I", ".build/debug",  // For module imports
       ]
+      for searchPath in moduleSearchPaths {
+        arguments += ["-I", searchPath.path]
+      }
       // Only Apple toolchains select an SDK this way; elsewhere swiftc
       // finds its own.
       if let sdk = sdkPath() {

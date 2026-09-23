@@ -12,6 +12,30 @@ struct MacroRuntimeFixtureResult {
 }
 
 enum MacroRuntimeFixtureSupport {
+  /// Whether this toolchain's `swift test` accepts `--attachments-path`.
+  ///
+  /// Not every toolchain does: the CI runners' Swift 6.2.4 rejects it, and passing it
+  /// anyway makes the fixture exit 64 with "Unknown option '--attachments-path'", which
+  /// looks like the macro failing rather than the flag being absent. Asked of the
+  /// toolchain once rather than inferred from a version number.
+  static let supportsAttachmentsPath: Bool = {
+    let process = Process()
+    process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+    process.arguments = ["swift", "test", "--help"]
+    let pipe = Pipe()
+    process.standardOutput = pipe
+    process.standardError = pipe
+    do {
+      try process.run()
+    } catch {
+      return false
+    }
+    // Drain before waiting: --help outruns the pipe buffer on some toolchains.
+    let data = pipe.fileHandleForReading.readDataToEndOfFile()
+    process.waitUntilExit()
+    return String(data: data, encoding: .utf8)?.contains("--attachments-path") ?? false
+  }()
+
   static func makePackage(source: String) throws -> MacroRuntimeFixturePackage {
     let packageDirectory = try repositoryRoot()
       .appendingPathComponent(".build/macro-runtime-fixtures")
@@ -59,14 +83,16 @@ enum MacroRuntimeFixtureSupport {
     var environment = ProcessInfo.processInfo.environment
     environment["TMPDIR"] = package.temporaryDirectory.path + "/"
     process.environment = environment
-    process.arguments = [
+    var arguments = [
       "swift",
       "test",
       "--package-path",
       package.directory.path,
-      "--attachments-path",
-      package.attachmentsDirectory.path,
     ]
+    if supportsAttachmentsPath {
+      arguments += ["--attachments-path", package.attachmentsDirectory.path]
+    }
+    process.arguments = arguments
 
     let pipe = Pipe()
     process.standardOutput = pipe
