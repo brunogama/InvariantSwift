@@ -167,6 +167,33 @@ See the full guide in `docs/swift-testing-integration.md`.
 
 InvariantSwift provides a rich library of composable generators.
 
+### Saved catalog searches
+
+The generator catalog can save a search under a single-word name and recall it later:
+
+```bash
+swift run invariant-cli generators --save-filter numbers "random integers"
+swift run invariant-cli generators --filters
+swift run invariant-cli generators --filter numbers
+swift run invariant-cli generators --delete-filter numbers
+```
+
+The catalog searches generator names, types, and descriptions. A second `--save-filter` with
+the same name replaces its query. Saved searches live in `.invariant/saved-filters.json` under
+the current directory, so each project has its own set. The file is a JSON map from names to
+queries and can be checked into version control if the team wants to share it. Interactive
+mode accepts `save-filter <name> <query>`, `filters`, `filter <name>`, and
+`delete-filter <name>`.
+
+Through the Swift package plugin, allow writes when saving or deleting. Build its dependencies
+from source to avoid missing-module errors with SwiftPM experimental prebuilt macro libraries:
+
+```bash
+swift package --disable-experimental-prebuilts --allow-writing-to-package-directory \
+  browse-generators --save-filter numbers "random integers"
+swift package --disable-experimental-prebuilts browse-generators --filter numbers
+```
+
 ### Primitive Types
 
 ```swift

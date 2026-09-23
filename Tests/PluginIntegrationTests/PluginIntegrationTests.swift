@@ -246,7 +246,8 @@ private func runPlugin(
   try runProcess(
     executable: URL(fileURLWithPath: "/usr/bin/env"),
     arguments: [
-      "swift", "package", "--quiet", "--allow-writing-to-package-directory", verb,
+      "swift", "package", "--quiet", "--disable-experimental-prebuilts",
+      "--allow-writing-to-package-directory", verb,
     ] + arguments,
     at: directory,
     environment: environment
