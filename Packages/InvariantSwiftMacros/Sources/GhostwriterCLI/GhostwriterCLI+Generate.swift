@@ -27,7 +27,9 @@ extension GhostwriterBuildContext {
       return nil
     }
 
-    var compilerArguments =
+    guard let testingSupport = testingSupport() else { return nil }
+
+    let compilerArguments =
       [
         "-parse-as-library",
         "-enable-testing",
@@ -37,12 +39,10 @@ extension GhostwriterBuildContext {
         "-Xfrontend",
         "\(macroPlugin.path)#InvariantSwiftMacros",
       ] + swiftSyntaxCShimsArguments(in: buildDirectory) + systemLibraryArguments()
-    if let testingPluginPath = testingPluginPath() {
-      compilerArguments += ["-plugin-path", testingPluginPath.path]
-    }
+      + testingSupport.compilerArguments
     return CompileVerifier.TypeCheckContext(
       moduleSearchPaths: [moduleDirectory],
-      frameworkSearchPaths: frameworkSearchPaths(),
+      frameworkSearchPaths: testingSupport.frameworkSearchPaths,
       compilerArguments: compilerArguments
     )
   }
@@ -124,62 +124,6 @@ extension GhostwriterBuildContext {
   private func modificationDate(for url: URL) -> Date {
     (try? url.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate)
       ?? .distantPast
-  }
-
-  private func testingPluginPath() -> URL? {
-    #if os(macOS)
-    // Testing.framework comes from the selected Xcode, so load its matching macro plugin.
-    let compiler =
-      commandOutput(["/usr/bin/xcrun", "--toolchain", "default", "--find", "swiftc"])
-      ?? "swiftc"
-    #else
-    let compiler = "swiftc"
-    #endif
-    guard let output = commandOutput([compiler, "-print-target-info"]),
-      let data = output.data(using: .utf8),
-      let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-      let paths = json["paths"] as? [String: Any],
-      let runtimePath = paths["runtimeResourcePath"] as? String
-    else {
-      return nil
-    }
-
-    let resourceDirectory = URL(fileURLWithPath: runtimePath)
-    let candidates = [resourceDirectory, resourceDirectory.deletingLastPathComponent()]
-      .map { $0.appendingPathComponent("host/plugins/testing") }
-    return candidates.first { FileManager.default.fileExists(atPath: $0.path) }
-  }
-
-  private func frameworkSearchPaths() -> [URL] {
-    #if os(macOS)
-    guard let sdkPath = commandOutput(["/usr/bin/xcrun", "--show-sdk-path"]) else { return [] }
-    let developerDirectory = URL(fileURLWithPath: sdkPath)
-      .deletingLastPathComponent()
-      .deletingLastPathComponent()
-    let frameworks = developerDirectory.appendingPathComponent("Library/Frameworks")
-    return FileManager.default.fileExists(atPath: frameworks.path) ? [frameworks] : []
-    #else
-    return []
-    #endif
-  }
-
-  private func commandOutput(_ arguments: [String]) -> String? {
-    let process = Process()
-    process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-    process.arguments = arguments
-    let pipe = Pipe()
-    process.standardOutput = pipe
-    process.standardError = FileHandle.nullDevice
-    do {
-      try process.run()
-    } catch {
-      return nil
-    }
-    let data = pipe.fileHandleForReading.readDataToEndOfFile()
-    process.waitUntilExit()
-    guard process.terminationStatus == 0 else { return nil }
-    return String(data: data, encoding: .utf8)?
-      .trimmingCharacters(in: .whitespacesAndNewlines)
   }
 }
 
