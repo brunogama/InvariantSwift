@@ -190,6 +190,17 @@ jobs:
             swift build --enable-experimental-prebuilts
           fi
 
+  release-tooling:
+    name: release-tooling
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - name: Test next version
+        run: bash Tools/release/next_version.test.sh
+
   lint:
     name: SwiftLint
     runs-on: macos-15
