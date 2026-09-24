@@ -127,7 +127,15 @@ extension GhostwriterBuildContext {
   }
 
   private func testingPluginPath() -> URL? {
-    guard let output = commandOutput(["swiftc", "-print-target-info"]),
+    #if os(macOS)
+    // Testing.framework comes from the selected Xcode, so load its matching macro plugin.
+    let compiler =
+      commandOutput(["/usr/bin/xcrun", "--toolchain", "default", "--find", "swiftc"])
+      ?? "swiftc"
+    #else
+    let compiler = "swiftc"
+    #endif
+    guard let output = commandOutput([compiler, "-print-target-info"]),
       let data = output.data(using: .utf8),
       let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
       let paths = json["paths"] as? [String: Any],

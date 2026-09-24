@@ -253,8 +253,12 @@ jobs:
       - name: Cache SwiftPM
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
-          path: ~/.swiftpm
-          key: swiftpm-coverage-6.2.4-v2-${{ runner.os }}-${{ hashFiles('Package.resolved') }}
+          path: |
+            ~/.swiftpm
+            .build
+          key: swiftpm-coverage-${{ runner.os }}-${{ hashFiles('**/Sources/**/*.swift', '**/Tests/**/*.swift') }}
+          restore-keys: |
+            swiftpm-coverage-${{ runner.os }}-
       - name: Swift Version
         run: swift --version
       - name: Run tests with coverage
