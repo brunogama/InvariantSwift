@@ -22,24 +22,24 @@ extension GhostwriterBuildContext {
     }
 
     let moduleDirectory = module.deletingLastPathComponent()
-    guard let macroPlugin = findMacroPlugin(near: moduleDirectory, buildDirectory: buildDirectory),
-      let testingPluginPath = testingPluginPath()
+    guard let macroPlugin = findMacroPlugin(near: moduleDirectory, buildDirectory: buildDirectory)
     else {
       return nil
     }
 
-    let compilerArguments =
+    var compilerArguments =
       [
         "-parse-as-library",
         "-enable-testing",
         "-disable-sandbox",
-        "-plugin-path",
-        testingPluginPath.path,
         "-Xfrontend",
         "-load-plugin-executable",
         "-Xfrontend",
         "\(macroPlugin.path)#InvariantSwiftMacros",
       ] + swiftSyntaxCShimsArguments(in: buildDirectory)
+    if let testingPluginPath = testingPluginPath() {
+      compilerArguments += ["-plugin-path", testingPluginPath.path]
+    }
     return CompileVerifier.TypeCheckContext(
       moduleSearchPaths: [moduleDirectory],
       frameworkSearchPaths: frameworkSearchPaths(),
@@ -120,8 +120,10 @@ extension GhostwriterBuildContext {
       return nil
     }
 
-    let path = URL(fileURLWithPath: runtimePath).appendingPathComponent("host/plugins/testing")
-    return FileManager.default.fileExists(atPath: path.path) ? path : nil
+    let resourceDirectory = URL(fileURLWithPath: runtimePath)
+    let candidates = [resourceDirectory, resourceDirectory.deletingLastPathComponent()]
+      .map { $0.appendingPathComponent("host/plugins/testing") }
+    return candidates.first { FileManager.default.fileExists(atPath: $0.path) }
   }
 
   private func frameworkSearchPaths() -> [URL] {
