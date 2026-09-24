@@ -10,7 +10,7 @@ on:
       - 'Tools/generate_llms_txt.sh'
       - 'LLMS.txt'
   pull_request:
-    branches: [main]
+    branches: [main, develop]
     paths:
       - 'README.md'
       - 'CHANGELOG.md'
