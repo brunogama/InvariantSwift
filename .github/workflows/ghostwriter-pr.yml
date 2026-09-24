@@ -1,0 +1,174 @@
+name: Ghostwriter PR Tests
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ghostwriter-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  detect:
+    name: Detect incoming Swift source
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      changed: ${{ steps.sources.outputs.changed }}
+
+    steps:
+      - name: Check out PR head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Find changed source files
+        id: sources
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          changed=false
+          while IFS= read -r -d '' path; do
+            case "$path" in
+              Sources/*.swift|Packages/*/Sources/*.swift)
+                changed=true
+                break
+                ;;
+            esac
+          done < <(git diff --name-only -z --diff-filter=ACMR "$BASE_SHA...HEAD" -- Sources Packages)
+          echo "changed=$changed" >> "$GITHUB_OUTPUT"
+
+  generate-and-test:
+    name: Generate and test incoming Swift code
+    needs: detect
+    if: needs.detect.outputs.changed == 'true'
+    runs-on: macos-15
+    timeout-minutes: 45
+    outputs:
+      generated: ${{ steps.generate.outputs.generated }}
+
+    steps:
+      - name: Check out PR head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Select Xcode 16.4
+        run: sudo xcode-select -s /Applications/Xcode_16.4.app
+
+      - name: Set up Swift 6.2.4
+        uses: swift-actions/setup-swift@364295d9c23900ce04d4e5cc708387921b4e50f9 # v3
+        with:
+          swift-version: '6.2.4'
+
+      - name: Generate tests for changed source files
+        id: generate
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          sources=()
+          while IFS= read -r -d '' path; do
+            case "$path" in
+              Sources/*.swift|Packages/*/Sources/*.swift)
+                sources+=(--source "$path")
+                ;;
+            esac
+          done < <(git diff --name-only -z --diff-filter=ACMR "$BASE_SHA...HEAD" -- Sources Packages)
+
+          if (( ${#sources[@]} == 0 )); then
+            echo '::error::Source detection changed during Ghostwriter generation.'
+            exit 1
+          fi
+
+          swift build --enable-experimental-prebuilts -Xswiftc -warnings-as-errors
+          swift package --enable-experimental-prebuilts plugin \
+            --allow-writing-to-package-directory ghostwrite "${sources[@]}" \
+            --output Tests/Generated --verbose | tee ghostwriter.log
+
+          if grep -Eq 'Skipped [1-9][0-9]* file\(s\) due to compilation errors' ghostwriter.log; then
+            echo '::error::Ghostwriter skipped generated tests after a compilation error.'
+            exit 1
+          fi
+
+          swift test --enable-experimental-prebuilts --filter GhostwriterGeneratedTests
+
+          if [[ -n "$(git status --porcelain -- Tests/Generated)" ]]; then
+            echo 'generated=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'generated=false' >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload verified generated tests
+        if: steps.generate.outputs.generated == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ghostwriter-tests
+          path: Tests/Generated/
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    name: Add generated tests to PR
+    needs: generate-and-test
+    if: >-
+      needs.generate-and-test.outputs.generated == 'true' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: write
+      contents: write
+
+    steps:
+      - name: Check out exact PR head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Download verified tests
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: ghostwriter-tests
+          path: Tests/Generated/
+
+      - name: Commit to PR branch and validate updated head
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          current_head=$(git ls-remote origin "refs/heads/$PR_HEAD_REF" | cut -f1)
+          if [[ "$current_head" != "$PR_HEAD_SHA" ]]; then
+            echo '::error::PR head changed while Ghostwriter was running.'
+            exit 1
+          fi
+
+          git add -- Tests/Generated
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+
+          git -c user.name='github-actions[bot]' \
+            -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+            commit -m "test(ghostwriter): generate laws for PR #$PR_NUMBER"
+          git push origin "HEAD:refs/heads/$PR_HEAD_REF"
+
+          # GITHUB_TOKEN pushes do not emit a new pull_request or push workflow run.
+          gh workflow run ci.yml --ref "$PR_HEAD_REF"
