@@ -34,12 +34,13 @@ extension GhostwriterCLI {
   static func writeTestFile(
     _ content: String,
     sourceFile: String,
-    outputDirectory: String
+    outputDirectory: String,
+    suffix: String = "PropertyTests"
   ) throws -> String {
     let fileName = URL(fileURLWithPath: sourceFile)
       .deletingPathExtension()
       .lastPathComponent
-    let outputFileName = "\(fileName)PropertyTests.swift"
+    let outputFileName = "\(fileName)\(suffix).swift"
     let outputPath = "\(outputDirectory)/\(outputFileName)"
 
     try FileManager.default.createDirectory(

@@ -100,6 +100,18 @@ struct MetamorphicTests {
       let result = commutativeRelation.checkWithConfidence(addFunction, inputs: inputs)
       #expect(result.isValid, "Addition should be commutative")
     }
+
+    guard let identityRelation = relations.first(where: { $0.name == "addition_identity" }) else {
+      Issue.record("Addition identity relation should be present")
+      return
+    }
+
+    let identityResult = identityRelation.checkWithConfidence(addFunction, inputs: inputs)
+    #expect(identityResult.isValid, "Adding zero should preserve every tested value")
+
+    let shiftedAddition: @Sendable ((Double, Double)) -> Double = { $0.0 + $0.1 + 1 }
+    let shiftedResult = identityRelation.checkWithConfidence(shiftedAddition, inputs: inputs)
+    #expect(!shiftedResult.isValid, "A shifted addition implementation violates identity")
   }
 
   @Test("String relations from catalog work correctly")
@@ -108,19 +120,29 @@ struct MetamorphicTests {
 
     #expect(!relations.isEmpty, "Should have string relations")
 
-    let lengthFunction: @Sendable (String) -> Int = { $0.count }
-    let inputs = ["hello", "world", "", "test"]
-
-    // At least one relation should work with length function
-    var anyValid = false
-    for relation in relations {
-      let result = relation.checkWithConfidence(lengthFunction, inputs: inputs)
-      if result.isValid {
-        anyValid = true
-      }
+    guard let concatRelation = relations.first(where: { $0.name == "concat_length_additive" })
+    else {
+      Issue.record("Concatenation length relation should be present")
+      return
     }
 
-    #expect(anyValid, "At least one string relation should hold")
+    // Two regional indicators form one grapheme cluster, so Character count is
+    // not additive across concatenation even though UTF-8 length always is.
+    let regionalIndicator = "\u{1F1FA}"
+    #expect(regionalIndicator.count == 1)
+    #expect((regionalIndicator + regionalIndicator).count == 1)
+
+    let utf8Length: @Sendable (String) -> Int = { $0.utf8.count }
+    let inputs = ["hello", "", "e\u{301}", regionalIndicator]
+    let result = concatRelation.checkWithConfidence(utf8Length, inputs: inputs)
+    #expect(result.isValid, "UTF-8 length should be additive for every string")
+
+    let property: MetamorphicProperty<String, Int> = .length(
+      generator: .pure(regionalIndicator)
+    )
+    let propertyResults = await property.test(iterations: 2)
+    let propertyConcatResult = propertyResults.first { $0.relation == "concat_length_additive" }
+    #expect(propertyConcatResult?.isValid == true)
   }
 
   // MARK: - MetamorphicProperty Tests

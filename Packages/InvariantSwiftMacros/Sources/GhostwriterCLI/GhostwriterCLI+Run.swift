@@ -6,6 +6,81 @@ import GhostwriterLib
 import SwiftParser
 import SwiftSyntax
 
+struct GhostwriterBuildContext: Sendable {
+  private static let environmentKey = "INVARIANTSWIFT_GHOSTWRITER_BUILD_CONTEXT"
+
+  struct Target: Codable, Sendable {
+    let sourceDirectory: String
+    let moduleName: String
+  }
+
+  private struct Payload: Codable {
+    let packageDirectory: String
+    let targets: [Target]
+  }
+
+  let packageDirectory: URL
+  let targets: [Target]
+
+  static func current(sources: [String]) -> Self {
+    if let encoded = ProcessInfo.processInfo.environment[environmentKey],
+      let data = encoded.data(using: .utf8),
+      let payload = try? JSONDecoder().decode(Payload.self, from: data)
+    {
+      return Self(
+        packageDirectory: URL(fileURLWithPath: payload.packageDirectory),
+        targets: payload.targets
+      )
+    }
+
+    let workingDirectory = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+    let sourceURL = sources.first.map { URL(fileURLWithPath: $0) }
+    let packageDirectory =
+      packageRoot(startingAt: workingDirectory)
+      ?? sourceURL.flatMap(packageRoot(startingAt:))
+      ?? workingDirectory
+    return Self(packageDirectory: packageDirectory, targets: [])
+  }
+
+  func moduleName(for sourceFile: String) -> String? {
+    let sourceURL = URL(fileURLWithPath: sourceFile).standardizedFileURL
+    let configuredTarget =
+      targets
+      .filter { sourceURL.isDescendant(of: URL(fileURLWithPath: $0.sourceDirectory)) }
+      .max { $0.sourceDirectory.count < $1.sourceDirectory.count }
+    if let configuredTarget {
+      return configuredTarget.moduleName
+    }
+
+    let components = sourceURL.pathComponents
+    guard let sourcesIndex = components.lastIndex(of: "Sources") else { return nil }
+    let moduleIndex = components.index(after: sourcesIndex)
+    guard moduleIndex < components.endIndex else { return nil }
+    return components[moduleIndex].replacingOccurrences(of: "-", with: "_")
+  }
+
+  private static func packageRoot(startingAt url: URL) -> URL? {
+    var candidate = url.standardizedFileURL
+    while candidate.path != "/" {
+      if FileManager.default.fileExists(
+        atPath: candidate.appendingPathComponent("Package.swift").path
+      ) {
+        return candidate
+      }
+      candidate.deleteLastPathComponent()
+    }
+    return nil
+  }
+}
+
+private extension URL {
+  func isDescendant(of directory: URL) -> Bool {
+    let directoryComponents = directory.standardizedFileURL.pathComponents
+    return Array(standardizedFileURL.pathComponents.prefix(directoryComponents.count))
+      == directoryComponents
+  }
+}
+
 extension GhostwriterCLI {
   /// Main execution method for test generation.
   static func run(config: Config, output: CLIOutput) async throws -> RunResult {
@@ -49,9 +124,21 @@ extension GhostwriterCLI {
       printVerboseStats(mergedTypes, testableTypes, context: statsContext)
     }
 
+    let buildContext = GhostwriterBuildContext.current(sources: config.sources)
+    let modules =
+      config.skipCompileTest || config.dryRun
+      ? Set<String>()
+      : Set(testableTypes.compactMap { buildContext.moduleName(for: $0.sourceFile) })
+    let typeCheckContexts = Dictionary(
+      uniqueKeysWithValues: modules.compactMap { moduleName in
+        buildContext.typeCheckContext(for: moduleName).map { (moduleName, $0) }
+      }
+    )
     let context = GenerationContext(
       generator: generator,
       verifier: CompileVerifier(verbose: config.verbose),
+      buildContext: buildContext,
+      typeCheckContexts: typeCheckContexts,
       config: config,
       output: output
     )
@@ -98,8 +185,11 @@ extension GhostwriterCLI {
     config: Config
   ) -> [ExtractedTypeInfo] {
     types.filter { type in
-      let patterns = generator.detectPatterns(for: type)
-      guard !patterns.isEmpty else { return false }
+      let testCount = generator.generatedTestCount(
+        for: type,
+        discoverLaws: config.discoverLaws
+      )
+      guard testCount > 0 else { return false }
       let accessOK = config.includeInternal || type.accessLevel.isPubliclyAccessible
       guard accessOK else { return false }
       return type.hasArbitraryAttribute

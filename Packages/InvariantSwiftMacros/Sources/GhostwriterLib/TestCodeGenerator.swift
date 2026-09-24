@@ -12,19 +12,42 @@ public enum GhostwriterTestPattern: String, CaseIterable, Codable, Sendable {
   case equatableReflexive
   case equatableSymmetric
   case equatableTransitive
+  case equatableNegation
   case hashableConsistency
   case comparableIrreflexive
   case comparableAsymmetric
   case comparableTransitive
   case comparableTrichotomy
-
-  public static var equatableLaws: [Self] {
-    [.equatableReflexive, .equatableSymmetric, .equatableTransitive]
-  }
-
-  public static var comparableLaws: [Self] {
-    [.comparableIrreflexive, .comparableAsymmetric, .comparableTransitive, .comparableTrichotomy]
-  }
+  case comparableDerivedOperators
+  case comparableMinMax
+  case additiveZeroIdentity
+  case losslessStringRoundtrip
+  case rawRepresentableRoundtrip
+  case sequenceUnderestimatedCount
+  case collectionCountDistance
+  case collectionEmptyBounds
+  case collectionIndicesCount
+  case bidirectionalIndexRoundtrip
+  case setAlgebraIdempotence
+  case setAlgebraUnionIdentity
+  case setAlgebraAbsorption
+  case setAlgebraDistributivity
+  case setAlgebraSubsetDisjoint
+  case setAlgebraSymmetricDifference
+  case binaryIntegerBitwiseIdentity
+  case binaryIntegerDeMorgan
+  case fixedWidthByteSwap
+  case fixedWidthOverflow
+  case fixedWidthEndianRoundtrip
+  case fixedWidthModularArithmetic
+  case floatingPointNaN
+  case caseIterableContainsValue
+  case caseIterableStableCount
+  case strideableZeroIdentity
+  case optionSetBitwiseOperations
+  case optionSetSymmetricDifferenceBits
+  case optionSetMembershipMutation
+  case randomAccessDistanceAntisymmetry
 }
 
 // MARK: - Generator Result
@@ -42,10 +65,14 @@ enum GeneratorTemplateResult {
 
 /// Result of generating an Arbitrary extension with TODO tracking.
 public struct ArbitraryGenerationResult: Sendable {
+  /// The rendered `Generatable` extension.
   public let code: String
+  /// Stored properties whose types need a user-supplied generator.
   public let todoProperties: [String]
+  /// Whether every stored property received an executable generator.
   public var isFullyGenerated: Bool { todoProperties.isEmpty }
 
+  /// Creates an arbitrary-generation result and its unresolved property list.
   public init(code: String, todoProperties: [String]) {
     self.code = code
     self.todoProperties = todoProperties
@@ -54,112 +81,159 @@ public struct ArbitraryGenerationResult: Sendable {
 
 // MARK: - Test Generator
 
+/// Detects protocol laws and renders property tests for extracted Swift types.
 public struct TestCodeGenerator {
+  /// Creates a stateless test code generator.
   public init() {}
 
   static let knownGeneratableTypes: Set<String> = [
     "Int", "Int8", "Int16", "Int32", "Int64",
     "UInt", "UInt8", "UInt16", "UInt32", "UInt64",
     "Double", "Float", "Bool", "String", "Character",
-    "Date", "UUID", "URL", "Data", "Seed", "Size",
+    "UUID", "Seed",
   ]
 }
 
-// MARK: - Pattern Detection
+struct GeneratedTypeIdentity: Sendable {
+  let reference: String
+  let functionNameComponent: String
+  let sectionTitle: String
 
-extension TestCodeGenerator {
-  public func isKnownGeneratableType(_ name: String) -> Bool {
-    Self.knownGeneratableTypes.contains(name)
-  }
-
-  public func detectPatterns(for type: ExtractedTypeInfo) -> [GhostwriterTestPattern] {
-    var patterns = Set<GhostwriterTestPattern>()
-
-    for conformance in type.conformances {
-      addPatternsFor(conformance: conformance, type: type, to: &patterns)
+  init(type: ExtractedTypeInfo, consumerModule: String? = nil) {
+    let sourceName = type.sourceQualifiedName
+    if sourceName.contains("."), let consumerModule {
+      reference = "\(consumerModule).\(sourceName)"
+    } else {
+      reference = sourceName
     }
-
-    return Array(patterns).sorted { $0.rawValue < $1.rawValue }
-  }
-
-  private func addPatternsFor(
-    conformance: String,
-    type: ExtractedTypeInfo,
-    to patterns: inout Set<GhostwriterTestPattern>
-  ) {
-    switch conformance {
-    case "Codable":
-      if type.conformances.contains("Equatable") || type.conformances.contains("Hashable") {
-        patterns.insert(.codableRoundtrip)
-      }
-
-    case "Equatable":
-      GhostwriterTestPattern.equatableLaws.forEach { patterns.insert($0) }
-
-    case "Hashable":
-      patterns.insert(.hashableConsistency)
-      GhostwriterTestPattern.equatableLaws.forEach { patterns.insert($0) }
-
-    case "Comparable":
-      GhostwriterTestPattern.comparableLaws.forEach { patterns.insert($0) }
-
-    default:
-      break
-    }
+    let components =
+      (consumerModule.map { [$0] } ?? [])
+      + sourceName.split(separator: ".").map(String.init)
+    functionNameComponent = components.map { "\($0.utf8.count)_\($0)" }
+      .joined(separator: "_")
+    sectionTitle = sourceName
   }
 }
 
 // MARK: - File Planning
 
 extension TestCodeGenerator {
+  /// Renders a generated test file for the supplied extracted types.
   public func generateTestFile(
     types: [ExtractedTypeInfo],
-    sourceFile: String
+    sourceFile: String,
+    consumerModule: String? = "InvariantSwift",
+    discoverLaws: Bool = false
   ) -> String {
-    GhostwriterExpansionRenderer.render(file: plannedFile(types: types, sourceFile: sourceFile))
+    GhostwriterExpansionRenderer.render(
+      file: plannedFile(
+        types: types,
+        sourceFile: sourceFile,
+        consumerModule: consumerModule,
+        discoverLaws: discoverLaws
+      )
+    )
   }
 
   func plannedFile(
     types: [ExtractedTypeInfo],
-    sourceFile: String
+    sourceFile: String,
+    consumerModule: String? = "InvariantSwift",
+    discoverLaws: Bool = false
   ) -> GhostwriterGeneratedFile {
     let fileName = URL(fileURLWithPath: sourceFile)
       .deletingPathExtension()
       .lastPathComponent
 
     return GhostwriterGeneratedFile(
-      sourceFile: sourceFile,
-      generatedAt: ISO8601DateFormatter().string(from: Date()),
+      sourceFile: sourcePathForHeader(sourceFile),
+      regenerationCommand: discoverLaws
+        ? "swift package ghostwrite lawforge" : "swift package ghostwrite",
       imports: [
         GhostwriterImport(moduleName: "Testing"),
         GhostwriterImport(moduleName: "Foundation"),
         GhostwriterImport(moduleName: "InvariantSwiftTesting"),
         GhostwriterImport(moduleName: "InvariantSwiftMacroAPI"),
-        GhostwriterImport(moduleName: "InvariantSwift", isTestable: true),
-      ],
-      arbitraryExtensions: plannedArbitraryExtensions(for: types),
+      ]
+        + (consumerModule.map {
+          [GhostwriterImport(moduleName: $0, isTestable: true)]
+        } ?? [])
+        + plannedSelectiveImports(for: types, consumerModule: consumerModule),
+      arbitraryExtensions: plannedArbitraryExtensions(
+        for: types,
+        consumerModule: consumerModule
+      ),
       suiteTitle: "\(fileName) Property Tests",
-      sections: plannedSections(for: types)
+      suiteTypeName: suiteTypeName(for: sourceFile),
+      sections: plannedSections(
+        for: types,
+        consumerModule: consumerModule,
+        discoverLaws: discoverLaws
+      )
     )
   }
 
+  private func sourcePathForHeader(_ sourceFile: String) -> String {
+    let absolutePath = URL(fileURLWithPath: sourceFile).standardizedFileURL.path
+    let workingDirectory = URL(
+      fileURLWithPath: FileManager.default.currentDirectoryPath
+    ).standardizedFileURL.path
+    let prefix = workingDirectory + "/"
+    return absolutePath.hasPrefix(prefix)
+      ? String(absolutePath.dropFirst(prefix.count)) : sourceFile
+  }
+
+  private func suiteTypeName(for sourceFile: String) -> String {
+    let sourcePath = sourcePathForHeader(sourceFile)
+    let hash = sourcePath.utf8.reduce(UInt64(14_695_981_039_346_656_037)) {
+      ($0 ^ UInt64($1)) &* 1_099_511_628_211
+    }
+    return "GhostwriterSuite_\(String(hash, radix: 16))"
+  }
+
+  private func plannedSelectiveImports(
+    for types: [ExtractedTypeInfo],
+    consumerModule: String?
+  ) -> [GhostwriterImport] {
+    guard let consumerModule else { return [] }
+    return types.compactMap { type in
+      guard type.sourceQualifiedName == type.name,
+        let kind = GhostwriterImport.DeclarationKind(extractedTypeKind: type.kind)
+      else { return nil }
+      return GhostwriterImport(
+        moduleName: consumerModule,
+        declarationKind: kind,
+        declarationName: type.name
+      )
+    }
+  }
+
   private func plannedArbitraryExtensions(
-    for types: [ExtractedTypeInfo]
+    for types: [ExtractedTypeInfo],
+    consumerModule: String?
   ) -> [GhostwriterGeneratedArbitraryExtension] {
     let typesNeedingArbitrary = types.filter {
       !$0.hasArbitraryAttribute
-        && !$0.properties.isEmpty
         && !Self.knownGeneratableTypes.contains($0.name)
+        && canAutoGenerateArbitrary(for: $0)
     }
 
-    return typesNeedingArbitrary.map(plannedArbitraryExtension(for:))
+    return typesNeedingArbitrary.map { type in
+      plannedArbitraryExtension(
+        for: type,
+        identity: GeneratedTypeIdentity(type: type, consumerModule: consumerModule)
+      )
+    }
   }
+}
 
-  private func plannedSections(for types: [ExtractedTypeInfo]) -> [GhostwriterGeneratedSection] {
-    types.compactMap { type in
-      let tests = detectPatterns(for: type).map { plannedTest(for: type, pattern: $0) }
-      guard !tests.isEmpty else { return nil }
-      return GhostwriterGeneratedSection(title: type.name, tests: tests)
+private extension GhostwriterImport.DeclarationKind {
+  init?(extractedTypeKind: String) {
+    switch extractedTypeKind {
+    case "actor", "class": self = .class
+    case "enum": self = .enum
+    case "struct": self = .struct
+    default: return nil
     }
   }
 }
@@ -167,25 +241,52 @@ extension TestCodeGenerator {
 // MARK: - Arbitrary Planning
 
 extension TestCodeGenerator {
+  /// Returns whether Ghostwriter can synthesize the complete generator safely.
   public func canAutoGenerateArbitrary(for type: ExtractedTypeInfo) -> Bool {
-    guard !type.properties.isEmpty else { return false }
-    return type.properties.contains { isPropertyGeneratable($0) }
+    canFullyGenerateArbitrary(for: type)
   }
 
+  /// Returns whether every property in a supported concrete struct can be generated.
   public func canFullyGenerateArbitrary(for type: ExtractedTypeInfo) -> Bool {
-    guard !type.properties.isEmpty else { return false }
-    return type.properties.allSatisfy { isPropertyGeneratable($0) }
+    if type.kind == "enum" {
+      return !type.enumCases.isEmpty && type.genericParameters.isEmpty
+        && (type.accessLevel < .public || type.conformances.contains("Sendable"))
+    }
+    guard type.kind == "struct",
+      type.genericParameters.isEmpty,
+      !type.properties.isEmpty,
+      type.accessLevel < .public || type.conformances.contains("Sendable"),
+      type.properties.allSatisfy({ $0.accessLevel >= .internal })
+    else { return false }
+    guard type.properties.allSatisfy(isPropertyGeneratable) else { return false }
+
+    let initializers = type.methods.filter { $0.name.hasPrefix("init") }
+    return initializers.isEmpty
+      || initializers.contains { initializer in
+        initializer.name == "init"
+          && initializer.accessLevel >= .internal
+          && !initializer.isThrowing
+          && !initializer.isAsync
+          && initializer.parameters.map(\.label) == type.properties.map(\.name)
+          && initializer.parameters.map(\.typeName) == type.properties.map(\.typeName)
+      }
   }
 
+  /// Renders a `Generatable` extension, including TODO placeholders when requested directly.
   public func generateArbitraryExtension(for type: ExtractedTypeInfo) -> String {
     generateArbitraryExtensionResult(for: type).code
   }
 
+  /// Renders a `Generatable` extension and reports properties needing custom generators.
   public func generateArbitraryExtensionResult(
     for type: ExtractedTypeInfo
   ) -> ArbitraryGenerationResult {
     var todoProperties: [String] = []
-    let arbitraryExtension = plannedArbitraryExtension(for: type, todoProperties: &todoProperties)
+    let arbitraryExtension = plannedArbitraryExtension(
+      for: type,
+      identity: GeneratedTypeIdentity(type: type),
+      todoProperties: &todoProperties
+    )
 
     return ArbitraryGenerationResult(
       code: GhostwriterExpansionRenderer.render(arbitraryExtension: arbitraryExtension),
@@ -196,19 +297,32 @@ extension TestCodeGenerator {
   func plannedArbitraryExtension(
     for type: ExtractedTypeInfo
   ) -> GhostwriterGeneratedArbitraryExtension {
-    var todoProperties: [String] = []
-    return plannedArbitraryExtension(for: type, todoProperties: &todoProperties)
+    plannedArbitraryExtension(for: type, identity: GeneratedTypeIdentity(type: type))
   }
 
   private func plannedArbitraryExtension(
     for type: ExtractedTypeInfo,
+    identity: GeneratedTypeIdentity
+  ) -> GhostwriterGeneratedArbitraryExtension {
+    var todoProperties: [String] = []
+    return plannedArbitraryExtension(
+      for: type,
+      identity: identity,
+      todoProperties: &todoProperties
+    )
+  }
+
+  private func plannedArbitraryExtension(
+    for type: ExtractedTypeInfo,
+    identity: GeneratedTypeIdentity,
     todoProperties: inout [String]
   ) -> GhostwriterGeneratedArbitraryExtension {
     GhostwriterGeneratedArbitraryExtension(
-      typeName: type.name,
+      typeName: identity.reference,
       propertyGenerators: type.properties.map { property in
         buildPropertyGenerator(property, todoProperties: &todoProperties)
-      }
+      },
+      enumCases: type.enumCases
     )
   }
 
@@ -220,7 +334,7 @@ extension TestCodeGenerator {
     case .success(let generator):
       return GhostwriterPropertyGenerator(
         name: property.name,
-        expression: composerGenerate(using: generator),
+        expression: generator,
         todoComment: nil
       )
 
@@ -228,7 +342,7 @@ extension TestCodeGenerator {
       todoProperties.append(property.name)
       return GhostwriterPropertyGenerator(
         name: property.name,
-        expression: composerGenerate(using: .property("arbitrary", on: typeName)),
+        expression: .property("arbitrary", on: typeName),
         todoComment: "/* TODO: supply generator for \(typeName) */"
       )
     }
@@ -245,12 +359,11 @@ extension TestCodeGenerator {
 // MARK: - Generator Planning
 
 extension TestCodeGenerator {
+  /// Resolves the generator expression for a Swift type spelling.
   public func generatorResult(for typeName: String) -> GeneratorResult {
     switch generatorTemplateResult(for: typeName) {
     case .success(let generator):
-      return .success(
-        GhostwriterExpansionRenderer.renderExpression(composerGenerate(using: generator))
-      )
+      return .success(GhostwriterExpansionRenderer.renderExpression(generator))
 
     case .todoRequired(let missingType, let reason):
       return .todoRequired(typeName: missingType, reason: reason)
@@ -264,7 +377,10 @@ extension TestCodeGenerator {
 
     if isOptional, case .success(let generator) = result {
       return .success(
-        .variable("Gen").method("optional", arguments: [.unlabeled(generator)])
+        .variable("OptionalGen").method(
+          "optional",
+          arguments: [.labeled("valueGen", generator)]
+        )
       )
     }
 
@@ -294,11 +410,8 @@ extension TestCodeGenerator {
       return setResult
     }
 
-    if isDictionaryType(cleanedType) {
-      return .todoRequired(
-        typeName: cleanedType,
-        reason: "Dictionary generation not yet supported"
-      )
+    if let dictionaryResult = analyzeDictionaryType(cleanedType) {
+      return dictionaryResult
     }
 
     if Self.knownGeneratableTypes.contains(cleanedType) {
@@ -327,11 +440,11 @@ extension TestCodeGenerator {
 
   private func handleArrayElement(_ inner: String) -> GeneratorTemplateResult {
     switch generatorTemplateResult(for: inner) {
-    case .success:
+    case .success(let elementGenerator):
       return .success(
-        .variable("Gen").method(
+        .variable("Gen<[\(inner)]>").method(
           "array",
-          arguments: [.labeled("of", .property("arbitrary", on: inner))]
+          arguments: [.unlabeled(elementGenerator)]
         )
       )
 
@@ -351,20 +464,11 @@ extension TestCodeGenerator {
     let inner = String(type.dropFirst(4).dropLast())
 
     switch generatorTemplateResult(for: inner) {
-    case .success:
+    case .success(let elementGenerator):
       return .success(
-        .call(
-          "Set",
-          arguments: [
-            .unlabeled(
-              composerGenerate(
-                using: .variable("Gen").method(
-                  "array",
-                  arguments: [.labeled("of", .property("arbitrary", on: inner))]
-                )
-              )
-            )
-          ]
+        .variable("Gen<Set<\(inner)>>").method(
+          "set",
+          arguments: [.unlabeled(elementGenerator)]
         )
       )
 
@@ -376,12 +480,4 @@ extension TestCodeGenerator {
     }
   }
 
-  private func isDictionaryType(_ type: String) -> Bool {
-    type.hasPrefix("Dictionary<") || (type.hasPrefix("[") && type.contains(":"))
-  }
-
-  func composerGenerate(using generator: ExpansionExpr) -> ExpansionExpr {
-    ExpansionExpr.variable("composer")
-      .method("generate", arguments: [.labeled("using", generator)])
-  }
 }
