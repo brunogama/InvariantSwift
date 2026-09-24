@@ -55,8 +55,8 @@ jobs:
         run: |
           echo "Checking for blanket swiftlint disable directives affecting all rules..."
           pattern='swiftlint:disable(:next|:this)?[[:space:]]+([^[:space:]]+[[:space:]]+)*all([[:space:]]|$)'
-          if grep -rnE "$pattern" Sources/ Tests/ \
-            --include="*.swift" --exclude-dir="Tests/Generated"; then
+          if grep -rnE "$pattern" Sources/ --include="*.swift" || \
+            grep -rnE "$pattern" Tests/ --include="*.swift" --exclude-dir=Generated; then
             echo "::error::Blanket swiftlint disable directives affecting all rules are forbidden."
             exit 1
           fi
