@@ -4,7 +4,8 @@
 
 Repository workflow rules for coding agents and contributors.
 
-This repository uses trunk-based development with `main` as the trunk.
+This repository uses Git Flow, with `main` as the production branch and `develop` as the
+integration branch.
 This file defines how to handle issues, branches, pull requests, reviews, and merges.
 For code quality and validation rules, follow `RULES.md`.
 For repository operating behavior during implementation, follow `AGENTS.md`.
@@ -32,25 +33,59 @@ For repository operating behavior during implementation, follow `AGENTS.md`.
 
 ## Branching
 
-- Direct commits to `main` and `dev` are blocked by the repository's `branch-guardian` pre-commit hook.
-- Use a short-lived branch; open a pull request only when the user explicitly asks.
+Two branches are permanent:
+
+- `main` holds released code. Every commit on it is a release point, and pushing to it
+  triggers the release tag.
+- `develop` is where finished work accumulates between releases. It is the base for
+  everyday work and the default target for pull requests.
+
+Everything else is temporary and named by its role:
+
+| Prefix | Branches from | Merges into | Purpose |
+| --- | --- | --- | --- |
+| `feature/` | `develop` | `develop` | New behavior, refactors, docs, chores |
+| `bugfix/` | `develop` | `develop` | A defect that is not yet released |
+| `release/` | `develop` | `main` and `develop` | Stabilizing a version for release |
+| `hotfix/` | `main` | `main` and `develop` | An urgent fix to released code |
+| `support/` | `main` | - | Maintaining an older release line |
+
+Rules:
+
+- Direct commits to `main`, `develop`, and `dev` are blocked by the repository's
+  `branch-guardian` pre-commit hook.
+- Branch from `develop` for ordinary work and from `main` only for a hotfix.
 - Keep branches focused; merge them only when the user explicitly asks and checks pass.
-- Do not create long-lived feature branches, `develop`, integration branches, or release branches.
+- Merge a `release/` or `hotfix/` branch into both `main` and `develop`, so a fix released
+  from `main` is never lost on the next merge from `develop`.
 
-Recommended patterns:
+Name the branch after its role and topic, `<prefix>/<area>-<topic>`:
 
-- `feat/<area>-<topic>`
-- `fix/<area>-<bug>`
-- `refactor/<area>-<topic>`
-- `docs/<area>-<topic>`
-- `chore/<area>-<topic>`
+- `feature/sqlite-hnsw-build`
+- `feature/agent-workflow-docs`
+- `bugfix/vector-distance-null-check`
+- `release/0.5.0`
+- `hotfix/coverage-helper-path`
 
-Examples:
+The prefixes match the git-flow (AVH) defaults this repository configures, so
+`git flow feature start sqlite-hnsw-build` and a plain
+`git switch -c feature/sqlite-hnsw-build develop` produce the same branch. Run
+`scripts/gitflow-init.sh` once per clone to configure the extension; it is not required.
 
-- `feat/sqlite-hnsw-build`
-- `fix/vector-distance-null-check`
-- `refactor/release-scripts`
-- `docs/agent-workflow`
+---
+
+## Releases and Hotfixes
+
+A release is prepared on a branch, not on `develop` and not on `main`:
+
+1. Cut `release/<version>` from `develop`.
+2. Land only stabilization work on it: fixes, docs, and version metadata. No new features.
+3. Merge it into `main` when the gates in `RULES.md` pass. The push to `main` tags the
+   release; see `RELEASING.md`.
+4. Merge it back into `develop` so the stabilization work is not lost.
+
+A hotfix is the same shape with a different base: cut `hotfix/<topic>` from `main`, then
+merge it into both `main` and `develop`.
 
 ---
 
@@ -67,9 +102,11 @@ Examples:
 
 ## Feature Delivery
 
-- Split large changes into trunk-safe slices.
-- Hide incomplete work behind a feature flag or inactive path if it must land.
-- Do not leave `main` dependent on a future stabilization branch.
+- Split large changes into slices that each leave `develop` building and green.
+- Hide incomplete work behind a feature flag or inactive path if it must land on `develop`
+  before it is ready for users.
+- Land behavior on `develop`, never directly on `main`. `main` advances only through a
+  `release/` or `hotfix/` merge.
 
 ---
 
@@ -86,7 +123,7 @@ When reviewing a change, check at minimum:
 - complexity / file-size budget impact
 - backward compatibility where relevant
 - documentation updates where relevant
-- whether the slice is small enough for trunk
+- whether the branch targets the right base for its prefix
 
 ---
 
@@ -106,7 +143,6 @@ When reviewing a change, check at minimum:
 - Keep each commit to one logical change.
 - Stage files explicitly by path.
 - Verify staged content with `git status` and `git diff --cached` before committing.
-- Run `scripts/change-budget.sh` before proposing or creating a commit or a pull request.
 - Reference the issue in the commit message when applicable using:
   - `fixes #<number>`
   - `closes #<number>`
@@ -115,10 +151,13 @@ When reviewing a change, check at minimum:
 
 ## Merge Policy
 
-- Prefer squash merge for noisy or iterative branches.
-- Prefer regular merge when preserving commit history is important.
+- Prefer squash merge for a `feature/` or `bugfix/` branch into `develop`, especially a
+  noisy or iterative one.
+- Use a regular merge for a `release/` or `hotfix/` branch. Squashing it into `main` and
+  then again into `develop` creates two unrelated commits for one change, so every later
+  merge between the two branches conflicts on it.
 - Rebase only when it improves clarity and does not risk other contributors’ work.
-- Never force push shared branches.
+- Never force push `main`, `develop`, or any other shared branch.
 
 ---
 
@@ -152,4 +191,5 @@ Stop and ask the user before proceeding when:
 - the safest fix requires structural refactoring beyond the task scope
 - the repository state suggests another agent is actively editing overlapping files
 - the issue requirements and current code behavior materially conflict
-- the requested change is too large for a single trunk-safe slice
+- the change would have to land directly on `main` or `develop` to work
+- a `release/` or `hotfix/` branch has not been merged back into `develop`

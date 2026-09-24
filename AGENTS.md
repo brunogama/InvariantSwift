@@ -4,7 +4,8 @@
 
 Repository-specific operating instructions for coding agents.
 
-This repository uses trunk-based development with `main` as the trunk.
+This repository uses Git Flow, with `main` as the production branch and `develop` as the
+integration branch.
 For coding quality, validation, lint budgets, and definition of done, follow `RULES.md`.
 For issue, PR, merge, and conflict policy, follow `WORKFLOW.md`.
 For release and changelog policy, follow `RELEASING.md`.
@@ -17,18 +18,24 @@ If this file conflicts with repository tooling or explicit user instructions, th
 - If the user request is concrete, start with the files directly relevant to that task.
 - If the request is not concrete, inspect the top-level documentation most relevant to the task such as `README.md`, package manifests, and module READMEs before deciding where to work.
 - Do not assume the task is module-scoped. It may be architectural, debugging, refactoring, review, release, or documentation work.
-- Prefer the smallest safe slice that leaves `main` releasable.
+- Prefer the smallest safe slice that leaves `develop` building and green.
 
 ---
 
-## Trunk Rules
+## Branching Rules
 
-- Prefer working off `main` via very short-lived branches and pull requests.
-- Direct commits to `main` and `dev` are blocked by the repository's `branch-guardian` pre-commit hook.
-- Do not propose long-lived feature branches, `develop`, `release/*`, or branch pyramids.
+- Branch from `develop` for ordinary work, using the `feature/` or `bugfix/` prefix.
+- Branch from `main` only for a `hotfix/`, and merge it into both `main` and `develop`.
+- Target `develop` when opening a pull request, unless the branch is a `release/` or
+  `hotfix/`, which target `main`.
+- Direct commits to `main`, `develop`, and `dev` are blocked by the repository's
+  `branch-guardian` pre-commit hook.
+- `main` advances only through a `release/` or `hotfix/` merge. Never push behavior to it
+  directly.
 - Keep work in small, reviewable, mergeable slices.
-- If a requested change is too large, implement the first safe slice instead of forcing one oversized change.
-- If work is incomplete but must land, hide it behind a feature flag or an inactive execution path.
+- If work is incomplete but must land on `develop`, hide it behind a feature flag or an
+  inactive execution path.
+- `WORKFLOW.md` holds the full branch model, including the release and hotfix sequences.
 
 ---
 
@@ -54,7 +61,6 @@ If this file conflicts with repository tooling or explicit user instructions, th
 ## Validation
 
 - After code changes, run the repository validation commands that enforce the standards in `RULES.md`.
-- Run `scripts/change-budget.sh` before proposing a commit or pull request.
 - Treat formatter, lint, warnings-as-errors, tests, and coverage as design constraints, not cleanup steps.
 - Do not bypass hooks, checks, or validation steps.
 - Never use `--no-verify`.
