@@ -134,14 +134,25 @@ struct GhostwriterCompilePipelineTests {
   }
 
   private func cliBinary(in package: URL) throws -> URL {
-    let buildDirectory = package.appendingPathComponent(".build")
+    let buildDirectories = [
+      package.appendingPathComponent("Packages/InvariantSwiftMacros/.build"),
+      package.appendingPathComponent(".build"),
+    ]
+    let matches = buildDirectories.flatMap(cliBinaries(in:))
+    guard let cli = matches.max(by: { modificationDate($0) < modificationDate($1) }) else {
+      throw PipelineTestError.cliNotFound
+    }
+    return cli
+  }
+
+  private func cliBinaries(in buildDirectory: URL) -> [URL] {
     guard
       let enumerator = FileManager.default.enumerator(
         at: buildDirectory,
         includingPropertiesForKeys: [.contentModificationDateKey]
       )
     else {
-      throw PipelineTestError.cliNotFound
+      return []
     }
 
     var matches: [URL] = []
@@ -154,10 +165,7 @@ struct GhostwriterCompilePipelineTests {
         matches.append(url)
       }
     }
-    guard let cli = matches.max(by: { modificationDate($0) < modificationDate($1) }) else {
-      throw PipelineTestError.cliNotFound
-    }
-    return cli
+    return matches
   }
 
   private func modificationDate(_ url: URL) -> Date {
