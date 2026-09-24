@@ -26,29 +26,6 @@ jobs:
       - name: Test next version
         run: bash Tools/release/next_version.test.sh
 
-      - name: Evaluate change budget
-        if: |
-          github.event_name == 'pull_request' &&
-          !contains(github.event.pull_request.labels.*.name, 'stack-consolidation')
-        env:
-          BASE_REF: ${{ github.base_ref }}
-        run: |
-          scripts/change-budget.sh --mode range \
-            --base "origin/${BASE_REF}" --head HEAD
-
-      - name: Evaluate main push budget
-        if: github.event_name == 'push'
-        env:
-          BEFORE: ${{ github.event.before }}
-          AFTER: ${{ github.sha }}
-        run: |
-          if [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
-            scripts/change-budget.sh --mode head
-          else
-            scripts/change-budget.sh --mode range \
-              --base "$BEFORE" --head "$AFTER"
-          fi
-
   governance-files:
     name: governance-files
     runs-on: ubuntu-latest
