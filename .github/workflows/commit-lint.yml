@@ -36,52 +36,50 @@ jobs:
       - name: Install commitlint
         run: npm ci --prefer-offline
 
-      - name: Validate PR commits
-        if: github.event_name == 'pull_request'
+      - name: Determine commit range
+        id: range
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
-          echo "Validating commits from ${{ github.event.pull_request.base.sha }} to ${{ github.event.pull_request.head.sha }}"
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            FROM="$PR_BASE"
+            TO="$PR_HEAD"
+          elif [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
+            FROM="HEAD~1"
+            TO="HEAD"
+          elif git merge-base --is-ancestor "$BEFORE" "$AFTER"; then
+            FROM="$BEFORE"
+            TO="$AFTER"
+          else
+            FROM=$(git merge-base "$AFTER" "origin/$DEFAULT_BRANCH")
+            TO="$AFTER"
+          fi
+          echo "from=$FROM" >> "$GITHUB_OUTPUT"
+          echo "to=$TO" >> "$GITHUB_OUTPUT"
+
+      - name: Validate commits
+        run: |
           npx commitlint \
-            --from ${{ github.event.pull_request.base.sha }} \
-            --to ${{ github.event.pull_request.head.sha }} \
+            --from "${{ steps.range.outputs.from }}" \
+            --to "${{ steps.range.outputs.to }}" \
             --config commitlint.config.js \
             --verbose
 
-      - name: Validate push commits
-        if: github.event_name == 'push'
-        run: |
-          if [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
-            echo "New branch — validating HEAD commit only"
-            npx commitlint --from HEAD~1 --to HEAD --config commitlint.config.js --verbose
-          else
-            echo "Validating commits from ${{ github.event.before }} to ${{ github.sha }}"
-            npx commitlint \
-              --from ${{ github.event.before }} \
-              --to ${{ github.sha }} \
-              --config commitlint.config.js \
-              --verbose
-          fi
-
       - name: Reject AI co-author trailers
         run: |
-          # Determine the range of commits to inspect.
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            FROM="${{ github.event.pull_request.base.sha }}"
-            TO="${{ github.event.pull_request.head.sha }}"
-          elif [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
-            FROM="HEAD~1"
-            TO="HEAD"
-          else
-            FROM="${{ github.event.before }}"
-            TO="${{ github.sha }}"
-          fi
-
-          # Collect all commit messages in range.
-          MESSAGES=$(git log --format="%B" "${FROM}..${TO}" 2>/dev/null || git log --format="%B" HEAD~1..HEAD)
+          MESSAGES=$(git log --format="%B" \
+            "${{ steps.range.outputs.from }}..${{ steps.range.outputs.to }}")
 
           # Check for AI agent co-author trailers (case-insensitive).
-          AI_PATTERN='(?i)^Co-Authored-By:.*\b(claude|anthropic|copilot|github-actions\[bot\]|gemini|chatgpt|openai)\b'
+          AI_PATTERN='(?i)^Co-Authored-By:.*\b(claude|anthropic|copilot|'
+          AI_PATTERN+='github-actions\[bot\]|gemini|chatgpt|openai)\b'
           if echo "${MESSAGES}" | grep -Pq "${AI_PATTERN}"; then
-            echo "::error::AI agent Co-Authored-By trailers found in commits. Remove them before merging."
+            echo "::error::AI agent Co-Authored-By trailers found in commits."
             echo ""
             echo "Offending lines:"
             echo "${MESSAGES}" | grep -Pi "${AI_PATTERN}"
