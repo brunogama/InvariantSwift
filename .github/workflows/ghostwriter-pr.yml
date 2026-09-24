@@ -4,12 +4,19 @@ on:
   pull_request:
     branches: [main]
     types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Pull request number to validate after generated tests are committed
+        required: true
+        type: number
 
 permissions:
   contents: read
+  pull-requests: read
 
 concurrency:
-  group: ghostwriter-${{ github.event.pull_request.number }}
+  group: ghostwriter-${{ github.event_name }}-${{ github.event.pull_request.number || inputs.pr_number }}
   cancel-in-progress: true
 
 jobs:
@@ -19,19 +26,61 @@ jobs:
     timeout-minutes: 5
     outputs:
       changed: ${{ steps.sources.outputs.changed }}
+      base_sha: ${{ steps.pr.outputs.base_sha }}
+      head_sha: ${{ steps.pr.outputs.head_sha }}
+      head_ref: ${{ steps.pr.outputs.head_ref }}
+      same_repo: ${{ steps.pr.outputs.same_repo }}
 
     steps:
+      - name: Load current PR state
+        id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$PR_NUMBER" =~ ^[0-9]+$ ]]
+          gh api "repos/$GH_REPO/pulls/$PR_NUMBER" > "$RUNNER_TEMP/pr.json"
+          base_ref=$(jq -r '.base.ref' "$RUNNER_TEMP/pr.json")
+          head_sha=$(jq -r '.head.sha' "$RUNNER_TEMP/pr.json")
+          head_repo=$(jq -r '.head.repo.full_name // ""' "$RUNNER_TEMP/pr.json")
+          if [[ "$base_ref" != main ]]; then
+            echo '::notice::PR no longer targets main.'
+            echo 'eligible=false' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch && "$head_sha" != "$GITHUB_SHA" ]]; then
+            echo '::notice::PR head changed after dispatch; synchronize will validate it.'
+            echo 'eligible=false' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          same_repo=false
+          if [[ "$head_repo" == "$GH_REPO" ]]; then
+            same_repo=true
+          fi
+          {
+            echo 'eligible=true'
+            echo "base_sha=$(jq -r '.base.sha' "$RUNNER_TEMP/pr.json")"
+            echo "head_sha=$head_sha"
+            echo "head_ref=$(jq -r '.head.ref' "$RUNNER_TEMP/pr.json")"
+            echo "same_repo=$same_repo"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Check out PR head
+        if: steps.pr.outputs.eligible == 'true'
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ steps.pr.outputs.head_sha }}
           fetch-depth: 0
           persist-credentials: false
 
       - name: Find changed source files
+        if: steps.pr.outputs.eligible == 'true'
         id: sources
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          BASE_SHA: ${{ steps.pr.outputs.base_sha }}
         shell: bash
         run: |
           set -euo pipefail
@@ -59,7 +108,7 @@ jobs:
       - name: Check out PR head
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ needs.detect.outputs.head_sha }}
           fetch-depth: 0
           persist-credentials: false
 
@@ -74,7 +123,7 @@ jobs:
       - name: Generate tests for changed source files
         id: generate
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          BASE_SHA: ${{ needs.detect.outputs.base_sha }}
         shell: bash
         run: |
           set -euo pipefail
@@ -102,11 +151,11 @@ jobs:
             exit 1
           fi
 
-          swift test --enable-experimental-prebuilts --filter GhostwriterGeneratedTests
-
           if [[ -n "$(git status --porcelain -- Tests/Generated)" ]]; then
+            swift test --enable-experimental-prebuilts --filter GhostwriterGeneratedTests
             echo 'generated=true' >> "$GITHUB_OUTPUT"
           else
+            echo 'Generated tests are unchanged; no Ghostwriter test run is needed.'
             echo 'generated=false' >> "$GITHUB_OUTPUT"
           fi
 
@@ -121,10 +170,10 @@ jobs:
 
   publish:
     name: Add generated tests to PR
-    needs: generate-and-test
+    needs: [detect, generate-and-test]
     if: >-
       needs.generate-and-test.outputs.generated == 'true' &&
-      github.event.pull_request.head.repo.full_name == github.repository
+      needs.detect.outputs.same_repo == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -135,7 +184,7 @@ jobs:
       - name: Check out exact PR head
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ needs.detect.outputs.head_sha }}
           fetch-depth: 0
 
       - name: Download verified tests
@@ -148,9 +197,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
-          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD_REF: ${{ needs.detect.outputs.head_ref }}
+          PR_HEAD_SHA: ${{ needs.detect.outputs.head_sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}
         shell: bash
         run: |
           set -euo pipefail
@@ -171,4 +220,5 @@ jobs:
           git push origin "HEAD:refs/heads/$PR_HEAD_REF"
 
           # GITHUB_TOKEN pushes do not emit a new pull_request or push workflow run.
+          gh workflow run ghostwriter-pr.yml --ref "$PR_HEAD_REF" -f pr_number="$PR_NUMBER"
           gh workflow run ci.yml --ref "$PR_HEAD_REF"
