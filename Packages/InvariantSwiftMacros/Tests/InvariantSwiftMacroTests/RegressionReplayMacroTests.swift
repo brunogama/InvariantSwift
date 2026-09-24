@@ -1,5 +1,5 @@
 import SwiftSyntaxMacros
-import SwiftSyntaxMacrosTestSupport
+import SwiftSyntaxMacrosGenericTestSupport
 import Testing
 
 @testable import InvariantSwiftMacros
@@ -24,44 +24,19 @@ private let allParametersExpansion = """
   }
 
   private enum testFull_PropertyTest {
-    @Test(
-      "testFull",
-      InvariantSwiftPropertyExecutionTrait(
-        testName: "testFull",
-        labels: ["x", "y"],
-        configuredSeed: nil
-      ),
-      .tags(.invariantSwiftPropertyBased)
-    ) static func run() throws {
-      let generator: Gen<(Int, Int)> = Gen<Int>.int.flatMap { x in
-        Gen<Int>.int.map { y in (x, y) }
+      @Test("testFull", InvariantSwiftPropertyExecutionTrait(testName: "testFull", labels: ["x", "y"], configuredSeed: nil), .tags(.invariantSwiftPropertyBased)) static func run() throws {
+          let generator: Gen<(Int, Int)> = Gen<Int>.int.flatMap({ x in
+                  Gen<Int>.int.map({ y in
+                          (x, y)
+                      })
+              })
+          let property = Property(generator: generator) { (x: Int, y: Int) in
+            x + y == y + x
+            return true
+          }
+          let config = PropertyConfig(iterations: 100, maxShrinks: 1000, failingExampleDatabase: FailingExampleDatabase.shared, testIdentifier: TestIdentifier(module: "", file: String(describing: #file), function: String(describing: #function), signature: ""), replayFirst: true, maxReplayExamples: 10)
+          try executeGeneratedPropertyTest(property, config: config, testName: "testFull", labels: ["x", "y"], persistFailures: true)
       }
-      let property = Property(generator: generator) { (x: Int, y: Int) in
-        let (x, y) = (x, y)
-        x + y == y + x
-        return true
-      }
-      let config = PropertyConfig(
-        iterations: 100,
-        maxShrinks: 1000,
-        failingExampleDatabase: FailingExampleDatabase.shared,
-        testIdentifier: TestIdentifier(
-          module: "",
-          file: String(describing: #file),
-          function: String(describing: #function),
-          signature: ""
-        ),
-        replayFirst: true,
-        maxReplayExamples: 10
-      )
-      try executeGeneratedPropertyTest(
-        property,
-        config: config,
-        testName: "testFull",
-        labels: ["x", "y"],
-        persistFailures: true
-      )
-    }
   }
   """
 
@@ -79,84 +54,24 @@ private let exposeCasesAsTestsExpansion = """
   }
 
   private enum testReplayable_PropertyTest {
-    @Test(
-      "testReplayable",
-      InvariantSwiftPropertyExecutionTrait(
-        testName: "testReplayable",
-        labels: ["value"],
-        configuredSeed: nil
-      ),
-      .tags(.invariantSwiftPropertyBased)
-    ) static func run() throws {
-      let generator: Gen<Int> = Gen<Int>.int
-      let property = Property(generator: generator) { (value: Int) in
-        value > 0
-        return true
+      @Test("testReplayable", InvariantSwiftPropertyExecutionTrait(testName: "testReplayable", labels: ["value"], configuredSeed: nil), .tags(.invariantSwiftPropertyBased)) static func run() throws {
+          let generator: Gen<Int> = Gen<Int>.int
+          let property = Property(generator: generator) { (value: Int) in
+            value > 0
+            return true
+          }
+          let config = PropertyConfig(iterations: 100, maxShrinks: 1000, failingExampleDatabase: FailingExampleDatabase.shared, testIdentifier: TestIdentifier(module: "", file: String(describing: #file), function: String(describing: #function), signature: ""), replayFirst: true, maxReplayExamples: 2)
+          try executeGeneratedPropertyTest(property, config: config, testName: "testReplayable", labels: ["value"], persistFailures: true)
       }
-      let config = PropertyConfig(
-        iterations: 100,
-        maxShrinks: 1000,
-        failingExampleDatabase: FailingExampleDatabase.shared,
-        testIdentifier: TestIdentifier(
-          module: "",
-          file: String(describing: #file),
-          function: String(describing: #function),
-          signature: ""
-        ),
-        replayFirst: true,
-        maxReplayExamples: 2
-      )
-      try executeGeneratedPropertyTest(
-        property,
-        config: config,
-        testName: "testReplayable",
-        labels: ["value"],
-        persistFailures: true
-      )
-    }
-
-    @Test(
-      "testReplayable regressions",
-      InvariantSwiftPropertyExecutionTrait(
-        testName: "testReplayable regressions",
-        labels: ["value"],
-        configuredSeed: nil
-      ),
-      .tags(
-        .invariantSwiftPropertyBased,
-        .invariantSwiftPropertyReplay
-      ),
-      arguments: try await FailurePersistenceManager().loadReplayFailures(
-        forTest: "testReplayable",
-        maxExamples: 2
-      )
-    ) static func replay(failure: PersistedFailure) throws {
-      let generator: Gen<Int> = Gen<Int>.int
-      let property = Property(generator: generator) { (value: Int) in
-        value > 0
-        return true
+      @Test("testReplayable regressions", InvariantSwiftPropertyExecutionTrait(testName: "testReplayable regressions", labels: ["value"], configuredSeed: nil), .tags(.invariantSwiftPropertyBased, .invariantSwiftPropertyReplay), arguments: try await FailurePersistenceManager().loadReplayFailures(forTest: "testReplayable", maxExamples: 2)) static func replay(failure: PersistedFailure) throws {
+          let generator: Gen<Int> = Gen<Int>.int
+          let property = Property(generator: generator) { (value: Int) in
+            value > 0
+            return true
+          }
+          let config = PropertyConfig(iterations: 100, maxShrinks: 1000, failingExampleDatabase: FailingExampleDatabase.shared, testIdentifier: TestIdentifier(module: "", file: String(describing: #file), function: String(describing: #function), signature: ""), replayFirst: true, maxReplayExamples: 2)
+          try executePersistedFailureReplay(property, baseConfig: config, persistedFailure: failure, testName: "testReplayable", labels: ["value"])
       }
-      let config = PropertyConfig(
-        iterations: 100,
-        maxShrinks: 1000,
-        failingExampleDatabase: FailingExampleDatabase.shared,
-        testIdentifier: TestIdentifier(
-          module: "",
-          file: String(describing: #file),
-          function: String(describing: #function),
-          signature: ""
-        ),
-        replayFirst: true,
-        maxReplayExamples: 2
-      )
-      try executePersistedFailureReplay(
-        property,
-        baseConfig: config,
-        persistedFailure: failure,
-        testName: "testReplayable",
-        labels: ["value"]
-      )
-    }
   }
   """
 
@@ -164,7 +79,7 @@ private let exposeCasesAsTestsExpansion = """
 struct RegressionReplayMacroTests {
   @Test("@Regression with all parameters expands correctly")
   func testAllParameters() {
-    assertMacroExpansion(
+    expectMacroExpansion(
       allParametersSource,
       expandedSource: allParametersExpansion,
       macros: replayTestMacros
@@ -173,7 +88,7 @@ struct RegressionReplayMacroTests {
 
   @Test("@Regression with exposeCasesAsTests generates replay wrapper")
   func testExposeCasesAsTests() {
-    assertMacroExpansion(
+    expectMacroExpansion(
       exposeCasesAsTestsSource,
       expandedSource: exposeCasesAsTestsExpansion,
       macros: replayTestMacros
