@@ -36,7 +36,7 @@ extension GhostwriterBuildContext {
         "-load-plugin-executable",
         "-Xfrontend",
         "\(macroPlugin.path)#InvariantSwiftMacros",
-      ] + swiftSyntaxCShimsArguments(in: buildDirectory)
+      ] + swiftSyntaxCShimsArguments(in: buildDirectory) + systemLibraryArguments()
     if let testingPluginPath = testingPluginPath() {
       compilerArguments += ["-plugin-path", testingPluginPath.path]
     }
@@ -57,6 +57,22 @@ extension GhostwriterBuildContext {
       "-Xcc", "-fmodule-map-file=\(moduleMap.path)",
       "-Xcc", "-I\(includeDirectory.path)",
     ]
+  }
+
+  private func systemLibraryArguments() -> [String] {
+    #if os(Linux)
+    let includeDirectory = packageDirectory.appendingPathComponent(
+      "Packages/InvariantSwiftCore/Sources/CSQLite"
+    )
+    let moduleMap = includeDirectory.appendingPathComponent("module.modulemap")
+    guard FileManager.default.fileExists(atPath: moduleMap.path) else { return [] }
+    return [
+      "-Xcc", "-fmodule-map-file=\(moduleMap.path)",
+      "-Xcc", "-I\(includeDirectory.path)",
+    ]
+    #else
+    return []
+    #endif
   }
 
   private func findMacroPlugin(near moduleDirectory: URL, buildDirectory: URL) -> URL? {
