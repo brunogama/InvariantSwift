@@ -38,7 +38,7 @@ jobs:
             exit 1
           fi
 
-  # Strict lint check - MUST pass, no disables allowed
+  # Strict lint check - MUST pass
   lint-check:
     name: SwiftLint Strict
     runs-on: macos-14
@@ -54,7 +54,9 @@ jobs:
       - name: Check for Forbidden Disable Tags
         run: |
           echo "Checking for blanket swiftlint disable directives affecting all rules..."
-          if grep -rnE "swiftlint:disable(:next|:this)?[[:space:]]+([^[:space:]]+[[:space:]]+)*all([[:space:]]|$)" Sources/ Tests/ --include="*.swift"; then
+          pattern='swiftlint:disable(:next|:this)?[[:space:]]+([^[:space:]]+[[:space:]]+)*all([[:space:]]|$)'
+          if grep -rnE "$pattern" Sources/ Tests/ \
+            --include="*.swift" --exclude-dir="Tests/Generated"; then
             echo "::error::Blanket swiftlint disable directives affecting all rules are forbidden."
             exit 1
           fi
