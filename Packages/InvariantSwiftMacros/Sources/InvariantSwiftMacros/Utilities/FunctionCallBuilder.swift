@@ -81,10 +81,19 @@ public struct FunctionCallBuilder {
 
   /// Build the function call expression
   public func build() -> FunctionCallExprSyntax {
-    FunctionCallExprSyntax(
+    // Each element but the last carries its own separator. Building the list from an
+    // array keeps the elements exactly as given, unlike the result-builder form, so
+    // without this the arguments render run together: `Gen.zip(Gen<Int>.int Gen<String>.string)`.
+    let separated = arguments.enumerated().map { index, argument in
+      index == arguments.count - 1
+        ? argument.with(\.trailingComma, nil)
+        : argument.with(\.trailingComma, .commaToken())
+    }
+
+    return FunctionCallExprSyntax(
       calledExpression: callee,
       leftParen: .leftParenToken(),
-      arguments: LabeledExprListSyntax(arguments),
+      arguments: LabeledExprListSyntax(separated),
       rightParen: .rightParenToken(),
       trailingClosure: trailingClosure
     )

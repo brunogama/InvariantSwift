@@ -1,5 +1,5 @@
 import SwiftSyntaxMacros
-import SwiftSyntaxMacrosTestSupport
+import SwiftSyntaxMacrosGenericTestSupport
 import Testing
 
 @testable import InvariantSwiftMacros
@@ -17,7 +17,7 @@ struct PropertyAssertionMacroTests {
 
   @Test("@Idempotent generates idempotency test for single parameter")
   func testIdempotentBasic() {
-    assertMacroExpansion(
+    expectMacroExpansion(
       """
       @Idempotent
       func normalize(_ value: Int) -> Int {
@@ -30,30 +30,27 @@ struct PropertyAssertionMacroTests {
         }
 
         private enum normalize_IdempotentTest {
-          @Test("normalize")
-          static func run() throws {
-            let generator: Gen<Int> = Gen<Int>.int
-            let property = Property(generator: generator) { value in
-              var current = normalize(value)
-              for _ in 1..<2 {
-                current = normalize(current)
-              }
-              let next = normalize(current)
-              return current == next
+            @Test("normalize") static func run() throws {
+                let generator: Gen<Int> = Gen<Int>.int
+                let property = Property(generator: generator) { (value: Int) in
+                    var current = normalize(value)
+                    for _ in 1 ..< 2 {
+                      current = normalize(current)
+                    }
+                    let next = normalize(current)
+                    return current == next
+                }
+                let config = PropertyConfig(iterations: 100, maxShrinks: 1000)
+                let result = runPropertySynchronously(property, config: config)
+                switch result {
+                case .success:
+                    break
+                case .failure(counterexample: _, iterations: _, shrunk: _, reason: _, seed: _):
+                    Issue.record(Comment(stringLiteral: "Idempotency property violated"))
+                case .gaveUp(discarded: _, iterations: _):
+                    Issue.record(Comment(stringLiteral: "Property test gave up"))
+                }
             }
-            let config = PropertyConfig(iterations: 100, maxShrinks: 1000)
-            let result = runPropertySynchronously(property, config: config)
-            switch result {
-            case .success:
-              break
-
-            case .failure(counterexample: _, iterations: _, shrunk: _, reason: _, seed: _):
-              Issue.record(Comment(stringLiteral: "Idempotency property violated"))
-
-            case .gaveUp(discarded: _, iterations: _):
-              Issue.record(Comment(stringLiteral: "Property test gave up"))
-            }
-          }
         }
         """,
       macros: testMacros
@@ -62,7 +59,7 @@ struct PropertyAssertionMacroTests {
 
   @Test("@Idempotent generates flatMap chain for multiple parameters")
   func testIdempotentMultipleParameters() {
-    assertMacroExpansion(
+    expectMacroExpansion(
       """
       @Idempotent
       func combine(_ a: Int, _ b: String) -> String {
@@ -75,33 +72,32 @@ struct PropertyAssertionMacroTests {
         }
 
         private enum combine_IdempotentTest {
-          @Test("combine")
-          static func run() throws {
-            let generator: Gen<(Int, String)> = Gen<Int>.int.flatMap { a in
-              Gen<String>.string.map { b in (a, b) }
+            @Test("combine") static func run() throws {
+                let generator: Gen<(Int, String)> = Gen<Int>.int.flatMap { a in
+                    Gen<String>.string.map { b in
+                        (a, b)
+                    }
+                }
+                let property = Property(generator: generator) { (a: Int, b: String) in
+                    let (a, b) = (a, b)
+                    var current = combine(a, b)
+                    for _ in 1 ..< 2 {
+                      current = combine(current)
+                    }
+                    let next = combine(current)
+                    return current == next
+                }
+                let config = PropertyConfig(iterations: 100, maxShrinks: 1000)
+                let result = runPropertySynchronously(property, config: config)
+                switch result {
+                case .success:
+                    break
+                case .failure(counterexample: _, iterations: _, shrunk: _, reason: _, seed: _):
+                    Issue.record(Comment(stringLiteral: "Idempotency property violated"))
+                case .gaveUp(discarded: _, iterations: _):
+                    Issue.record(Comment(stringLiteral: "Property test gave up"))
+                }
             }
-            let property = Property(generator: generator) { (a: Int, b: String) in
-              let (a, b) = (a, b)
-              var current = combine(a, b)
-              for _ in 1..<2 {
-                current = combine(current)
-              }
-              let next = combine(current)
-              return current == next
-            }
-            let config = PropertyConfig(iterations: 100, maxShrinks: 1000)
-            let result = runPropertySynchronously(property, config: config)
-            switch result {
-            case .success:
-              break
-
-            case .failure(counterexample: _, iterations: _, shrunk: _, reason: _, seed: _):
-              Issue.record(Comment(stringLiteral: "Idempotency property violated"))
-
-            case .gaveUp(discarded: _, iterations: _):
-              Issue.record(Comment(stringLiteral: "Property test gave up"))
-            }
-          }
         }
         """,
       macros: testMacros
@@ -110,7 +106,7 @@ struct PropertyAssertionMacroTests {
 
   @Test("@Idempotent generates await for async functions")
   func testIdempotentAsync() {
-    assertMacroExpansion(
+    expectMacroExpansion(
       """
       @Idempotent
       func normalize(_ value: Int) async -> Int {
@@ -123,30 +119,27 @@ struct PropertyAssertionMacroTests {
         }
 
         private enum normalize_IdempotentTest {
-          @Test("normalize")
-          static func run() async throws {
-            let generator: Gen<Int> = Gen<Int>.int
-            let property = Property(generator: generator) { value in
-              var current = await normalize(value)
-              for _ in 1..<2 {
-                current = await normalize(current)
-              }
-              let next = await normalize(current)
-              return current == next
+            @Test("normalize") static func run() async throws {
+                let generator: Gen<Int> = Gen<Int>.int
+                let property = Property(generator: generator) { (value: Int) in
+                    var current = await normalize(value)
+                    for _ in 1 ..< 2 {
+                      current = await normalize(current)
+                    }
+                    let next = await normalize(current)
+                    return current == next
+                }
+                let config = PropertyConfig(iterations: 100, maxShrinks: 1000)
+                let result = await runPropertyAsync(property, config: config)
+                switch result {
+                case .success:
+                    break
+                case .failure(counterexample: _, iterations: _, shrunk: _, reason: _, seed: _):
+                    Issue.record(Comment(stringLiteral: "Idempotency property violated"))
+                case .gaveUp(discarded: _, iterations: _):
+                    Issue.record(Comment(stringLiteral: "Property test gave up"))
+                }
             }
-            let config = PropertyConfig(iterations: 100, maxShrinks: 1000)
-            let result = await runPropertyAsync(property, config: config)
-            switch result {
-            case .success:
-              break
-
-            case .failure(counterexample: _, iterations: _, shrunk: _, reason: _, seed: _):
-              Issue.record(Comment(stringLiteral: "Idempotency property violated"))
-
-            case .gaveUp(discarded: _, iterations: _):
-              Issue.record(Comment(stringLiteral: "Property test gave up"))
-            }
-          }
         }
         """,
       macros: testMacros
@@ -155,7 +148,7 @@ struct PropertyAssertionMacroTests {
 
   @Test("@Idempotent respects custom applicationCount parameter")
   func testIdempotentCustomApplicationCount() {
-    assertMacroExpansion(
+    expectMacroExpansion(
       """
       @Idempotent(applicationCount: 5)
       func normalize(_ value: Int) -> Int {
@@ -168,30 +161,27 @@ struct PropertyAssertionMacroTests {
         }
 
         private enum normalize_IdempotentTest {
-          @Test("normalize")
-          static func run() throws {
-            let generator: Gen<Int> = Gen<Int>.int
-            let property = Property(generator: generator) { value in
-              var current = normalize(value)
-              for _ in 1..<5 {
-                current = normalize(current)
-              }
-              let next = normalize(current)
-              return current == next
+            @Test("normalize") static func run() throws {
+                let generator: Gen<Int> = Gen<Int>.int
+                let property = Property(generator: generator) { (value: Int) in
+                    var current = normalize(value)
+                    for _ in 1 ..< 5 {
+                      current = normalize(current)
+                    }
+                    let next = normalize(current)
+                    return current == next
+                }
+                let config = PropertyConfig(iterations: 100, maxShrinks: 1000)
+                let result = runPropertySynchronously(property, config: config)
+                switch result {
+                case .success:
+                    break
+                case .failure(counterexample: _, iterations: _, shrunk: _, reason: _, seed: _):
+                    Issue.record(Comment(stringLiteral: "Idempotency property violated"))
+                case .gaveUp(discarded: _, iterations: _):
+                    Issue.record(Comment(stringLiteral: "Property test gave up"))
+                }
             }
-            let config = PropertyConfig(iterations: 100, maxShrinks: 1000)
-            let result = runPropertySynchronously(property, config: config)
-            switch result {
-            case .success:
-              break
-
-            case .failure(counterexample: _, iterations: _, shrunk: _, reason: _, seed: _):
-              Issue.record(Comment(stringLiteral: "Idempotency property violated"))
-
-            case .gaveUp(discarded: _, iterations: _):
-              Issue.record(Comment(stringLiteral: "Property test gave up"))
-            }
-          }
         }
         """,
       macros: testMacros
@@ -200,7 +190,7 @@ struct PropertyAssertionMacroTests {
 
   @Test("@Idempotent diagnostic: applied to non-function")
   func testIdempotentDiagnosticNonFunction() {
-    assertMacroExpansion(
+    expectMacroExpansion(
       """
       @Idempotent
       struct MyStruct {
@@ -228,7 +218,7 @@ struct PropertyAssertionMacroTests {
 
   @Test("@Deterministic generates determinism test for single parameter")
   func testDeterministicBasic() {
-    assertMacroExpansion(
+    expectMacroExpansion(
       """
       @Deterministic
       func hash(_ value: String) -> Int {
@@ -241,27 +231,24 @@ struct PropertyAssertionMacroTests {
         }
 
         private enum hash_DeterministicTest {
-          @Test("hash")
-          static func run() throws {
-            let generator: Gen<String> = Gen<String>.string
-            let property = Property(generator: generator) { value in
-              let call1 = hash(value)
-              let call2 = hash(value)
-              return call1 == call2
+            @Test("hash") static func run() throws {
+                let generator: Gen<String> = Gen<String>.string
+                let property = Property(generator: generator) { (value: String) in
+                    let call1 = hash(value)
+                    let call2 = hash(value)
+                    return call1 == call2
+                }
+                let config = PropertyConfig(iterations: 100, maxShrinks: 1000)
+                let result = runPropertySynchronously(property, config: config)
+                switch result {
+                case .success:
+                    break
+                case .failure(counterexample: _, iterations: _, shrunk: _, reason: _, seed: _):
+                    Issue.record(Comment(stringLiteral: "Determinism property violated"))
+                case .gaveUp(discarded: _, iterations: _):
+                    Issue.record(Comment(stringLiteral: "Property test gave up"))
+                }
             }
-            let config = PropertyConfig(iterations: 100, maxShrinks: 1000)
-            let result = runPropertySynchronously(property, config: config)
-            switch result {
-            case .success:
-              break
-
-            case .failure(counterexample: _, iterations: _, shrunk: _, reason: _, seed: _):
-              Issue.record(Comment(stringLiteral: "Determinism property violated"))
-
-            case .gaveUp(discarded: _, iterations: _):
-              Issue.record(Comment(stringLiteral: "Property test gave up"))
-            }
-          }
         }
         """,
       macros: testMacros
@@ -270,7 +257,7 @@ struct PropertyAssertionMacroTests {
 
   @Test("@Deterministic generates flatMap chain for multiple parameters")
   func testDeterministicMultipleParameters() {
-    assertMacroExpansion(
+    expectMacroExpansion(
       """
       @Deterministic
       func concat(_ a: String, _ b: String) -> String {
@@ -283,29 +270,28 @@ struct PropertyAssertionMacroTests {
         }
 
         private enum concat_DeterministicTest {
-          @Test("concat")
-          static func run() throws {
-            let generator: Gen<(String, String)> = Gen<String>.string.flatMap { a in
-              Gen<String>.string.map { b in (a, b) }
+            @Test("concat") static func run() throws {
+                let generator: Gen<(String, String)> = Gen<String>.string.flatMap { a in
+                    Gen<String>.string.map { b in
+                        (a, b)
+                    }
+                }
+                let property = Property(generator: generator) { (a: String, b: String) in
+                    let call1 = concat(a, b)
+                    let call2 = concat(a, b)
+                    return call1 == call2
+                }
+                let config = PropertyConfig(iterations: 100, maxShrinks: 1000)
+                let result = runPropertySynchronously(property, config: config)
+                switch result {
+                case .success:
+                    break
+                case .failure(counterexample: _, iterations: _, shrunk: _, reason: _, seed: _):
+                    Issue.record(Comment(stringLiteral: "Determinism property violated"))
+                case .gaveUp(discarded: _, iterations: _):
+                    Issue.record(Comment(stringLiteral: "Property test gave up"))
+                }
             }
-            let property = Property(generator: generator) { (a: String, b: String) in
-              let call1 = concat(a, b)
-              let call2 = concat(a, b)
-              return call1 == call2
-            }
-            let config = PropertyConfig(iterations: 100, maxShrinks: 1000)
-            let result = runPropertySynchronously(property, config: config)
-            switch result {
-            case .success:
-              break
-
-            case .failure(counterexample: _, iterations: _, shrunk: _, reason: _, seed: _):
-              Issue.record(Comment(stringLiteral: "Determinism property violated"))
-
-            case .gaveUp(discarded: _, iterations: _):
-              Issue.record(Comment(stringLiteral: "Property test gave up"))
-            }
-          }
         }
         """,
       macros: testMacros
@@ -314,7 +300,7 @@ struct PropertyAssertionMacroTests {
 
   @Test("@Deterministic generates await for async functions")
   func testDeterministicAsync() {
-    assertMacroExpansion(
+    expectMacroExpansion(
       """
       @Deterministic
       func hash(_ value: String) async -> Int {
@@ -327,27 +313,24 @@ struct PropertyAssertionMacroTests {
         }
 
         private enum hash_DeterministicTest {
-          @Test("hash")
-          static func run() async throws {
-            let generator: Gen<String> = Gen<String>.string
-            let property = Property(generator: generator) { value in
-              let call1 = await hash(value)
-              let call2 = await hash(value)
-              return call1 == call2
+            @Test("hash") static func run() async throws {
+                let generator: Gen<String> = Gen<String>.string
+                let property = Property(generator: generator) { (value: String) in
+                    let call1 = await hash(value)
+                    let call2 = await hash(value)
+                    return call1 == call2
+                }
+                let config = PropertyConfig(iterations: 100, maxShrinks: 1000)
+                let result = await runPropertyAsync(property, config: config)
+                switch result {
+                case .success:
+                    break
+                case .failure(counterexample: _, iterations: _, shrunk: _, reason: _, seed: _):
+                    Issue.record(Comment(stringLiteral: "Determinism property violated"))
+                case .gaveUp(discarded: _, iterations: _):
+                    Issue.record(Comment(stringLiteral: "Property test gave up"))
+                }
             }
-            let config = PropertyConfig(iterations: 100, maxShrinks: 1000)
-            let result = await runPropertyAsync(property, config: config)
-            switch result {
-            case .success:
-              break
-
-            case .failure(counterexample: _, iterations: _, shrunk: _, reason: _, seed: _):
-              Issue.record(Comment(stringLiteral: "Determinism property violated"))
-
-            case .gaveUp(discarded: _, iterations: _):
-              Issue.record(Comment(stringLiteral: "Property test gave up"))
-            }
-          }
         }
         """,
       macros: testMacros
@@ -356,7 +339,7 @@ struct PropertyAssertionMacroTests {
 
   @Test("@Deterministic respects custom callCount parameter")
   func testDeterministicCustomCallCount() {
-    assertMacroExpansion(
+    expectMacroExpansion(
       """
       @Deterministic(callCount: 3)
       func hash(_ value: String) -> Int {
@@ -369,27 +352,24 @@ struct PropertyAssertionMacroTests {
         }
 
         private enum hash_DeterministicTest {
-          @Test("hash")
-          static func run() throws {
-            let generator: Gen<String> = Gen<String>.string
-            let property = Property(generator: generator) { value in
-              let call1 = hash(value)
-              let call2 = hash(value)
-              return call1 == call2
+            @Test("hash") static func run() throws {
+                let generator: Gen<String> = Gen<String>.string
+                let property = Property(generator: generator) { (value: String) in
+                    let call1 = hash(value)
+                    let call2 = hash(value)
+                    return call1 == call2
+                }
+                let config = PropertyConfig(iterations: 100, maxShrinks: 1000)
+                let result = runPropertySynchronously(property, config: config)
+                switch result {
+                case .success:
+                    break
+                case .failure(counterexample: _, iterations: _, shrunk: _, reason: _, seed: _):
+                    Issue.record(Comment(stringLiteral: "Determinism property violated"))
+                case .gaveUp(discarded: _, iterations: _):
+                    Issue.record(Comment(stringLiteral: "Property test gave up"))
+                }
             }
-            let config = PropertyConfig(iterations: 100, maxShrinks: 1000)
-            let result = runPropertySynchronously(property, config: config)
-            switch result {
-            case .success:
-              break
-
-            case .failure(counterexample: _, iterations: _, shrunk: _, reason: _, seed: _):
-              Issue.record(Comment(stringLiteral: "Determinism property violated"))
-
-            case .gaveUp(discarded: _, iterations: _):
-              Issue.record(Comment(stringLiteral: "Property test gave up"))
-            }
-          }
         }
         """,
       macros: testMacros
@@ -398,7 +378,7 @@ struct PropertyAssertionMacroTests {
 
   @Test("@Deterministic diagnostic: no parameters")
   func testDeterministicDiagnosticNoParameters() {
-    assertMacroExpansion(
+    expectMacroExpansion(
       """
       @Deterministic
       func noParams() -> Int {
@@ -414,7 +394,7 @@ struct PropertyAssertionMacroTests {
         DiagnosticSpec(
           message: "Function must have at least one parameter for property testing",
           line: 2,
-          column: 1,
+          column: 14,
           severity: .error
         )
       ],
@@ -426,7 +406,7 @@ struct PropertyAssertionMacroTests {
 
   @Test("@Pure generates determinism test for single parameter")
   func testPureBasic() {
-    assertMacroExpansion(
+    expectMacroExpansion(
       """
       @Pure
       func double(_ value: Int) -> Int {
@@ -439,27 +419,24 @@ struct PropertyAssertionMacroTests {
         }
 
         private enum double_PureTest {
-          @Test("double")
-          static func run() throws {
-            let generator: Gen<Int> = Gen<Int>.int
-            let property = Property(generator: generator) { value in
-              let call1 = double(value)
-              let call2 = double(value)
-              return call1 == call2
+            @Test("double") static func run() throws {
+                let generator: Gen<Int> = Gen<Int>.int
+                let property = Property(generator: generator) { (value: Int) in
+                    let call1 = double(value)
+                    let call2 = double(value)
+                    return call1 == call2
+                }
+                let config = PropertyConfig(iterations: 100, maxShrinks: 1000)
+                let result = runPropertySynchronously(property, config: config)
+                switch result {
+                case .success:
+                    break
+                case .failure(counterexample: _, iterations: _, shrunk: _, reason: _, seed: _):
+                    Issue.record(Comment(stringLiteral: "Purity property violated (non-deterministic)"))
+                case .gaveUp(discarded: _, iterations: _):
+                    Issue.record(Comment(stringLiteral: "Property test gave up"))
+                }
             }
-            let config = PropertyConfig(iterations: 100, maxShrinks: 1000)
-            let result = runPropertySynchronously(property, config: config)
-            switch result {
-            case .success:
-              break
-
-            case .failure(counterexample: _, iterations: _, shrunk: _, reason: _, seed: _):
-              Issue.record(Comment(stringLiteral: "Purity property violated (non-deterministic)"))
-
-            case .gaveUp(discarded: _, iterations: _):
-              Issue.record(Comment(stringLiteral: "Property test gave up"))
-            }
-          }
         }
         """,
       macros: testMacros
@@ -468,7 +445,7 @@ struct PropertyAssertionMacroTests {
 
   @Test("@Pure generates flatMap chain for multiple parameters")
   func testPureMultipleParameters() {
-    assertMacroExpansion(
+    expectMacroExpansion(
       """
       @Pure
       func add(_ a: Int, _ b: Int) -> Int {
@@ -481,29 +458,28 @@ struct PropertyAssertionMacroTests {
         }
 
         private enum add_PureTest {
-          @Test("add")
-          static func run() throws {
-            let generator: Gen<(Int, Int)> = Gen<Int>.int.flatMap { a in
-              Gen<Int>.int.map { b in (a, b) }
+            @Test("add") static func run() throws {
+                let generator: Gen<(Int, Int)> = Gen<Int>.int.flatMap { a in
+                    Gen<Int>.int.map { b in
+                        (a, b)
+                    }
+                }
+                let property = Property(generator: generator) { (a: Int, b: Int) in
+                    let call1 = add(a, b)
+                    let call2 = add(a, b)
+                    return call1 == call2
+                }
+                let config = PropertyConfig(iterations: 100, maxShrinks: 1000)
+                let result = runPropertySynchronously(property, config: config)
+                switch result {
+                case .success:
+                    break
+                case .failure(counterexample: _, iterations: _, shrunk: _, reason: _, seed: _):
+                    Issue.record(Comment(stringLiteral: "Purity property violated (non-deterministic)"))
+                case .gaveUp(discarded: _, iterations: _):
+                    Issue.record(Comment(stringLiteral: "Property test gave up"))
+                }
             }
-            let property = Property(generator: generator) { (a: Int, b: Int) in
-              let call1 = add(a, b)
-              let call2 = add(a, b)
-              return call1 == call2
-            }
-            let config = PropertyConfig(iterations: 100, maxShrinks: 1000)
-            let result = runPropertySynchronously(property, config: config)
-            switch result {
-            case .success:
-              break
-
-            case .failure(counterexample: _, iterations: _, shrunk: _, reason: _, seed: _):
-              Issue.record(Comment(stringLiteral: "Purity property violated (non-deterministic)"))
-
-            case .gaveUp(discarded: _, iterations: _):
-              Issue.record(Comment(stringLiteral: "Property test gave up"))
-            }
-          }
         }
         """,
       macros: testMacros
@@ -512,7 +488,7 @@ struct PropertyAssertionMacroTests {
 
   @Test("@Pure generates await for async functions")
   func testPureAsync() {
-    assertMacroExpansion(
+    expectMacroExpansion(
       """
       @Pure
       func double(_ value: Int) async -> Int {
@@ -525,27 +501,24 @@ struct PropertyAssertionMacroTests {
         }
 
         private enum double_PureTest {
-          @Test("double")
-          static func run() async throws {
-            let generator: Gen<Int> = Gen<Int>.int
-            let property = Property(generator: generator) { value in
-              let call1 = await double(value)
-              let call2 = await double(value)
-              return call1 == call2
+            @Test("double") static func run() async throws {
+                let generator: Gen<Int> = Gen<Int>.int
+                let property = Property(generator: generator) { (value: Int) in
+                    let call1 = await double(value)
+                    let call2 = await double(value)
+                    return call1 == call2
+                }
+                let config = PropertyConfig(iterations: 100, maxShrinks: 1000)
+                let result = await runPropertyAsync(property, config: config)
+                switch result {
+                case .success:
+                    break
+                case .failure(counterexample: _, iterations: _, shrunk: _, reason: _, seed: _):
+                    Issue.record(Comment(stringLiteral: "Purity property violated (non-deterministic)"))
+                case .gaveUp(discarded: _, iterations: _):
+                    Issue.record(Comment(stringLiteral: "Property test gave up"))
+                }
             }
-            let config = PropertyConfig(iterations: 100, maxShrinks: 1000)
-            let result = await runPropertyAsync(property, config: config)
-            switch result {
-            case .success:
-              break
-
-            case .failure(counterexample: _, iterations: _, shrunk: _, reason: _, seed: _):
-              Issue.record(Comment(stringLiteral: "Purity property violated (non-deterministic)"))
-
-            case .gaveUp(discarded: _, iterations: _):
-              Issue.record(Comment(stringLiteral: "Property test gave up"))
-            }
-          }
         }
         """,
       macros: testMacros
@@ -554,7 +527,7 @@ struct PropertyAssertionMacroTests {
 
   @Test("@Pure respects custom iterations parameter")
   func testPureCustomIterations() {
-    assertMacroExpansion(
+    expectMacroExpansion(
       """
       @Pure(iterations: 200)
       func double(_ value: Int) -> Int {
@@ -567,27 +540,24 @@ struct PropertyAssertionMacroTests {
         }
 
         private enum double_PureTest {
-          @Test("double")
-          static func run() throws {
-            let generator: Gen<Int> = Gen<Int>.int
-            let property = Property(generator: generator) { value in
-              let call1 = double(value)
-              let call2 = double(value)
-              return call1 == call2
+            @Test("double") static func run() throws {
+                let generator: Gen<Int> = Gen<Int>.int
+                let property = Property(generator: generator) { (value: Int) in
+                    let call1 = double(value)
+                    let call2 = double(value)
+                    return call1 == call2
+                }
+                let config = PropertyConfig(iterations: 200, maxShrinks: 1000)
+                let result = runPropertySynchronously(property, config: config)
+                switch result {
+                case .success:
+                    break
+                case .failure(counterexample: _, iterations: _, shrunk: _, reason: _, seed: _):
+                    Issue.record(Comment(stringLiteral: "Purity property violated (non-deterministic)"))
+                case .gaveUp(discarded: _, iterations: _):
+                    Issue.record(Comment(stringLiteral: "Property test gave up"))
+                }
             }
-            let config = PropertyConfig(iterations: 200, maxShrinks: 1000)
-            let result = runPropertySynchronously(property, config: config)
-            switch result {
-            case .success:
-              break
-
-            case .failure(counterexample: _, iterations: _, shrunk: _, reason: _, seed: _):
-              Issue.record(Comment(stringLiteral: "Purity property violated (non-deterministic)"))
-
-            case .gaveUp(discarded: _, iterations: _):
-              Issue.record(Comment(stringLiteral: "Property test gave up"))
-            }
-          }
         }
         """,
       macros: testMacros
@@ -596,7 +566,7 @@ struct PropertyAssertionMacroTests {
 
   @Test("@Pure diagnostic: Void return type (allowed but generates useless test)")
   func testPureDiagnosticVoidReturn() {
-    assertMacroExpansion(
+    expectMacroExpansion(
       """
       @Pure
       func doNothing(_ value: Int) -> Void {
@@ -612,7 +582,7 @@ struct PropertyAssertionMacroTests {
         DiagnosticSpec(
           message: "Function must return a value (Void return type not allowed)",
           line: 2,
-          column: 1,
+          column: 30,
           severity: .error
         )
       ],
