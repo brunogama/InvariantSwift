@@ -60,9 +60,7 @@ public enum TypeAnalyzer {
 
     let base = withoutParameterAttributes(attributed.baseType)
     guard !kept.isEmpty else { return base }
-    return TypeSyntax(
-      attributed.with(\.attributes, AttributeListSyntax(kept)).with(\.baseType, base)
-    )
+    return TypeSyntax(attributed.with(\.attributes, kept).with(\.baseType, base))
   }
 
   /// Checks whether a type is `Void`, however it is spelled.
