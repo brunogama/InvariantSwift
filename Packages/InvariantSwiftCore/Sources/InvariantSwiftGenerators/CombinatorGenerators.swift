@@ -756,9 +756,9 @@ extension Gen {
   /// **Law Verification Process:**
   /// ```swift
   /// // Identity Law Test
-  /// let original = gen.generate(rng, size)
-  /// let mapped = gen.map { $0 }.generate(rng, size)
-  /// // Should be structurally equivalent
+  /// let original = gen.sample(size: size, seed: seed)
+  /// let mapped = gen.map { $0 }.sample(size: size, seed: seed)
+  /// // Values must be equal
   ///
   /// // Composition Law Test
   /// let f: (T) -> U = ...
@@ -768,33 +768,59 @@ extension Gen {
   /// // Should be functionally equivalent
   /// ```
   ///
-  /// - Parameter iterations: Number of test iterations
-  /// - Returns: True if functor laws appear to hold
+  /// Generation is replayed from the same seed for each side of a law. A generator
+  /// that does not honor deterministic seeded generation fails validation.
+  /// Pass non-identity transforms to exercise composition beyond the identity case.
+  ///
+  /// - Parameters:
+  ///   - iterations: Number of samples. Must be greater than zero.
+  ///   - seed: Initial seed used for reproducible generation.
+  ///   - firstTransform: First pure transformation used by the composition law.
+  ///   - secondTransform: Second pure transformation used by the composition law.
+  ///   - equivalent: Equality relation for observations, including values such as NaN.
+  /// - Returns: True when every sampled identity and composition comparison is equal.
   ///
   /// ## Example
   /// ```swift
   /// let intGen = Gen<Int>.int(in: 1...100)
-  /// let lawsHold = intGen.validateFunctorLaws(iterations: 50)
+  /// let lawsHold = intGen.validateFunctorLaws(
+  ///   iterations: 50,
+  ///   firstTransform: { $0 * 2 },
+  ///   secondTransform: { $0 + 1 }
+  /// )
   /// XCTAssertTrue(lawsHold, "Functor laws should hold for integer generator")
   /// ```
-  public func validateFunctorLaws(iterations: Int = 100) -> Bool {
-    var rng: any RandomNumberGenerator = SystemRandomNumberGenerator()
-    let size = Size(value: 10)
+  public func validateFunctorLaws(
+    iterations: Int = 100,
+    seed: Seed = .test,
+    firstTransform: @escaping @Sendable (T) -> T = { $0 },
+    secondTransform: @escaping @Sendable (T) -> T = { $0 },
+    equivalent: @escaping @Sendable (T, T) -> Bool = { $0 == $1 }
+  ) -> Bool where T: Equatable {
+    guard iterations > 0 else { return false }
 
-    for _ in 0..<iterations {
-      // Generate test value
-      _ = self.generate(&rng, size)
+    var sampleSeed = seed
+    let identity: @Sendable (T) -> T = { $0 }
 
-      // Identity law: map(id) == id
-      let identity: @Sendable (T) -> T = { $0 }
-      _ = self.map(identity).generate(&rng, size)
+    for iteration in 0..<iterations {
+      let size = Size(value: iteration + 1)
+      let original = sample(size: size, seed: sampleSeed)
+      let identityMapped = map(identity).sample(size: size, seed: sampleSeed)
+      guard equivalent(original, identityMapped) else { return false }
 
-      // Note: Without Equatable constraint on T, we can't directly compare values
-      // This is a structural validation of the law implementation
-      // In practice, specific generators would need Equatable for proper testing
+      let composed = map { secondTransform(firstTransform($0)) }
+      let sequential = map(firstTransform).map(secondTransform)
+      guard
+        equivalent(
+          composed.sample(size: size, seed: sampleSeed),
+          sequential.sample(size: size, seed: sampleSeed)
+        )
+      else { return false }
+
+      sampleSeed = sampleSeed.split()
     }
 
-    return true  // Placeholder - real implementation needs Equatable constraint
+    return true
   }
 }
 

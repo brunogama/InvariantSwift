@@ -2,6 +2,7 @@
 // File discovery and writing utilities.
 
 import Foundation
+import GhostwriterLib
 
 extension GhostwriterCLI {
   /// Find all Swift files in the given source paths.
@@ -34,12 +35,10 @@ extension GhostwriterCLI {
   static func writeTestFile(
     _ content: String,
     sourceFile: String,
-    outputDirectory: String
+    outputDirectory: String,
+    suffix: String = "PropertyTests"
   ) throws -> String {
-    let fileName = URL(fileURLWithPath: sourceFile)
-      .deletingPathExtension()
-      .lastPathComponent
-    let outputFileName = "\(fileName)PropertyTests.swift"
+    let outputFileName = GhostwriterCore.outputFileName(for: sourceFile, suffix: suffix)
     let outputPath = "\(outputDirectory)/\(outputFileName)"
 
     try FileManager.default.createDirectory(

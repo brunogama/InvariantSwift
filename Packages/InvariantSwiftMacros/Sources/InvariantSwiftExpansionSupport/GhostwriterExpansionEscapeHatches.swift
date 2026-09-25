@@ -19,7 +19,9 @@ enum GhostwriterExpansionEscapeHatches {
           MacroExpansionExprSyntax(
             pound: .poundToken(),
             macroName: .identifier("expect"),
-            arguments: arguments
+            leftParen: .leftParenToken(),
+            arguments: arguments,
+            rightParen: .rightParenToken()
           )
         )
       )

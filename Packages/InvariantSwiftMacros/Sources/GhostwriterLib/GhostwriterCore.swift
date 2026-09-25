@@ -15,6 +15,7 @@ public struct GhostwriterConfig {
   public var showHelp: Bool = false
   public var includeInternal: Bool = false
   public var skipCompileTest: Bool = false
+  public var discoverLaws: Bool = false
 
   public init(
     sources: [String] = [],
@@ -23,7 +24,8 @@ public struct GhostwriterConfig {
     verbose: Bool = false,
     showHelp: Bool = false,
     includeInternal: Bool = false,
-    skipCompileTest: Bool = false
+    skipCompileTest: Bool = false,
+    discoverLaws: Bool = false
   ) {
     self.sources = sources
     self.outputDirectory = outputDirectory
@@ -32,6 +34,7 @@ public struct GhostwriterConfig {
     self.showHelp = showHelp
     self.includeInternal = includeInternal
     self.skipCompileTest = skipCompileTest
+    self.discoverLaws = discoverLaws
   }
 }
 
@@ -62,6 +65,13 @@ public enum GhostwriterCore {
 
     while i < arguments.count {
       let arg = arguments[i]
+
+      if i == 1 && arg == "lawforge" {
+        config.discoverLaws = true
+        config.outputDirectory = "Tests/LawForgeGenerated/"
+        i += 1
+        continue
+      }
 
       switch arg {
       case "--source", "-s":
@@ -160,8 +170,11 @@ public enum GhostwriterCore {
 
     // Filter to testable types
     let testableTypes = mergedTypes.filter { type in
-      let patterns = generator.detectPatterns(for: type)
-      guard !patterns.isEmpty else { return false }
+      let testCount = generator.generatedTestCount(
+        for: type,
+        discoverLaws: config.discoverLaws
+      )
+      guard testCount > 0 else { return false }
 
       let accessOK = config.includeInternal || type.accessLevel.isPubliclyAccessible
       guard accessOK else { return false }
@@ -183,15 +196,22 @@ public enum GhostwriterCore {
     let verifier = CompileVerifier(verbose: config.verbose)
 
     for (sourceFile, types) in typesByFile {
-      let testCode = generator.generateTestFile(types: types, sourceFile: sourceFile)
-      let testsInFile = types.reduce(0) { $0 + generator.detectPatterns(for: $1).count }
+      let testCode = generator.generateTestFile(
+        types: types,
+        sourceFile: sourceFile,
+        discoverLaws: config.discoverLaws
+      )
+      let testsInFile = types.reduce(0) {
+        $0 + generator.generatedTestCount(for: $1, discoverLaws: config.discoverLaws)
+      }
 
       // Verify compilation before writing (unless skipped)
       if !config.skipCompileTest && !config.dryRun {
         let fileName = URL(fileURLWithPath: sourceFile)
           .deletingPathExtension()
           .lastPathComponent
-        let testFileName = "\(fileName)PropertyTests.swift"
+        let suffix = config.discoverLaws ? "LawForgeTests" : "PropertyTests"
+        let testFileName = "\(fileName)\(suffix).swift"
 
         let verifyResult = verifier.verify(code: testCode, fileName: testFileName)
 
@@ -231,7 +251,8 @@ public enum GhostwriterCore {
         let outputFile = try writeTestFile(
           testCode,
           sourceFile: sourceFile,
-          outputDirectory: config.outputDirectory
+          outputDirectory: config.outputDirectory,
+          suffix: config.discoverLaws ? "LawForgeTests" : "PropertyTests"
         )
         result.generatedFiles.append(outputFile)
 
@@ -274,71 +295,51 @@ public enum GhostwriterCore {
 
   // MARK: - Known Types
 
-  public static let knownGeneratableTypes: Set<String> = [
-    "Int", "Int8", "Int16", "Int32", "Int64",
-    "UInt", "UInt8", "UInt16", "UInt32", "UInt64",
-    "Double", "Float", "Bool", "String", "Character",
-    "Date", "UUID", "URL", "Data",
-    "Seed", "Size",
-  ]
+  public static let knownGeneratableTypes: Set<String> =
+    TestCodeGenerator.knownGeneratableTypes
 
   public static func isKnownGeneratableType(_ name: String) -> Bool {
     knownGeneratableTypes.contains(name)
   }
 
   public static func canAutoGenerateArbitrary(for type: ExtractedTypeInfo) -> Bool {
-    guard !type.properties.isEmpty else { return false }
-    return type.properties.allSatisfy { prop in
-      isPropertyTypeGeneratable(prop.typeName)
-    }
+    TestCodeGenerator().canFullyGenerateArbitrary(for: type)
   }
 
   public static func isPropertyTypeGeneratable(_ typeName: String) -> Bool {
-    var cleanedType =
-      typeName
-      .replacingOccurrences(of: "?", with: "")
-      .replacingOccurrences(of: "!", with: "")
-      .trimmingCharacters(in: .whitespaces)
-
-    if cleanedType.hasPrefix("Optional<") && cleanedType.hasSuffix(">") {
-      cleanedType = String(cleanedType.dropFirst(9).dropLast())
-    }
-
-    if cleanedType.hasPrefix("Array<") && cleanedType.hasSuffix(">") {
-      let inner = String(cleanedType.dropFirst(6).dropLast())
-      return isPropertyTypeGeneratable(inner)
-    }
-
-    if cleanedType.hasPrefix("[") && cleanedType.hasSuffix("]") && !cleanedType.contains(":") {
-      let inner = String(cleanedType.dropFirst().dropLast())
-      return isPropertyTypeGeneratable(inner)
-    }
-
-    if cleanedType.hasPrefix("Set<") && cleanedType.hasSuffix(">") {
-      let inner = String(cleanedType.dropFirst(4).dropLast())
-      return isPropertyTypeGeneratable(inner)
-    }
-
-    if cleanedType.hasPrefix("Dictionary<")
-      || (cleanedType.hasPrefix("[") && cleanedType.contains(":"))
-    {
+    if case .success = TestCodeGenerator().generatorResult(for: typeName) {
       return true
     }
-
-    return knownGeneratableTypes.contains(cleanedType)
+    return false
   }
 
   // MARK: - File Writing
 
+  /// Name a generated test by its source path so equal basenames remain distinct.
+  public static func outputFileName(for sourceFile: String, suffix: String) -> String {
+    let components = URL(fileURLWithPath: sourceFile).standardizedFileURL.pathComponents
+    let sourceIndex = components.firstIndex(of: "Sources")
+    let packageIndex = components.lastIndex(of: "Packages")
+    let startIndex =
+      packageIndex.flatMap { package in
+        sourceIndex.map { source in package < source ? package : source }
+      } ?? sourceIndex ?? components.startIndex
+    let relativePath = components[startIndex...].joined(separator: "/")
+    let stem = URL(fileURLWithPath: sourceFile).deletingPathExtension().lastPathComponent
+    let readableStem = stem.map { $0.isASCII && ($0.isLetter || $0.isNumber) ? $0 : "_" }
+    let hash = relativePath.utf8.reduce(UInt64(14_695_981_039_346_656_037)) { value, byte in
+      (value ^ UInt64(byte)) &* 1_099_511_628_211
+    }
+    return "\(String(readableStem))_\(String(hash, radix: 16))\(suffix).swift"
+  }
+
   public static func writeTestFile(
     _ content: String,
     sourceFile: String,
-    outputDirectory: String
+    outputDirectory: String,
+    suffix: String = "PropertyTests"
   ) throws -> String {
-    let fileName = URL(fileURLWithPath: sourceFile)
-      .deletingPathExtension()
-      .lastPathComponent
-    let outputFileName = "\(fileName)PropertyTests.swift"
+    let outputFileName = outputFileName(for: sourceFile, suffix: suffix)
     let outputPath = "\(outputDirectory)/\(outputFileName)"
 
     try FileManager.default.createDirectory(

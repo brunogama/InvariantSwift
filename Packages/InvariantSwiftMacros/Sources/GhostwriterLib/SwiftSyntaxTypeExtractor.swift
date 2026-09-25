@@ -35,6 +35,8 @@ public enum AccessLevel: String, Codable, Sendable, Comparable {
 /// Represents a Swift type extracted from source code.
 public struct ExtractedTypeInfo: Codable, Sendable {
   public let name: String
+  /// Lexically qualified source name, such as `Outer.Inner`.
+  public let qualifiedName: String?
   public let kind: String  // struct, class, enum, actor
   public let sourceFile: String
   public let line: Int
@@ -44,10 +46,50 @@ public struct ExtractedTypeInfo: Codable, Sendable {
   public let methods: [ExtractedMethod]
   public let genericParameters: [String]
   public let accessLevel: AccessLevel
+  public let enumCases: [String]
+
+  public init(
+    name: String,
+    kind: String,
+    sourceFile: String,
+    line: Int,
+    conformances: [String],
+    hasArbitraryAttribute: Bool,
+    properties: [ExtractedProperty],
+    methods: [ExtractedMethod],
+    genericParameters: [String],
+    accessLevel: AccessLevel,
+    enumCases: [String] = [],
+    qualifiedName: String? = nil
+  ) {
+    self.name = name
+    self.qualifiedName = qualifiedName
+    self.kind = kind
+    self.sourceFile = sourceFile
+    self.line = line
+    self.conformances = conformances
+    self.hasArbitraryAttribute = hasArbitraryAttribute
+    self.properties = properties
+    self.methods = methods
+    self.genericParameters = genericParameters
+    self.accessLevel = accessLevel
+    self.enumCases = enumCases
+  }
 
   /// Backward compatible computed property
   public var isPublic: Bool {
     accessLevel.isPubliclyAccessible
+  }
+
+  var sourceQualifiedName: String {
+    qualifiedName ?? name
+  }
+
+  var conformanceLookupName: String {
+    SwiftSyntaxTypeExtractor.conformanceLookupName(
+      typeName: sourceQualifiedName,
+      sourceFile: sourceFile
+    )
   }
 }
 
@@ -71,6 +113,7 @@ public struct ExtractedMethod: Codable, Sendable {
   public let name: String
   public let returnType: String?
   public let parameters: [ExtractedParameter]
+  public let accessLevel: AccessLevel
   public let isStatic: Bool
   public let isMutating: Bool
   public let isThrowing: Bool
@@ -119,16 +162,36 @@ public final class SwiftSyntaxTypeExtractor {
       imports: visitor.imports
     )
   }
+
+  static func conformanceLookupName(typeName: String, sourceFile: String) -> String {
+    guard let moduleName = moduleName(for: sourceFile) else { return typeName }
+    guard typeName != moduleName, !typeName.hasPrefix("\(moduleName).") else {
+      return typeName
+    }
+    return "\(moduleName).\(typeName)"
+  }
+
+  static func moduleName(for sourceFile: String) -> String? {
+    let components = URL(fileURLWithPath: sourceFile).standardizedFileURL.pathComponents
+    guard let sourcesIndex = components.lastIndex(of: "Sources") else { return nil }
+    let moduleIndex = components.index(after: sourcesIndex)
+    guard moduleIndex < components.endIndex,
+      components.index(after: moduleIndex) < components.endIndex
+    else { return nil }
+    return components[moduleIndex].replacingOccurrences(of: "-", with: "_")
+  }
 }
 
 // MARK: - Syntax Visitor (Manual Traversal)
 // Uses manual traversal to avoid SyntaxVisitor subclassing ABI issues with swift-syntax 602
 
-private struct TypeVisitor {
+struct TypeVisitor {
   let filePath: String
   var types: [ExtractedTypeInfo] = []
   var extensionConformances: [String: [String]] = [:]
   var imports: [String] = []
+  var enclosingTypeNames: [String] = []
+  var enclosingGenericParameters: [String] = []
 
   init(filePath: String) {
     self.filePath = filePath
@@ -136,25 +199,89 @@ private struct TypeVisitor {
 
   /// Walk a syntax node and all its children
   mutating func walk(_ node: some SyntaxProtocol) {
-    // Handle specific node types
     if let importDecl = node.as(ImportDeclSyntax.self) {
       visitImport(importDecl)
-    } else if let structDecl = node.as(StructDeclSyntax.self) {
+    }
+    if let structDecl = node.as(StructDeclSyntax.self) {
       visitStruct(structDecl)
-    } else if let classDecl = node.as(ClassDeclSyntax.self) {
+      walkChildren(
+        of: structDecl,
+        enclosing: structDecl.name.text,
+        genericParameters: structDecl.genericParameterClause
+      )
+      return
+    }
+    if let classDecl = node.as(ClassDeclSyntax.self) {
       visitClass(classDecl)
-    } else if let enumDecl = node.as(EnumDeclSyntax.self) {
+      walkChildren(
+        of: classDecl,
+        enclosing: classDecl.name.text,
+        genericParameters: classDecl.genericParameterClause
+      )
+      return
+    }
+    if let enumDecl = node.as(EnumDeclSyntax.self) {
       visitEnum(enumDecl)
-    } else if let actorDecl = node.as(ActorDeclSyntax.self) {
+      walkChildren(
+        of: enumDecl,
+        enclosing: enumDecl.name.text,
+        genericParameters: enumDecl.genericParameterClause
+      )
+      return
+    }
+    if let actorDecl = node.as(ActorDeclSyntax.self) {
       visitActor(actorDecl)
-    } else if let extensionDecl = node.as(ExtensionDeclSyntax.self) {
+      walkChildren(
+        of: actorDecl,
+        enclosing: actorDecl.name.text,
+        genericParameters: actorDecl.genericParameterClause
+      )
+      return
+    }
+    if let extensionDecl = node.as(ExtensionDeclSyntax.self) {
       visitExtension(extensionDecl)
+      walkExtensionChildren(of: extensionDecl)
+      return
     }
 
-    // Recursively walk all children
     for child in node.children(viewMode: .sourceAccurate) {
       walk(child)
     }
+  }
+
+  private mutating func walkChildren(
+    of node: some SyntaxProtocol,
+    enclosing typeName: String,
+    genericParameters: GenericParameterClauseSyntax?
+  ) {
+    let typeCount = enclosingTypeNames.count
+    let genericCount = enclosingGenericParameters.count
+    enclosingTypeNames.append(typeName)
+    enclosingGenericParameters.append(
+      contentsOf: genericParameters?.parameters.map { $0.name.text } ?? []
+    )
+
+    for child in node.children(viewMode: .sourceAccurate) {
+      walk(child)
+    }
+
+    enclosingTypeNames.removeLast(enclosingTypeNames.count - typeCount)
+    enclosingGenericParameters.removeLast(enclosingGenericParameters.count - genericCount)
+  }
+
+  private mutating func walkExtensionChildren(of node: ExtensionDeclSyntax) {
+    let originalCount = enclosingTypeNames.count
+    var extendedNames = node.extendedType.trimmedDescription.split(separator: ".").map(String.init)
+    if extendedNames.first == SwiftSyntaxTypeExtractor.moduleName(for: filePath) {
+      extendedNames.removeFirst()
+    }
+    enclosingTypeNames.append(contentsOf: extendedNames)
+
+    for child in node.children(viewMode: .sourceAccurate) {
+      walk(child)
+    }
+
+    enclosingTypeNames.removeLast(enclosingTypeNames.count - originalCount)
   }
 
   // MARK: - Import Extraction
@@ -199,6 +326,8 @@ private struct TypeVisitor {
   // MARK: - Enum Extraction
 
   private mutating func visitEnum(_ node: EnumDeclSyntax) {
+    let cases = node.memberBlock.members.compactMap { $0.decl.as(EnumCaseDeclSyntax.self) }
+      .flatMap(\.elements)
     let typeInfo = extractTypeInfo(
       name: node.name.text,
       kind: "enum",
@@ -207,7 +336,9 @@ private struct TypeVisitor {
       members: node.memberBlock.members,
       attributes: node.attributes,
       modifiers: node.modifiers,
-      startPosition: node.positionAfterSkippingLeadingTrivia
+      startPosition: node.positionAfterSkippingLeadingTrivia,
+      enumCases: cases.allSatisfy({ $0.parameterClause == nil })
+        ? cases.map { $0.name.text } : []
     )
     types.append(typeInfo)
   }
@@ -238,29 +369,12 @@ private struct TypeVisitor {
       let protocols = inheritanceClause.inheritedTypes.map { inherited in
         inherited.type.trimmedDescription
       }
-      extensionConformances[typeName, default: []].append(contentsOf: protocols)
+      let lookupName = SwiftSyntaxTypeExtractor.conformanceLookupName(
+        typeName: typeName,
+        sourceFile: filePath
+      )
+      extensionConformances[lookupName, default: []].append(contentsOf: protocols)
     }
-  }
-
-  // MARK: - Access Level Extraction
-
-  private func extractAccessLevel(from modifiers: DeclModifierListSyntax) -> AccessLevel {
-    for modifier in modifiers {
-      switch modifier.name.tokenKind {
-      case .keyword(let keyword):
-        switch keyword {
-        case .private: return .private
-        case .fileprivate: return .fileprivate
-        case .internal: return .internal
-        case .public: return .public
-        case .open: return .open
-        default: continue
-        }
-
-      default: continue
-      }
-    }
-    return .internal  // Swift default when not specified
   }
 
   // MARK: - Type Extraction Helper
@@ -274,7 +388,8 @@ private struct TypeVisitor {
     members: MemberBlockItemListSyntax,
     attributes: AttributeListSyntax,
     modifiers: DeclModifierListSyntax,
-    startPosition: AbsolutePosition
+    startPosition: AbsolutePosition,
+    enumCases: [String] = []
   ) -> ExtractedTypeInfo {
     // Extract conformances
     let conformances: [String]
@@ -293,11 +408,11 @@ private struct TypeVisitor {
     }
 
     // Extract generic parameters
-    let generics: [String]
+    let declaredGenerics: [String]
     if let genericClause = genericParameters {
-      generics = genericClause.parameters.map { $0.name.text }
+      declaredGenerics = genericClause.parameters.map { $0.name.text }
     } else {
-      generics = []
+      declaredGenerics = []
     }
 
     // Extract access level
@@ -319,143 +434,11 @@ private struct TypeVisitor {
       hasArbitraryAttribute: hasArbitrary,
       properties: properties,
       methods: methods,
-      genericParameters: generics,
-      accessLevel: accessLevel
+      genericParameters: enclosingGenericParameters + declaredGenerics,
+      accessLevel: accessLevel,
+      enumCases: enumCases,
+      qualifiedName: (enclosingTypeNames + [name]).joined(separator: ".")
     )
   }
 
-  // MARK: - Property Extraction
-
-  private func extractProperties(from members: MemberBlockItemListSyntax) -> [ExtractedProperty] {
-    var properties: [ExtractedProperty] = []
-
-    for member in members {
-      guard let varDecl = member.decl.as(VariableDeclSyntax.self) else { continue }
-
-      let isMutable = varDecl.bindingSpecifier.text == "var"
-      let accessLevel = extractAccessLevel(from: varDecl.modifiers)
-
-      for binding in varDecl.bindings {
-        guard let pattern = binding.pattern.as(IdentifierPatternSyntax.self) else { continue }
-
-        let name = pattern.identifier.text
-        let typeName: String
-        let isOptional: Bool
-
-        if let typeAnnotation = binding.typeAnnotation {
-          typeName = typeAnnotation.type.trimmedDescription
-          isOptional =
-            typeAnnotation.type.is(OptionalTypeSyntax.self)
-            || typeAnnotation.type.is(ImplicitlyUnwrappedOptionalTypeSyntax.self)
-        } else {
-          typeName = "Unknown"
-          isOptional = false
-        }
-
-        let hasDefault = binding.initializer != nil
-
-        // Skip computed properties (they have accessors without stored initializer)
-        if binding.accessorBlock != nil && binding.initializer == nil {
-          continue
-        }
-
-        properties.append(
-          ExtractedProperty(
-            name: name,
-            typeName: typeName,
-            isOptional: isOptional,
-            isMutable: isMutable,
-            hasDefaultValue: hasDefault,
-            accessLevel: accessLevel
-          )
-        )
-      }
-    }
-
-    return properties
-  }
-
-  // MARK: - Method Extraction
-
-  private func extractMethods(from members: MemberBlockItemListSyntax) -> [ExtractedMethod] {
-    var methods: [ExtractedMethod] = []
-
-    for member in members {
-      guard let funcDecl = member.decl.as(FunctionDeclSyntax.self) else { continue }
-
-      let name = funcDecl.name.text
-
-      // Extract parameters
-      let parameters = funcDecl.signature.parameterClause.parameters.map { param in
-        ExtractedParameter(
-          label: param.firstName.text == "_" ? nil : param.firstName.text,
-          name: param.secondName?.text ?? param.firstName.text,
-          typeName: param.type.trimmedDescription
-        )
-      }
-
-      // Extract return type
-      let returnType = funcDecl.signature.returnClause?.type.trimmedDescription
-
-      // Check modifiers
-      let isStatic = funcDecl.modifiers.contains {
-        $0.name.text == "static" || $0.name.text == "class"
-      }
-      let isMutating = funcDecl.modifiers.contains { $0.name.text == "mutating" }
-
-      // Check effects
-      let isThrowing = funcDecl.signature.effectSpecifiers?.throwsClause != nil
-      let isAsync = funcDecl.signature.effectSpecifiers?.asyncSpecifier != nil
-
-      methods.append(
-        ExtractedMethod(
-          name: name,
-          returnType: returnType,
-          parameters: parameters,
-          isStatic: isStatic,
-          isMutating: isMutating,
-          isThrowing: isThrowing,
-          isAsync: isAsync
-        )
-      )
-    }
-
-    return methods
-  }
-
-  // MARK: - Line Number Computation
-
-  private func computeLineNumber(for position: AbsolutePosition) -> Int {
-    // SwiftSyntax uses 0-based offsets, convert to 1-based line numbers
-    // This is a simplified version - for accurate line numbers we'd need source location converter
-    position.utf8Offset / 40 + 1  // Rough estimate
-  }
-}
-
-// MARK: - Location Converter Extension
-
-extension SwiftSyntaxTypeExtractor {
-  /// Merge extension conformances into type info.
-  public static func mergeConformances(
-    types: [ExtractedTypeInfo],
-    extensions: [String: [String]]
-  ) -> [ExtractedTypeInfo] {
-    types.map { type in
-      let additionalConformances = extensions[type.name] ?? []
-      let mergedConformances = Array(Set(type.conformances + additionalConformances))
-
-      return ExtractedTypeInfo(
-        name: type.name,
-        kind: type.kind,
-        sourceFile: type.sourceFile,
-        line: type.line,
-        conformances: mergedConformances,
-        hasArbitraryAttribute: type.hasArbitraryAttribute,
-        properties: type.properties,
-        methods: type.methods,
-        genericParameters: type.genericParameters,
-        accessLevel: type.accessLevel
-      )
-    }
-  }
 }

@@ -62,6 +62,10 @@ Examples:
 - Review the full PR description and discussion before making review comments.
 - Prefer precise review comments tied to correctness, safety, DX, performance, maintainability, or repo policy.
 - Do not approve code that passes superficially but violates `RULES.md`.
+- For PRs targeting `main`, the Ghostwriter workflow generates tests for changed Swift source files,
+  runs the generated test target only when those tests change, and commits new tests to the PR branch
+  before merge. The generated commit triggers one more Ghostwriter check on the updated PR head.
+- Ghostwriter generation is a CI step for incoming code, not a required local step on every build.
 
 ---
 

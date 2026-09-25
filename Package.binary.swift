@@ -126,6 +126,7 @@ let testingTargets: [Target] = [
       "InvariantSwiftAdvanced",
     ],
     path: "Sources/InvariantSwiftTestingIntegration",
+    exclude: ["InvariantSwiftTesting.docc"],
     swiftSettings: commonSwiftSettings
   )
 ]
