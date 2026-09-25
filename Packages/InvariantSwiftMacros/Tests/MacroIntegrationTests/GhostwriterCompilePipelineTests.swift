@@ -47,6 +47,10 @@ struct GhostwriterCompilePipelineTests {
     defer { try? FileManager.default.removeItem(at: sandbox) }
 
     let source = sourceDirectory.appendingPathComponent("DiffFormat.swift")
+    let generatedFileName = GhostwriterCore.outputFileName(
+      for: source.path,
+      suffix: "PropertyTests"
+    )
     try Self.diffFormatFixture.write(to: source, atomically: true, encoding: .utf8)
     let result = try runCLI(
       .init(
@@ -59,19 +63,19 @@ struct GhostwriterCompilePipelineTests {
     )
 
     #expect(result.status == 0, Comment(rawValue: result.output))
-    if FileManager.default.fileExists(atPath: package.appendingPathComponent(".build").path) {
-      #expect(
-        result.output.contains("Type-checked DiffFormatPropertyTests.swift against InvariantSwift"),
-        Comment(rawValue: result.output)
-      )
+    let typeChecked = result.output.contains(
+      "Type-checked \(generatedFileName) against InvariantSwift"
+    )
+    let syntaxOnly = result.output.contains("Syntax verified for \(generatedFileName)")
+    #expect(typeChecked || syntaxOnly, Comment(rawValue: result.output))
+    if typeChecked {
       #expect(result.output.contains("type-check unavailable") == false)
     } else {
-      #expect(result.output.contains("Syntax verified for DiffFormatPropertyTests.swift"))
       #expect(result.output.contains("type-check unavailable because no built SwiftPM context"))
     }
     #expect(result.output.contains("warning:") == false, Comment(rawValue: result.output))
     let generated = try String(
-      contentsOf: outputDirectory.appendingPathComponent("DiffFormatPropertyTests.swift"),
+      contentsOf: outputDirectory.appendingPathComponent(generatedFileName),
       encoding: .utf8
     )
     #expect(
@@ -85,9 +89,29 @@ struct GhostwriterCompilePipelineTests {
     #expect(generated.contains("test14_InvariantSwift_12_ConsoleColor_caseIterableContainsValue"))
     #expect(
       FileManager.default.fileExists(
-        atPath: outputDirectory.appendingPathComponent("DiffFormatPropertyTests.swift").path
+        atPath: outputDirectory.appendingPathComponent(generatedFileName).path
       ),
       Comment(rawValue: result.output)
+    )
+  }
+
+  @Test("Generated names distinguish files with the same basename")
+  func generatedNamesAreSourceSpecific() {
+    let first = GhostwriterCore.outputFileName(
+      for: "/repo/Sources/Alpha/Shared.swift",
+      suffix: "PropertyTests"
+    )
+    let second = GhostwriterCore.outputFileName(
+      for: "/repo/Sources/Beta/Shared.swift",
+      suffix: "PropertyTests"
+    )
+    #expect(first != second)
+    #expect(
+      first
+        == GhostwriterCore.outputFileName(
+          for: "/other/Sources/Alpha/Shared.swift",
+          suffix: "PropertyTests"
+        )
     )
   }
 

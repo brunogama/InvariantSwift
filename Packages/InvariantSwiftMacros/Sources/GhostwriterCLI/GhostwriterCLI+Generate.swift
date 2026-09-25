@@ -109,11 +109,12 @@ extension GhostwriterBuildContext {
         enumerator.skipDescendants()
         continue
       }
+      guard names.contains(url.lastPathComponent) else { continue }
       let siblingDirectory = url.deletingLastPathComponent()
       let hasRequiredSiblings = requiredSiblings.allSatisfy {
         FileManager.default.fileExists(atPath: siblingDirectory.appendingPathComponent($0).path)
       }
-      if names.contains(url.lastPathComponent) && hasRequiredSiblings {
+      if hasRequiredSiblings {
         matches.append(url)
         enumerator.skipDescendants()
       }
@@ -187,7 +188,6 @@ extension GhostwriterCLI {
       guard let typeCheckContext = context.typeCheckContexts[module] else { continue }
       let files = sourceFiles.sorted().compactMap { sourceFile -> CompileVerifier.SourceFile? in
         guard let types = typesByFile[sourceFile] else { return nil }
-        let name = URL(fileURLWithPath: sourceFile).deletingPathExtension().lastPathComponent
         let suffix = context.config.discoverLaws ? "LawForgeTests" : "PropertyTests"
         let code = context.generator.generateTestFile(
           types: types,
@@ -195,7 +195,8 @@ extension GhostwriterCLI {
           consumerModule: module,
           discoverLaws: context.config.discoverLaws
         )
-        return CompileVerifier.SourceFile(fileName: "\(name)\(suffix).swift", code: code)
+        let name = GhostwriterCore.outputFileName(for: sourceFile, suffix: suffix)
+        return CompileVerifier.SourceFile(fileName: name, code: code)
       }
       let verifier = CompileVerifier(typeCheckContext: typeCheckContext)
       if verifier.verifyBatch(files).success {
@@ -235,11 +236,8 @@ extension GhostwriterCLI {
     }
 
     if !context.config.skipCompileTest && !context.config.dryRun && !verifiedInBatch {
-      let fileName = URL(fileURLWithPath: sourceFile)
-        .deletingPathExtension()
-        .lastPathComponent
       let suffix = context.config.discoverLaws ? "LawForgeTests" : "PropertyTests"
-      let testFileName = "\(fileName)\(suffix).swift"
+      let testFileName = GhostwriterCore.outputFileName(for: sourceFile, suffix: suffix)
 
       let verifyResult = verifyGeneratedTest(
         testCode,

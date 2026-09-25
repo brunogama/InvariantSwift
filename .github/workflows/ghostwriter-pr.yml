@@ -92,7 +92,7 @@ jobs:
                 break
                 ;;
             esac
-          done < <(git diff --name-only -z --diff-filter=ACMR "$BASE_SHA...HEAD" -- Sources Packages)
+          done < <(git diff --name-only -z --diff-filter=ACMRD "$BASE_SHA...HEAD" -- Sources Packages)
           echo "changed=$changed" >> "$GITHUB_OUTPUT"
 
   generate-and-test:
@@ -127,6 +127,20 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          git diff --name-only -z --diff-filter=ACMRD --no-renames \
+            "$BASE_SHA...HEAD" -- Sources Packages > ghostwriter-changed-sources.bin
+          while IFS= read -r -d '' path; do
+            case "$path" in
+              Sources/*.swift|Packages/*/Sources/*.swift) ;;
+              *) continue ;;
+            esac
+            while IFS= read -r -d '' generated; do
+              if grep -Fqx -- "// Source: $path" "$generated"; then
+                rm -- "$generated"
+              fi
+            done < <(find Tests/Generated -maxdepth 1 -type f -name '*Tests.swift' -print0)
+          done < ghostwriter-changed-sources.bin
+
           sources=()
           while IFS= read -r -d '' path; do
             case "$path" in
@@ -136,19 +150,16 @@ jobs:
             esac
           done < <(git diff --name-only -z --diff-filter=ACMR "$BASE_SHA...HEAD" -- Sources Packages)
 
-          if (( ${#sources[@]} == 0 )); then
-            echo '::error::Source detection changed during Ghostwriter generation.'
-            exit 1
-          fi
+          if (( ${#sources[@]} > 0 )); then
+            swift build --enable-experimental-prebuilts -Xswiftc -warnings-as-errors
+            swift package --enable-experimental-prebuilts plugin \
+              --allow-writing-to-package-directory ghostwrite "${sources[@]}" \
+              --output Tests/Generated --verbose | tee ghostwriter.log
 
-          swift build --enable-experimental-prebuilts -Xswiftc -warnings-as-errors
-          swift package --enable-experimental-prebuilts plugin \
-            --allow-writing-to-package-directory ghostwrite "${sources[@]}" \
-            --output Tests/Generated --verbose | tee ghostwriter.log
-
-          if grep -Eq 'Skipped [1-9][0-9]* file\(s\) due to compilation errors' ghostwriter.log; then
-            echo '::error::Ghostwriter skipped generated tests after a compilation error.'
-            exit 1
+            if grep -Eq 'Skipped [1-9][0-9]* file\(s\) due to compilation errors' ghostwriter.log; then
+              echo '::error::Ghostwriter skipped generated tests after a compilation error.'
+              exit 1
+            fi
           fi
 
           if [[ -n "$(git status --porcelain -- Tests/Generated)" ]]; then
@@ -164,7 +175,9 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: ghostwriter-tests
-          path: Tests/Generated/
+          path: |
+            Tests/Generated/
+            ghostwriter-changed-sources.bin
           if-no-files-found: error
           retention-days: 1
 
@@ -191,7 +204,7 @@ jobs:
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: ghostwriter-tests
-          path: Tests/Generated/
+          path: .
 
       - name: Commit to PR branch and validate updated head
         env:
@@ -208,6 +221,18 @@ jobs:
             echo '::error::PR head changed while Ghostwriter was running.'
             exit 1
           fi
+
+          while IFS= read -r -d '' path; do
+            case "$path" in
+              Sources/*.swift|Packages/*/Sources/*.swift) ;;
+              *) continue ;;
+            esac
+            while IFS= read -r -d '' generated; do
+              if grep -Fqx -- "// Source: $path" "$generated"; then
+                rm -- "$generated"
+              fi
+            done < <(find Tests/Generated -maxdepth 1 -type f -name '*Tests.swift' -print0)
+          done < ghostwriter-changed-sources.bin
 
           git add -- Tests/Generated
           if git diff --cached --quiet; then

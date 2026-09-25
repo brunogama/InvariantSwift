@@ -50,13 +50,20 @@ jobs:
             FROM="$PR_BASE"
             TO="$PR_HEAD"
           elif [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
-            FROM="HEAD~1"
-            TO="HEAD"
+            FROM=$(git merge-base "$AFTER" "origin/$DEFAULT_BRANCH" || true)
+            if [ "$FROM" = "$AFTER" ]; then
+              FROM=""
+            fi
+            TO="$AFTER"
           elif git merge-base --is-ancestor "$BEFORE" "$AFTER"; then
             FROM="$BEFORE"
             TO="$AFTER"
           else
-            FROM=$(git merge-base "$AFTER" "origin/$DEFAULT_BRANCH")
+            if ! git cat-file -e "$BEFORE^{commit}"; then
+              echo "::error::Previous push commit is unavailable; cannot validate rewritten history."
+              exit 1
+            fi
+            FROM=$(git merge-base "$BEFORE" "$AFTER")
             TO="$AFTER"
           fi
           echo "from=$FROM" >> "$GITHUB_OUTPUT"
@@ -71,13 +78,19 @@ jobs:
             --verbose
 
       - name: Reject AI co-author trailers
+        env:
+          FROM: ${{ steps.range.outputs.from }}
+          TO: ${{ steps.range.outputs.to }}
         run: |
-          MESSAGES=$(git log --format="%B" \
-            "${{ steps.range.outputs.from }}..${{ steps.range.outputs.to }}")
+          if [ -n "$FROM" ]; then
+            MESSAGES=$(git log --format="%B" "$FROM..$TO")
+          else
+            MESSAGES=$(git log --format="%B" "$TO")
+          fi
 
           # Check for AI agent co-author trailers (case-insensitive).
-          AI_PATTERN='(?i)^Co-Authored-By:.*\b(claude|anthropic|copilot|'
-          AI_PATTERN+='github-actions\[bot\]|gemini|chatgpt|openai)\b'
+          AI_PATTERN='(?i)^Co-Authored-By:.*(?<![[:alnum:]_])(claude|anthropic|copilot|'
+          AI_PATTERN+='github-actions\[bot\]|gemini|chatgpt|openai)(?![[:alnum:]_])'
           if echo "${MESSAGES}" | grep -Pq "${AI_PATTERN}"; then
             echo "::error::AI agent Co-Authored-By trailers found in commits."
             echo ""

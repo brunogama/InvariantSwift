@@ -36,6 +36,7 @@ private struct GhostwriterInvocation {
   private(set) var dryRun = false
   private(set) var verbose = false
   private(set) var skipCompileTest = false
+  private(set) var includeInternal = false
   private(set) var showHelp = false
   private(set) var subcommand: String?
 
@@ -80,6 +81,7 @@ private struct GhostwriterInvocation {
     case "--dry-run": dryRun = true
     case "--verbose", "-v": verbose = true
     case "--skip-compile-test": skipCompileTest = true
+    case "--include-internal": includeInternal = true
     case "--help", "-h": showHelp = true
     default: return false
     }
@@ -99,6 +101,9 @@ private struct GhostwriterInvocation {
     }
     if skipCompileTest {
       arguments.append("--skip-compile-test")
+    }
+    if includeInternal {
+      arguments.append("--include-internal")
     }
     return arguments
   }
@@ -186,6 +191,7 @@ struct GhostwriterPlugin: CommandPlugin {
           --dry-run               Preview without writing files
           --verbose, -v           Enable verbose output
           --skip-compile-test     Write tests without compiler verification
+          --include-internal      Include non-public types
           --help, -h              Show this help
 
       FEATURES:

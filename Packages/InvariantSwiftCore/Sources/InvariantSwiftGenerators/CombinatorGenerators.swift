@@ -770,12 +770,14 @@ extension Gen {
   ///
   /// Generation is replayed from the same seed for each side of a law. A generator
   /// that does not honor deterministic seeded generation fails validation.
+  /// Pass non-identity transforms to exercise composition beyond the identity case.
   ///
   /// - Parameters:
   ///   - iterations: Number of samples. Must be greater than zero.
   ///   - seed: Initial seed used for reproducible generation.
   ///   - firstTransform: First pure transformation used by the composition law.
   ///   - secondTransform: Second pure transformation used by the composition law.
+  ///   - equivalent: Equality relation for observations, including values such as NaN.
   /// - Returns: True when every sampled identity and composition comparison is equal.
   ///
   /// ## Example
@@ -792,7 +794,8 @@ extension Gen {
     iterations: Int = 100,
     seed: Seed = .test,
     firstTransform: @escaping @Sendable (T) -> T = { $0 },
-    secondTransform: @escaping @Sendable (T) -> T = { $0 }
+    secondTransform: @escaping @Sendable (T) -> T = { $0 },
+    equivalent: @escaping @Sendable (T, T) -> Bool = { $0 == $1 }
   ) -> Bool where T: Equatable {
     guard iterations > 0 else { return false }
 
@@ -803,13 +806,15 @@ extension Gen {
       let size = Size(value: iteration + 1)
       let original = sample(size: size, seed: sampleSeed)
       let identityMapped = map(identity).sample(size: size, seed: sampleSeed)
-      guard original == identityMapped else { return false }
+      guard equivalent(original, identityMapped) else { return false }
 
       let composed = map { secondTransform(firstTransform($0)) }
       let sequential = map(firstTransform).map(secondTransform)
       guard
-        composed.sample(size: size, seed: sampleSeed)
-          == sequential.sample(size: size, seed: sampleSeed)
+        equivalent(
+          composed.sample(size: size, seed: sampleSeed),
+          sequential.sample(size: size, seed: sampleSeed)
+        )
       else { return false }
 
       sampleSeed = sampleSeed.split()

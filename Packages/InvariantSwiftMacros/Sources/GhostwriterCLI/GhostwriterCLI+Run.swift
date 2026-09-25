@@ -55,7 +55,9 @@ struct GhostwriterBuildContext: Sendable {
     let components = sourceURL.pathComponents
     guard let sourcesIndex = components.lastIndex(of: "Sources") else { return nil }
     let moduleIndex = components.index(after: sourcesIndex)
-    guard moduleIndex < components.endIndex else { return nil }
+    guard moduleIndex < components.endIndex,
+      components.index(after: moduleIndex) < components.endIndex
+    else { return nil }
     return components[moduleIndex].replacingOccurrences(of: "-", with: "_")
   }
 

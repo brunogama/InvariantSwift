@@ -315,16 +315,31 @@ public enum GhostwriterCore {
 
   // MARK: - File Writing
 
+  /// Name a generated test by its source path so equal basenames remain distinct.
+  public static func outputFileName(for sourceFile: String, suffix: String) -> String {
+    let components = URL(fileURLWithPath: sourceFile).standardizedFileURL.pathComponents
+    let sourceIndex = components.lastIndex(of: "Sources")
+    let packageIndex = components.lastIndex(of: "Packages")
+    let startIndex =
+      packageIndex.flatMap { package in
+        sourceIndex.map { source in package < source ? package : source }
+      } ?? sourceIndex ?? components.startIndex
+    let relativePath = components[startIndex...].joined(separator: "/")
+    let stem = URL(fileURLWithPath: sourceFile).deletingPathExtension().lastPathComponent
+    let readableStem = stem.map { $0.isASCII && ($0.isLetter || $0.isNumber) ? $0 : "_" }
+    let hash = relativePath.utf8.reduce(UInt64(14_695_981_039_346_656_037)) { value, byte in
+      (value ^ UInt64(byte)) &* 1_099_511_628_211
+    }
+    return "\(String(readableStem))_\(String(hash, radix: 16))\(suffix).swift"
+  }
+
   public static func writeTestFile(
     _ content: String,
     sourceFile: String,
     outputDirectory: String,
     suffix: String = "PropertyTests"
   ) throws -> String {
-    let fileName = URL(fileURLWithPath: sourceFile)
-      .deletingPathExtension()
-      .lastPathComponent
-    let outputFileName = "\(fileName)\(suffix).swift"
+    let outputFileName = outputFileName(for: sourceFile, suffix: suffix)
     let outputPath = "\(outputDirectory)/\(outputFileName)"
 
     try FileManager.default.createDirectory(

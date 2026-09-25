@@ -49,6 +49,17 @@ struct FunctorLawValidationTests {
     let unstableGenerator = Gen<Int> { _, _ in sequence.next() }
     #expect(!unstableGenerator.validateFunctorLaws(iterations: 1))
   }
+
+  @Test("NaN observations can use IEEE-aware equivalence")
+  func nanEquivalence() {
+    let generator = Gen<Double>.constant(.nan)
+    #expect(!generator.validateFunctorLaws(iterations: 1))
+    let valid = generator.validateFunctorLaws(
+      iterations: 1,
+      equivalent: { lhs, rhs in lhs == rhs || (lhs.isNaN && rhs.isNaN) }
+    )
+    #expect(valid)
+  }
 }
 
 /// Shared mutable state is protected by `lock` on every access.
