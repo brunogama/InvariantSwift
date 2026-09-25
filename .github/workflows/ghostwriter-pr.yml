@@ -204,7 +204,7 @@ jobs:
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: ghostwriter-tests
-          path: .
+          path: ${{ runner.temp }}/ghostwriter-tests
 
       - name: Commit to PR branch and validate updated head
         env:
@@ -232,7 +232,11 @@ jobs:
                 rm -- "$generated"
               fi
             done < <(find Tests/Generated -maxdepth 1 -type f -name '*Tests.swift' -print0)
-          done < ghostwriter-changed-sources.bin
+          done < "$RUNNER_TEMP/ghostwriter-tests/ghostwriter-changed-sources.bin"
+
+          if [[ -d "$RUNNER_TEMP/ghostwriter-tests/Tests/Generated" ]]; then
+            cp -R "$RUNNER_TEMP/ghostwriter-tests/Tests/Generated/." Tests/Generated/
+          fi
 
           git add -- Tests/Generated
           if git diff --cached --quiet; then
