@@ -318,7 +318,7 @@ public enum GhostwriterCore {
   /// Name a generated test by its source path so equal basenames remain distinct.
   public static func outputFileName(for sourceFile: String, suffix: String) -> String {
     let components = URL(fileURLWithPath: sourceFile).standardizedFileURL.pathComponents
-    let sourceIndex = components.lastIndex(of: "Sources")
+    let sourceIndex = components.firstIndex(of: "Sources")
     let packageIndex = components.lastIndex(of: "Packages")
     let startIndex =
       packageIndex.flatMap { package in

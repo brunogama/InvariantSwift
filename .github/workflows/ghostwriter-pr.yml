@@ -85,6 +85,8 @@ jobs:
         run: |
           set -euo pipefail
           changed=false
+          git diff --name-only -z --diff-filter=ACMRD \
+            "$BASE_SHA...HEAD" -- Sources Packages > "$RUNNER_TEMP/changed-sources.bin"
           while IFS= read -r -d '' path; do
             case "$path" in
               Sources/*.swift|Packages/*/Sources/*.swift)
@@ -92,7 +94,7 @@ jobs:
                 break
                 ;;
             esac
-          done < <(git diff --name-only -z --diff-filter=ACMRD "$BASE_SHA...HEAD" -- Sources Packages)
+          done < "$RUNNER_TEMP/changed-sources.bin"
           echo "changed=$changed" >> "$GITHUB_OUTPUT"
 
   generate-and-test:
@@ -142,13 +144,15 @@ jobs:
           done < ghostwriter-changed-sources.bin
 
           sources=()
+          git diff --name-only -z --diff-filter=ACMR \
+            "$BASE_SHA...HEAD" -- Sources Packages > "$RUNNER_TEMP/additional-sources.bin"
           while IFS= read -r -d '' path; do
             case "$path" in
               Sources/*.swift|Packages/*/Sources/*.swift)
                 sources+=(--source "$path")
                 ;;
             esac
-          done < <(git diff --name-only -z --diff-filter=ACMR "$BASE_SHA...HEAD" -- Sources Packages)
+          done < "$RUNNER_TEMP/additional-sources.bin"
 
           if (( ${#sources[@]} > 0 )); then
             swift build --enable-experimental-prebuilts -Xswiftc -warnings-as-errors

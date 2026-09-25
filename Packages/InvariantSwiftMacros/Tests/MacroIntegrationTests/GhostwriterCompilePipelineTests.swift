@@ -113,6 +113,16 @@ struct GhostwriterCompilePipelineTests {
           suffix: "PropertyTests"
         )
     )
+
+    let nestedFirst = GhostwriterCore.outputFileName(
+      for: "/repo/Sources/Alpha/Nested/Sources/Shared.swift",
+      suffix: "PropertyTests"
+    )
+    let nestedSecond = GhostwriterCore.outputFileName(
+      for: "/repo/Sources/Beta/Nested/Sources/Shared.swift",
+      suffix: "PropertyTests"
+    )
+    #expect(nestedFirst != nestedSecond)
   }
 
   private func runCLI(_ request: RunRequest) throws -> (status: Int32, output: String) {
