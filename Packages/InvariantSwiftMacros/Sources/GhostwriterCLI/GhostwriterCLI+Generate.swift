@@ -362,7 +362,12 @@ extension GhostwriterCLI {
     for (sourceFile, types) in typesByFile {
       let scaffolds = types.map { context.generator.generateGeneratorScaffold(for: $0) }
         .joined(separator: "\n\n")
-      let content = scaffoldFileHeader(sourceFile: sourceFile) + scaffolds + "\n"
+      let consumerModule = context.buildContext.moduleName(for: sourceFile)
+      let content =
+        scaffoldFileHeader(
+          sourceFile: sourceFile,
+          consumerModule: consumerModule
+        ) + scaffolds + "\n"
       let fileName = URL(fileURLWithPath: sourceFile)
         .deletingPathExtension()
         .lastPathComponent
@@ -410,8 +415,11 @@ extension GhostwriterCLI {
   }
 
   /// The header prepended to every scaffold file.
-  private static func scaffoldFileHeader(sourceFile: String) -> String {
-    [
+  private static func scaffoldFileHeader(
+    sourceFile: String,
+    consumerModule: String?
+  ) -> String {
+    var lines = [
       "// swiftlint:disable:next blanket_disable_command",
       "// swiftlint:disable all",
       "// swiftformat:disable all",
@@ -425,6 +433,10 @@ extension GhostwriterCLI {
       "import Foundation",
       "import InvariantSwiftCore",
       "",
-    ].joined(separator: "\n")
+    ]
+    if let consumerModule {
+      lines.insert("@testable import \(consumerModule)", at: lines.count - 1)
+    }
+    return lines.joined(separator: "\n")
   }
 }
