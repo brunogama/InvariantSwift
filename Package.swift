@@ -202,6 +202,7 @@ let utilityTargets: [Target] = [
       "GhostwriterLib",
       .product(name: "SwiftParser", package: "swift-syntax"),
       .product(name: "SwiftSyntax", package: "swift-syntax"),
+      .product(name: "SwiftSyntaxBuilder", package: "swift-syntax"),
     ],
     path: "Packages/InvariantSwiftMacros/Sources/GhostwriterCLI",
     swiftSettings: commonSwiftSettings
