@@ -7,7 +7,8 @@ extension SwiftSyntaxTypeExtractor {
     extensions: [String: [String]]
   ) -> [ExtractedTypeInfo] {
     types.map { type in
-      let additionalConformances = extensions[type.conformanceLookupName] ?? []
+      let additionalConformances = conformanceLookupKeys(for: type)
+        .flatMap { extensions[$0] ?? [] }
       let mergedConformances = Array(Set(type.conformances + additionalConformances))
 
       return ExtractedTypeInfo(
@@ -25,6 +26,22 @@ extension SwiftSyntaxTypeExtractor {
         qualifiedName: type.qualifiedName
       )
     }
+  }
+}
+
+extension SwiftSyntaxTypeExtractor {
+  /// Every key an extension of this type may be filed under: the
+  /// module-qualified lookup name, the bare name, and the source-qualified
+  /// name. Conformances written in test files are keyed by the bare or
+  /// source-qualified name, while the type itself resolves to the
+  /// module-qualified name.
+  static func conformanceLookupKeys(for type: ExtractedTypeInfo) -> [String] {
+    var keys = [type.conformanceLookupName, type.name]
+    if let qualifiedName = type.qualifiedName {
+      keys.append(qualifiedName)
+    }
+    var seen = Set<String>()
+    return keys.filter { seen.insert($0).inserted }
   }
 }
 

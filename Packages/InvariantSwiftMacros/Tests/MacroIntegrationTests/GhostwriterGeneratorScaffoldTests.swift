@@ -79,6 +79,29 @@ struct GhostwriterGeneratorScaffoldTests {
     #expect(code.contains("validating initializer"))
   }
 
+  @Test("Conformances declared in test files merge into module-qualified types")
+  func testFileConformancesMergeIntoModuleQualifiedTypes() throws {
+    let type = ExtractedTypeInfo(
+      name: "Money",
+      kind: "struct",
+      sourceFile: "Sources/Domain/Money.swift",
+      line: 1,
+      conformances: ["Hashable"],
+      hasArbitraryAttribute: false,
+      properties: [],
+      methods: [],
+      genericParameters: [],
+      accessLevel: .public
+    )
+
+    let merged = SwiftSyntaxTypeExtractor.mergeConformances(
+      types: [type],
+      extensions: ["Money": ["InvariantSwiftCore.Generatable"]]
+    ).first!
+
+    #expect(merged.conformances.contains("InvariantSwiftCore.Generatable"))
+  }
+
   @Test("Law tests for a user-provided conformance omit a duplicate extension")
   func userProvidedConformanceDoesNotDuplicate() throws {
     var type = failableInitType()
