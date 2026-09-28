@@ -37,6 +37,7 @@ private struct GhostwriterInvocation {
   private(set) var verbose = false
   private(set) var skipCompileTest = false
   private(set) var includeInternal = false
+  private(set) var generateGenerators = false
   private(set) var showHelp = false
   private(set) var subcommand: String?
 
@@ -82,6 +83,7 @@ private struct GhostwriterInvocation {
     case "--verbose", "-v": verbose = true
     case "--skip-compile-test": skipCompileTest = true
     case "--include-internal": includeInternal = true
+    case "--generate-generators": generateGenerators = true
     case "--help", "-h": showHelp = true
     default: return false
     }
@@ -104,6 +106,9 @@ private struct GhostwriterInvocation {
     }
     if includeInternal {
       arguments.append("--include-internal")
+    }
+    if generateGenerators {
+      arguments.append("--generate-generators")
     }
     return arguments
   }
