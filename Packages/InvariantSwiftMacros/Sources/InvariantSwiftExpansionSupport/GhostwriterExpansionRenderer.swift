@@ -30,14 +30,12 @@ public enum GhostwriterExpansionRenderer {
       )
     }
 
-    // Generated files live in the consumer's test target, so the
-    // `Generatable` conformance is always cross-module and must be marked
-    // `@retroactive` to keep consumer builds free of warnings.
-    let plainExtension = MacroTemplateAdapter.makeExtension(
+    // Generated files compile inside the consumer's own package, where the
+    // analyzed types are same-package, so the conformance is not retroactive.
+    let extensionDecl = MacroTemplateAdapter.makeExtension(
       typeName: ext.typeName,
       conformances: ["InvariantSwiftCore.Generatable"]
     )
-    let extensionDecl = plainExtension.withRetroactiveConformances()
 
     let memberBlock = MemberBlockSyntax(
       members: MemberBlockItemListSyntax([
@@ -408,39 +406,5 @@ extension GhostwriterExpansionRenderer {
       return expression
     }
     return expression.with(\.leadingTrivia, [.blockComment(todoComment), .spaces(1)])
-  }
-}
-
-extension ExtensionDeclSyntax {
-  /// Marks every inherited conformance as `@retroactive`.
-  ///
-  /// Generated files compile in a consumer's test target, where both the
-  /// extended type and `Generatable` are declared by other modules; the
-  /// explicit attribute keeps strict consumer builds warning-free.
-  func withRetroactiveConformances() -> ExtensionDeclSyntax {
-    guard let inheritanceClause else { return self }
-    let attributed = InheritanceClauseSyntax(
-      inheritedTypes: InheritedTypeListSyntax(
-        inheritanceClause.inheritedTypes.map { inherited in
-          InheritedTypeSyntax(
-            type: TypeSyntax(
-              AttributedTypeSyntax(
-                specifiers: [],
-                attributes: AttributeListSyntax([
-                  .attribute(
-                    AttributeSyntax(
-                      attributeName: IdentifierTypeSyntax(name: .identifier("retroactive"))
-                    )
-                  )
-                ]),
-                baseType: inherited.type
-              )
-            ),
-            trailingComma: inherited.trailingComma
-          )
-        }
-      )
-    )
-    return with(\.inheritanceClause, attributed)
   }
 }

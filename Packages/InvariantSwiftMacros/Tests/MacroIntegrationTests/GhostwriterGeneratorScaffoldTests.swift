@@ -46,11 +46,12 @@ struct GhostwriterGeneratorScaffoldTests {
     )
   }
 
-  @Test("Scaffolds mark the conformance retroactive")
-  func scaffoldMarksConformanceRetroactive() {
+  @Test("Scaffolds conform to the cross-module Generatable protocol")
+  func scaffoldsConformToGeneratable() {
     let code = generator.generateGeneratorScaffold(for: failableInitType())
 
-    #expect(code.contains("extension Money: @retroactive InvariantSwiftCore.Generatable"))
+    #expect(code.contains("extension Money: InvariantSwiftCore.Generatable"))
+    #expect(!code.contains("@retroactive"))
   }
 
   @Test("Scaffolds wrap guidance in a closed comment and compile")
