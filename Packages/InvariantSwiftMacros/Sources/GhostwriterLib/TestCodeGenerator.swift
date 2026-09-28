@@ -272,35 +272,13 @@ extension TestCodeGenerator {
       }
   }
 
-  /// Renders a `Generatable` extension, including TODO placeholders when requested directly.
-  public func generateArbitraryExtension(for type: ExtractedTypeInfo) -> String {
-    generateArbitraryExtensionResult(for: type).code
-  }
-
-  /// Renders a `Generatable` extension and reports properties needing custom generators.
-  public func generateArbitraryExtensionResult(
-    for type: ExtractedTypeInfo
-  ) -> ArbitraryGenerationResult {
-    var todoProperties: [String] = []
-    let arbitraryExtension = plannedArbitraryExtension(
-      for: type,
-      identity: GeneratedTypeIdentity(type: type),
-      todoProperties: &todoProperties
-    )
-
-    return ArbitraryGenerationResult(
-      code: GhostwriterExpansionRenderer.render(arbitraryExtension: arbitraryExtension),
-      todoProperties: todoProperties
-    )
-  }
-
   func plannedArbitraryExtension(
     for type: ExtractedTypeInfo
   ) -> GhostwriterGeneratedArbitraryExtension {
     plannedArbitraryExtension(for: type, identity: GeneratedTypeIdentity(type: type))
   }
 
-  private func plannedArbitraryExtension(
+  func plannedArbitraryExtension(
     for type: ExtractedTypeInfo,
     identity: GeneratedTypeIdentity
   ) -> GhostwriterGeneratedArbitraryExtension {
@@ -312,17 +290,20 @@ extension TestCodeGenerator {
     )
   }
 
-  private func plannedArbitraryExtension(
+
+  func plannedArbitraryExtension(
     for type: ExtractedTypeInfo,
     identity: GeneratedTypeIdentity,
-    todoProperties: inout [String]
+    todoProperties: inout [String],
+    todoComment: String? = nil
   ) -> GhostwriterGeneratedArbitraryExtension {
     GhostwriterGeneratedArbitraryExtension(
       typeName: identity.reference,
       propertyGenerators: type.properties.map { property in
         buildPropertyGenerator(property, todoProperties: &todoProperties)
       },
-      enumCases: type.enumCases
+      enumCases: type.enumCases,
+      todoComment: todoComment
     )
   }
 

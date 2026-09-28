@@ -41,6 +41,7 @@ extension GhostwriterCLI {
     var includeInternal: Bool = false
     var skipCompileTest: Bool = false
     var discoverLaws: Bool = false
+    var generateGenerators: Bool = false
   }
 
   struct RunResult {
@@ -107,6 +108,9 @@ extension GhostwriterCLI {
     case "--skip-compile-test":
       config.skipCompileTest = true
 
+    case "--generate-generators":
+      config.generateGenerators = true
+
     default:
       return false
     }
@@ -169,6 +173,8 @@ extension GhostwriterCLI {
           --verbose, -v           Enable verbose output
           --include-internal      Include internal types (default: only public/open)
           --skip-compile-test     Skip compile verification
+          --generate-generators   Write Generatable scaffolds (with TODO guidance) for
+                                 types that have laws but no available generator
           --help, -h              Show this help
 
       SUBCOMMANDS:

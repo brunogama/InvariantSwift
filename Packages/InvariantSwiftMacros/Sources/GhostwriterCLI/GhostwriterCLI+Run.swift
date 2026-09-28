@@ -126,21 +126,9 @@ extension GhostwriterCLI {
       printVerboseStats(mergedTypes, testableTypes, context: statsContext)
     }
 
-    let buildContext = GhostwriterBuildContext.current(sources: config.sources)
-    let modules =
-      config.skipCompileTest || config.dryRun
-      ? Set<String>()
-      : Set(testableTypes.compactMap { buildContext.moduleName(for: $0.sourceFile) })
-    let typeCheckContexts = Dictionary(
-      uniqueKeysWithValues: modules.compactMap { moduleName in
-        buildContext.typeCheckContext(for: moduleName).map { (moduleName, $0) }
-      }
-    )
-    let context = GenerationContext(
+    let context = makeGenerationContext(
       generator: generator,
-      verifier: CompileVerifier(verbose: config.verbose),
-      buildContext: buildContext,
-      typeCheckContexts: typeCheckContexts,
+      testableTypes: testableTypes,
       config: config,
       output: output
     )
@@ -150,6 +138,15 @@ extension GhostwriterCLI {
       using: context,
       result: result
     )
+
+    if config.generateGenerators {
+      result = try generateGeneratorScaffolds(
+        for: mergedTypes,
+        excluding: testableTypes,
+        using: context,
+        result: result
+      )
+    }
 
     return result
   }
@@ -181,6 +178,34 @@ extension GhostwriterCLI {
     return (allTypes, allExtensions)
   }
 
+  /// Builds the shared generation context from the CLI configuration and
+  /// the build artifacts discovered for the consumer package.
+  private static func makeGenerationContext(
+    generator: TestCodeGenerator,
+    testableTypes: [ExtractedTypeInfo],
+    config: Config,
+    output: CLIOutput
+  ) -> GenerationContext {
+    let buildContext = GhostwriterBuildContext.current(sources: config.sources)
+    let modules =
+      config.skipCompileTest || config.dryRun
+      ? Set<String>()
+      : Set(testableTypes.compactMap { buildContext.moduleName(for: $0.sourceFile) })
+    let typeCheckContexts = Dictionary(
+      uniqueKeysWithValues: modules.compactMap { moduleName in
+        buildContext.typeCheckContext(for: moduleName).map { (moduleName, $0) }
+      }
+    )
+    return GenerationContext(
+      generator: generator,
+      verifier: CompileVerifier(verbose: config.verbose),
+      buildContext: buildContext,
+      typeCheckContexts: typeCheckContexts,
+      config: config,
+      output: output
+    )
+  }
+
   private static func filterTestableTypes(
     _ types: [ExtractedTypeInfo],
     generator: TestCodeGenerator,
@@ -197,6 +222,22 @@ extension GhostwriterCLI {
       return type.hasArbitraryAttribute
         || generator.isKnownGeneratableType(type.name)
         || generator.canAutoGenerateArbitrary(for: type)
+        || hasGeneratableConformance(type)
+    }
+  }
+
+  /// A type whose module already conforms it to `Generatable` (detected
+  /// from the analyzed sources) has an available generator, so its
+  /// law tests can be generated even though the conformance itself is
+  /// user-supplied.
+  private static func hasGeneratableConformance(_ type: ExtractedTypeInfo) -> Bool {
+    type.conformances.contains { conformance in
+      let name =
+        conformance.hasPrefix("@retroactive ")
+        ? String(conformance.dropFirst("@retroactive ".count))
+        : conformance
+      return name == "Generatable" || name == "Arbitrary"
+        || name.hasSuffix(".Generatable") || name.hasSuffix(".Arbitrary")
     }
   }
 

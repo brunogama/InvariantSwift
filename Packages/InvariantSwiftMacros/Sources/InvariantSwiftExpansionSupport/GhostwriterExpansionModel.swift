@@ -96,16 +96,21 @@ public struct GhostwriterGeneratedArbitraryExtension: Sendable {
   public let propertyGenerators: [GhostwriterPropertyGenerator]
   /// Cases used when the type is a finite enum.
   public let enumCases: [String]
+  /// Scaffold guidance rendered above the conformance when the generator
+  /// needs human adjustment (for example a validating initializer).
+  public let todoComment: String?
 
   /// Creates a conformance plan for a struct or enum.
   public init(
     typeName: String,
     propertyGenerators: [GhostwriterPropertyGenerator],
-    enumCases: [String] = []
+    enumCases: [String] = [],
+    todoComment: String? = nil
   ) {
     self.typeName = typeName
     self.propertyGenerators = propertyGenerators
     self.enumCases = enumCases
+    self.todoComment = todoComment
   }
 }
 

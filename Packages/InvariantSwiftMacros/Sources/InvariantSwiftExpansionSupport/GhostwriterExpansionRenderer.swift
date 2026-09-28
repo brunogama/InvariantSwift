@@ -18,31 +18,37 @@ public enum GhostwriterExpansionRenderer {
       type: "Gen<\(ext.typeName)>",
       isStatic: true,
       getterBody: CodeBlockSyntax {
-        CodeBlockItemSyntax(
-          item: .expr(
-            ext.enumCases.isEmpty
-              ? composeCall(
-                typeName: ext.typeName,
-                propertyGenerators: ext.propertyGenerators
-              )
-              : renderEnumGenerator(typeName: ext.typeName, cases: ext.enumCases)
-          )
-        )
+        CodeBlockItemSyntax(item: .expr(arbitraryBodyExpression(for: ext)))
       }
     )
 
-    let extensionDecl = MacroTemplateAdapter.makeExtension(
+    var commentedProperty = property
+    if let todoComment = ext.todoComment {
+      commentedProperty = property.with(
+        \.leadingTrivia,
+        [.blockComment("/* \(todoComment) */"), .newlines(1)]
+      )
+    }
+
+    // Generated files live in the consumer's test target, so the
+    // `Generatable` conformance is always cross-module and must be marked
+    // `@retroactive` to keep consumer builds free of warnings.
+    let plainExtension = MacroTemplateAdapter.makeExtension(
       typeName: ext.typeName,
       conformances: ["InvariantSwiftCore.Generatable"]
     )
+    let extensionDecl = plainExtension.withRetroactiveConformances()
 
     let memberBlock = MemberBlockSyntax(
       members: MemberBlockItemListSyntax([
-        MemberBlockItemSyntax(decl: DeclSyntax(property))
+        MemberBlockItemSyntax(decl: DeclSyntax(commentedProperty))
       ])
     )
-
-    return extensionDecl.with(\.memberBlock, memberBlock).formatted().description
+    return
+      extensionDecl
+      .with(\.memberBlock, memberBlock)
+      .formatted()
+      .description
   }
 
   /// Renders one generated property test.
@@ -382,6 +388,18 @@ extension GhostwriterExpansionRenderer {
     )
   }
 
+  static func arbitraryBodyExpression(
+    for ext: GhostwriterGeneratedArbitraryExtension
+  ) -> ExprSyntax {
+    if let guidance = ext.todoComment {
+      return scaffoldFatalError(guidance: guidance)
+    }
+    if ext.enumCases.isEmpty {
+      return composeCall(typeName: ext.typeName, propertyGenerators: ext.propertyGenerators)
+    }
+    return renderEnumGenerator(typeName: ext.typeName, cases: ext.enumCases)
+  }
+
   static func propertyExpression(
     for property: GhostwriterPropertyGenerator
   ) -> ExprSyntax {
@@ -390,5 +408,39 @@ extension GhostwriterExpansionRenderer {
       return expression
     }
     return expression.with(\.leadingTrivia, [.blockComment(todoComment), .spaces(1)])
+  }
+}
+
+extension ExtensionDeclSyntax {
+  /// Marks every inherited conformance as `@retroactive`.
+  ///
+  /// Generated files compile in a consumer's test target, where both the
+  /// extended type and `Generatable` are declared by other modules; the
+  /// explicit attribute keeps strict consumer builds warning-free.
+  func withRetroactiveConformances() -> ExtensionDeclSyntax {
+    guard let inheritanceClause else { return self }
+    let attributed = InheritanceClauseSyntax(
+      inheritedTypes: InheritedTypeListSyntax(
+        inheritanceClause.inheritedTypes.map { inherited in
+          InheritedTypeSyntax(
+            type: TypeSyntax(
+              AttributedTypeSyntax(
+                specifiers: [],
+                attributes: AttributeListSyntax([
+                  .attribute(
+                    AttributeSyntax(
+                      attributeName: IdentifierTypeSyntax(name: .identifier("retroactive"))
+                    )
+                  )
+                ]),
+                baseType: inherited.type
+              )
+            ),
+            trailingComma: inherited.trailingComma
+          )
+        }
+      )
+    )
+    return with(\.inheritanceClause, attributed)
   }
 }

@@ -125,7 +125,7 @@ struct GhostwriterRendererRegressionTests {
     #expect(result.todoProperties == ["dependency"])
     #expect(
       result.code.contains(
-        "extension Widget: InvariantSwiftCore.Generatable"
+        "extension Widget: @retroactive InvariantSwiftCore.Generatable"
       )
     )
     #expect(result.code.contains("/* TODO: supply generator for CustomDependency */"))
