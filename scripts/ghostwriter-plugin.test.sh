@@ -45,7 +45,7 @@ if ! swift package --package-path "$CONSUMER" \
 fi
 
 cat "$CONSUMER/ghostwrite.log"
-grep -q 'Would generate for' "$CONSUMER/ghostwrite.log"
-grep -q 'ConsumerValue' "$CONSUMER/ghostwrite.log"
+grep -Eq '^Would generate for .*/ConsumerModel/ConsumerValue\.swift:$' "$CONSUMER/ghostwrite.log"
+grep -Eq '^[[:space:]]*Tests Generated: 3[[:space:]]*$' "$CONSUMER/ghostwrite.log"
 test ! -d "$CONSUMER/Tests/Generated"
 echo 'Ghostwriter dependency plugin dry-run passed without writing tests.'
