@@ -67,19 +67,22 @@ public struct PropertyMacro: PeerMacro {
 
         let isAsync = funcDecl.signature.effectSpecifiers?.asyncSpecifier != nil
 
-        // Generate a wrapper enum containing the @Test function
-        // This provides proper scope for @Test's internal symbol generation,
-        // avoiding the peer+peer macro conflict
-        let wrapperEnum = buildWrapperEnum(
-            original: funcDecl,
-            parameters: parameters,
-            originalBody: originalBody,
-            config: config,
-            regressionConfig: regressionConfig,
-            timeoutConfig: timeoutConfig,
-            swiftTestingTraits: swiftTestingTraits,
-            isAsync: isAsync
-        )
+    // Generate a wrapper enum containing the @Test function
+    // This provides proper scope for @Test's internal symbol generation,
+    // avoiding the peer+peer macro conflict
+    let wrapperEnum = buildWrapperEnum(
+      original: funcDecl,
+      parameters: parameters,
+      originalBody: ThrowingPropertyBodyBuilder.build(
+        from: originalBody,
+        signature: funcDecl.signature
+      ),
+      config: config,
+      regressionConfig: regressionConfig,
+      timeoutConfig: timeoutConfig,
+      swiftTestingTraits: swiftTestingTraits,
+      isAsync: isAsync
+    )
 
         return [DeclSyntax(wrapperEnum)]
     }
