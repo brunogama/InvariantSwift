@@ -29,6 +29,7 @@ let packageProducts: [Product] = [
 ]
 
 // No swift-syntax, swift-benchmark, or MacroTemplateKit in the binary manifest.
+// GhostwriterCLI's SwiftSyntax link dependencies remain source-only tooling.
 let packageDependencies: [Package.Dependency] = []
 
 // MARK: - Core Libraries

@@ -202,6 +202,9 @@ let utilityTargets: [Target] = [
       "GhostwriterLib",
       .product(name: "SwiftParser", package: "swift-syntax"),
       .product(name: "SwiftSyntax", package: "swift-syntax"),
+      // Swift Build's plugin-tool linker does not follow these transitive products.
+      .product(name: "SwiftBasicFormat", package: "swift-syntax"),
+      .product(name: "SwiftSyntaxBuilder", package: "swift-syntax"),
     ],
     path: "Packages/InvariantSwiftMacros/Sources/GhostwriterCLI",
     swiftSettings: commonSwiftSettings
