@@ -13,6 +13,7 @@ final class MacroGoldenTests: XCTestCase {
     "Arbitrary": ArbitraryMacro.self,
     "Gen": GenMacro.self,
     "Label": LabelMacro.self,
+    "Regression": RegressionMacro.self,
   ]
 
   func testPropertyTestBasicGolden() throws {
@@ -54,6 +55,13 @@ final class MacroGoldenTests: XCTestCase {
     try assertGolden(
       macro: "PropertyTest",
       testCase: "Async"
+    )
+  }
+
+  func testPropertyTestThrowingGolden() throws {
+    try assertGolden(
+      macro: "PropertyTest",
+      testCase: "Throwing"
     )
   }
 
@@ -99,6 +107,9 @@ final class MacroGoldenTests: XCTestCase {
   /// - Parameters:
   ///   - macro: The name of the macro directory in Resources/Golden (e.g., "PropertyTest").
   ///   - testCase: The name of the test case file without extension (e.g., "Basic").
+  ///   - file: The calling test file, used for recording and failure reporting.
+  ///   - line: The calling test line, used for failure reporting.
+  /// - Throws: An error if reading or recording the golden files fails.
   private func assertGolden(
     macro: String,
     testCase: String,

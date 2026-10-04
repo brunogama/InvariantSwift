@@ -112,10 +112,15 @@ Notes:
 - `enabledIf` and `disabledReason` are mutually exclusive.
 - Generated property tests always include the `InvariantSwiftPropertyExecutionTrait`.
 - Generated property tests automatically receive the `InvariantSwiftTestingTags.propertyBased` tag.
+- Synchronous throwing bodies can return `Void` or `Bool`. A `false` result fails the property. A caught error is recorded as a Swift Testing issue and fails that example; shrinking may record further errors while evaluating candidates.
+- `serialized: true` serializes the random test and exposed replay cases for that property. It does not serialize different property functions. Mark their enclosing suite `@Suite(.serialized)` when they share state.
+- Serialized test identifiers now include the nested `Serialized` suite, for example `userRoundTrip_PropertyTest.Serialized.run`. Update exact filters that previously selected `userRoundTrip_PropertyTest.run`; filtering by the property function name avoids depending on that suffix.
 
 ### `@AsyncPropertyTest`
 
 Use `@AsyncPropertyTest` for async properties and scheduler-driven concurrent interleavings. It supports the same forwarded Swift Testing traits as `@PropertyTest`.
+
+The throwing-body adapter described above applies only to synchronous `@PropertyTest` bodies. `@AsyncPropertyTest` uses a separate scheduler-based expansion; this adapter does not change its throwing-body support.
 
 ```swift
 import InvariantSwiftTesting

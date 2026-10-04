@@ -38,3 +38,26 @@ func throwingPropertyRecordsOriginalError() async throws {
     }
   }
 }
+
+@PropertyTest(iterations: 10, seed: 42, serialized: true)
+@Regression(replayFirst: false, maxExamples: 2, exposeCasesAsTests: true)
+func throwingBoolPropertyPasses(value: Int) throws -> Bool {
+  true
+}
+
+@PropertyTest(
+  iterations: 1,
+  seed: 42,
+  maxShrinks: 0,
+  disabledReason: "Invoked explicitly to inspect a false predicate"
+)
+private func throwingBoolPropertyRejects(value: Int) throws -> Bool {
+  false
+}
+
+@Test
+func throwingBoolPropertyPreservesFalseResult() {
+  withKnownIssue("The Bool predicate deliberately rejects its input") {
+    try throwingBoolPropertyRejects_PropertyTest.run()
+  }
+}
