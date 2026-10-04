@@ -112,57 +112,59 @@ public struct PropertyMacro: PeerMacro {
             isAsync: isAsync
         )
 
-        let testFunc = FunctionDeclSyntax(
-            attributes: SwiftTestingTraitBuilder.buildTestAttribute(
-                GeneratedTestAttributeRequest(
-                    displayName: testName,
-                    traits: swiftTestingTraits,
-                    labels: labels,
-                    configuredSeed: config.seed,
-                    includeReplayTag: false,
-                    arguments: nil
-                )
-            ),
-            modifiers: DeclModifierListSyntax {
-                DeclModifierSyntax(name: .keyword(.static))
-            },
-            funcKeyword: .keyword(.func),
-            name: .identifier("run"),
-            signature: isAsync ? buildAsyncThrowsSignature() : buildThrowsSignature(),
-            body: testBody
-        )
+    let testFunc = FunctionDeclSyntax(
+      attributes: SwiftTestingTraitBuilder.buildTestAttribute(
+        GeneratedTestAttributeRequest(
+          displayName: testName,
+          traits: swiftTestingTraits,
+          labels: labels,
+          configuredSeed: config.seed,
+          includeReplayTag: false,
+          arguments: nil
+        ),
+        serializedBySuite: true
+      ),
+      modifiers: DeclModifierListSyntax {
+        DeclModifierSyntax(name: .keyword(.static))
+      },
+      funcKeyword: .keyword(.func),
+      name: .identifier("run"),
+      signature: isAsync ? buildAsyncThrowsSignature() : buildThrowsSignature(),
+      body: testBody
+    )
 
-        return EnumDeclSyntax(
-            modifiers: DeclModifierListSyntax {
-                DeclModifierSyntax(name: .keyword(.private))
-            },
-            name: .identifier(enumName),
-            memberBlock: MemberBlockSyntax(
-                members: MemberBlockItemListSyntax {
-                    MemberBlockItemSyntax(decl: testFunc)
-                    if regressionConfig?.exposeCasesAsTests == true {
-                        MemberBlockItemSyntax(
-                            decl: buildReplayTestFunction(
-                                testName: testName,
-                                labels: labels,
-                                parameters: parameters,
-                                originalBody: originalBody,
-                                config: config,
-                                regressionConfig: regressionConfig,
-                                timeoutConfig: timeoutConfig,
-                                swiftTestingTraits: swiftTestingTraits,
-                                isAsync: isAsync
-                            )
-                        )
-                    }
-                }
+    return EnumDeclSyntax(
+      modifiers: DeclModifierListSyntax {
+        DeclModifierSyntax(name: .keyword(.private))
+      },
+      name: .identifier(enumName),
+      memberBlock: SwiftTestingTraitBuilder.buildPropertyMembers(
+        swiftTestingTraits,
+        members: MemberBlockItemListSyntax {
+          MemberBlockItemSyntax(decl: testFunc)
+          if regressionConfig?.exposeCasesAsTests == true {
+            MemberBlockItemSyntax(
+              decl: buildReplayTestFunction(
+                testName: testName,
+                labels: labels,
+                parameters: parameters,
+                originalBody: originalBody,
+                config: config,
+                regressionConfig: regressionConfig,
+                timeoutConfig: timeoutConfig,
+                swiftTestingTraits: swiftTestingTraits,
+                isAsync: isAsync
+              )
             )
-        )
-    }
+          }
+        }
+      )
+    )
+  }
 
-    private static func buildThrowsSignature() -> FunctionSignatureSyntax {
-        FunctionSignatureSyntax(
-            parameterClause: FunctionParameterClauseSyntax(
+  private static func buildThrowsSignature() -> FunctionSignatureSyntax {
+    FunctionSignatureSyntax(
+      parameterClause: FunctionParameterClauseSyntax(
                 parameters: FunctionParameterListSyntax {}
             ),
             effectSpecifiers: FunctionEffectSpecifiersSyntax(
@@ -785,38 +787,39 @@ public struct PropertyMacro: PeerMacro {
             maxExamples: regressionConfig?.maxExamples
         )
 
-        return FunctionDeclSyntax(
-            attributes: SwiftTestingTraitBuilder.buildTestAttribute(
-                GeneratedTestAttributeRequest(
-                    displayName: replayName,
-                    traits: swiftTestingTraits,
-                    labels: labels,
-                    configuredSeed: nil,
-                    includeReplayTag: true,
-                    arguments: arguments
-                )
-            ),
-            modifiers: DeclModifierListSyntax {
-                DeclModifierSyntax(name: .keyword(.static))
-            },
-            funcKeyword: .keyword(.func),
-            name: .identifier("replay"),
-            signature: buildReplaySignature(isAsync: isAsync),
-            body: buildReplayBody(
-                testName: testName,
-                labels: labels,
-                parameters: parameters,
-                originalBody: originalBody,
-                config: config,
-                regressionConfig: regressionConfig,
-                timeoutConfig: timeoutConfig,
-                isAsync: isAsync
-            )
-        )
-    }
+    return FunctionDeclSyntax(
+      attributes: SwiftTestingTraitBuilder.buildTestAttribute(
+        GeneratedTestAttributeRequest(
+          displayName: replayName,
+          traits: swiftTestingTraits,
+          labels: labels,
+          configuredSeed: nil,
+          includeReplayTag: true,
+          arguments: arguments
+        ),
+        serializedBySuite: true
+      ),
+      modifiers: DeclModifierListSyntax {
+        DeclModifierSyntax(name: .keyword(.static))
+      },
+      funcKeyword: .keyword(.func),
+      name: .identifier("replay"),
+      signature: buildReplaySignature(isAsync: isAsync),
+      body: buildReplayBody(
+        testName: testName,
+        labels: labels,
+        parameters: parameters,
+        originalBody: originalBody,
+        config: config,
+        regressionConfig: regressionConfig,
+        timeoutConfig: timeoutConfig,
+        isAsync: isAsync
+      )
+    )
+  }
 
-    private static func buildReplaySignature(isAsync: Bool) -> FunctionSignatureSyntax {
-        let parameter = FunctionParameterSyntax(
+  private static func buildReplaySignature(isAsync: Bool) -> FunctionSignatureSyntax {
+    let parameter = FunctionParameterSyntax(
             firstName: .identifier("failure"),
             colon: .colonToken(),
             type: TypeSyntax(IdentifierTypeSyntax(name: .identifier("PersistedFailure")))
