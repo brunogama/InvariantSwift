@@ -106,8 +106,41 @@ struct GeneratedTestAttributeRequest {
 }
 
 enum SwiftTestingTraitBuilder {
+  static func buildPropertyMembers(
+    _ traits: SwiftTestingTraitConfig,
+    members: MemberBlockItemListSyntax
+  ) -> MemberBlockSyntax {
+    let body = MemberBlockSyntax(members: members)
+    guard traits.serialized else { return body }
+
+    // Keep Suite's generated peers inside the property wrapper's lexical scope.
+    return MemberBlockSyntax(
+      members: MemberBlockItemListSyntax {
+        EnumDeclSyntax(
+          attributes: buildSuiteAttribute(traits),
+          name: .identifier("Serialized"),
+          memberBlock: body
+        )
+      }
+    )
+  }
+
+  static func buildSuiteAttribute(_ traits: SwiftTestingTraitConfig) -> AttributeListSyntax {
+    guard traits.serialized else { return [] }
+
+    return AttributeListSyntax {
+      AttributeSyntax(
+        attributeName: IdentifierTypeSyntax(name: .identifier("Suite")),
+        leftParen: .leftParenToken(),
+        arguments: .argumentList([LabeledExprSyntax(expression: makeSerializedExpr())]),
+        rightParen: .rightParenToken()
+      )
+    }
+  }
+
   static func buildTestAttribute(
-    _ request: GeneratedTestAttributeRequest
+    _ request: GeneratedTestAttributeRequest,
+    serializedBySuite: Bool = false
   ) -> AttributeListSyntax {
     var argumentList: [LabeledExprSyntax] = [
       LabeledExprSyntax(
@@ -115,7 +148,7 @@ enum SwiftTestingTraitBuilder {
       )
     ]
 
-    for traitExpression in buildTraitExpressions(request) {
+    for traitExpression in buildTraitExpressions(request, serializedBySuite: serializedBySuite) {
       argumentList.append(LabeledExprSyntax(expression: traitExpression))
     }
 
@@ -148,7 +181,8 @@ enum SwiftTestingTraitBuilder {
   }
 
   private static func buildTraitExpressions(
-    _ request: GeneratedTestAttributeRequest
+    _ request: GeneratedTestAttributeRequest,
+    serializedBySuite: Bool
   ) -> [ExprSyntax] {
     var expressions: [ExprSyntax] = [makeExecutionTraitExpr(request)]
 
@@ -158,7 +192,7 @@ enum SwiftTestingTraitBuilder {
       expressions.append(makeDisabledTraitExpr(disabledReason))
     }
 
-    if request.traits.serialized {
+    if request.traits.serialized && !serializedBySuite {
       expressions.append(makeSerializedExpr())
     }
 

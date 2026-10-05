@@ -31,7 +31,9 @@ struct PropertyTestTraitForwardingTests {
       #expect(currentTest.tags.contains(.forwardedPropertyTrait))
       #expect(currentTest.associatedBugs.contains(Bug.bug(id: "PBT-123")))
       #expect(currentTest.timeLimit != nil)
-      #expect(currentTest.traits.contains { $0 is ParallelizationTrait })
+      // Serialization belongs to the generated suite, not this non-parameterized test.
+      #expect(currentTest.traits.contains { $0 is ParallelizationTrait } == false)
+      #expect(currentTest.id.nameComponents.contains("Serialized"))
       #expect(currentTest.traits.contains { $0 is InvariantSwiftPropertyExecutionTrait })
     }
   }

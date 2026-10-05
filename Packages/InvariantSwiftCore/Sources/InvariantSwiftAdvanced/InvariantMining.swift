@@ -363,7 +363,7 @@ public actor InvariantMiningEngine {
         totalTraces: traces.count,
         successes: successes,
         violations: violations,
-        successRate: Double(successes) / Double(traces.count)
+        successRate: traces.isEmpty ? 0 : Double(successes) / Double(traces.count)
       )
 
       results.append(result)
@@ -414,9 +414,8 @@ public actor InvariantMiningEngine {
     _ invariant: DiscoveredInvariant,
     trace: ExecutionTrace
   ) async -> Bool {
-    // This would contain the actual verification logic based on the invariant type
-    // For now, simplified implementation
-    true  // Placeholder
+    guard let predicate = TracePredicate.parse(invariant.predicate) else { return false }
+    return predicate.evaluate(on: trace) ?? false
   }
 }
 

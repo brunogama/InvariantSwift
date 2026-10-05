@@ -55,7 +55,8 @@ public enum SMTValue: Sendable, CustomStringConvertible {
   case real(Double)
   case string(String)
   case bitVector(UInt64, width: Int)
-  case array([Self])
+  /// Integer-indexed SMT array. Empty literals require an explicit element sort.
+  case array([Self], elementSort: SMTSort? = nil)
 
   public var description: String {
     switch self {
@@ -74,8 +75,8 @@ public enum SMTValue: Sendable, CustomStringConvertible {
     case .bitVector(let value, let width):
       return "#b\(String(value, radix: 2).padded(toLength: width, withPad: "0", startingAt: 0))"
 
-    case .array(let elements):
-      return "(\(elements.map(\.description).joined(separator: " ")))"
+    case .array(let elements, let elementSort):
+      return Self.arrayDescription(elements, elementSort: elementSort)
     }
   }
 }
@@ -188,7 +189,12 @@ public struct SMTConstraint: Sendable {
 
   /// Convert to SMTLIB2 format
   public func toSMTLIB2() -> String {
-    var result = "(set-logic QF_LIA)\n"
+    var features = SMTLogicFeatures()
+    variables.forEach { features.include($0.sort) }
+    assertions.forEach { features.include($0) }
+    features.include(expression)
+
+    var result = "(set-logic \(features.logic))\n"
 
     // Declare variables
     for variable in variables {
@@ -255,6 +261,10 @@ public actor SMTSolver {
   /// Solve a constraint using the configured SMT solver
   public func solve(_ constraint: SMTConstraint) async -> SMTResult {
     solveCount += 1
+
+    if let issue = constraint.serializationIssue {
+      return .error("Invalid SMT constraint: \(issue)")
+    }
 
     let smtlib2Input = constraint.toSMTLIB2()
 
@@ -431,12 +441,10 @@ public actor SMTSolver {
       SMTExpression.unary(.not, .binary(.equals, .variable(name), .constant(value)))
     }
 
-    return negatedEqualities.reduce(
-      negatedEqualities.first!,
-      { acc, expr in
-        .binary(.or, acc, expr)
-      }
-    )
+    guard let first = negatedEqualities.first else { return .constant(.bool(false)) }
+    return negatedEqualities.dropFirst().reduce(first) { acc, expression in
+      .binary(.or, acc, expression)
+    }
   }
 
   /// Get solver statistics
@@ -525,24 +533,27 @@ extension SMTExpression {
 // MARK: - Property-Based Testing Integration
 
 /// SMT-guided generator that uses constraint solving for intelligent input synthesis
-public struct SMTGenerator<T: Sendable> {
+public struct SMTGenerator<T: Sendable>: Sendable {
   public let constraintBuilder: @Sendable (SMTVariableDeclaration) -> SMTConstraint
   public let valueExtractor: @Sendable ([String: SMTValue]) -> T?
+  public let variableSort: SMTSort
   public let solver: SMTSolver
 
   public init(
     constraintBuilder: @escaping @Sendable (SMTVariableDeclaration) -> SMTConstraint,
     valueExtractor: @escaping @Sendable ([String: SMTValue]) -> T?,
+    variableSort: SMTSort = .int,
     solver: SMTSolver = SMTSolver()
   ) {
     self.constraintBuilder = constraintBuilder
     self.valueExtractor = valueExtractor
+    self.variableSort = variableSort
     self.solver = solver
   }
 
   /// Generate value satisfying constraints
   public func generate() async -> T? {
-    let variable = SMTVariableDeclaration(name: "x", sort: .int)
+    let variable = SMTVariableDeclaration(name: "x", sort: variableSort)
     let constraint = constraintBuilder(variable)
 
     let result = await solver.solve(constraint)
@@ -558,7 +569,7 @@ public struct SMTGenerator<T: Sendable> {
 
   /// Generate multiple values satisfying constraints
   public func generateMultiple(count: Int = 10) async -> [T] {
-    let variable = SMTVariableDeclaration(name: "x", sort: .int)
+    let variable = SMTVariableDeclaration(name: "x", sort: variableSort)
     let constraint = constraintBuilder(variable)
 
     let results = await solver.generateSolutions(constraint, maxSolutions: count)
@@ -618,15 +629,43 @@ extension SMTGenerator {
     size: Int,
     elementGenerator: SMTGenerator<Element>
   ) -> SMTGenerator<[Element]> {
-    SMTGenerator<[Element]>(
+    let elementNames = size < 0 ? [] : (0..<size).map { "element_\($0)" }
+    let buildElementConstraint = elementGenerator.constraintBuilder
+    let extractElement = elementGenerator.valueExtractor
+    let elementSort = elementGenerator.variableSort
+
+    return SMTGenerator<[Element]>(
       constraintBuilder: { _ in
-        // This would need more sophisticated array constraint generation
-        SMTConstraint(expression: .constant(.bool(true)))
+        guard size >= 0 else {
+          return SMTConstraint(expression: .constant(.bool(false)))
+        }
+
+        let constraints = elementNames.map { name in
+          buildElementConstraint(
+            SMTVariableDeclaration(name: name, sort: elementSort)
+          )
+        }
+        let expression = constraints.reduce(SMTExpression.constant(.bool(true))) {
+          .binary(.and, $0, $1.expression)
+        }
+        return SMTConstraint(
+          expression: expression,
+          variables: constraints.flatMap(\.variables),
+          assertions: constraints.flatMap(\.assertions)
+        )
       },
-      valueExtractor: { _ in
-        // Simplified implementation
-        []
-      }
+      valueExtractor: { model in
+        guard size >= 0 else { return nil }
+        let elements = elementNames.compactMap { name -> Element? in
+          guard let value = model[name] else { return nil }
+          var elementModel = model
+          elementModel["x"] = value
+          return extractElement(elementModel)
+        }
+        return elements.count == size ? elements : nil
+      },
+      variableSort: .array(.int, elementSort),
+      solver: elementGenerator.solver
     )
   }
 }

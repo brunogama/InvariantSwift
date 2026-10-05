@@ -40,6 +40,7 @@ extension GhostwriterCLI {
     var showHelp: Bool = false
     var includeInternal: Bool = false
     var skipCompileTest: Bool = false
+    var discoverLaws: Bool = false
   }
 
   struct RunResult {
@@ -62,6 +63,12 @@ extension GhostwriterCLI {
     while index < arguments.count {
       let arg = arguments[index]
       index += 1
+
+      if index == 2 && arg == "lawforge" {
+        config.discoverLaws = true
+        config.outputDirectory = "Tests/LawForgeGenerated/"
+        continue
+      }
 
       let result = processBoolFlag(arg, into: &config)
       if result { continue }
@@ -153,6 +160,7 @@ extension GhostwriterCLI {
 
       USAGE:
           GhostwriterCLI [options] [sources...]
+          GhostwriterCLI lawforge [options] [sources...]
 
       OPTIONS:
           --source, -s <path>     Source file or directory to analyze
@@ -162,6 +170,13 @@ extension GhostwriterCLI {
           --include-internal      Include internal types (default: only public/open)
           --skip-compile-test     Skip compile verification
           --help, -h              Show this help
+
+      SUBCOMMANDS:
+          lawforge                Generate only candidate laws from Swift operations
+
+      PIPELINE:
+          Default generation discovers LawForge candidates first, then adds
+          executable protocol and field laws to the same test file.
 
       EXAMPLES:
           GhostwriterCLI Sources/Models/
@@ -192,7 +207,7 @@ extension GhostwriterCLI {
       out.write("   Output: \(config.outputDirectory)")
     } else {
       out.write("\nNo tests generated.")
-      out.write("   Ensure types conform to Codable, Equatable, Hashable, or Comparable.")
+      out.write("   Ensure types have a supported protocol law and an available generator.")
     }
   }
 }

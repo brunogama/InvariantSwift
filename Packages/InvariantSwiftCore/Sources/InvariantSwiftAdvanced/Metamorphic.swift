@@ -19,6 +19,7 @@ where Input: Sendable, Output: Sendable & Equatable {
   public let description: String
   public let confidence: Double
   public let category: RelationCategory
+  private let inputOutputRelation: (@Sendable (Input, Input, Output, Output) -> Bool)?
 
   public init(
     name: String,
@@ -26,7 +27,8 @@ where Input: Sendable, Output: Sendable & Equatable {
     outputRelation: @escaping @Sendable (Output, Output) -> Bool,
     description: String,
     confidence: Double = 1.0,
-    category: RelationCategory = .algebraic
+    category: RelationCategory = .algebraic,
+    inputOutputRelation: (@Sendable (Input, Input, Output, Output) -> Bool)? = nil
   ) {
     self.name = name
     self.inputTransform = inputTransform
@@ -34,6 +36,7 @@ where Input: Sendable, Output: Sendable & Equatable {
     self.description = description
     self.confidence = max(0.0, min(1.0, confidence))
     self.category = category
+    self.inputOutputRelation = inputOutputRelation
   }
 
   /// Test if this relation holds for a given input and function
@@ -42,7 +45,12 @@ where Input: Sendable, Output: Sendable & Equatable {
     let transformedInput = inputTransform(input)
     let transformedOutput = function(transformedInput)
 
-    return outputRelation(originalOutput, transformedOutput)
+    return relationHolds(
+      originalInput: input,
+      transformedInput: transformedInput,
+      originalOutput: originalOutput,
+      transformedOutput: transformedOutput
+    )
   }
 
   /// Test relation with multiple inputs for statistical confidence
@@ -58,7 +66,12 @@ where Input: Sendable, Output: Sendable & Equatable {
       let transformedInput = inputTransform(input)
       let transformedOutput = function(transformedInput)
 
-      if outputRelation(originalOutput, transformedOutput) {
+      if relationHolds(
+        originalInput: input,
+        transformedInput: transformedInput,
+        originalOutput: originalOutput,
+        transformedOutput: transformedOutput
+      ) {
         successes += 1
       } else {
         let violation = RelationViolation(
@@ -83,6 +96,23 @@ where Input: Sendable, Output: Sendable & Equatable {
       violations: failures,
       isValid: successRate >= confidence
     )
+  }
+
+  private func relationHolds(
+    originalInput: Input,
+    transformedInput: Input,
+    originalOutput: Output,
+    transformedOutput: Output
+  ) -> Bool {
+    if let inputOutputRelation {
+      return inputOutputRelation(
+        originalInput,
+        transformedInput,
+        originalOutput,
+        transformedOutput
+      )
+    }
+    return outputRelation(originalOutput, transformedOutput)
   }
 }
 
@@ -268,13 +298,16 @@ public struct RelationCatalog {
       // Identity: f(a, 0) == a
       MetamorphicRelation(
         name: "addition_identity",
-        inputTransform: { a, _ in (a, 0) },
-        outputRelation: { _, _ in
-          // For identity, we need different checking logic
-          true  // Simplified for example
+        inputTransform: { a, b in (a + b, 0) },
+        outputRelation: { original, transformed in
+          arithmeticValuesEqual(original, transformed)
         },
         description: "Adding zero should not change the value",
-        category: .algebraic
+        category: .algebraic,
+        inputOutputRelation: { _, transformedInput, original, transformed in
+          arithmeticValuesEqual(original, transformed)
+            && arithmeticValuesEqual(transformedInput.0, transformed)
+        }
       ),
     ]
   }
@@ -302,7 +335,7 @@ public struct RelationCatalog {
     ]
   }
 
-  /// Relations for string operations
+  /// Relations for UTF-8 string length operations
   public static func stringRelations() -> [MetamorphicRelation<String, Int>] {
     [
       // Length after concatenation
@@ -310,7 +343,7 @@ public struct RelationCatalog {
         name: "concat_length_additive",
         inputTransform: { s in s + s },
         outputRelation: { original, transformed in transformed == original * 2 },
-        description: "Concatenating string with itself should double length"
+        description: "Concatenating a string with itself should double its UTF-8 length"
       ),
 
       // Case transformation preservation
@@ -321,6 +354,10 @@ public struct RelationCatalog {
         description: "Case changes should not affect length"
       ),
     ]
+  }
+
+  private static func arithmeticValuesEqual(_ lhs: Double, _ rhs: Double) -> Bool {
+    lhs == rhs || (lhs.isNaN && rhs.isNaN)
   }
 
   /// Relations for search algorithms
@@ -516,13 +553,13 @@ extension MetamorphicProperty {
     )
   }
 
-  /// Create length metamorphic property
+  /// Create UTF-8 length metamorphic property
   public static func length(
     generator: Gen<String>
   ) -> MetamorphicProperty<String, Int> where Input == String, Output == Int {
     MetamorphicProperty(
       generator: generator,
-      function: { $0.count },
+      function: { $0.utf8.count },
       relations: RelationCatalog.stringRelations()
     )
   }

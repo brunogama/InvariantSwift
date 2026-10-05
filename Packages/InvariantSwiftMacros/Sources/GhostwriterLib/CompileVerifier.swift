@@ -3,25 +3,77 @@
 
 import Foundation
 
-/// Result of compile verification
-public struct CompileVerificationResult: Sendable {
-  public let success: Bool
-  public let errors: [CompileError]
-  public let output: String
+/// The strongest check completed by ``CompileVerifier``.
+public enum CompileVerificationLevel: String, Sendable {
+  case syntax
+  case typeCheck
+}
 
+/// Describes the outcome of a compiler verification operation.
+public struct CompileVerificationResult: Sendable {
+  /// Whether the requested verification level completed successfully.
+  public let success: Bool
+  /// Structured compiler diagnostics classified as errors.
+  public let errors: [CompileError]
+  /// The compiler's complete standard output and standard error text.
+  public let output: String
+  /// The strongest verification operation that was attempted.
+  public let level: CompileVerificationLevel
+
+  /// A structured Swift compiler error.
   public struct CompileError: Sendable {
+    /// The one-based source line, when the compiler supplied one.
     public let line: Int?
+    /// The one-based source column, when the compiler supplied one.
     public let column: Int?
+    /// The diagnostic message.
     public let message: String
+    /// The source file name associated with the verification request.
     public let file: String
   }
 }
 
-/// Verifies generated Swift code compiles using swiftc -typecheck
+/// Verifies generated Swift code with the active `swiftc` toolchain.
 public struct CompileVerifier: Sendable {
+  /// A generated source file included in one compiler invocation.
+  public struct SourceFile: Sendable {
+    /// The file name used in compiler diagnostics.
+    public let fileName: String
+    /// The Swift source to type-check.
+    public let code: String
+
+    /// Creates a generated source file for batch verification.
+    public init(fileName: String, code: String) {
+      self.fileName = fileName
+      self.code = code
+    }
+  }
+
+  /// Inputs supplied by a real build context for a generated test type-check.
+  public struct TypeCheckContext: Sendable {
+    /// Directories containing Swift modules imported by generated code.
+    public let moduleSearchPaths: [URL]
+    /// Directories containing frameworks imported by generated code.
+    public let frameworkSearchPaths: [URL]
+    /// Additional arguments required by the consumer's compiler context.
+    public let compilerArguments: [String]
+
+    /// Creates compiler inputs discovered from a consumer build.
+    public init(
+      moduleSearchPaths: [URL],
+      frameworkSearchPaths: [URL] = [],
+      compilerArguments: [String] = []
+    ) {
+      self.moduleSearchPaths = moduleSearchPaths
+      self.frameworkSearchPaths = frameworkSearchPaths
+      self.compilerArguments = compilerArguments
+    }
+  }
+
   private let verbose: Bool
   private let baseDirectory: URL
-  private let moduleSearchPaths: [URL]
+  private let moduleCacheDirectory: URL
+  private let typeCheckContext: TypeCheckContext
 
   /// - Parameters:
   ///   - verbose: Print progress while verifying.
@@ -39,10 +91,27 @@ public struct CompileVerifier: Sendable {
   ) {
     self.verbose = verbose
     self.baseDirectory = baseDirectory
-    self.moduleSearchPaths = moduleSearchPaths
+    self.moduleCacheDirectory = FileManager.default.temporaryDirectory.appendingPathComponent(
+      "ghostwriter-module-cache"
+    )
+    self.typeCheckContext = TypeCheckContext(moduleSearchPaths: moduleSearchPaths)
   }
 
-  /// Verify that generated code compiles
+  /// Creates a verifier backed by compiler inputs discovered from SwiftPM.
+  public init(
+    verbose: Bool = false,
+    baseDirectory: URL = FileManager.default.temporaryDirectory,
+    typeCheckContext: TypeCheckContext
+  ) {
+    self.verbose = verbose
+    self.baseDirectory = baseDirectory
+    self.moduleCacheDirectory = FileManager.default.temporaryDirectory.appendingPathComponent(
+      "ghostwriter-module-cache"
+    )
+    self.typeCheckContext = typeCheckContext
+  }
+
+  /// Verifies that generated code type-checks.
   /// - Parameters:
   ///   - code: Swift source code to verify
   ///   - fileName: Name for temp file (for error messages)
@@ -53,7 +122,64 @@ public struct CompileVerifier: Sendable {
     fileName: String,
     imports: [String] = ["InvariantSwift", "Testing"]
   ) -> CompileVerificationResult {
-    // Create temporary directory
+    runCompiler(
+      code: code,
+      fileName: fileName,
+      level: .typeCheck,
+      operationArguments: ["-typecheck"]
+    )
+  }
+
+  /// Type-checks files from the same consumer module in one compiler invocation.
+  public func verifyBatch(_ files: [SourceFile]) -> CompileVerificationResult {
+    guard !files.isEmpty else {
+      return CompileVerificationResult(success: true, errors: [], output: "", level: .typeCheck)
+    }
+
+    let tempDir = baseDirectory.appendingPathComponent("ghostwriter-verify-\(UUID().uuidString)")
+    do {
+      try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+      defer { try? FileManager.default.removeItem(at: tempDir) }
+
+      let paths = try files.enumerated().map { index, file in
+        let path = tempDir.appendingPathComponent("\(index)-\(file.fileName)")
+        try file.code.write(to: path, atomically: true, encoding: .utf8)
+        return path
+      }
+      let arguments = compilerArguments(
+        tempFiles: paths,
+        level: .typeCheck,
+        operationArguments: ["-typecheck"]
+      )
+      let processResult = try execute(arguments: arguments)
+      return makeResult(processResult, fileName: "generated batch", level: .typeCheck)
+    } catch {
+      return failure(error, fileName: "generated batch", level: .typeCheck)
+    }
+  }
+
+  /// Parses source without resolving imports, declarations, or macros.
+  ///
+  /// A successful result is explicitly marked ``CompileVerificationLevel/syntax``.
+  /// Callers must not present it as a successful type-check.
+  public func verifySyntax(
+    code: String,
+    fileName: String
+  ) -> CompileVerificationResult {
+    runCompiler(
+      code: code,
+      fileName: fileName,
+      level: .syntax,
+      operationArguments: ["-frontend", "-parse"]
+    )
+  }
+
+  private func runCompiler(
+    code: String,
+    fileName: String,
+    level: CompileVerificationLevel,
+    operationArguments: [String]
+  ) -> CompileVerificationResult {
     let tempDir =
       baseDirectory
       .appendingPathComponent("ghostwriter-verify-\(UUID().uuidString)")
@@ -64,73 +190,119 @@ public struct CompileVerifier: Sendable {
         try? FileManager.default.removeItem(at: tempDir)
       }
 
-      // Write code to temp file
       let tempFile = tempDir.appendingPathComponent(fileName)
       try code.write(to: tempFile, atomically: true, encoding: .utf8)
 
-      if verbose {
-        // swiftlint:disable:next no_print
-        print("  Verifying \(fileName) with swiftc...")
-      }
-
-      // Run swiftc -typecheck
-      let process = Process()
-      process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-      var arguments = [
-        "swiftc",
-        "-typecheck",
-        tempFile.path,
-      ]
-      for searchPath in moduleSearchPaths {
-        arguments += ["-I", searchPath.path]
-      }
-      // Only Apple toolchains select an SDK this way; elsewhere swiftc
-      // finds its own.
-      if let sdk = sdkPath() {
-        arguments += ["-sdk", sdk]
-      }
-      process.arguments = arguments
-
-      let pipe = Pipe()
-      process.standardError = pipe
-      process.standardOutput = pipe
-
-      try process.run()
-      // Drain before waiting: swiftc can emit more than one pipe buffer of
-      // diagnostics, and it cannot exit while blocked writing them.
-      let data = pipe.fileHandleForReading.readDataToEndOfFile()
-      process.waitUntilExit()
-
-      let output = String(data: data, encoding: .utf8) ?? ""
-
-      if process.terminationStatus == 0 {
-        if verbose {
-          // swiftlint:disable:next no_print
-          print("  ✓ Compilation successful")
-        }
-        return CompileVerificationResult(success: true, errors: [], output: output)
-      } else {
-        let errors = parseSwiftcErrors(output, fileName: fileName)
-        return CompileVerificationResult(success: false, errors: errors, output: output)
-      }
-
-    } catch {
-      return CompileVerificationResult(
-        success: false,
-        errors: [
-          CompileVerificationResult.CompileError(
-            line: nil,
-            column: nil,
-            message: "Failed to verify: \(error.localizedDescription)",
-            file: fileName
-          )
-        ],
-        output: ""
+      reportStart(fileName: fileName, level: level)
+      let invocation = compilerArguments(
+        tempFiles: [tempFile],
+        level: level,
+        operationArguments: operationArguments
       )
+      let processResult = try execute(arguments: invocation)
+      return makeResult(processResult, fileName: fileName, level: level)
+    } catch {
+      return failure(error, fileName: fileName, level: level)
     }
   }
 
-  /// Parse swiftc error output into structured errors
+  private func compilerArguments(
+    tempFiles: [URL],
+    level: CompileVerificationLevel,
+    operationArguments: [String]
+  ) -> [String] {
+    var arguments = ["swiftc"] + operationArguments + tempFiles.map(\.path)
+    arguments += ["-module-cache-path", moduleCacheDirectory.path]
+
+    guard level == .typeCheck else { return arguments }
+
+    for searchPath in typeCheckContext.moduleSearchPaths {
+      arguments += ["-I", searchPath.path]
+    }
+    for searchPath in typeCheckContext.frameworkSearchPaths {
+      arguments += ["-F", searchPath.path]
+    }
+    arguments += typeCheckContext.compilerArguments
+    if let sdk = sdkPath() {
+      arguments += ["-sdk", sdk]
+    }
+    return arguments
+  }
+
+  private func execute(arguments: [String]) throws -> (status: Int32, output: String) {
+    let process = Process()
+    process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+    process.arguments = arguments
+
+    let pipe = Pipe()
+    process.standardError = pipe
+    process.standardOutput = pipe
+
+    try process.run()
+    let data = pipe.fileHandleForReading.readDataToEndOfFile()
+    process.waitUntilExit()
+    return (process.terminationStatus, String(data: data, encoding: .utf8) ?? "")
+  }
+
+  private func makeResult(
+    _ processResult: (status: Int32, output: String),
+    fileName: String,
+    level: CompileVerificationLevel
+  ) -> CompileVerificationResult {
+    guard processResult.status != 0 else {
+      reportSuccess(level: level)
+      return CompileVerificationResult(
+        success: true,
+        errors: [],
+        output: processResult.output,
+        level: level
+      )
+    }
+
+    let errors = parseSwiftcErrors(processResult.output, fileName: fileName)
+    return CompileVerificationResult(
+      success: false,
+      errors: errors,
+      output: processResult.output,
+      level: level
+    )
+  }
+
+  private func failure(
+    _ error: Error,
+    fileName: String,
+    level: CompileVerificationLevel
+  ) -> CompileVerificationResult {
+    CompileVerificationResult(
+      success: false,
+      errors: [
+        CompileVerificationResult.CompileError(
+          line: nil,
+          column: nil,
+          message: "Failed to verify: \(error.localizedDescription)",
+          file: fileName
+        )
+      ],
+      output: "",
+      level: level
+    )
+  }
+
+  private func reportStart(fileName: String, level: CompileVerificationLevel) {
+    guard verbose else { return }
+    let operation = level == .syntax ? "syntax" : "types"
+    // swiftlint:disable:next no_print
+    print("  Verifying \(operation) in \(fileName) with swiftc...")
+  }
+
+  private func reportSuccess(level: CompileVerificationLevel) {
+    guard verbose else { return }
+    let operation = level == .syntax ? "Syntax verification" : "Type-check verification"
+    // swiftlint:disable:next no_print
+    print("  \(operation) successful")
+  }
+
+  /// Parses `swiftc` error output into structured errors.
   private func parseSwiftcErrors(
     _ output: String,
     fileName: String

@@ -7,7 +7,7 @@ import Testing
 
 @testable import InvariantSwiftMacros
 
-/// Tests for @Timeout macro integration with @PropertyTest
+/// Tests for @Timeout macro integration with @PropertyTest.
 ///
 /// Since @Timeout is a marker macro, these tests primarily verify that:
 /// 1. TimeoutExtractor correctly parses @Timeout attributes
@@ -17,10 +17,9 @@ struct TimeoutMacroTests {
 
   // MARK: - Test Helpers
 
-  /// Parse source and extract function declaration
+  /// Parse source and extract function declaration.
   private func parseFunctionDecl(_ source: String) -> FunctionDeclSyntax? {
-    // swiftlint:disable:next force_try
-    let parsed = try! Parser.parse(source: source)
+    let parsed = Parser.parse(source: source)
     return parsed.statements.first?.item.as(FunctionDeclSyntax.self)
   }
 
@@ -125,11 +124,6 @@ struct TimeoutMacroTests {
 
   @Test("@Timeout + @PropertyTest generates withPropertyTimeout wrapper")
   func propertyMacroIntegratesTimeout() {
-    let testMacros: [String: Macro.Type] = [
-      "PropertyTest": PropertyMacro.self,
-      "Timeout": TimeoutMacro.self,
-    ]
-
     let source = """
       @Timeout(seconds: 5.0)
       @PropertyTest

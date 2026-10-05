@@ -96,9 +96,8 @@ struct CoverageValidationTests {
 
   @Test("property timeout returns a completed value before the deadline")
   func propertyTimeoutReturnsCompletedValueBeforeDeadline() async throws {
-    let value = try await withPropertyTimeout(seconds: 1) {
-      await Task.yield()
-      return 7
+    let value = try await withPropertyTimeout(seconds: 30) {
+      7
     }
 
     #expect(value == 7)

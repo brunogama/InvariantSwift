@@ -119,10 +119,8 @@ let package = Package(
       name: "InvariantSwiftMacroTests",
       dependencies: [
         "InvariantSwiftMacros",
+        .product(name: "InvariantSwiftCore", package: "InvariantSwiftCore"),
         .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
-        // Reports failures through a closure rather than XCTest, which is what the
-        // Swift Testing suites here need.
-        .product(name: "SwiftSyntaxMacrosGenericTestSupport", package: "swift-syntax"),
         // For recording golden files: the same expansion assertMacroExpansion runs.
         .product(name: "SwiftParser", package: "swift-syntax"),
         .product(name: "SwiftSyntaxMacroExpansion", package: "swift-syntax"),

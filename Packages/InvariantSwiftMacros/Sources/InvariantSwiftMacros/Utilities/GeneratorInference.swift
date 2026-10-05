@@ -93,7 +93,7 @@ public enum GeneratorInference {
     }
 
     // 7. Fall back to Type.arbitrary
-    return buildArbitraryReference(typeName)
+    return buildArbitraryReference(type)
   }
 
   /// Checks if a type can be inferred (has a known generator)
@@ -344,14 +344,47 @@ public enum GeneratorInference {
     )
   }
 
-  /// Builds Type.arbitrary reference
-  private static func buildArbitraryReference(_ typeName: String) -> ExprSyntax {
+  /// Builds a custom type's `.arbitrary` reference without losing qualification.
+  private static func buildArbitraryReference(_ type: TypeSyntax) -> ExprSyntax {
     ExprSyntax(
       MemberAccessExprSyntax(
-        base: DeclReferenceExprSyntax(baseName: .identifier(typeName)),
+        base: typeReferenceExpression(type),
         declName: DeclReferenceExprSyntax(baseName: .identifier("arbitrary"))
       )
     )
+  }
+
+  private static func typeReferenceExpression(_ type: TypeSyntax) -> ExprSyntax {
+    if let identifier = type.as(IdentifierTypeSyntax.self) {
+      let reference = ExprSyntax(
+        DeclReferenceExprSyntax(baseName: identifier.name)
+      )
+      guard let arguments = identifier.genericArgumentClause else { return reference }
+      return ExprSyntax(
+        GenericSpecializationExprSyntax(
+          expression: reference,
+          genericArgumentClause: arguments
+        )
+      )
+    }
+
+    if let member = type.as(MemberTypeSyntax.self) {
+      let reference = ExprSyntax(
+        MemberAccessExprSyntax(
+          base: typeReferenceExpression(member.baseType),
+          declName: DeclReferenceExprSyntax(baseName: member.name)
+        )
+      )
+      guard let arguments = member.genericArgumentClause else { return reference }
+      return ExprSyntax(
+        GenericSpecializationExprSyntax(
+          expression: reference,
+          genericArgumentClause: arguments
+        )
+      )
+    }
+
+    return ExprSyntax(stringLiteral: type.trimmedDescription)
   }
 
   // MARK: - Shrink Inference

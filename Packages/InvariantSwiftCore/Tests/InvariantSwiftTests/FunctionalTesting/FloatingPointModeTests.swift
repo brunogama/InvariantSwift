@@ -84,6 +84,7 @@ struct FloatingPointModeTests {
       }
     }
 
+    #expect(foundInfinity, "allowInfinity mode should produce infinity")
     #expect(!foundNaN, "allowInfinity mode must not produce NaN")
   }
 
@@ -120,8 +121,6 @@ struct FloatingPointModeTests {
   @Test("SHRINK-FLOAT-001: Double shrinks toward 0 deterministically")
   func doubleShrinkTowardZero() async {
     let gen = Gen<Double>.double
-    let startValue: Double = 12345.678
-
     let property = Property<Double>(generator: gen) { value in
       value < 100.0
     }
