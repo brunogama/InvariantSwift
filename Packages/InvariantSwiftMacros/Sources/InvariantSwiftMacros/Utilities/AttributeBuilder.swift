@@ -45,10 +45,19 @@ public struct AttributeBuilder {
       )
     }
 
+    // Each element but the last carries its own separator. Building the list from an
+    // array keeps the elements exactly as given, so without this two arguments render
+    // run together: `@Test("name".tags(.slow))`.
+    let separated = arguments.enumerated().map { index, argument in
+      index == arguments.count - 1
+        ? argument.with(\.trailingComma, nil)
+        : argument.with(\.trailingComma, .commaToken())
+    }
+
     return AttributeSyntax(
       attributeName: SyntaxFactory.simpleType(name),
       leftParen: .leftParenToken(),
-      arguments: .argumentList(LabeledExprListSyntax(arguments)),
+      arguments: .argumentList(LabeledExprListSyntax(separated)),
       rightParen: .rightParenToken()
     )
   }

@@ -65,6 +65,30 @@ final class MacroGoldenTests: XCTestCase {
     )
   }
 
+  func testPropertyTestRejectsUnsupportedThrowingReturnType() {
+    assertMacroExpansion(
+      """
+      @PropertyTest
+      func returnsInteger(value: Int) throws -> Int {
+        value
+      }
+      """,
+      expandedSource: """
+        func returnsInteger(value: Int) throws -> Int {
+          value
+        }
+        """,
+      diagnostics: [
+        DiagnosticSpec(
+          message: "A throwing @PropertyTest must return Bool or Void",
+          line: 1,
+          column: 1
+        )
+      ],
+      macros: testMacros
+    )
+  }
+
   func testArbitraryEnumGolden() throws {
     try assertGolden(
       macro: "Arbitrary",

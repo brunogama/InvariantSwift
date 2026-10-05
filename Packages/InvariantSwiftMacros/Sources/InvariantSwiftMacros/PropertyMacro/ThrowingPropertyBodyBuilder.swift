@@ -3,6 +3,13 @@ import SwiftSyntaxBuilder
 
 /// Adapts throwing property bodies to the synchronous property predicate.
 enum ThrowingPropertyBodyBuilder {
+  static let errorRecorderName = "invariantSwiftThrowingPropertyErrorRecorder"
+
+  static func supportsReturnType(_ signature: FunctionSignatureSyntax) -> Bool {
+    let returnType = signature.returnClause?.type.trimmedDescription
+    return returnType == nil
+      || ["()", "Void", "Swift.Void", "Bool", "Swift.Bool"].contains(returnType)
+  }
   static func build(
     from body: CodeBlockSyntax,
     signature: FunctionSignatureSyntax
@@ -47,16 +54,41 @@ enum ThrowingPropertyBodyBuilder {
           }
         },
         catchClauses: CatchClauseListSyntax {
-          CatchClauseSyntax(
-            body: CodeBlockSyntax {
-              FunctionCallBuilder(type: "Issue", member: "record")
-                .arg(ref: "error")
-                .build()
-              ReturnStmtSyntax(expression: BooleanLiteralExprSyntax(booleanLiteral: false))
-            }
-          )
+          buildCatchClause()
         }
       )
     }
+  }
+
+  private static func buildCatchClause() -> CatchClauseSyntax {
+    CatchClauseSyntax(
+      body: CodeBlockSyntax {
+        IfExprSyntax(
+          conditions: ConditionElementListSyntax {
+            ConditionElementSyntax(
+              condition: .expression(
+                ExprSyntax(
+                  FunctionCallExprSyntax(
+                    calledExpression: MemberAccessExprSyntax(
+                      base: DeclReferenceExprSyntax(baseName: .identifier(errorRecorderName)),
+                      declName: DeclReferenceExprSyntax(baseName: .identifier("shouldRecord"))
+                    ),
+                    leftParen: .leftParenToken(),
+                    arguments: [],
+                    rightParen: .rightParenToken()
+                  )
+                )
+              )
+            )
+          },
+          body: CodeBlockSyntax {
+            FunctionCallBuilder(type: "Issue", member: "record")
+              .arg(ref: "error")
+              .build()
+          }
+        )
+        ReturnStmtSyntax(expression: BooleanLiteralExprSyntax(booleanLiteral: false))
+      }
+    )
   }
 }

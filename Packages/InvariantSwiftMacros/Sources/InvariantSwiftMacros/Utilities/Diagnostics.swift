@@ -10,6 +10,7 @@ public enum PropertyMacroDiagnostic: String, MacroDiagnostic {
   case invalidSeed = "property_invalid_seed"
   case closureParameter = "property_closure_parameter"
   case asyncMismatch = "property_async_mismatch"
+  case unsupportedThrowingReturnType = "property_unsupported_throwing_return_type"
 
   public var severity: DiagnosticSeverity { .error }
 
@@ -36,6 +37,9 @@ public enum PropertyMacroDiagnostic: String, MacroDiagnostic {
 
     case .asyncMismatch:
       return "@Property on async function requires async test context"
+
+    case .unsupportedThrowingReturnType:
+      return "A throwing @PropertyTest must return Bool or Void"
     }
   }
 }

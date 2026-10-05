@@ -1,7 +1,7 @@
 import SwiftSyntax
 import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
-import SwiftSyntaxMacrosTestSupport
+import SwiftSyntaxMacrosGenericTestSupport
 import Testing
 
 // Import the macro implementation
@@ -28,26 +28,35 @@ struct EquivalenceMacroTests {
 
   @Test("Basic equivalence test generates wrapper enum with @Test")
   func basicEquivalenceTestGeneratesWrapperEnum() {
-    assertMacroExpansion(
+    expectMacroExpansion(
       """
       @Equivalence(iterations: 100)
       func testSortEquivalence(
-        reference: @escaping ([Int]) -> [Int],
-        candidate: @escaping ([Int]) -> [Int]
+        reference: @escaping ([Int]) -> [Int] = oldSort,
+        candidate: @escaping ([Int]) -> [Int] = newSort
       ) {
       }
       """,
       expandedSource: """
         func testSortEquivalence(
-          reference: @escaping ([Int]) -> [Int],
-          candidate: @escaping ([Int]) -> [Int]
+          reference: @escaping ([Int]) -> [Int] = oldSort,
+          candidate: @escaping ([Int]) -> [Int] = newSort
         ) {
         }
 
         private enum testSortEquivalence_EquivalenceTest {
-          @Test("testSortEquivalence equivalence")
-          static func run() throws {
-            // Generated test body
+          @Test("testSortEquivalence") static func run() throws {
+            let reference: ([Int]) -> [Int] = oldSort
+            let candidate: ([Int]) -> [Int] = newSort
+            for _ in 0 ..< 100 {
+              var rng = SystemRandomNumberGenerator.init()
+              let input = Gen.array(Gen<Int>.int).generate(&rng, Size.default)
+              let referenceResult = reference(input)
+              let candidateResult = candidate(input)
+              if referenceResult != candidateResult {
+                Issue.record(Comment(rawValue: "Equivalence test failed: reference and candidate produced different outputs"))
+              }
+            }
           }
         }
         """,
@@ -76,26 +85,35 @@ struct EquivalenceMacroTests {
 
   @Test("Custom iterations parameter is respected")
   func customIterationsParameterIsRespected() {
-    assertMacroExpansion(
+    expectMacroExpansion(
       """
       @Equivalence(iterations: 1000)
       func testCustomIterations(
-        reference: @escaping (Int) -> Int,
-        candidate: @escaping (Int) -> Int
+        reference: @escaping (Int) -> Int = oldDouble,
+        candidate: @escaping (Int) -> Int = newDouble
       ) {
       }
       """,
       expandedSource: """
         func testCustomIterations(
-          reference: @escaping (Int) -> Int,
-          candidate: @escaping (Int) -> Int
+          reference: @escaping (Int) -> Int = oldDouble,
+          candidate: @escaping (Int) -> Int = newDouble
         ) {
         }
 
         private enum testCustomIterations_EquivalenceTest {
-          @Test("testCustomIterations equivalence")
-          static func run() throws {
-            // Generated test with 1000 iterations
+          @Test("testCustomIterations") static func run() throws {
+            let reference: (Int) -> Int = oldDouble
+            let candidate: (Int) -> Int = newDouble
+            for _ in 0 ..< 1000 {
+              var rng = SystemRandomNumberGenerator.init()
+              let input = Gen<Int>.int.generate(&rng, Size.default)
+              let referenceResult = reference(input)
+              let candidateResult = candidate(input)
+              if referenceResult != candidateResult {
+                Issue.record(Comment(rawValue: "Equivalence test failed: reference and candidate produced different outputs"))
+              }
+            }
           }
         }
         """,
@@ -124,26 +142,35 @@ struct EquivalenceMacroTests {
 
   @Test("Nil tolerance uses Equatable comparison")
   func nilToleranceUsesEquatableComparison() {
-    assertMacroExpansion(
+    expectMacroExpansion(
       """
       @Equivalence(iterations: 100)
       func testStringEquivalence(
-        reference: @escaping (String) -> String,
-        candidate: @escaping (String) -> String
+        reference: @escaping (String) -> String = oldUpper,
+        candidate: @escaping (String) -> String = newUpper
       ) {
       }
       """,
       expandedSource: """
         func testStringEquivalence(
-          reference: @escaping (String) -> String,
-          candidate: @escaping (String) -> String
+          reference: @escaping (String) -> String = oldUpper,
+          candidate: @escaping (String) -> String = newUpper
         ) {
         }
 
         private enum testStringEquivalence_EquivalenceTest {
-          @Test("testStringEquivalence equivalence")
-          static func run() throws {
-            // Uses != comparison without tolerance
+          @Test("testStringEquivalence") static func run() throws {
+            let reference: (String) -> String = oldUpper
+            let candidate: (String) -> String = newUpper
+            for _ in 0 ..< 100 {
+              var rng = SystemRandomNumberGenerator.init()
+              let input = Gen<String>.string.generate(&rng, Size.default)
+              let referenceResult = reference(input)
+              let candidateResult = candidate(input)
+              if referenceResult != candidateResult {
+                Issue.record(Comment(rawValue: "Equivalence test failed: reference and candidate produced different outputs"))
+              }
+            }
           }
         }
         """,
@@ -156,7 +183,7 @@ struct EquivalenceMacroTests {
 
   @Test("Error: applied to non-function")
   func errorAppliedToNonFunction() {
-    assertMacroExpansion(
+    expectMacroExpansion(
       """
       @Equivalence(iterations: 100)
       var testVariable: Int = 42
@@ -179,7 +206,7 @@ struct EquivalenceMacroTests {
 
   @Test("Error: function with wrong parameter count")
   func errorFunctionWithWrongParameterCount() {
-    assertMacroExpansion(
+    expectMacroExpansion(
       """
       @Equivalence(iterations: 100)
       func testWrongParams(x: Int) {
@@ -204,7 +231,7 @@ struct EquivalenceMacroTests {
 
   @Test("Error: function with no parameters")
   func errorFunctionWithNoParameters() {
-    assertMacroExpansion(
+    expectMacroExpansion(
       """
       @Equivalence(iterations: 100)
       func testNoParams() {
@@ -218,7 +245,7 @@ struct EquivalenceMacroTests {
         DiagnosticSpec(
           message: "@Equivalence requires exactly two function parameters (reference, candidate)",
           line: 2,
-          column: 19,
+          column: 18,
           severity: .error
         )
       ],
@@ -229,19 +256,19 @@ struct EquivalenceMacroTests {
 
   @Test("Error: tolerance on non-floating-point type")
   func errorToleranceOnNonFloatingPointType() {
-    assertMacroExpansion(
+    expectMacroExpansion(
       """
       @Equivalence(iterations: 100, tolerance: 0.1)
       func testIntegerWithTolerance(
-        reference: @escaping (Int) -> Int,
-        candidate: @escaping (Int) -> Int
+        reference: @escaping (Int) -> Int = oldDouble,
+        candidate: @escaping (Int) -> Int = newDouble
       ) {
       }
       """,
       expandedSource: """
         func testIntegerWithTolerance(
-          reference: @escaping (Int) -> Int,
-          candidate: @escaping (Int) -> Int
+          reference: @escaping (Int) -> Int = oldDouble,
+          candidate: @escaping (Int) -> Int = newDouble
         ) {
         }
         """,
@@ -262,19 +289,19 @@ struct EquivalenceMacroTests {
 
   @Test("Error: tolerance on String return type")
   func errorToleranceOnStringReturnType() {
-    assertMacroExpansion(
+    expectMacroExpansion(
       """
       @Equivalence(tolerance: 0.0001)
       func testStringWithTolerance(
-        reference: @escaping (String) -> String,
-        candidate: @escaping (String) -> String
+        reference: @escaping (String) -> String = oldUpper,
+        candidate: @escaping (String) -> String = newUpper
       ) {
       }
       """,
       expandedSource: """
         func testStringWithTolerance(
-          reference: @escaping (String) -> String,
-          candidate: @escaping (String) -> String
+          reference: @escaping (String) -> String = oldUpper,
+          candidate: @escaping (String) -> String = newUpper
         ) {
         }
         """,
@@ -295,18 +322,18 @@ struct EquivalenceMacroTests {
 
   @Test("Error: incompatible function types")
   func errorIncompatibleFunctionTypes() {
-    assertMacroExpansion(
+    expectMacroExpansion(
       """
       @Equivalence(iterations: 100)
       func testIncompatibleTypes(
-        reference: @escaping (Int) -> Int,
+        reference: @escaping (Int) -> Int = oldDouble,
         candidate: String
       ) {
       }
       """,
       expandedSource: """
         func testIncompatibleTypes(
-          reference: @escaping (Int) -> Int,
+          reference: @escaping (Int) -> Int = oldDouble,
           candidate: String
         ) {
         }
@@ -315,7 +342,7 @@ struct EquivalenceMacroTests {
         DiagnosticSpec(
           message: "Reference and candidate functions must have matching signatures",
           line: 2,
-          column: 28,
+          column: 27,
           severity: .error
         )
       ],
@@ -328,26 +355,35 @@ struct EquivalenceMacroTests {
 
   @Test("Async function generates async test")
   func asyncFunctionGeneratesAsyncTest() {
-    assertMacroExpansion(
+    expectMacroExpansion(
       """
       @Equivalence(iterations: 100)
       func testAsyncEquivalence(
-        reference: @escaping (Int) async -> Int,
-        candidate: @escaping (Int) async -> Int
+        reference: @escaping (Int) async -> Int = oldFetch,
+        candidate: @escaping (Int) async -> Int = newFetch
       ) {
       }
       """,
       expandedSource: """
         func testAsyncEquivalence(
-          reference: @escaping (Int) async -> Int,
-          candidate: @escaping (Int) async -> Int
+          reference: @escaping (Int) async -> Int = oldFetch,
+          candidate: @escaping (Int) async -> Int = newFetch
         ) {
         }
 
         private enum testAsyncEquivalence_EquivalenceTest {
-          @Test("testAsyncEquivalence equivalence")
-          static func run() async throws {
-            // Generated async test body
+          @Test("testAsyncEquivalence") static func run() async throws {
+            let reference: (Int) async -> Int = oldFetch
+            let candidate: (Int) async -> Int = newFetch
+            for _ in 0 ..< 100 {
+              var rng = SystemRandomNumberGenerator.init()
+              let input = Gen<Int>.int.generate(&rng, Size.default)
+              let referenceResult = await reference(input)
+              let candidateResult = await candidate(input)
+              if referenceResult != candidateResult {
+                Issue.record(Comment(rawValue: "Equivalence test failed: reference and candidate produced different outputs"))
+              }
+            }
           }
         }
         """,
@@ -358,26 +394,35 @@ struct EquivalenceMacroTests {
 
   @Test("Throwing functions are handled correctly")
   func throwingFunctionsAreHandledCorrectly() {
-    assertMacroExpansion(
+    expectMacroExpansion(
       """
       @Equivalence(iterations: 100)
       func testThrowingEquivalence(
-        reference: @escaping (Int) throws -> Int,
-        candidate: @escaping (Int) throws -> Int
+        reference: @escaping (Int) throws -> Int = oldParse,
+        candidate: @escaping (Int) throws -> Int = newParse
       ) {
       }
       """,
       expandedSource: """
         func testThrowingEquivalence(
-          reference: @escaping (Int) throws -> Int,
-          candidate: @escaping (Int) throws -> Int
+          reference: @escaping (Int) throws -> Int = oldParse,
+          candidate: @escaping (Int) throws -> Int = newParse
         ) {
         }
 
         private enum testThrowingEquivalence_EquivalenceTest {
-          @Test("testThrowingEquivalence equivalence")
-          static func run() throws {
-            // Generated test with try/catch handling
+          @Test("testThrowingEquivalence") static func run() throws {
+            let reference: (Int) throws -> Int = oldParse
+            let candidate: (Int) throws -> Int = newParse
+            for _ in 0 ..< 100 {
+              var rng = SystemRandomNumberGenerator.init()
+              let input = Gen<Int>.int.generate(&rng, Size.default)
+              let referenceResult = try reference(input)
+              let candidateResult = try candidate(input)
+              if referenceResult != candidateResult {
+                Issue.record(Comment(rawValue: "Equivalence test failed: reference and candidate produced different outputs"))
+              }
+            }
           }
         }
         """,
@@ -424,26 +469,35 @@ struct EquivalenceMacroTests {
 
   @Test("Multiple parameter inputs")
   func multipleParameterInputs() {
-    assertMacroExpansion(
+    expectMacroExpansion(
       """
       @Equivalence(iterations: 200)
       func testMultipleInputs(
-        reference: @escaping (Int, String) -> Bool,
-        candidate: @escaping (Int, String) -> Bool
+        reference: @escaping (Int, String) -> Bool = oldMatch,
+        candidate: @escaping (Int, String) -> Bool = newMatch
       ) {
       }
       """,
       expandedSource: """
         func testMultipleInputs(
-          reference: @escaping (Int, String) -> Bool,
-          candidate: @escaping (Int, String) -> Bool
+          reference: @escaping (Int, String) -> Bool = oldMatch,
+          candidate: @escaping (Int, String) -> Bool = newMatch
         ) {
         }
 
         private enum testMultipleInputs_EquivalenceTest {
-          @Test("testMultipleInputs equivalence")
-          static func run() throws {
-            // Generated test with tuple input
+          @Test("testMultipleInputs") static func run() throws {
+            let reference: (Int, String) -> Bool = oldMatch
+            let candidate: (Int, String) -> Bool = newMatch
+            for _ in 0 ..< 200 {
+              var rng = SystemRandomNumberGenerator.init()
+              let input = Gen.zip(Gen<Int>.int, Gen<String>.string).generate(&rng, Size.default)
+              let referenceResult = reference(input.0, input.1)
+              let candidateResult = candidate(input.0, input.1)
+              if referenceResult != candidateResult {
+                Issue.record(Comment(rawValue: "Equivalence test failed: reference and candidate produced different outputs"))
+              }
+            }
           }
         }
         """,
@@ -454,26 +508,35 @@ struct EquivalenceMacroTests {
 
   @Test("Array input and output")
   func arrayInputAndOutput() {
-    assertMacroExpansion(
+    expectMacroExpansion(
       """
       @Equivalence(iterations: 300)
       func testArrayTransformation(
-        reference: @escaping ([Int]) -> [Int],
-        candidate: @escaping ([Int]) -> [Int]
+        reference: @escaping ([Int]) -> [Int] = oldSort,
+        candidate: @escaping ([Int]) -> [Int] = newSort
       ) {
       }
       """,
       expandedSource: """
         func testArrayTransformation(
-          reference: @escaping ([Int]) -> [Int],
-          candidate: @escaping ([Int]) -> [Int]
+          reference: @escaping ([Int]) -> [Int] = oldSort,
+          candidate: @escaping ([Int]) -> [Int] = newSort
         ) {
         }
 
         private enum testArrayTransformation_EquivalenceTest {
-          @Test("testArrayTransformation equivalence")
-          static func run() throws {
-            // Generated test with array generators
+          @Test("testArrayTransformation") static func run() throws {
+            let reference: ([Int]) -> [Int] = oldSort
+            let candidate: ([Int]) -> [Int] = newSort
+            for _ in 0 ..< 300 {
+              var rng = SystemRandomNumberGenerator.init()
+              let input = Gen.array(Gen<Int>.int).generate(&rng, Size.default)
+              let referenceResult = reference(input)
+              let candidateResult = candidate(input)
+              if referenceResult != candidateResult {
+                Issue.record(Comment(rawValue: "Equivalence test failed: reference and candidate produced different outputs"))
+              }
+            }
           }
         }
         """,

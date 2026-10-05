@@ -43,7 +43,7 @@ hooks = [
   {
     id = "branch-guardian",
     name = "🚫 Checking branch protection...",
-    entry = """bash -c 'BRANCH=$(git rev-parse --abbrev-ref HEAD); if [ "$BRANCH" = "main" ] || [ "$BRANCH" = "dev" ]; then echo "🛑 Direct commits to $BRANCH branch are not allowed! Use feature branches and PRs instead 🚀"; exit 1; fi'""",
+    entry = """bash -c 'BRANCH=$(git rev-parse --abbrev-ref HEAD); case "$BRANCH" in main|develop|dev) echo "🛑 Direct commits to $BRANCH branch are not allowed! Use a feature/, release/, or hotfix/ branch and a PR instead 🚀"; exit 1;; esac'""",
     language = "system",
     pass_filenames = false,
     always_run = true

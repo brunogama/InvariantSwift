@@ -17,7 +17,7 @@ private enum ThrowingPropertyFixtureError: Error {
 @PropertyTest(
   iterations: 1,
   seed: 42,
-  maxShrinks: 0,
+  maxShrinks: 1,
   disabledReason: "Invoked explicitly to inspect recorded issues"
 )
 private func propertyThrowsForGeneratedInput(value: Int) throws {
@@ -26,17 +26,16 @@ private func propertyThrowsForGeneratedInput(value: Int) throws {
 @PropertyTest(
   iterations: 1,
   seed: 42,
-  maxShrinks: 0,
+  maxShrinks: 1,
   disabledReason: "Invoked explicitly to inspect recorded issues"
 )
 private func boolPropertyThrowsForGeneratedInput(value: Int) throws -> Bool {
   throw ThrowingPropertyFixtureError.expected
 }
 
-
 @Test(arguments: [false, true])
 func throwingPropertyRecordsOriginalError(returningBool: Bool) async throws {
-  try await confirmation("Original thrown error", expectedCount: 1...) { errorRecorded in
+  try await confirmation("Original thrown error", expectedCount: 1) { errorRecorded in
     try withKnownIssue("The fixture deliberately throws") {
       if returningBool {
         try boolPropertyThrowsForGeneratedInput_PropertyTest.run()

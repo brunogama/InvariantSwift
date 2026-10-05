@@ -5,10 +5,10 @@ extension GhostwriterExpansionRenderer {
     ExprSyntax(
       ArrayExprSyntax(
         elements: ArrayElementListSyntax(
-          expressions.map { expression in
+          expressions.enumerated().map { index, expression in
             ArrayElementSyntax(
               expression: render(expr: expression),
-              trailingComma: .commaToken()
+              trailingComma: separator(at: index, of: expressions.count)
             )
           }
         )

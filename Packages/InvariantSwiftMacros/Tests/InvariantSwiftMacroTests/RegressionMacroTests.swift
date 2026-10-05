@@ -1,7 +1,7 @@
 import SwiftSyntax
 import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
-import SwiftSyntaxMacrosTestSupport
+import SwiftSyntaxMacrosGenericTestSupport
 import Testing
 
 @testable import InvariantSwiftMacros
@@ -24,7 +24,7 @@ struct RegressionMacroTests {
 
   @Test("@Regression with default parameters expands correctly")
   func testDefaultParameters() {
-    assertMacroExpansion(
+    expectMacroExpansion(
       """
       @PropertyTest
       @Regression
@@ -38,40 +38,15 @@ struct RegressionMacroTests {
         }
 
         private enum testSorting_PropertyTest {
-          @Test(
-            "testSorting",
-            InvariantSwiftPropertyExecutionTrait(
-              testName: "testSorting",
-              labels: ["array"],
-              configuredSeed: nil
-            ),
-            .tags(.invariantSwiftPropertyBased)
-          ) static func run() throws {
-            let generator: Gen<[Int]> = Gen<Int>.int.array()
-            let property = Property(generator: generator) { (array: [Int]) in
-              array.sorted().isSorted
-              return true
+            @Test("testSorting", InvariantSwiftPropertyExecutionTrait(testName: "testSorting", labels: ["array"], configuredSeed: nil), .tags(.invariantSwiftPropertyBased)) static func run() throws {
+                let generator: Gen<[Int]> = Gen.array(Gen<Int>.int)
+                let property = Property(generator: generator) { (array: [Int]) in
+                  array.sorted().isSorted
+                  return true
+                }
+                let config = PropertyConfig(iterations: 100, maxShrinks: 1000, failingExampleDatabase: FailingExampleDatabase.shared, testIdentifier: TestIdentifier(module: "", file: String(describing: #file), function: String(describing: #function), signature: ""), replayFirst: true)
+                try executeGeneratedPropertyTest(property, config: config, testName: "testSorting", labels: ["array"], persistFailures: true)
             }
-            let config = PropertyConfig(
-              iterations: 100,
-              maxShrinks: 1000,
-              failingExampleDatabase: FailingExampleDatabase.shared,
-              testIdentifier: TestIdentifier(
-                module: "",
-                file: String(describing: #file),
-                function: String(describing: #function),
-                signature: ""
-              ),
-              replayFirst: true
-            )
-            try executeGeneratedPropertyTest(
-              property,
-              config: config,
-              testName: "testSorting",
-              labels: ["array"],
-              persistFailures: true
-            )
-          }
         }
         """,
       macros: testMacros
@@ -80,7 +55,7 @@ struct RegressionMacroTests {
 
   @Test("@Regression with replayFirst: false expands correctly")
   func testReplayFirstFalse() {
-    assertMacroExpansion(
+    expectMacroExpansion(
       """
       @PropertyTest
       @Regression(replayFirst: false)
@@ -94,40 +69,15 @@ struct RegressionMacroTests {
         }
 
         private enum testNoReplay_PropertyTest {
-          @Test(
-            "testNoReplay",
-            InvariantSwiftPropertyExecutionTrait(
-              testName: "testNoReplay",
-              labels: ["value"],
-              configuredSeed: nil
-            ),
-            .tags(.invariantSwiftPropertyBased)
-          ) static func run() throws {
-            let generator: Gen<Int> = Gen<Int>.int
-            let property = Property(generator: generator) { (value: Int) in
-              value >= 0
-              return true
+            @Test("testNoReplay", InvariantSwiftPropertyExecutionTrait(testName: "testNoReplay", labels: ["value"], configuredSeed: nil), .tags(.invariantSwiftPropertyBased)) static func run() throws {
+                let generator: Gen<Int> = Gen<Int>.int
+                let property = Property(generator: generator) { (value: Int) in
+                  value >= 0
+                  return true
+                }
+                let config = PropertyConfig(iterations: 100, maxShrinks: 1000, failingExampleDatabase: FailingExampleDatabase.shared, testIdentifier: TestIdentifier(module: "", file: String(describing: #file), function: String(describing: #function), signature: ""), replayFirst: false)
+                try executeGeneratedPropertyTest(property, config: config, testName: "testNoReplay", labels: ["value"], persistFailures: true)
             }
-            let config = PropertyConfig(
-              iterations: 100,
-              maxShrinks: 1000,
-              failingExampleDatabase: FailingExampleDatabase.shared,
-              testIdentifier: TestIdentifier(
-                module: "",
-                file: String(describing: #file),
-                function: String(describing: #function),
-                signature: ""
-              ),
-              replayFirst: false
-            )
-            try executeGeneratedPropertyTest(
-              property,
-              config: config,
-              testName: "testNoReplay",
-              labels: ["value"],
-              persistFailures: true
-            )
-          }
         }
         """,
       macros: testMacros
@@ -136,7 +86,7 @@ struct RegressionMacroTests {
 
   @Test("@Regression with maxExamples expands correctly")
   func testMaxExamples() {
-    assertMacroExpansion(
+    expectMacroExpansion(
       """
       @PropertyTest
       @Regression(maxExamples: 5)
@@ -150,41 +100,15 @@ struct RegressionMacroTests {
         }
 
         private enum testLimited_PropertyTest {
-          @Test(
-            "testLimited",
-            InvariantSwiftPropertyExecutionTrait(
-              testName: "testLimited",
-              labels: ["value"],
-              configuredSeed: nil
-            ),
-            .tags(.invariantSwiftPropertyBased)
-          ) static func run() throws {
-            let generator: Gen<String> = Gen<String>.string
-            let property = Property(generator: generator) { (value: String) in
-              !value.isEmpty
-              return true
+            @Test("testLimited", InvariantSwiftPropertyExecutionTrait(testName: "testLimited", labels: ["value"], configuredSeed: nil), .tags(.invariantSwiftPropertyBased)) static func run() throws {
+                let generator: Gen<String> = Gen<String>.string
+                let property = Property(generator: generator) { (value: String) in
+                  !value.isEmpty
+                  return true
+                }
+                let config = PropertyConfig(iterations: 100, maxShrinks: 1000, failingExampleDatabase: FailingExampleDatabase.shared, testIdentifier: TestIdentifier(module: "", file: String(describing: #file), function: String(describing: #function), signature: ""), replayFirst: true, maxReplayExamples: 5)
+                try executeGeneratedPropertyTest(property, config: config, testName: "testLimited", labels: ["value"], persistFailures: true)
             }
-            let config = PropertyConfig(
-              iterations: 100,
-              maxShrinks: 1000,
-              failingExampleDatabase: FailingExampleDatabase.shared,
-              testIdentifier: TestIdentifier(
-                module: "",
-                file: String(describing: #file),
-                function: String(describing: #function),
-                signature: ""
-              ),
-              replayFirst: true,
-              maxReplayExamples: 5
-            )
-            try executeGeneratedPropertyTest(
-              property,
-              config: config,
-              testName: "testLimited",
-              labels: ["value"],
-              persistFailures: true
-            )
-          }
         }
         """,
       macros: testMacros
@@ -196,7 +120,7 @@ struct RegressionMacroTests {
 
   @Test("@Regression alone returns empty (marker macro)")
   func testMarkerMacroReturnsEmpty() {
-    assertMacroExpansion(
+    expectMacroExpansion(
       """
       @Regression
       func standalone(value: Int) -> Bool {
@@ -216,7 +140,7 @@ struct RegressionMacroTests {
 
   @Test("@Regression and @Reproduce together emits diagnostic")
   func testMutualExclusion() {
-    assertMacroExpansion(
+    expectMacroExpansion(
       """
       @PropertyTest
       @Regression
@@ -245,7 +169,7 @@ struct RegressionMacroTests {
 
   @Test("@Regression with async function expands correctly")
   func testAsyncFunction() {
-    assertMacroExpansion(
+    expectMacroExpansion(
       """
       @PropertyTest
       @Regression
@@ -261,42 +185,16 @@ struct RegressionMacroTests {
         }
 
         private enum testAsync_PropertyTest {
-          @Test(
-            "testAsync",
-            InvariantSwiftPropertyExecutionTrait(
-              testName: "testAsync",
-              labels: ["value"],
-              configuredSeed: nil
-            ),
-            .tags(.invariantSwiftPropertyBased)
-          ) static func run() async throws {
-            let generator: Gen<Int> = Gen<Int>.int
-            let property = Property(generator: generator) { (value: Int) in
-              await Task.yield()
-              return value >= 0
-              return true
+            @Test("testAsync", InvariantSwiftPropertyExecutionTrait(testName: "testAsync", labels: ["value"], configuredSeed: nil), .tags(.invariantSwiftPropertyBased)) static func run() async throws {
+                let generator: Gen<Int> = Gen<Int>.int
+                let property = Property(generator: generator) { (value: Int) in
+                  await Task.yield()
+                  return value >= 0
+                  return true
+                }
+                let config = PropertyConfig(iterations: 100, maxShrinks: 1000, failingExampleDatabase: FailingExampleDatabase.shared, testIdentifier: TestIdentifier(module: "", file: String(describing: #file), function: String(describing: #function), signature: ""), replayFirst: true)
+                try await executeGeneratedPropertyTestAsync(property, config: config, testName: "testAsync", labels: ["value"], timeoutSeconds: nil, persistFailures: true)
             }
-            let config = PropertyConfig(
-              iterations: 100,
-              maxShrinks: 1000,
-              failingExampleDatabase: FailingExampleDatabase.shared,
-              testIdentifier: TestIdentifier(
-                module: "",
-                file: String(describing: #file),
-                function: String(describing: #function),
-                signature: ""
-              ),
-              replayFirst: true
-            )
-            try await executeGeneratedPropertyTestAsync(
-              property,
-              config: config,
-              testName: "testAsync",
-              labels: ["value"],
-              timeoutSeconds: nil,
-              persistFailures: true
-            )
-          }
         }
         """,
       macros: testMacros

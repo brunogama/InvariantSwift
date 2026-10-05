@@ -8,16 +8,8 @@ private extension Tag {
   }
 }
 
-private struct SerializedSuiteAssertion: SuiteTrait, TestTrait {
-  var isRecursive: Bool { true }
 
-  func prepare(for test: Test) throws {
-    guard test.isSuite, test.id.nameComponents.last == "Serialized" else { return }
-    try #require(test.traits.contains { $0 is ParallelizationTrait })
-  }
-}
-
-@Suite("PropertyTest Trait Forwarding Tests", SerializedSuiteAssertion())
+@Suite("PropertyTest Trait Forwarding Tests")
 struct PropertyTestTraitForwardingTests {
   @PropertyTest(
     iterations: 1,

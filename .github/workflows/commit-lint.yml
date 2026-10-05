@@ -89,7 +89,7 @@ jobs:
           TO: ${{ steps.range.outputs.to }}
         run: |
           if [ -n "$FROM" ]; then
-            MESSAGES=$(git log --format="%B" "$FROM..$TO")
+            MESSAGES=$(git log --first-parent --format="%B" "$FROM..$TO")
           else
             MESSAGES=$(git log --format="%B" "$TO")
           fi

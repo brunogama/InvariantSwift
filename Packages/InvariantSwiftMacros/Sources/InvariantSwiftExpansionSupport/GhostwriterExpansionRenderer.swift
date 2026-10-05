@@ -203,21 +203,28 @@ extension GhostwriterExpansionRenderer {
       return renderArray(expressions)
 
     case .tuple(let expressions):
-      return ExprSyntax(
-        TupleExprSyntax(
-          elements: LabeledExprListSyntax(
-            expressions.map { expression in
-              LabeledExprSyntax(expression: render(expr: expression))
-            }
-          )
-        )
-      )
+      return renderTuple(expressions)
 
     case .exactlyOneTrue(let expressions):
       return GhostwriterExpansionEscapeHatches.renderExactlyOneTrue(
         expressions.map(render(expr:))
       )
     }
+  }
+
+  static func renderTuple(_ expressions: [ExpansionExpr]) -> ExprSyntax {
+    ExprSyntax(
+      TupleExprSyntax(
+        elements: LabeledExprListSyntax(
+          expressions.enumerated().map { index, expression in
+            LabeledExprSyntax(
+              expression: render(expr: expression),
+              trailingComma: separator(at: index, of: expressions.count)
+            )
+          }
+        )
+      )
+    )
   }
 
   static func renderBinaryOperand(_ expression: ExpansionExpr) -> ExprSyntax {
@@ -232,6 +239,15 @@ extension GhostwriterExpansionRenderer {
     )
   }
 
+  /// A separator for every element of a list but its last.
+  ///
+  /// Syntax collections built from an array keep their elements exactly as given, unlike
+  /// the result-builder form, so each element has to carry its own comma or the rendered
+  /// output runs together and does not parse.
+  static func separator(at index: Int, of count: Int) -> TokenSyntax? {
+    index < count - 1 ? .commaToken(trailingTrivia: .space) : nil
+  }
+
   static func renderCall(
     callee: ExpansionExpr,
     arguments: [ExpansionArgument],
@@ -243,11 +259,8 @@ extension GhostwriterExpansionRenderer {
         leftParen: trailingClosure == nil ? .leftParenToken() : nil,
         arguments: LabeledExprListSyntax(
           arguments.enumerated().map { index, argument in
-            var rendered = render(argument: argument)
-            if index < arguments.count - 1 {
-              rendered = rendered.with(\.trailingComma, .commaToken(trailingTrivia: .space))
-            }
-            return rendered
+            render(argument: argument)
+              .with(\.trailingComma, separator(at: index, of: arguments.count))
           }
         ),
         rightParen: trailingClosure == nil ? .rightParenToken() : nil,
@@ -271,8 +284,11 @@ extension GhostwriterExpansionRenderer {
         : ClosureSignatureSyntax(
           parameterClause: .simpleInput(
             ClosureShorthandParameterListSyntax(
-              closure.parameters.map { name in
-                ClosureShorthandParameterSyntax(name: .identifier(name))
+              closure.parameters.enumerated().map { index, name in
+                ClosureShorthandParameterSyntax(
+                  name: .identifier(name),
+                  trailingComma: separator(at: index, of: closure.parameters.count)
+                )
               }
             )
           ),

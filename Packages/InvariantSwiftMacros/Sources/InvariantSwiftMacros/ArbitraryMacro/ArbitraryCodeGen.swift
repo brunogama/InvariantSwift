@@ -396,12 +396,15 @@ enum ArbitraryCodeGen {
     typeName: String,
     fields: [AnalyzedField]
   ) -> ExprSyntax {
-    let emptyValues = fields.map { field -> LabeledExprSyntax in
+    let emptyValues = fields.enumerated().map { index, field -> LabeledExprSyntax in
       let emptyExpr = buildEmptyValue(for: field.type)
       return LabeledExprSyntax(
         label: .identifier(field.name),
         colon: .colonToken(),
-        expression: emptyExpr
+        expression: emptyExpr,
+        // Without a separator a struct with two or more fields renders as
+        // `Foo(a: 0b: "")`, which does not parse.
+        trailingComma: index < fields.count - 1 ? .commaToken() : nil
       )
     }
 

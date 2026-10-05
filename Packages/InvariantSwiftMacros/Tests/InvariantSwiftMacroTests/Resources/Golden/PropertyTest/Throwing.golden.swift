@@ -5,13 +5,16 @@ func throwingAssertions(value: Int) throws {
 private enum throwingAssertions_PropertyTest {
     @Test("throwingAssertions", InvariantSwiftPropertyExecutionTrait(testName: "throwingAssertions", labels: ["value"], configuredSeed: nil), .tags(.invariantSwiftPropertyBased)) static func run() throws {
         let generator: Gen<Int> = Gen<Int>.int
+        let invariantSwiftThrowingPropertyErrorRecorder = ThrowingPropertyErrorRecorder()
         let property = Property(generator: generator) { (value: Int) in
             do {
                 try { () throws -> Void in
                   try validate(value)
                 }()
             } catch {
-                Issue.record(error)
+                if invariantSwiftThrowingPropertyErrorRecorder.shouldRecord() {
+                    Issue.record(error)
+                }
                 return false
             }
             return true
@@ -21,22 +24,25 @@ private enum throwingAssertions_PropertyTest {
     }
 }
 func replayingThrowingPredicate(value: Int) throws -> Bool {
-  return value > 0
+  value > 0
 }
 
 private enum replayingThrowingPredicate_PropertyTest {
     @Suite(.serialized) enum Serialized {
         @Test("replayingThrowingPredicate", InvariantSwiftPropertyExecutionTrait(testName: "replayingThrowingPredicate", labels: ["value"], configuredSeed: nil), .tags(.invariantSwiftPropertyBased)) static func run() throws {
             let generator: Gen<Int> = Gen<Int>.int
+            let invariantSwiftThrowingPropertyErrorRecorder = ThrowingPropertyErrorRecorder()
             let property = Property(generator: generator) { (value: Int) in
                 do {
                     guard try { () throws -> Bool in
-                      return value > 0
+                      value > 0
                     }() else {
                         return false
                     }
                 } catch {
-                    Issue.record(error)
+                    if invariantSwiftThrowingPropertyErrorRecorder.shouldRecord() {
+                        Issue.record(error)
+                    }
                     return false
                 }
                 return true
@@ -46,15 +52,18 @@ private enum replayingThrowingPredicate_PropertyTest {
         }
         @Test("replayingThrowingPredicate regressions", InvariantSwiftPropertyExecutionTrait(testName: "replayingThrowingPredicate regressions", labels: ["value"], configuredSeed: nil), .tags(.invariantSwiftPropertyBased, .invariantSwiftPropertyReplay), arguments: try await FailurePersistenceManager().loadReplayFailures(forTest: "replayingThrowingPredicate", maxExamples: 2)) static func replay(failure: PersistedFailure) throws {
             let generator: Gen<Int> = Gen<Int>.int
+            let invariantSwiftThrowingPropertyErrorRecorder = ThrowingPropertyErrorRecorder()
             let property = Property(generator: generator) { (value: Int) in
                 do {
                     guard try { () throws -> Bool in
-                      return value > 0
+                      value > 0
                     }() else {
                         return false
                     }
                 } catch {
-                    Issue.record(error)
+                    if invariantSwiftThrowingPropertyErrorRecorder.shouldRecord() {
+                        Issue.record(error)
+                    }
                     return false
                 }
                 return true
