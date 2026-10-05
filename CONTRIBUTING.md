@@ -98,6 +98,8 @@ swift build -Xswiftc -warnings-as-errors
 swift test --parallel
 ```
 
+When changing Ghostwriter command-plugin integration, also run `bash scripts/ghostwriter-plugin.test.sh`. It builds the tool through an independent dependency consumer, checks the three-test preview for its fixture, and verifies that dry-run does not write generated tests.
+
 ---
 
 ## Code Style

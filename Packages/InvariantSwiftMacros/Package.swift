@@ -95,6 +95,9 @@ let package = Package(
         "GhostwriterLib",
         .product(name: "SwiftParser", package: "swift-syntax"),
         .product(name: "SwiftSyntax", package: "swift-syntax"),
+        // Match the root plugin-tool linkage for Swift Build consumers.
+        .product(name: "SwiftBasicFormat", package: "swift-syntax"),
+        .product(name: "SwiftSyntaxBuilder", package: "swift-syntax"),
       ],
       path: "Sources/GhostwriterCLI",
       swiftSettings: commonSwiftSettings

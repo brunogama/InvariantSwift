@@ -8,6 +8,7 @@ private extension Tag {
   }
 }
 
+
 @Suite("PropertyTest Trait Forwarding Tests")
 struct PropertyTestTraitForwardingTests {
   @PropertyTest(

@@ -66,6 +66,12 @@ public struct PropertyMacro: PeerMacro {
     }
 
     let isAsync = funcDecl.signature.effectSpecifiers?.asyncSpecifier != nil
+    let hasThrowingBody = !isAsync && funcDecl.signature.effectSpecifiers?.throwsClause != nil
+    guard validateThrowingBody(of: funcDecl, isAsync: isAsync, context: ctx) else { return [] }
+    let propertyBody =
+      hasThrowingBody
+      ? ThrowingPropertyBodyBuilder.build(from: originalBody, signature: funcDecl.signature)
+      : originalBody
 
     // Generate a wrapper enum containing the @Test function
     // This provides proper scope for @Test's internal symbol generation,
@@ -73,15 +79,29 @@ public struct PropertyMacro: PeerMacro {
     let wrapperEnum = buildWrapperEnum(
       original: funcDecl,
       parameters: parameters,
-      originalBody: originalBody,
+      originalBody: propertyBody,
       config: config,
       regressionConfig: regressionConfig,
       timeoutConfig: timeoutConfig,
       swiftTestingTraits: swiftTestingTraits,
-      isAsync: isAsync
+      isAsync: isAsync,
+      hasThrowingBody: hasThrowingBody
     )
 
     return [DeclSyntax(wrapperEnum)]
+  }
+
+  private static func validateThrowingBody(
+    of funcDecl: FunctionDeclSyntax,
+    isAsync: Bool,
+    context: MacroContext
+  ) -> Bool {
+    guard !isAsync, funcDecl.signature.effectSpecifiers?.throwsClause != nil else { return true }
+    guard ThrowingPropertyBodyBuilder.supportsReturnType(funcDecl.signature) else {
+      context.error(PropertyMacroDiagnostic.unsupportedThrowingReturnType, at: funcDecl)
+      return false
+    }
+    return true
   }
 
   // swiftlint:disable:next orphaned_doc_comment
@@ -96,21 +116,13 @@ public struct PropertyMacro: PeerMacro {
     regressionConfig: RegressionConfig?,
     timeoutConfig: TimeoutConfig?,
     swiftTestingTraits: SwiftTestingTraitConfig,
-    isAsync: Bool
+    isAsync: Bool,
+    hasThrowingBody: Bool
   ) -> EnumDeclSyntax {
     let enumName = "\(funcDecl.name.text)_PropertyTest"
     let testName = funcDecl.name.text
     let labels = PropertyFailureFormatter.extractLabels(from: parameters)
 
-    let testBody = buildPropertyTestBody(
-      testName: testName,
-      parameters: parameters,
-      originalBody: originalBody,
-      config: config,
-      regressionConfig: regressionConfig,
-      timeoutConfig: timeoutConfig,
-      isAsync: isAsync
-    )
 
     let testFunc = FunctionDeclSyntax(
       attributes: SwiftTestingTraitBuilder.buildTestAttribute(
@@ -122,7 +134,7 @@ public struct PropertyMacro: PeerMacro {
           includeReplayTag: false,
           arguments: nil
         ),
-        serializedBySuite: true
+        serializedBySuite: swiftTestingTraits.serialized
       ),
       modifiers: DeclModifierListSyntax {
         DeclModifierSyntax(name: .keyword(.static))
@@ -130,7 +142,16 @@ public struct PropertyMacro: PeerMacro {
       funcKeyword: .keyword(.func),
       name: .identifier("run"),
       signature: isAsync ? buildAsyncThrowsSignature() : buildThrowsSignature(),
-      body: testBody
+      body: buildPropertyTestBody(
+        testName: testName,
+        parameters: parameters,
+        originalBody: originalBody,
+        config: config,
+        regressionConfig: regressionConfig,
+        timeoutConfig: timeoutConfig,
+        isAsync: isAsync,
+        hasThrowingBody: hasThrowingBody
+      )
     )
 
     return EnumDeclSyntax(
@@ -153,7 +174,8 @@ public struct PropertyMacro: PeerMacro {
                 regressionConfig: regressionConfig,
                 timeoutConfig: timeoutConfig,
                 swiftTestingTraits: swiftTestingTraits,
-                isAsync: isAsync
+                isAsync: isAsync,
+                hasThrowingBody: hasThrowingBody
               )
             )
           }
@@ -193,7 +215,8 @@ public struct PropertyMacro: PeerMacro {
     config: PropertyMacroConfig,
     regressionConfig: RegressionConfig?,
     timeoutConfig: TimeoutConfig?,
-    isAsync: Bool
+    isAsync: Bool,
+    hasThrowingBody: Bool
   ) -> CodeBlockSyntax {
     let labels = PropertyFailureFormatter.extractLabels(from: parameters)
 
@@ -206,12 +229,16 @@ public struct PropertyMacro: PeerMacro {
         config: config,
         regressionConfig: regressionConfig,
         timeoutConfig: timeoutConfig,
-        isAsync: isAsync
+        isAsync: isAsync,
+        hasThrowingBody: hasThrowingBody
       )
     }
 
     return CodeBlockSyntax {
       buildGeneratorDeclaration(parameters: parameters)
+      if hasThrowingBody {
+        buildThrowingErrorRecorderDeclaration()
+      }
       buildPropertyDeclaration(parameters: parameters, originalBody: originalBody)
       buildConfigDeclaration(config: config, regressionConfig: regressionConfig)
       buildGeneratedExecutionCall(
@@ -384,6 +411,29 @@ public struct PropertyMacro: PeerMacro {
         ]),
         rightParen: .rightParenToken()
       )
+    )
+  }
+
+  private static func buildThrowingErrorRecorderDeclaration() -> VariableDeclSyntax {
+    let recorderInitializer = FunctionCallExprSyntax(
+      calledExpression: DeclReferenceExprSyntax(
+        baseName: .identifier("ThrowingPropertyErrorRecorder")
+      ),
+      leftParen: .leftParenToken(),
+      arguments: [],
+      rightParen: .rightParenToken()
+    )
+
+    return VariableDeclSyntax(
+      bindingSpecifier: .keyword(.let),
+      bindings: PatternBindingListSyntax {
+        PatternBindingSyntax(
+          pattern: IdentifierPatternSyntax(
+            identifier: .identifier(ThrowingPropertyBodyBuilder.errorRecorderName)
+          ),
+          initializer: InitializerClauseSyntax(value: ExprSyntax(recorderInitializer))
+        )
+      }
     )
   }
 
@@ -753,7 +803,8 @@ public struct PropertyMacro: PeerMacro {
     config: PropertyMacroConfig,
     regressionConfig: RegressionConfig?,
     timeoutConfig: TimeoutConfig?,
-    isAsync: Bool
+    isAsync: Bool,
+    hasThrowingBody: Bool
   ) -> CodeBlockSyntax {
     // TODO: Implement pure SwiftSyntax AST for flake detection
     // Current implementation uses forbidden string interpolation
@@ -765,7 +816,8 @@ public struct PropertyMacro: PeerMacro {
       config: config,
       regressionConfig: regressionConfig,
       timeoutConfig: timeoutConfig,
-      isAsync: isAsync
+      isAsync: isAsync,
+      hasThrowingBody: hasThrowingBody
     )
   }
 
@@ -779,7 +831,8 @@ public struct PropertyMacro: PeerMacro {
     regressionConfig: RegressionConfig?,
     timeoutConfig: TimeoutConfig?,
     swiftTestingTraits: SwiftTestingTraitConfig,
-    isAsync: Bool
+    isAsync: Bool,
+    hasThrowingBody: Bool
   ) -> FunctionDeclSyntax {
     let replayName = "\(testName) regressions"
     let arguments = buildReplayArgumentsExpression(
@@ -797,7 +850,7 @@ public struct PropertyMacro: PeerMacro {
           includeReplayTag: true,
           arguments: arguments
         ),
-        serializedBySuite: true
+        serializedBySuite: swiftTestingTraits.serialized
       ),
       modifiers: DeclModifierListSyntax {
         DeclModifierSyntax(name: .keyword(.static))
@@ -813,7 +866,8 @@ public struct PropertyMacro: PeerMacro {
         config: config,
         regressionConfig: regressionConfig,
         timeoutConfig: timeoutConfig,
-        isAsync: isAsync
+        isAsync: isAsync,
+        hasThrowingBody: hasThrowingBody
       )
     )
   }
@@ -868,10 +922,14 @@ public struct PropertyMacro: PeerMacro {
     config: PropertyMacroConfig,
     regressionConfig: RegressionConfig?,
     timeoutConfig: TimeoutConfig?,
-    isAsync: Bool
+    isAsync: Bool,
+    hasThrowingBody: Bool
   ) -> CodeBlockSyntax {
     CodeBlockSyntax {
       buildGeneratorDeclaration(parameters: parameters)
+      if hasThrowingBody {
+        buildThrowingErrorRecorderDeclaration()
+      }
       buildPropertyDeclaration(parameters: parameters, originalBody: originalBody)
       buildConfigDeclaration(config: config, regressionConfig: regressionConfig)
       buildReplayExecutionCall(
