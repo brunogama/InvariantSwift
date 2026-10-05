@@ -25,6 +25,62 @@ public enum TypeAnalyzer {
     return type.trimmedDescription
   }
 
+  /// Strips every type attribute, returning the type they decorate.
+  ///
+  /// `@escaping (Int) -> Int` parses as an `AttributedTypeSyntax` wrapping the function
+  /// type, not as a `FunctionTypeSyntax`, so casting the parameter's type directly fails
+  /// for every escaping closure parameter.
+  ///
+  /// Use this to inspect a type. To reproduce one in generated code use
+  /// ``withoutParameterAttributes(_:)``, which keeps the attributes that carry meaning
+  /// outside a parameter list.
+  public static func unattributed(_ type: TypeSyntax) -> TypeSyntax {
+    guard let attributed = type.as(AttributedTypeSyntax.self) else { return type }
+    return unattributed(attributed.baseType)
+  }
+
+  /// Strips only the attributes that are legal solely on a parameter, keeping the rest.
+  ///
+  /// `@escaping` and `@autoclosure` cannot appear anywhere else, so they have to go when
+  /// a parameter's type is reused as, say, a local binding's annotation. Everything else
+  /// is load-bearing: dropping `@MainActor` from `@escaping @MainActor (Int) -> Int`
+  /// loses the global actor and the assignment stops compiling.
+  public static func withoutParameterAttributes(_ type: TypeSyntax) -> TypeSyntax {
+    guard let attributed = type.as(AttributedTypeSyntax.self) else { return type }
+
+    let parameterOnly: Set<String> = ["escaping", "autoclosure"]
+    let kept = attributed.attributes.filter { element in
+      guard case .attribute(let attribute) = element,
+        let name = attribute.attributeName.as(IdentifierTypeSyntax.self)?.name.text
+      else {
+        return true
+      }
+      return !parameterOnly.contains(name)
+    }
+
+    let base = withoutParameterAttributes(attributed.baseType)
+    guard !kept.isEmpty else { return base }
+    return TypeSyntax(attributed.with(\.attributes, kept).with(\.baseType, base))
+  }
+
+  /// Checks whether a type is `Void`, however it is spelled.
+  public static func isVoid(_ type: TypeSyntax) -> Bool {
+    if let identifier = type.as(IdentifierTypeSyntax.self) {
+      return identifier.name.text == "Void"
+    }
+    // `Swift.Void`.
+    if let member = type.as(MemberTypeSyntax.self) {
+      return member.name.text == "Void"
+    }
+    if let tuple = type.as(TupleTypeSyntax.self) {
+      // `()` is the empty tuple; `(Void)` is Void in parentheses.
+      if tuple.elements.isEmpty { return true }
+      guard tuple.elements.count == 1, let only = tuple.elements.first else { return false }
+      return isVoid(only.type)
+    }
+    return false
+  }
+
   /// Checks if type is Optional<T>
   public static func isOptional(_ type: TypeSyntax) -> Bool {
     type.is(OptionalTypeSyntax.self)

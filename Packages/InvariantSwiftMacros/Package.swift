@@ -119,6 +119,7 @@ let package = Package(
       name: "InvariantSwiftMacroTests",
       dependencies: [
         "InvariantSwiftMacros",
+        .product(name: "InvariantSwiftCore", package: "InvariantSwiftCore"),
         .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
         // For recording golden files: the same expansion assertMacroExpansion runs.
         .product(name: "SwiftParser", package: "swift-syntax"),

@@ -1,3 +1,4 @@
+import InvariantSwiftExpansionSupport
 import SwiftCompilerPlugin
 import SwiftDiagnostics
 import SwiftSyntax
@@ -32,32 +33,8 @@ public struct EquivalenceMacro: PeerMacro {
       return []
     }
 
-    // 2. Extract and validate parameters
-    let parameters = ParameterExtractor.extract(from: funcDecl)
-
-    guard parameters.count == 2 else {
-      context.diagnose(
-        Diagnostic(
-          node: funcDecl.signature.parameterClause,
-          message: EquivalenceDiagnostic.requiresTwoFunctionParameters
-        )
-      )
-      return []
-    }
-
-    let refParam = parameters[0]
-    let candParam = parameters[1]
-
-    // Both parameters should be function types
-    guard let refFuncType = refParam.type.as(FunctionTypeSyntax.self),
-      candParam.type.as(FunctionTypeSyntax.self) != nil
-    else {
-      context.diagnose(
-        Diagnostic(
-          node: funcDecl.signature.parameterClause,
-          message: EquivalenceDiagnostic.incompatibleFunctionTypes
-        )
-      )
+    // 2. Validate the reference and candidate parameters
+    guard let validated = validatedParameters(of: funcDecl, in: context) else {
       return []
     }
 
@@ -65,40 +42,62 @@ public struct EquivalenceMacro: PeerMacro {
     let config = EquivalenceConfigExtractor.extract(from: node)
 
     // 4. CRITICAL: Validate tolerance only used with BinaryFloatingPoint types
-    if config.tolerance != nil {
-      // Extract output type from function return type
-      let outputType = TypeSyntax(refFuncType.returnClause.type)
-      let typeName = TypeAnalyzer.baseTypeName(from: outputType)
-      let floatingPointTypes: Set<String> = [
-        "Double", "Float", "Float16", "Float80", "CGFloat",
-      ]
-
-      if !floatingPointTypes.contains(typeName) {
-        context.diagnose(
-          Diagnostic(
-            node: node,
-            message: EquivalenceDiagnostic.toleranceRequiresBinaryFloatingPoint
-          )
-        )
-        return []
-      }
+    guard
+      validateTolerance(
+        config,
+        returnType: TypeSyntax(validated.refFuncType.returnClause.type),
+        at: node,
+        in: context
+      )
+    else {
+      return []
     }
 
     // 5. Build generator inference
-    let inputTypes = extractInputTypes(from: refFuncType)
+    let inputTypes = extractInputTypes(from: validated.refFuncType)
     let generatorExpr = buildGeneratorExpression(for: inputTypes)
 
     // 6. Build wrapper enum with @Test function
     let wrapperEnum = buildWrapperEnum(
-      functionName: funcDecl.name.text,
-      refParam: refParam,
-      candParam: candParam,
-      refFuncType: refFuncType,
-      generatorExpr: generatorExpr,
-      config: config
+      plan: TestPlan(
+        functionName: funcDecl.name.text,
+        refParam: validated.reference,
+        candParam: validated.candidate,
+        refFuncType: validated.refFuncType,
+        generatorExpr: generatorExpr,
+        config: config
+      )
     )
 
     return [DeclSyntax(wrapperEnum)]
+  }
+
+  // MARK: - TestPlan
+
+  /// Everything the generated test needs, gathered once so that the builders below do
+  /// not each take the same five arguments.
+  private struct TestPlan {
+    let functionName: String
+    let refParam: ExtractedParameter
+    let candParam: ExtractedParameter
+    let refFuncType: FunctionTypeSyntax
+    let generatorExpr: ExprSyntax
+    let config: EquivalenceMacroConfig
+
+    /// Effects are read off the compared closures' type, not the annotated function:
+    /// `(Int) async -> Int` has to be awaited, and the generated test awaits it, so the
+    /// test itself must be async.
+    var isAsync: Bool { refFuncType.effectSpecifiers?.asyncSpecifier != nil }
+
+    var isThrowing: Bool { refFuncType.effectSpecifiers?.throwsClause != nil }
+
+    /// The arguments for one call. A closure taking several parameters cannot be called
+    /// with the generated tuple as a single argument, so the tuple is spread.
+    var callArguments: [String] {
+      let count = refFuncType.parameters.count
+      guard count > 1 else { return ["input"] }
+      return (0..<count).map { "input.\($0)" }
+    }
   }
 
   // MARK: - Helper Methods
@@ -125,25 +124,11 @@ public struct EquivalenceMacro: PeerMacro {
   }
 
   /// Builds the wrapper enum containing the @Test function.
-  // swiftlint:disable:next function_parameter_count
-  private static func buildWrapperEnum(
-    functionName: String,
-    refParam: ExtractedParameter,
-    candParam: ExtractedParameter,
-    refFuncType: FunctionTypeSyntax,
-    generatorExpr: ExprSyntax,
-    config: EquivalenceMacroConfig
-  ) -> EnumDeclSyntax {
-    let enumName = "\(functionName)_EquivalenceTest"
-    let testName = functionName
+  private static func buildWrapperEnum(plan: TestPlan) -> EnumDeclSyntax {
+    let enumName = "\(plan.functionName)_EquivalenceTest"
+    let testName = plan.functionName
 
-    let testBody = buildTestBody(
-      refParam: refParam,
-      candParam: candParam,
-      refFuncType: refFuncType,
-      generatorExpr: generatorExpr,
-      config: config
-    )
+    let testBody = buildTestBody(plan: plan)
 
     let testFunc = FunctionDeclSyntax(
       attributes: AttributeListSyntax {
@@ -168,6 +153,7 @@ public struct EquivalenceMacro: PeerMacro {
           parameters: FunctionParameterListSyntax {}
         ),
         effectSpecifiers: FunctionEffectSpecifiersSyntax(
+          asyncSpecifier: plan.isAsync ? .keyword(.async) : nil,
           throwsClause: ThrowsClauseSyntax(throwsSpecifier: .keyword(.throws))
         )
       ),
@@ -188,15 +174,14 @@ public struct EquivalenceMacro: PeerMacro {
   }
 
   /// Builds the test function body.
-  // swiftlint:disable:next function_parameter_count
-  private static func buildTestBody(
-    refParam: ExtractedParameter,
-    candParam: ExtractedParameter,
-    refFuncType: FunctionTypeSyntax,
-    generatorExpr: ExprSyntax,
-    config: EquivalenceMacroConfig
-  ) -> CodeBlockSyntax {
+  private static func buildTestBody(plan: TestPlan) -> CodeBlockSyntax {
     CodeBlockSyntax {
+      // let reference: (Int) -> Int = oldSort
+      buildImplementationBinding(for: plan.refParam)
+
+      // let candidate: (Int) -> Int = newSort
+      buildImplementationBinding(for: plan.candParam)
+
       // for _ in 0..<iterations
       ForStmtSyntax(
         pattern: IdentifierPatternSyntax(identifier: .identifier("_")),
@@ -204,34 +189,47 @@ public struct EquivalenceMacro: PeerMacro {
           leftOperand: IntegerLiteralExprSyntax(literal: .integerLiteral("0")),
           operator: BinaryOperatorExprSyntax(operator: .binaryOperator("..<")),
           rightOperand: IntegerLiteralExprSyntax(
-            literal: .integerLiteral("\(config.iterations)")
+            literal: .integerLiteral("\(plan.config.iterations)")
           )
         ),
         body: CodeBlockSyntax {
           // var rng = ..., let input = generator.generate(&rng, Size.default)
-          for item in buildInputGeneration(generatorExpr: generatorExpr) {
+          for item in buildInputGeneration(generatorExpr: plan.generatorExpr) {
             item
           }
 
           // let referenceResult = reference(input)
-          buildFunctionCall(
-            resultName: "referenceResult",
-            functionName: refParam.name,
-            inputPattern: buildInputPattern(from: refFuncType)
-          )
+          buildFunctionCall(resultName: "referenceResult", callee: plan.refParam.name, plan: plan)
 
           // let candidateResult = candidate(input)
-          buildFunctionCall(
-            resultName: "candidateResult",
-            functionName: candParam.name,
-            inputPattern: buildInputPattern(from: refFuncType)
-          )
+          buildFunctionCall(resultName: "candidateResult", callee: plan.candParam.name, plan: plan)
 
           // Comparison logic (with or without tolerance)
-          buildComparisonLogic(config: config)
+          buildComparisonLogic(config: plan.config)
         }
       )
     }
+  }
+
+  /// Binds a parameter's default value to its own name, so the generated peer test can
+  /// reach the implementation the annotated function only names as a default.
+  private static func buildImplementationBinding(
+    for param: ExtractedParameter
+  ) -> VariableDeclSyntax {
+    VariableDeclSyntax(
+      bindingSpecifier: .keyword(.let),
+      bindings: PatternBindingListSyntax {
+        PatternBindingSyntax(
+          pattern: IdentifierPatternSyntax(identifier: .identifier(param.name)),
+          // Only `@escaping` and friends come off. Dropping every attribute would lose
+          // `@MainActor` here, and the assignment would stop compiling.
+          typeAnnotation: TypeAnnotationSyntax(
+            type: TypeAnalyzer.withoutParameterAttributes(param.type)
+          ),
+          initializer: param.defaultValue.map { InitializerClauseSyntax(value: $0.trimmed) }
+        )
+      }
+    )
   }
 
   /// Builds input generation statements (var rng and let input).
@@ -297,42 +295,23 @@ public struct EquivalenceMacro: PeerMacro {
   /// Builds function call statement.
   private static func buildFunctionCall(
     resultName: String,
-    functionName: String,
-    inputPattern: String
+    callee: String,
+    plan: TestPlan
   ) -> VariableDeclSyntax {
-    VariableDeclSyntax(
+    let arguments = plan.callArguments.joined(separator: ", ")
+    let effects = "\(plan.isThrowing ? "try " : "")\(plan.isAsync ? "await " : "")"
+
+    return VariableDeclSyntax(
       bindingSpecifier: .keyword(.let),
       bindings: PatternBindingListSyntax {
         PatternBindingSyntax(
           pattern: IdentifierPatternSyntax(identifier: .identifier(resultName)),
           initializer: InitializerClauseSyntax(
-            value: FunctionCallExprSyntax(
-              calledExpression: DeclReferenceExprSyntax(baseName: .identifier(functionName)),
-              leftParen: .leftParenToken(),
-              arguments: LabeledExprListSyntax {
-                LabeledExprSyntax(
-                  expression: DeclReferenceExprSyntax(
-                    baseName: .identifier(inputPattern)
-                  )
-                )
-              },
-              rightParen: .rightParenToken()
-            )
+            value: MacroExpansionEscapeHatches.expression("\(effects)\(callee)(\(arguments))")
           )
         )
       }
     )
-  }
-
-  /// Builds input pattern (either "input" for single param or tuple destructuring).
-  private static func buildInputPattern(from funcType: FunctionTypeSyntax) -> String {
-    if funcType.parameters.count == 1 {
-      return "input"
-    } else {
-      // For multiple parameters, we'd need tuple destructuring
-      // For now, assume single parameter
-      return "input"
-    }
   }
 
   /// Builds comparison logic (with or without tolerance).

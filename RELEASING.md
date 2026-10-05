@@ -19,7 +19,11 @@ For day-to-day repository operating behavior, follow `AGENTS.md`.
 - Push-triggered releases are approved automation unless `[skip release]` suppresses them.
 - Once a version has been released, its contents must not be modified.
 - Any post-release change requires a new version.
-- Release from validated `main`, not from a long-lived release branch.
+- Stabilize a release on a short-lived `release/<version>` branch cut from `develop`, then
+  merge it into `main`. The tag is created from `main`, never from `develop` or from the
+  release branch directly.
+- Merge every `release/` and `hotfix/` branch back into `develop` once it has landed on
+  `main`, so released fixes are not reverted by the next release.
 
 ---
 
@@ -143,7 +147,10 @@ Bad:
 
 ## Release Checklist
 
-Before releasing:
+Cut `release/<version>` from `develop` and stabilize there. Land only fixes, docs, and
+version metadata on it, then merge it into both `main` and `develop`.
+
+On that branch, before merging to `main`:
 
 1. Confirm intended release scope.
 2. Ensure worktree is clean.

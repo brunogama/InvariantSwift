@@ -1,12 +1,16 @@
 # Contributing to InvariantSwift
 
-We welcome contributions to InvariantSwift. This repository uses trunk-based development with `main` as the target branch.
+We welcome contributions to InvariantSwift. This repository uses Git Flow: `main` holds
+released code, `develop` is the integration branch, and your work goes on a `feature/` or
+`bugfix/` branch cut from `develop`.
 
+- Branch from `develop` and open your pull request against `develop`.
 - Keep changes small and focused.
 - Prefer the smallest mergeable slice.
-- Use a short-lived branch and merge it back quickly.
 - Hide incomplete work behind a feature flag or inactive path.
-- Do not rely on long-lived feature or release branches.
+- Leave `main` alone. It advances only through a release or hotfix merge.
+
+`WORKFLOW.md` describes the full branch model, including how releases and hotfixes are cut.
 
 ---
 
@@ -18,11 +22,14 @@ We use GitHub to host code, track issues and feature requests, and accept pull r
 
 ## Pull Request Process
 
-1. Fork the repository and create a short-lived branch from `main`.
+1. Fork the repository and create a `feature/<area>-<topic>` branch from `develop`.
 2. Make one focused logical change.
 3. Add tests for code changes and update documentation for API changes.
 4. Run the local validation commands.
-5. Open a small pull request against `main`.
+5. Open a small pull request against `develop`.
+
+An urgent fix to already-released code is the one exception: cut `hotfix/<topic>` from
+`main` and say so in the pull request, so it can be merged into both `main` and `develop`.
 
 ---
 
@@ -33,6 +40,8 @@ We use GitHub to host code, track issues and feature requests, and accept pull r
 - Shared: Swift 6.2.4+
 - Linux: Ubuntu LTS
 - Apple platforms: Xcode 16.4+ on macOS 15.3+
+- Optional: the git-flow AVH extension (`brew install git-flow-avh`) if you prefer
+  `git flow` subcommands over plain git
 
 ### Getting Started
 
@@ -54,13 +63,22 @@ We use GitHub to host code, track issues and feature requests, and accept pull r
    curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to ~/.local/bin
    ```
 
-3. **Resolve dependencies**
+3. **Configure the branch model**
+
+   ```bash
+   scripts/gitflow-init.sh
+   ```
+
+   This points git-flow at `main` and `develop` and sets the branch prefixes. It is safe to
+   run without the extension installed, and safe to re-run.
+
+4. **Resolve dependencies**
 
    ```bash
    swift package resolve
    ```
 
-4. **Build and test**
+5. **Build and test**
 
    ```bash
    swift build
@@ -78,7 +96,6 @@ just format
 just lint
 swift build -Xswiftc -warnings-as-errors
 swift test --parallel
-scripts/change-budget.sh --mode range --base origin/main --head HEAD
 ```
 
 ---
@@ -216,7 +233,8 @@ docs(readme): update installation instructions
 
 ### Pull Request Guidelines
 
-1. **Branch Naming**: Use short names such as `feat/uuid-generator` or `fix/shrinking-bug`.
+1. **Branch Naming**: Use the Git Flow prefix for the branch's role, such as
+   `feature/uuid-generator`, `bugfix/shrinking-bug`, or `hotfix/coverage-helper-path`.
 2. **PR Title**: Use Conventional Commit format.
 3. **PR Description**: Explain what changed, why, how to test it, and any breaking changes.
 4. **Checklist**:
@@ -224,7 +242,7 @@ docs(readme): update installation instructions
    - [ ] Documentation updated when needed
    - [ ] User-facing changes described for the generated release notes
    - [ ] All validation gates pass
-   - [ ] The change budget is acceptable
+   - [ ] The pull request targets `develop`, or `main` for a release or hotfix
    - [ ] Incomplete work is protected by a feature flag or not merged
 
 ---

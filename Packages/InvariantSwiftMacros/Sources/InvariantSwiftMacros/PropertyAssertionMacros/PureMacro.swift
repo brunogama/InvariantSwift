@@ -38,9 +38,16 @@ public struct PureMacro: PeerMacro {
       return []
     }
 
-    // Validate return type is not Void
+    // Validate return type is not Void. An omitted return clause and an explicit
+    // `-> Void` or `-> ()` mean the same thing, and comparing two Void results is
+    // `() == ()`, which holds whatever the function did.
     guard let returnClause = funcDecl.signature.returnClause else {
       ctx.error(PropertyAssertionDiagnostic.voidReturnNotAllowed, at: funcDecl.signature)
+      return []
+    }
+
+    guard !TypeAnalyzer.isVoid(returnClause.type) else {
+      ctx.error(PropertyAssertionDiagnostic.voidReturnNotAllowed, at: returnClause)
       return []
     }
 
@@ -351,11 +358,7 @@ public struct PureMacro: PeerMacro {
           ClosureParameterClauseSyntax(parameters: closureParams)
         )
       ),
-      statements: CodeBlockItemListSyntax {
-        CodeBlockItemSyntax(
-          item: .expr(MacroExpansionEscapeHatches.expression(bodyCode))
-        )
-      }
+      statements: MacroExpansionEscapeHatches.statements(bodyCode)
     )
   }
 

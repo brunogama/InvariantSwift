@@ -11,18 +11,24 @@ public struct ExtractedParameter {
   public let hasDefaultValue: Bool
   public let attributes: [AttributeSyntax]
 
+  /// The parameter's default value, for macros that need to reproduce it in generated
+  /// code rather than only know that one exists.
+  public let defaultValue: ExprSyntax?
+
   public init(
     name: String,
     type: TypeSyntax,
     isOptional: Bool = false,
     hasDefaultValue: Bool = false,
-    attributes: [AttributeSyntax] = []
+    attributes: [AttributeSyntax] = [],
+    defaultValue: ExprSyntax? = nil
   ) {
     self.name = name
     self.type = type
     self.isOptional = isOptional
     self.hasDefaultValue = hasDefaultValue
     self.attributes = attributes
+    self.defaultValue = defaultValue
   }
 }
 
@@ -58,7 +64,8 @@ public enum ParameterExtractor {
       type: type,
       isOptional: isOptional,
       hasDefaultValue: hasDefault,
-      attributes: attributes
+      attributes: attributes,
+      defaultValue: param.defaultValue?.value
     )
   }
 
