@@ -20,30 +20,6 @@ private enum throwingAssertions_PropertyTest {
         try executeGeneratedPropertyTest(property, config: config, testName: "throwingAssertions", labels: ["value"], persistFailures: false)
     }
 }
-func throwingPredicate(value: Int) throws -> Bool {
-  return value > 0
-}
-
-private enum throwingPredicate_PropertyTest {
-    @Test("throwingPredicate", InvariantSwiftPropertyExecutionTrait(testName: "throwingPredicate", labels: ["value"], configuredSeed: nil), .tags(.invariantSwiftPropertyBased)) static func run() throws {
-        let generator: Gen<Int> = Gen<Int>.int
-        let property = Property(generator: generator) { (value: Int) in
-            do {
-                guard try { () throws -> Bool in
-                  return value > 0
-                }() else {
-                    return false
-                }
-            } catch {
-                Issue.record(error)
-                return false
-            }
-            return true
-        }
-        let config = PropertyConfig(iterations: 100, maxShrinks: 1000)
-        try executeGeneratedPropertyTest(property, config: config, testName: "throwingPredicate", labels: ["value"], persistFailures: false)
-    }
-}
 func replayingThrowingPredicate(value: Int) throws -> Bool {
   return value > 0
 }
