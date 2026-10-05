@@ -118,9 +118,9 @@ Notes:
 
 ### `@AsyncPropertyTest`
 
-Use `@AsyncPropertyTest` for async properties and scheduler-driven concurrent interleavings. It supports the same forwarded Swift Testing traits as `@PropertyTest`.
+Use `@AsyncPropertyTest` for async properties and scheduler-driven concurrent interleavings. It forwards tags, bugs, time limits, and conditional enablement. Its current `serialized: true` expansion still attaches `.serialized` to a non-parameterized test, which Swift Testing warns has no effect. For async properties, leave that flag false and mark the enclosing suite `@Suite(.serialized)` instead.
 
-The throwing-body adapter described above applies only to synchronous `@PropertyTest` bodies. `@AsyncPropertyTest` uses a separate scheduler-based expansion; this adapter does not change its throwing-body support.
+The throwing-body adapter above supports synchronous `@PropertyTest` bodies. It does not make an async throwing function supported by `@PropertyTest`: that signature still receives a non-async closure and fails to compile. `@AsyncPropertyTest` uses a separate scheduler-based expansion without this adapter; its throwing-body support is not changed here.
 
 ```swift
 import InvariantSwiftTesting
